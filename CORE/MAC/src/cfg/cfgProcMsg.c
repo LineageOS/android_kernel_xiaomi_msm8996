@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1897,11 +1897,11 @@ struct cgstatic cfg_static[WNI_CFG_MAX] = {
 	 WNI_CFG_ASSOC_STA_LIMIT_AP_STAMAX,
 	 WNI_CFG_ASSOC_STA_LIMIT_AP_STADEF},
 
-	{WNI_CFG_SAP_MAX_MCS_DATA,
+	{WNI_CFG_MAX_HT_MCS_TX_DATA,
 	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_INT,
-	 WNI_CFG_SAP_MAX_MCS_DATA_MIN,
-	 WNI_CFG_SAP_MAX_MCS_DATA_MAX,
-	 WNI_CFG_SAP_MAX_MCS_DATA_DEF},
+	 WNI_CFG_MAX_HT_MCS_TX_DATA_STAMIN,
+	 WNI_CFG_MAX_HT_MCS_TX_DATA_STAMAX,
+	 WNI_CFG_MAX_HT_MCS_TX_DATA_STADEF},
 
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -472,6 +472,7 @@ static int wma_smps_force_mode_callback(WMA_HANDLE handle, uint8_t *event_buf,
 static void wma_send_time_stamp_sync_cmd(void *data);
 
 tANI_U8 wma_getCenterChannel(tANI_U8 chan, tANI_U8 chan_offset);
+
 
 /*
  * 802.11n D2.0 defined values for "Minimum MPDU Start Spacing":
@@ -7922,43 +7923,51 @@ wma_chan_info_event_handler(void *handle, u_int8_t *event_buf,
 			return -EINVAL;
 		}
 		event = param_buf->fixed_param;
-		if (event->cmd_flags == WMA_CHAN_END_RESP) {
-			channel_status =
-				 vos_mem_malloc(sizeof(*channel_status));
-			if (!channel_status) {
-				WMA_LOGE
-					(FL("Mem alloc fail"));
-				return -ENOMEM;
-			}
-			WMA_LOGI(
-				FL("freq=%d nf=%d rx_cnt=%d tx_pwr=%d"),
-				 event->freq,
-				 event->noise_floor,
-				 event->rx_clear_count,
-				 event->chan_tx_pwr_tp);
-
-			channel_status->channelfreq = event->freq;
-			channel_status->noise_floor = event->noise_floor;
-			channel_status->rx_clear_count =
-				 event->rx_clear_count;
-			channel_status->cycle_count = event->cycle_count;
-			channel_status->chan_tx_pwr_range =
-				 event->chan_tx_pwr_range;
-			channel_status->chan_tx_pwr_throughput =
-				 event->chan_tx_pwr_tp;
-			channel_status->rx_frame_count =
-				 event->rx_frame_count;
-			channel_status->bss_rx_cycle_count =
-				event->my_bss_rx_cycle_count;
-			channel_status->rx_11b_mode_data_duration =
-				event->rx_11b_mode_data_duration;
-			channel_status->channel_id =
-				vos_freq_to_chan(event->freq);
-
-			wma_send_msg(handle,
-				WDA_RX_CHN_STATUS_EVENT,
-				 (void *) channel_status, 0);
+		channel_status =
+			vos_mem_malloc(sizeof(*channel_status));
+		if (!channel_status) {
+			WMA_LOGE(FL("Mem alloc fail"));
+			return -ENOMEM;
 		}
+		WMA_LOGI(FL("freq=%d nf=%d rx_cnt=%d cycle_count=%d "
+			    "tx_pwr_range=%d tx_pwr_tput=%d "
+			    "rx_frame_count=%d my_bss_rx_cycle_count=%d "
+			    "rx_11b_mode_data_duration=%d cmd_flags=%d"),
+			 event->freq,
+			 event->noise_floor,
+			 event->rx_clear_count,
+			 event->cycle_count,
+			 event->chan_tx_pwr_range,
+			 event->chan_tx_pwr_tp,
+			 event->rx_frame_count,
+			 event->my_bss_rx_cycle_count,
+			 event->rx_11b_mode_data_duration,
+			 event->cmd_flags
+			);
+
+		channel_status->channelfreq = event->freq;
+		channel_status->noise_floor = event->noise_floor;
+		channel_status->rx_clear_count =
+			 event->rx_clear_count;
+		channel_status->cycle_count = event->cycle_count;
+		channel_status->chan_tx_pwr_range =
+			 event->chan_tx_pwr_range;
+		channel_status->chan_tx_pwr_throughput =
+			 event->chan_tx_pwr_tp;
+		channel_status->rx_frame_count =
+			 event->rx_frame_count;
+		channel_status->bss_rx_cycle_count =
+			event->my_bss_rx_cycle_count;
+		channel_status->rx_11b_mode_data_duration =
+			event->rx_11b_mode_data_duration;
+		channel_status->channel_id =
+			vos_freq_to_chan(event->freq);
+		channel_status->cmd_flags =
+			event->cmd_flags;
+
+		wma_send_msg(handle,
+			WDA_RX_CHN_STATUS_EVENT,
+			 (void *) channel_status, 0);
 	}
 	return 0;
 }
@@ -13934,6 +13943,77 @@ free_tgt_req:
 	adf_os_mem_free(tgt_req);
 }
 
+static void
+wma_update_beacon_interval(tp_wma_handle wma, u_int8_t vdev_id,
+                           u_int16_t beacon_interval);
+/**
+ * wma_vdev_reset_beacon_interval_timer() - reset beacon interval back
+ * to its original value after the channel switch.
+ *
+ * @data: data
+ *
+ * Return: void
+ */
+void wma_vdev_reset_beacon_interval_timer(void *data)
+{
+	tp_wma_handle wma;
+	struct wma_beacon_interval_reset_req *req =
+		(struct wma_beacon_interval_reset_req *)data;
+	void *vos_context =
+		vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	uint16_t beacon_interval = req->interval;
+	uint8_t vdev_id = req->vdev_id;
+	wma = (tp_wma_handle)vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+
+	if (NULL == wma) {
+	    WMA_LOGE("%s: Failed to get wma", __func__);
+	    goto end;
+	}
+
+	/* Change the beacon interval back to its original value */
+	WMA_LOGE("%s: Change beacon interval back to %d",
+			__func__, beacon_interval);
+	wma_update_beacon_interval(wma, vdev_id, beacon_interval);
+
+end:
+	vos_timer_stop(&req->event_timeout);
+	vos_timer_destroy(&req->event_timeout);
+	adf_os_mem_free(req);
+}
+
+/**
+ * wma_fill_beacon_interval_reset_req() - req to reset beacon interval
+ *
+ * @wma: wma handle
+ * @vdev_id: vdev id
+ * @beacon_interval: beacon interval
+ * @timeout: timeout val
+ *
+ * Return: status
+ */
+int wma_fill_beacon_interval_reset_req(tp_wma_handle wma, uint8_t vdev_id,
+				uint16_t beacon_interval, uint32_t timeout)
+{
+	struct wma_beacon_interval_reset_req *req;
+
+	req = adf_os_mem_alloc(NULL, sizeof(*req));
+	if (!req) {
+	    WMA_LOGE("%s: Failed to allocate memory"
+			"for beacon_interval_reset_req vdev %d",
+			__func__, vdev_id);
+	    return -ENOMEM;
+	}
+
+	WMA_LOGD("%s: vdev_id %d ", __func__, vdev_id);
+	req->vdev_id = vdev_id;
+	req->interval = beacon_interval;
+	vos_timer_init(&req->event_timeout, VOS_TIMER_TYPE_SW,
+		wma_vdev_reset_beacon_interval_timer, req);
+	vos_timer_start(&req->event_timeout, timeout);
+
+	return 0;
+}
+
 struct wma_target_req *wma_fill_vdev_req(tp_wma_handle wma, u_int8_t vdev_id,
 					 u_int32_t msg_type, u_int8_t type,
 					 void *params, u_int32_t timeout)
@@ -14158,6 +14238,7 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
         ol_txrx_peer_handle peer;
         ol_txrx_pdev_handle pdev;
         struct wma_txrx_node *intr = wma->interfaces;
+        uint16_t beacon_interval_ori;
 
 	WMA_LOGD("%s: Enter", __func__);
         if (!wma_find_vdev_by_addr(wma, params->selfStaMacAddr, &vdev_id)) {
@@ -14259,6 +14340,34 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 	if ((wma_is_vdev_in_ap_mode(wma, req.vdev_id) == true) ||
 		params->restart_on_chan_switch == VOS_TRUE)
 		wma->interfaces[req.vdev_id].is_channel_switch = VOS_TRUE;
+
+	if ((wma_is_vdev_in_ap_mode(wma, req.vdev_id) == true)) {
+		if (params->reduced_beacon_interval) {
+			/* Reduce the beacon interval just before the channel switch.
+			 * This would help in reducing the downtime on the STA side
+			 * (which is waiting for beacons from the AP to resume back
+			 * transmission). Switch back the beacon_interval to its
+			 * original value after the channel switch based on the
+			 * timeout. This would ensure there are atleast some beacons
+			 * sent with increased frequency.
+			 */
+
+			WMA_LOGD("%s: Changing beacon interval to %d",
+				__func__, params->reduced_beacon_interval);
+
+			/* Add a timer to reset the beacon interval back*/
+			beacon_interval_ori = req.beacon_intval;
+			req.beacon_intval = params->reduced_beacon_interval;
+			if (wma_fill_beacon_interval_reset_req(wma,
+				req.vdev_id,
+				beacon_interval_ori,
+				RESET_BEACON_INTERVAL_TIMEOUT)) {
+
+				WMA_LOGD("%s: Failed to fill beacon"
+					" interval reset req", __func__);
+			}
+		}
+	}
 
 	if ((VOS_MONITOR_MODE == vos_get_conparam()) && wma_is_vdev_up(0)) {
 		status = wma_switch_channel(wma, &req);
@@ -14400,6 +14509,58 @@ static void wma_update_txrx_chainmask(int num_rf_chains, int *cmd_value)
 	}
 }
 
+#define CFG_CTRL_MASK              0xFF00
+#define CFG_DATA_MASK              0x00FF
+
+/**
+ * wma_mask_tx_ht_rate() - mask tx ht rate based on config
+ * @wma:     wma handle
+ * @mcs_set  mcs set buffer
+ *
+ * Return: None
+ */
+static void wma_mask_tx_ht_rate(tp_wma_handle wma, uint8_t *mcs_set)
+{
+	uint32_t mcs_limit, i, j;
+	uint8_t *rate_pos = mcs_set;
+
+	/*
+	 * Get MCS limit from ini configure, and map it to rate parameters
+	 * This will limit HT rate upper bound. CFG_CTRL_MASK is used to
+	 * check whether ini config is enabled and CFG_DATA_MASK to get the
+	 * MCS value.
+	 */
+	if (wlan_cfgGetInt(wma->mac_context, WNI_CFG_MAX_HT_MCS_TX_DATA,
+			   &mcs_limit) != eSIR_SUCCESS) {
+		mcs_limit = WNI_CFG_MAX_HT_MCS_TX_DATA_STADEF;
+	}
+
+	if (mcs_limit & CFG_CTRL_MASK) {
+		WMA_LOGD("%s: set mcs_limit %x", __func__, mcs_limit);
+
+		mcs_limit &= CFG_DATA_MASK;
+		for (i = 0, j = 0; i < MAX_SUPPORTED_RATES;) {
+			if (j < mcs_limit / 8) {
+				rate_pos[j] = 0xff;
+				j++;
+				i += 8;
+			} else if (j < mcs_limit / 8 + 1) {
+				if (i <= mcs_limit)
+					rate_pos[i / 8] |= 1 << (i % 8);
+				else
+					rate_pos[i / 8] &= ~(1 << (i % 8));
+				i++;
+
+				if (i >= (j + 1) * 8)
+					j++;
+			} else {
+				rate_pos[j++] = 0;
+				i += 8;
+			}
+		}
+	}
+}
+
 static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 					   tSirNwType nw_type,
 					   tpAddStaParams params)
@@ -14433,6 +14594,8 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		WMA_LOGE("%s: Failed to get pdev", __func__);
 		return -EINVAL;
 	}
+
+	wma_mask_tx_ht_rate(wma, params->supportedRates.supportedMCSSet);
 
 	vos_mem_zero(&peer_legacy_rates, sizeof(wmi_rate_set));
 	vos_mem_zero(&peer_ht_rates, sizeof(wmi_rate_set));
@@ -17490,8 +17653,6 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 	VOS_STATUS status;
 	int32_t ret;
 	struct wma_txrx_node *iface = NULL;
-	uint32_t mcs_limit, i, j;
-	uint8_t *rate_pos;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
 
@@ -17569,46 +17730,6 @@ static void wma_add_sta_req_ap_mode(tp_wma_handle wma, tpAddStaParams add_sta)
 	}
 
 	wmi_unified_send_txbf(wma, add_sta);
-
-	/*
-	 * Get MCS limit from ini configure, and map it to rate parameters
-	 * This will limit HT rate upper bound. CFG_CTRL_MASK is used to
-	 * check whether ini config is enabled and CFG_DATA_MASK to get the
-	 * MCS value.
-	 */
-#define CFG_CTRL_MASK              0xFF00
-#define CFG_DATA_MASK              0x00FF
-
-	if (wlan_cfgGetInt(wma->mac_context, WNI_CFG_SAP_MAX_MCS_DATA,
-			   &mcs_limit) != eSIR_SUCCESS) {
-		mcs_limit = WNI_CFG_SAP_MAX_MCS_DATA_DEF;
-	}
-
-	if (mcs_limit & CFG_CTRL_MASK) {
-		WMA_LOGD("%s: set mcs_limit %x", __func__, mcs_limit);
-
-		mcs_limit &= CFG_DATA_MASK;
-		rate_pos = (u_int8_t *)add_sta->supportedRates.supportedMCSSet;
-		for (i = 0, j = 0; i < MAX_SUPPORTED_RATES;) {
-			if (j < mcs_limit / 8) {
-				rate_pos[j] = 0xff;
-				j++;
-				i += 8;
-			} else if (j < mcs_limit / 8 + 1) {
-				if (i <= mcs_limit)
-					rate_pos[i / 8] |= 1 << (i % 8);
-				else
-					rate_pos[i / 8] &= ~(1 << (i % 8));
-				i++;
-
-				if (i >= (j + 1) * 8)
-					j++;
-			} else {
-				rate_pos[j++] = 0;
-				i += 8;
-			}
-		}
-	}
 
 	ret = wmi_unified_send_peer_assoc(wma, add_sta->nwType, add_sta);
 	if (ret) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3456,6 +3456,15 @@ limProcessBeaconTxSuccessInd(tpAniSirGlobal pMac, tANI_U16 msgType, void *event)
           * Send the next beacon with updated CSA IE count
           */
           limSendDfsChanSwIEUpdate(pMac, psessionEntry);
+
+          if (pMac->sap.SapDfsInfo.dfs_beacon_tx_enhanced) {
+              /* Send Action frame after updating the beacon */
+              lim_send_chan_switch_action_frame(pMac,
+                  psessionEntry->gLimChannelSwitch.primaryChannel,
+                  psessionEntry->gLimChannelSwitch.secondarySubBand,
+                  psessionEntry);
+          }
+
           /* Decrement the IE count */
           psessionEntry->gLimChannelSwitch.switchCount--;
       }

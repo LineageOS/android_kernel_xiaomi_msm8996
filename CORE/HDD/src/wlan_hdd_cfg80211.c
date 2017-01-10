@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -5944,8 +5944,7 @@ static void hdd_link_layer_process_radio_stats(hdd_adapter_t *pAdapter,
  * after receiving Link Layer indications from FW.This callback converts the
  * firmware data to the NL data and send the same to the kernel/upper layers.
  */
-static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx,
-                                                        int indType,
+static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx, int indType,
                                                         void *pRsp)
 {
     hdd_adapter_t *pAdapter = NULL;
@@ -7162,12 +7161,11 @@ static void wlan_hdd_cfg80211_ll_stats_ext_callback(tSirLLStatsResults *rsp)
 
 void wlan_hdd_cfg80211_link_layer_stats_init(hdd_context_t *pHddCtx)
 {
-    sme_SetLinkLayerStatsIndCB(pHddCtx->hHal,
-                                 wlan_hdd_cfg80211_link_layer_stats_callback);
-    sme_set_ll_ext_cb(pHddCtx->hHal,
-                      wlan_hdd_cfg80211_ll_stats_ext_callback);
+        sme_SetLinkLayerStatsIndCB(pHddCtx->hHal,
+                                   wlan_hdd_cfg80211_link_layer_stats_callback);
+        sme_set_ll_ext_cb(pHddCtx->hHal,
+                          wlan_hdd_cfg80211_ll_stats_ext_callback);
 }
-
 
 const struct
 nla_policy
@@ -8948,6 +8946,9 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 		return -EINVAL;
 	}
 	sap_config->acs_cfg.acs_mode = true;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+	if (is_auto_channel_select(WLAN_HDD_GET_SAP_CTX_PTR(adapter)))
+#endif
 	set_bit(ACS_IN_PROGRESS, &hdd_ctx->g_event_flags);
 
 	return 0;
@@ -9143,6 +9144,13 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 			sap_config->acs_cfg.ch_width == eHT_CHANNEL_WIDTH_80MHZ)
 			sap_config->acs_cfg.ch_width = eHT_CHANNEL_WIDTH_40MHZ;
 	}
+
+	sap_config->acsBandSwitchThreshold =
+		hdd_ctx->cfg_ini->acsBandSwitchThreshold;
+
+	if (hdd_ctx->cfg_ini->auto_channel_select_weight)
+		sap_config->auto_channel_select_weight =
+		    hdd_ctx->cfg_ini->auto_channel_select_weight;
 
 	hddLog(LOG1, FL("ACS Config for wlan%d: HW_MODE: %d ACS_BW: %d HT: %d VHT: %d START_CH: %d END_CH: %d"),
 		adapter->dev->ifindex, sap_config->acs_cfg.hw_mode,
@@ -9415,7 +9423,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_AGG_RETRY] = {.type = NLA_U8},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_MGMT_RETRY] = {.type = NLA_U8},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY] = {.type = NLA_U8},
-	[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY] = {.type = NLA_U8},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY] = {.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_ANT_DIV_ENA] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_ANT_DIV_CHAIN] = {.type = NLA_U32 },
@@ -9555,7 +9563,8 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	int ret_val = 0;
 	u32 modulated_dtim;
 	uint16_t stats_avg_factor, tx_rate;
-	uint8_t set_value, retry, delay, qpower;
+	uint8_t set_value, retry, qpower;
+	uint32_t delay;
 	u32 guard_time;
 	u32 ftm_capab;
 	eHalStatus status;
@@ -9779,7 +9788,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	}
 
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY]) {
-		delay = nla_get_u8(
+		delay = nla_get_u32(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY]);
 		delay = delay > CFG_PROPAGATION_DELAY_MAX ?
 				CFG_PROPAGATION_DELAY_MAX : delay;
@@ -15741,6 +15750,11 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     pConfig->sap_chanswitch_mode =
         iniConfig->sap_chanswitch_mode;
 
+    pConfig->dfs_beacon_tx_enhanced =
+        iniConfig->dfs_beacon_tx_enhanced;
+
+    pConfig->reduced_beacon_interval =
+        iniConfig->reduced_beacon_interval;
     //channel is already set in the set_channel Call back
     //pConfig->channel = pCommitConfig->channel;
 
@@ -26324,6 +26338,12 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
             if ((hb_params_temp->cmd == LPHB_SET_TCP_PARAMS_INDID) &&
                 (hb_params_temp->params.lphbTcpParamReq.timePeriodSec == 0))
                 return -EINVAL;
+
+            if (buf_len > sizeof(*hb_params)) {
+                hddLog(LOGE, FL("buf_len=%d exceeded hb_params size limit"),
+                       buf_len);
+                return -ERANGE;
+            }
 
             hb_params = (tSirLPHBReq *)vos_mem_malloc(sizeof(tSirLPHBReq));
             if (NULL == hb_params) {

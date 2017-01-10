@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1484,13 +1484,26 @@ typedef enum
 #define CFG_MAX_MPDUS_IN_AMPDU_DEFAULT          (0)
 
 /*
- * SAP TX MCS limit
- * Used only for HT rate configure.
+ * <ini>
+ * gMaxHTMCSForTxData - max HT mcs for TX
+ * @Min: 0
+ * @Max: 383
+ * @Default: 0
+ *
+ * This ini is used to configure the max HT mcs
+ * for tx data.
+ *
+ * Usage: External
+ *
+ * bits 0-15:  max HT mcs
+ * bits 16-31: zero to disable, otherwise enable.
+ *
+ * </ini>
  */
-#define CFG_SAP_MAX_MCS_FOR_TX_DATA                 "gSapMaxMCSForTxData"
-#define CFG_SAP_MAX_MCS_FOR_TX_DATA_MIN             (0)
-#define CFG_SAP_MAX_MCS_FOR_TX_DATA_MAX             (383)
-#define CFG_SAP_MAX_MCS_FOR_TX_DATA_DEFAULT         (0)
+#define CFG_MAX_HT_MCS_FOR_TX_DATA                 "gMaxHTMCSForTxData"
+#define CFG_MAX_HT_MCS_FOR_TX_DATA_MIN             (WNI_CFG_MAX_HT_MCS_TX_DATA_STAMIN)
+#define CFG_MAX_HT_MCS_FOR_TX_DATA_MAX             (WNI_CFG_MAX_HT_MCS_TX_DATA_STAMAX)
+#define CFG_MAX_HT_MCS_FOR_TX_DATA_DEFAULT         (WNI_CFG_MAX_HT_MCS_TX_DATA_STADEF)
 
 /*
  * RSSI Thresholds
@@ -1730,6 +1743,36 @@ typedef enum
 #define CFG_SAP_SCAN_BAND_PREFERENCE_MIN          (0)
 #define CFG_SAP_SCAN_BAND_PREFERENCE_MAX          (2)
 #define CFG_SAP_SCAN_BAND_PREFERENCE_DEFAULT      (0)
+
+/*
+ * <ini>
+ * gAutoChannelSelectWeight - ACS channel weight
+ * @Min: 0x1
+ * @Max: 0xFFFFFFFF
+ * @Default: 0x000000FF
+ *
+ * This ini is used to adjust weight of factors in
+ * acs algorithm.
+ *
+ * Supported Feature: ACS
+ *
+ * Usage: Internal/External
+ *
+ * bits 0-3:   rssi weight
+ * bits 4-7:   bss count weight
+ * bits 8-11:  noise floor weight
+ * bits 12-15: channel free weight
+ * bits 16-19: tx power range weight
+ * bits 20-23: tx power throughput weight
+ * bits 24-31: reserved
+ *
+ * </ini>
+ */
+#define CFG_AUTO_CHANNEL_SELECT_WEIGHT            "gAutoChannelSelectWeight"
+#define CFG_AUTO_CHANNEL_SELECT_WEIGHT_MIN        (0x1)
+#define CFG_AUTO_CHANNEL_SELECT_WEIGHT_MAX        (0xFFFFFFFF)
+#define CFG_AUTO_CHANNEL_SELECT_WEIGHT_DEFAULT    (0x000000FF)
+
 #define CFG_ACS_BAND_SWITCH_THRESHOLD             "gACSBandSwitchThreshold"
 #define CFG_ACS_BAND_SWITCH_THRESHOLD_MIN         (0)
 #define CFG_ACS_BAND_SWITCH_THRESHOLD_MAX         (4444)
@@ -4360,6 +4403,46 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_SAP_CH_SWITCH_MODE_MAX     (1)
 #define CFG_SAP_CH_SWITCH_MODE_DEFAULT (1)
 
+/*
+ * <ini>
+ * gDfsBeaconTxEnhanced - beacon tx enhanced
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to enhance dfs beacon tx
+ *
+ * Related: none
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_DFS_BEACON_TX_ENHANCED         "gDfsBeaconTxEnhanced"
+#define CFG_DFS_BEACON_TX_ENHANCED_MIN     (0)
+#define CFG_DFS_BEACON_TX_ENHANCED_MAX     (1)
+#define CFG_DFS_BEACON_TX_ENHANCED_DEFAULT (0)
+
+/*
+ * <ini>
+ * gReducedBeaconInterval - beacon interval reduced
+ * @Min: 0
+ * @Max: 100
+ * @Default: 0
+ *
+ * This ini is used to reduce beacon interval when val
+ * great than 0, or the feature is disabled.
+ *
+ * Related: none
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_REDUCED_BEACON_INTERVAL         "gReducedBeaconInterval"
+#define CFG_REDUCED_BEACON_INTERVAL_MIN     (0)
+#define CFG_REDUCED_BEACON_INTERVAL_MAX     (100)
+#define CFG_REDUCED_BEACON_INTERVAL_DEFAULT (0)
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -4863,9 +4946,10 @@ struct hdd_config {
    v_BOOL_t                    gEnableOverLapCh;
    v_BOOL_t                    fRegChangeDefCountry;
    v_U8_t                      acsScanBandPreference;
+   uint32_t                    auto_channel_select_weight;
    uint8_t                     enable_rts_sifsbursting;
    uint8_t                     max_mpdus_inampdu;
-   uint16_t                    sap_max_mcs_txdata;
+   uint16_t                    max_ht_mcs_txdata;
 #ifdef QCA_LL_TX_FLOW_CT
    v_U32_t                     TxFlowLowWaterMark;
    v_U32_t                     TxFlowHighWaterMarkOffset;
@@ -5198,6 +5282,8 @@ struct hdd_config {
    /* beacon count before channel switch */
    uint8_t                     sap_chanswitch_beacon_cnt;
    uint8_t                     sap_chanswitch_mode;
+   uint8_t                     dfs_beacon_tx_enhanced;
+   uint16_t                    reduced_beacon_interval;
 };
 
 typedef struct hdd_config hdd_config_t;

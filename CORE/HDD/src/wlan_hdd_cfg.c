@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2387,12 +2387,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_MAX_MPDUS_IN_AMPDU_MIN,
                  CFG_MAX_MPDUS_IN_AMPDU_MAX),
 
-   REG_VARIABLE(CFG_SAP_MAX_MCS_FOR_TX_DATA, WLAN_PARAM_Integer,
-                 hdd_config_t, sap_max_mcs_txdata,
+   REG_VARIABLE(CFG_MAX_HT_MCS_FOR_TX_DATA, WLAN_PARAM_HexInteger,
+                 hdd_config_t, max_ht_mcs_txdata,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_SAP_MAX_MCS_FOR_TX_DATA_DEFAULT,
-                 CFG_SAP_MAX_MCS_FOR_TX_DATA_MIN,
-                 CFG_SAP_MAX_MCS_FOR_TX_DATA_MAX),
+                 CFG_MAX_HT_MCS_FOR_TX_DATA_DEFAULT,
+                 CFG_MAX_HT_MCS_FOR_TX_DATA_MIN,
+                 CFG_MAX_HT_MCS_FOR_TX_DATA_MAX),
 
    REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFirstScan2GOnly,
@@ -3351,6 +3351,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_SCAN_BAND_PREFERENCE_DEFAULT,
                  CFG_SAP_SCAN_BAND_PREFERENCE_MIN,
                  CFG_SAP_SCAN_BAND_PREFERENCE_MAX ),
+
+   REG_VARIABLE( CFG_AUTO_CHANNEL_SELECT_WEIGHT, WLAN_PARAM_HexInteger,
+                 hdd_config_t, auto_channel_select_weight,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_AUTO_CHANNEL_SELECT_WEIGHT_DEFAULT,
+                 CFG_AUTO_CHANNEL_SELECT_WEIGHT_MIN,
+                 CFG_AUTO_CHANNEL_SELECT_WEIGHT_MAX ),
 
 #ifdef QCA_LL_TX_FLOW_CT
    REG_VARIABLE( CFG_LL_TX_FLOW_LWM, WLAN_PARAM_Integer,
@@ -4959,6 +4966,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SAP_CH_SWITCH_MODE_DEFAULT,
                 CFG_SAP_CH_SWITCH_MODE_MIN,
                 CFG_SAP_CH_SWITCH_MODE_MAX),
+
+   REG_VARIABLE(CFG_DFS_BEACON_TX_ENHANCED, WLAN_PARAM_Integer,
+                hdd_config_t, dfs_beacon_tx_enhanced,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_DFS_BEACON_TX_ENHANCED_DEFAULT,
+                CFG_DFS_BEACON_TX_ENHANCED_MIN,
+                CFG_DFS_BEACON_TX_ENHANCED_MAX),
+
+  REG_VARIABLE(CFG_REDUCED_BEACON_INTERVAL, WLAN_PARAM_Integer,
+               hdd_config_t, reduced_beacon_interval,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_REDUCED_BEACON_INTERVAL_DEFAULT,
+               CFG_REDUCED_BEACON_INTERVAL_MIN,
+               CFG_REDUCED_BEACON_INTERVAL_MAX),
 };
 
 
@@ -7483,11 +7504,11 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
       hddLog(LOGE, "Could not pass on WNI_CFG_TGT_GTX_USR_CFG to CCM");
    }
 
-   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_SAP_MAX_MCS_DATA,
-                    pConfig->sap_max_mcs_txdata, NULL,
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MAX_HT_MCS_TX_DATA,
+                    pConfig->max_ht_mcs_txdata, NULL,
                     eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
        fStatus = FALSE;
-       hddLog(LOGE, "Could not pass on WNI_CFG_SAP_MAX_MCS_DATA to CCM");
+       hddLog(LOGE, "Could not pass on WNI_CFG_MAX_HT_MCS_TX_DATA to CCM");
    }
 
    return fStatus;
