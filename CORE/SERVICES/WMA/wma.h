@@ -938,6 +938,7 @@ typedef struct wma_handle {
 	struct sir_allowed_action_frames allowed_action_frames;
 	tSirAddonPsReq psSetting;
 	bool sub_20_support;
+	bool get_one_peer_info;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

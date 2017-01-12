@@ -1548,6 +1548,24 @@ typedef enum
 #define CFG_MAX_HT_MCS_FOR_TX_DATA_DEFAULT         (WNI_CFG_MAX_HT_MCS_TX_DATA_STADEF)
 
 /*
+ * <ini>
+ * gSapGetPeerInfo - Enable/Disable remote peer info query support
+ * @Min: 0 - Disable remote peer info query support
+ * @Max: 1 - Enable remote peer info query support
+ * @Default: 0
+ *
+ * This ini is used to enable/disable remote peer info query support
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_SAP_GET_PEER_INFO                      "gSapGetPeerInfo"
+#define CFG_SAP_GET_PEER_INFO_MIN                   (0)
+#define CFG_SAP_GET_PEER_INFO_MAX                   (1)
+#define CFG_SAP_GET_PEER_INFO_DEFAULT               (0)
+
+/*
  * RSSI Thresholds
  * Used when eHDD_LINK_SPEED_REPORT_SCALED is selected
  */
@@ -4994,6 +5012,7 @@ struct hdd_config {
    uint8_t                     enable_rts_sifsbursting;
    uint8_t                     max_mpdus_inampdu;
    uint16_t                    max_ht_mcs_txdata;
+   bool                        sap_get_peer_info;
 #ifdef QCA_LL_TX_FLOW_CT
    v_U32_t                     TxFlowLowWaterMark;
    v_U32_t                     TxFlowHighWaterMarkOffset;

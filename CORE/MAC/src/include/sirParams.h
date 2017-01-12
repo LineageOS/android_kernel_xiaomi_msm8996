@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -792,6 +792,8 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_SET_RX_BLOCKSIZE_CMDID      (SIR_HAL_ITC_MSG_TYPES_BEGIN + 369)
 #define SIR_HAL_GET_CHAIN_RSSI_REQ          (SIR_HAL_ITC_MSG_TYPES_BEGIN + 370)
 #define SIR_HAL_POWER_DEBUG_STATS_REQ       (SIR_HAL_ITC_MSG_TYPES_BEGIN + 371)
+#define SIR_HAL_GET_PEER_INFO_EXT           (SIR_HAL_ITC_MSG_TYPES_BEGIN + 372)
+#define SIR_HAL_GET_PEER_INFO_EXT_IND       (SIR_HAL_ITC_MSG_TYPES_BEGIN + 373)
 
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -8294,6 +8294,7 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
 #ifdef SAP_AUTH_OFFLOAD
     cfg_ini->enable_sap_auth_offload &= cfg->sap_auth_offload_service;
 #endif
+    cfg_ini->sap_get_peer_info &= cfg->get_peer_info_enabled;
 }
 
 /**
@@ -15344,6 +15345,20 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
               __func__, ret);
    }
 
+   if (pHddCtx->cfg_ini->sap_get_peer_info) {
+       hddLog(VOS_TRACE_LEVEL_INFO,
+              "%s Send WMI_PDEV_PARAM_PEER_STATS_INFO_ENABLE",
+              __func__);
+       ret = process_wma_set_command(0,
+                                     WMI_PDEV_PARAM_PEER_STATS_INFO_ENABLE,
+                                     pHddCtx->cfg_ini->sap_get_peer_info,
+                                     PDEV_CMD);
+       if (0 != ret) {
+           hddLog(VOS_TRACE_LEVEL_ERROR,
+                  "%s: WMI_PDEV_PARAM_PEER_STATS_INFO_ENABLE failed %d",
+                  __func__, ret);
+       }
+   }
 
    status = hdd_set_sme_chan_list(pHddCtx);
    if (status != VOS_STATUS_SUCCESS) {

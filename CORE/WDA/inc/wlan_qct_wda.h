@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -969,6 +969,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_GET_LINK_SPEED         SIR_HAL_GET_LINK_SPEED
 
 #define WDA_GET_PEER_INFO               SIR_HAL_GET_PEER_INFO
+#define WDA_GET_PEER_INFO_EXT      SIR_HAL_GET_PEER_INFO_EXT
+#define WDA_GET_PEER_INFO_EXT_IND  SIR_HAL_GET_PEER_INFO_EXT_IND
 
 #define WDA_MODEM_POWER_STATE_IND SIR_HAL_MODEM_POWER_STATE_IND
 
