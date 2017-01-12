@@ -69,6 +69,7 @@ static struct thermal_policy *t_policy_g;
 static void update_online_cpu_policy(void);
 static uint32_t get_throttle_freq(const struct thermal_zone *zone,
 		uint32_t cpu);
+static uint32_t get_valid_cpufreq(uint32_t cpu, uint32_t freq);
 
 static void msm_thermal_main(struct work_struct *work)
 {
@@ -186,6 +187,7 @@ static int do_cpu_throttle(struct notifier_block *nb,
 		spin_unlock(&t->lock);
 	} else {
 		new_max = get_throttle_freq(&t->zone[zone], policy->cpu);
+		new_max = get_valid_cpufreq(policy->cpu, new_max);
 		if (policy->max > new_max)
 			policy->max = new_max;
 	}
@@ -224,19 +226,6 @@ static uint32_t get_throttle_freq(const struct thermal_zone *zone,
 	return zone->freq[CPU_MASK(cpu) & LITTLE_CPU_MASK ? 0 : 1];
 }
 
-static uint32_t get_thermal_zone_number(const char *filename)
-{
-	uint32_t num;
-	int ret;
-
-	/* Thermal zone sysfs nodes are named as "zone##" */
-	ret = sscanf(filename, "zone%u", &num);
-	if (ret != 1)
-		return 0;
-
-	return num;
-}
-
 static uint32_t get_valid_cpufreq(uint32_t cpu, uint32_t freq)
 {
 	struct cpufreq_frequency_table *table;
@@ -256,6 +245,19 @@ static uint32_t get_valid_cpufreq(uint32_t cpu, uint32_t freq)
 					CPUFREQ_RELATION_L, &index);
 
 	return table[index].frequency;
+}
+
+static uint32_t get_thermal_zone_number(const char *filename)
+{
+	uint32_t num;
+	int ret;
+
+	/* Thermal zone sysfs nodes are named as "zone##" */
+	ret = sscanf(filename, "zone%u", &num);
+	if (ret != 1)
+		return 0;
+
+	return num;
 }
 
 static ssize_t enabled_write(struct device *dev,
@@ -320,8 +322,8 @@ static ssize_t thermal_zone_write(struct device *dev,
 
 	spin_lock(&t->lock);
 	/* freq[0] is assigned to LITTLE cluster, freq[1] to big cluster */
-	t->zone[idx].freq[0] = get_valid_cpufreq(0, freq[0]);
-	t->zone[idx].freq[1] = get_valid_cpufreq(2, freq[1]);
+	t->zone[idx].freq[0] = freq[0];
+	t->zone[idx].freq[1] = freq[1];
 	t->zone[idx].trip_degC = trip_degC;
 	t->zone[idx].reset_degC = reset_degC;
 	spin_unlock(&t->lock);
