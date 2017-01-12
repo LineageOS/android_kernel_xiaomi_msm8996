@@ -408,6 +408,8 @@ typedef enum {
 
     /* DISA feature: Encrypt-decrypt data request */
     WMI_VDEV_ENCRYPT_DECRYPT_DATA_REQ_CMDID,
+    /** Command to enable mac randomizaton **/
+    WMI_VDEV_ADD_MAC_ADDR_TO_RX_FILTER_CMDID,
 
     /* peer specific commands */
 
@@ -1113,6 +1115,8 @@ typedef enum {
      * 802.11 DISA frame
      */
     WMI_VDEV_ENCRYPT_DECRYPT_DATA_RESP_EVENTID,
+    /** event to report mac randomization success **/
+    WMI_VDEV_ADD_MAC_ADDR_TO_RX_FILTER_STATUS_EVENTID,
 
     /* peer specific events */
     /** FW reauet to kick out the station for reasons like inactivity,lack of response ..etc */
@@ -17738,6 +17742,7 @@ static INLINE A_UINT8 *wmi_id_to_name(A_UINT32 wmi_command)
 		WMI_RETURN_STRING(WMI_REQUEST_PEER_STATS_INFO_CMDID);
 		WMI_RETURN_STRING(WMI_REQUEST_RADIO_CHAN_STATS_CMDID);
 		WMI_RETURN_STRING(WMI_ROAM_PER_CONFIG_CMDID);
+		WMI_RETURN_STRING(WMI_VDEV_ADD_MAC_ADDR_TO_RX_FILTER_CMDID);
 	}
 
 	return "Invalid WMI cmd";
@@ -17906,6 +17911,24 @@ typedef struct {
      */
     A_UINT32 value;
 }wmi_pkgid_event_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals
+    WMITLV_TAG_STRUC_wmi_vdev_add_mac_addr_to_rx_filter_cmd_fixed_params */
+    A_UINT32 vdev_id; /* vdev id whose mac to be randomized */
+    /* enable is set to 1 if mac randomization to be enabled */
+    A_UINT32 enable;
+    /* randomization mac address if randomization is enabled */
+    wmi_mac_addr mac_addr;
+} wmi_vdev_add_mac_addr_to_rx_filter_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals
+    WMITLV_TAG_STRUC_wmi_vdev_add_mac_addr_to_rx_filter_event_fixed_params */
+    A_UINT32 vdev_id; /* vdev of id whose mac address was randomized */
+    A_UINT32 status; /* status is 1 if success and 0 if failed */
+} wmi_vdev_add_mac_addr_to_rx_filter_status_event_fixed_param;
+
 
 /* ADD NEW DEFS HERE */
 
