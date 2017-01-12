@@ -67,9 +67,12 @@ struct thermal_policy {
 static struct thermal_policy *t_policy_g;
 
 static void update_online_cpu_policy(void);
-static uint32_t get_throttle_freq(const struct thermal_zone *zone,
-		uint32_t cpu);
-static uint32_t get_valid_cpufreq(uint32_t cpu, uint32_t freq);
+static uint32_t get_throttle_freq(struct thermal_policy *t,
+		int32_t idx, uint32_t cpu);
+static void set_throttle_freq(struct thermal_policy *t,
+		int32_t idx, uint32_t cpu, uint32_t freq);
+static bool validate_cpu_freq(struct cpufreq_frequency_table *pos,
+		uint32_t *freq);
 
 static void msm_thermal_main(struct work_struct *work)
 {
@@ -162,7 +165,7 @@ static int do_cpu_throttle(struct notifier_block *nb,
 {
 	struct cpufreq_policy *policy = data;
 	struct thermal_policy *t = t_policy_g;
-	bool active;
+	bool active, ret;
 	int32_t zone;
 	uint32_t new_max;
 
@@ -179,15 +182,23 @@ static int do_cpu_throttle(struct notifier_block *nb,
 		return NOTIFY_OK;
 
 	if (zone == UNTHROTTLE_ZONE) {
-		policy->max = policy->cpuinfo.max_freq;
+		/* Restore original user maxfreq */
+		policy->max = policy->user_policy.max;
 
 		/* Thermal throttling is finished */
 		spin_lock(&t->lock);
 		t->throttle_active = false;
 		spin_unlock(&t->lock);
 	} else {
-		new_max = get_throttle_freq(&t->zone[zone], policy->cpu);
-		new_max = get_valid_cpufreq(policy->cpu, new_max);
+		new_max = get_throttle_freq(t, zone, policy->cpu);
+		/*
+		 * Throttle frequency must always be valid. If it's invalid
+		 * (validate_cpu_freq() returns true), then update the
+		 * throttle zone freq array with the validated frequency.
+		 */
+		ret = validate_cpu_freq(policy->freq_table, &new_max);
+		if (ret)
+			set_throttle_freq(t, zone, policy->cpu, new_max);
 		if (policy->max > new_max)
 			policy->max = new_max;
 	}
@@ -215,36 +226,74 @@ static void update_online_cpu_policy(void)
 	put_online_cpus();
 }
 
-static uint32_t get_throttle_freq(const struct thermal_zone *zone,
-		uint32_t cpu)
+static uint32_t get_throttle_freq(struct thermal_policy *t,
+		int32_t idx, uint32_t cpu)
 {
+	struct thermal_zone *zone = &t->zone[idx];
+	uint32_t freq;
+
 	/*
 	 * The throttle frequency for a LITTLE CPU is stored at index 0 of
 	 * the throttle freq array. The frequency for a big CPU is stored at
 	 * index 1.
 	 */
-	return zone->freq[CPU_MASK(cpu) & LITTLE_CPU_MASK ? 0 : 1];
+	spin_lock(&t->lock);
+	freq = zone->freq[CPU_MASK(cpu) & LITTLE_CPU_MASK ? 0 : 1];
+	spin_unlock(&t->lock);
+
+	return freq;
 }
 
-static uint32_t get_valid_cpufreq(uint32_t cpu, uint32_t freq)
+static void set_throttle_freq(struct thermal_policy *t,
+		int32_t idx, uint32_t cpu, uint32_t freq)
 {
-	struct cpufreq_frequency_table *table;
-	struct cpufreq_policy policy;
-	uint32_t index;
-	int32_t ret;
+	struct thermal_zone *zone = &t->zone[idx];
 
-	ret = cpufreq_get_policy(&policy, cpu);
-	if (ret)
-		return freq;
+	/*
+	 * The throttle frequency for a LITTLE CPU is stored at index 0 of
+	 * the throttle freq array. The frequency for a big CPU is stored at
+	 * index 1.
+	 */
+	spin_lock(&t->lock);
+	zone->freq[CPU_MASK(cpu) & LITTLE_CPU_MASK ? 0 : 1] = freq;
+	spin_unlock(&t->lock);
+}
 
-	table = cpufreq_frequency_get_table(cpu);
-	if (!table)
-		return freq;
+static bool validate_cpu_freq(struct cpufreq_frequency_table *pos,
+		uint32_t *freq)
+{
+	struct cpufreq_frequency_table *next;
 
-	cpufreq_frequency_table_target(&policy, table, freq,
-					CPUFREQ_RELATION_L, &index);
+	/* Set the cursor to the first valid freq */
+	cpufreq_next_valid(&pos);
 
-	return table[index].frequency;
+	/* Requested freq is below the lowest freq, so use the lowest freq */
+	if (*freq < pos->frequency) {
+		*freq = pos->frequency;
+		return true;
+	}
+
+	for (;; pos++) {
+		/* This freq exists in the table so it's definitely valid */
+		if (*freq == pos->frequency)
+			return false;
+
+		next = pos + 1;
+
+		/* We've gone past the highest freq, so use the highest freq */
+		if (!cpufreq_next_valid(&next)) {
+			*freq = pos->frequency;
+			return true;
+		}
+
+		/* Target the next-highest freq */
+		if (*freq > pos->frequency && *freq < next->frequency) {
+			*freq = next->frequency;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 static uint32_t get_thermal_zone_number(const char *filename)
