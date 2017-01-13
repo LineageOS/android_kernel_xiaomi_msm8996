@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1576,6 +1576,8 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
 
    pWextState->roamProfile.AuthType.numEntries = 1;
    pWextState->roamProfile.AuthType.authType[0] = eCSR_AUTH_TYPE_OPEN_SYSTEM;
+
+   vos_mem_zero((pWextState->roamProfile.bssid_hint), VOS_MAC_ADDR_SIZE);
 
 #ifdef WLAN_FEATURE_11W
    pWextState->roamProfile.MFPEnabled = eANI_BOOLEAN_FALSE;

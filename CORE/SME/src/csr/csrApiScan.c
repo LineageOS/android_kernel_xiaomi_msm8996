@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2424,6 +2424,12 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                 if(csrLLIsListEmpty(&pRetList->List, LL_ACCESS_NOLOCK))
                 {
                     csrLLInsertTail(&pRetList->List, &pResult->Link, LL_ACCESS_NOLOCK);
+                } else if(pFilter &&
+                     vos_mem_compare(pResult->Result.BssDescriptor.bssId,
+                     pFilter->bssid_hint, VOS_MAC_ADDR_SIZE)) {
+                     /* bssid hint AP should be on head */
+                     csrLLInsertHead(&pRetList->List,
+                             &pResult->Link, LL_ACCESS_NOLOCK);
                 }
                 else
                 {
@@ -2435,7 +2441,18 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                     while(pTmpEntry)
                     {
                         pTmpResult = GET_BASE_ADDR( pTmpEntry, tCsrScanResult, Link );
-                       if(csrIsBetterBss(pMac, pResult, pTmpResult))
+
+                        /* Skip the bssid hint AP, as it should be on head */
+                        if (pFilter &&
+                           vos_mem_compare(
+                           pTmpResult->Result.BssDescriptor.bssId,
+                           pFilter->bssid_hint, VOS_MAC_ADDR_SIZE)) {
+                            pTmpEntry = csrLLNext(&pRetList->List,
+                                           pTmpEntry, LL_ACCESS_NOLOCK);
+                            continue;
+                        }
+
+                        if (csrIsBetterBss(pMac, pResult, pTmpResult))
                         {
                             csrLLInsertEntry(&pRetList->List, pTmpEntry, &pResult->Link, LL_ACCESS_NOLOCK);
                             //To indicate we are done

@@ -2352,6 +2352,11 @@ wlan_hdd_clean_tx_flow_control_timer(hdd_context_t *hddctx,
 }
 #endif
 
+struct cfg80211_bss *hdd_cfg80211_get_bss(struct wiphy *wiphy,
+	struct ieee80211_channel *channel,
+	const u8 *bssid,
+	const u8 *ssid, size_t ssid_len);
+
 void hdd_connect_result(struct net_device *dev, const u8 *bssid,
 			tCsrRoamInfo *roam_info, const u8 *req_ie,
 			size_t req_ie_len, const u8 * resp_ie,

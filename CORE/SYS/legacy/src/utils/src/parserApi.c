@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2967,7 +2967,7 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
 #endif
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
-    if (ar.num_RICDataDesc) {
+    if (ar.num_RICDataDesc <= 2) {
         for (cnt=0; cnt < ar.num_RICDataDesc; cnt++) {
             if (ar.RICDataDesc[cnt].present) {
                 vos_mem_copy( &pAssocRsp->RICData[cnt], &ar.RICDataDesc[cnt],

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -434,6 +434,7 @@ typedef struct tagCsrScanResultFilter
      * used to support whitelist ssid feature.
      */
     uint8_t scan_filter_for_roam;
+    tCsrBssid bssid_hint;
 }tCsrScanResultFilter;
 
 
@@ -1029,6 +1030,7 @@ typedef struct tagCsrRoamProfile
     tSirMacRateSet  supported_rates;
     tSirMacRateSet  extended_rates;
     uint8_t sub20_channelwidth;
+    tCsrBssid bssid_hint;
 }tCsrRoamProfile;
 
 

@@ -467,8 +467,10 @@ typedef struct {
 	u_int32_t txpow5g;
 	u_int32_t burst_enable;
 	u_int32_t burst_dur;
-	u_int32_t chainmask_2g;
-	u_int32_t chainmask_5g;
+	u_int32_t chainmask_2g_tx;
+	u_int32_t chainmask_5g_tx;
+	u_int32_t chainmask_2g_rx;
+	u_int32_t chainmask_5g_rx;
 } pdev_cli_config_t;
 
 typedef struct {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2773,6 +2773,10 @@ static void hif_sdio_device_removed(struct sdio_func *func)
 
 static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_device_id * id)
 {
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+		printk("Load/unload in progress, ignore SSR reinit\n");
+		return 0;
+	}
 	if ((func != NULL) && (id != NULL))
 		return hifDeviceInserted(func, id);
 	else
@@ -2784,6 +2788,11 @@ static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_devi
 static void hif_sdio_device_shutdown(struct sdio_func *func)
 {
 	vos_set_logp_in_progress(VOS_MODULE_ID_HIF, TRUE);
+	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
+		vos_set_logp_in_progress(VOS_MODULE_ID_HIF, FALSE);
+		printk("Load/unload in progress, ignore SSR shutdown\n");
+		return;
+	}
 	vos_set_shutdown_in_progress(VOS_MODULE_ID_HIF, TRUE);
 	if (!vos_is_ssr_ready(__func__))
 		pr_err(" %s Host driver is not ready for SSR, attempting anyway\n", __func__);

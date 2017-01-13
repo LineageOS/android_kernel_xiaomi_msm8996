@@ -43,6 +43,7 @@
 #include "sirDebug.h"
 #include "debug_linux.h"
 #include "adf_os_io.h"
+#include "vos_timer.h"
 
 /* Static and Global variables */
 static spinlock_t l_dp_trace_lock;
@@ -75,23 +76,31 @@ void adf_dp_trace_init(void)
 	g_adf_dp_trace_data.head = INVALID_ADF_DP_TRACE_ADDR;
 	g_adf_dp_trace_data.tail = INVALID_ADF_DP_TRACE_ADDR;
 	g_adf_dp_trace_data.num = 0;
-	g_adf_dp_trace_data.proto_bitmap = NBUF_PKT_TRAC_TYPE_DHCP |
-			NBUF_PKT_TRAC_TYPE_EAPOL;
+	g_adf_dp_trace_data.proto_bitmap = NBUF_PKT_TRAC_TYPE_EAPOL |
+					   NBUF_PKT_TRAC_TYPE_DHCP |
+					   NBUF_PKT_TRAC_TYPE_MGMT_ACTION |
+					   NBUF_PKT_TRAC_TYPE_ARP;
 	g_adf_dp_trace_data.no_of_record = 0;
-	g_adf_dp_trace_data.verbosity    = ADF_DP_TRACE_VERBOSITY_LOW;
+	g_adf_dp_trace_data.verbosity    = ADF_DP_TRACE_VERBOSITY_HIGH;
 	g_adf_dp_trace_data.enable = true;
+	g_adf_dp_trace_data.tx_count = 0;
+	g_adf_dp_trace_data.rx_count = 0;
+	g_adf_dp_trace_data.live_mode = 0;
 
 	for (i = 0; i < ADF_DP_TRACE_MAX; i++)
 		adf_dp_trace_cb_table[i] = adf_dp_display_record;
 
 	adf_dp_trace_cb_table[ADF_DP_TRACE_TXRX_PACKET_PTR_RECORD] =
-	adf_dp_trace_cb_table[ADF_DP_TRACE_TXRX_FAST_PACKET_PTR_RECORD] =
 	adf_dp_trace_cb_table[ADF_DP_TRACE_FREE_PACKET_PTR_RECORD] =
 				adf_dp_display_ptr_record;
 	adf_dp_trace_cb_table[ADF_DP_TRACE_EAPOL_PACKET_RECORD] =
 	adf_dp_trace_cb_table[ADF_DP_TRACE_DHCP_PACKET_RECORD] =
 	adf_dp_trace_cb_table[ADF_DP_TRACE_ARP_PACKET_RECORD] =
 				adf_dp_display_proto_pkt;
+	adf_dp_trace_cb_table[ADF_DP_TRACE_MGMT_PACKET_RECORD] =
+				adf_dp_display_mgmt_pkt;
+	adf_dp_trace_cb_table[ADF_DP_TRACE_EVENT_RECORD] =
+				adf_dp_display_event_record;
 }
 
 /**
@@ -180,6 +189,9 @@ void adf_dp_trace_set_track(adf_nbuf_t nbuf,  enum adf_proto_dir dir)
 	spin_unlock_bh(&l_dp_trace_lock);
 }
 
+#define DPTRACE_PRINT(args...) \
+	VOS_TRACE(VOS_MODULE_ID_ADF, VOS_TRACE_LEVEL_INFO, ## args)
+
 /**
  * dump_hex_trace() - Display the data in buffer
  * @str:     string to print
@@ -190,13 +202,20 @@ void adf_dp_trace_set_track(adf_nbuf_t nbuf,  enum adf_proto_dir dir)
  */
 static void dump_hex_trace(char *str, uint8_t *buf, uint8_t buf_len)
 {
-	uint8_t i;
+	unsigned char linebuf[BUFFER_SIZE];
+	const u8 *ptr = buf;
+	int i, linelen, remaining = buf_len;
 
 	/* Dump the bytes in the last line */
-	adf_os_print("%s: ", str);
-	for (i = 0; i < buf_len; i++)
-		adf_os_print("%02x ", buf[i]);
-	adf_os_print("\n");
+	for (i = 0; i < buf_len; i += ROW_SIZE) {
+		linelen = min(remaining, ROW_SIZE);
+		remaining -= ROW_SIZE;
+
+		hex_dump_to_buffer(ptr + i, linelen, ROW_SIZE, 1,
+				linebuf, sizeof(linebuf), false);
+
+		DPTRACE_PRINT("DPT: %s: %s", str, linebuf);
+	}
 }
 
 /**
@@ -216,14 +235,16 @@ const char *adf_dp_code_to_string(enum ADF_DP_TRACE_ID code)
 		return "DHCP:";
 	case ADF_DP_TRACE_ARP_PACKET_RECORD:
 		return "ARP:";
+	case ADF_DP_TRACE_MGMT_PACKET_RECORD:
+		return "MGMT:";
+	case ADF_DP_TRACE_EVENT_RECORD:
+		return "EVENT:";
 	case ADF_DP_TRACE_HDD_TX_PACKET_PTR_RECORD:
 		return "HDD: TX: PTR:";
 	case ADF_DP_TRACE_HDD_TX_PACKET_RECORD:
 		return "HDD: TX: DATA:";
 	case ADF_DP_TRACE_CE_PACKET_PTR_RECORD:
 		return "CE: TX: PTR:";
-	case ADF_DP_TRACE_CE_FAST_PACKET_PTR_RECORD:
-		return "CE: TX: FAST: PTR:";
 	case ADF_DP_TRACE_FREE_PACKET_PTR_RECORD:
 		return "FREE: TX: PTR:";
 	case ADF_DP_TRACE_RX_HTT_PACKET_PTR_RECORD:
@@ -238,8 +259,6 @@ const char *adf_dp_code_to_string(enum ADF_DP_TRACE_ID code)
 		return "TXRX: TX: Q: PTR:";
 	case ADF_DP_TRACE_TXRX_PACKET_PTR_RECORD:
 		return "TXRX: TX: PTR:";
-	case ADF_DP_TRACE_TXRX_FAST_PACKET_PTR_RECORD:
-		return "TXRX: TX: FAST: PTR:";
 	case ADF_DP_TRACE_HTT_PACKET_PTR_RECORD:
 		return "HTT: TX: PTR:";
 	case ADF_DP_TRACE_HTC_PACKET_PTR_RECORD:
@@ -290,6 +309,10 @@ const char *adf_dp_type_to_str(enum adf_proto_type type)
 		return "EAPOL";
 	case ADF_PROTO_TYPE_ARP:
 		return "ARP";
+	case ADF_PROTO_TYPE_MGMT:
+		return "MGMT";
+	case ADF_PROTO_TYPE_EVENT:
+		return "EVENT";
 	default:
 		return "invalid";
 	}
@@ -332,6 +355,20 @@ const char *adf_dp_subtype_to_str(enum adf_proto_subtype subtype)
 		return "REQUEST";
 	case ADF_PROTO_ARP_RES:
 		return "RESPONSE";
+	case ADF_PROTO_MGMT_ASSOC:
+		return "ASSOC";
+	case ADF_PROTO_MGMT_DISASSOC:
+		return "DISASSOC";
+	case ADF_PROTO_MGMT_AUTH:
+		return "AUTH";
+	case ADF_PROTO_MGMT_DEAUTH:
+		return "DEAUTH";
+	case ADF_ROAM_SYNCH:
+		return "ROAM SYNCH";
+	case ADF_ROAM_COMPLETE:
+		return "ROAM COMPLETE";
+	case ADF_ROAM_EVENTID:
+		return "ROAM EVENTID";
 	default:
 		return "invalid";
 	}
@@ -416,7 +453,8 @@ void adf_dp_add_record(enum ADF_DP_TRACE_ID code,
 		adf_os_mem_copy(rec->data, data, size);
 
 	}
-	rec->time = adf_os_gettimestamp();
+	vos_get_time_of_the_day_in_hr_min_sec_usec(rec->time,
+					sizeof(rec->time));
 	rec->pid = (in_interrupt() ? 0 : current->pid);
 	spin_unlock_bh(&l_dp_trace_lock);
 
@@ -452,6 +490,8 @@ bool adf_log_eapol_pkt(uint8_t session_id, struct sk_buff *skb,
 			ADF_NBUF_CB_TX_DP_TRACE(skb) = 1;
 		else if (ADF_RX == dir)
 			ADF_NBUF_CB_RX_DP_TRACE(skb) = 1;
+
+		ADF_NBUF_CB_DP_TRACE_PRINT(skb) = true;
 		return true;
 	}
 	return false;
@@ -485,6 +525,7 @@ bool adf_log_dhcp_pkt(uint8_t session_id, struct sk_buff *skb,
 		else if (ADF_RX == dir)
 			ADF_NBUF_CB_RX_DP_TRACE(skb) = 1;
 
+		ADF_NBUF_CB_DP_TRACE_PRINT(skb) = true;
 		return true;
 	}
 	return false;
@@ -519,6 +560,7 @@ bool adf_log_arp_pkt(uint8_t session_id, struct sk_buff *skb,
 		else if (ADF_RX == dir)
 			ADF_NBUF_CB_RX_DP_TRACE(skb) = 1;
 
+		ADF_NBUF_CB_DP_TRACE_PRINT(skb) = true;
 		return true;
 	}
 	return false;
@@ -562,10 +604,10 @@ void adf_dp_display_proto_pkt(struct adf_dp_trace_record_s *record,
 	struct adf_dp_trace_proto_buf *buf =
 		(struct adf_dp_trace_proto_buf *)record->data;
 
-	adf_os_print("DPT: %04d: %012llu: %s vdev_id %d\n", index,
+	DPTRACE_PRINT("DPT: %04d: %s: %s vdev_id %d\n", index,
 		record->time, adf_dp_code_to_string(record->code),
 		buf->vdev_id);
-	adf_os_print("DPT: SA: " MAC_ADDRESS_STR " %s DA: " MAC_ADDRESS_STR
+	DPTRACE_PRINT("DPT: SA: " MAC_ADDRESS_STR " %s DA: " MAC_ADDRESS_STR
 						" Type %s Subtype %s\n",
 		MAC_ADDR_ARRAY(buf->sa.bytes), adf_dp_dir_to_str(buf->dir),
 		MAC_ADDR_ARRAY(buf->da.bytes), adf_dp_type_to_str(buf->type),
@@ -606,6 +648,68 @@ void adf_dp_trace_proto_pkt(enum ADF_DP_TRACE_ID code, uint8_t vdev_id,
 	adf_dp_add_record(code, (uint8_t *)&buf, buf_size, true);
 }
 
+void adf_dp_display_mgmt_pkt(struct adf_dp_trace_record_s *record,
+			      uint16_t index)
+{
+	struct adf_dp_trace_mgmt_buf *buf =
+		(struct adf_dp_trace_mgmt_buf *)record->data;
+
+	DPTRACE_PRINT("DPT: %04d: %s: %s vdev_id %d", index,
+		record->time, adf_dp_code_to_string(record->code),
+		buf->vdev_id);
+	DPTRACE_PRINT("DPT: Type %s Subtype %s", adf_dp_type_to_str(buf->type),
+		adf_dp_subtype_to_str(buf->subtype));
+}
+
+void adf_dp_trace_mgmt_pkt(enum ADF_DP_TRACE_ID code, uint8_t vdev_id,
+		enum adf_proto_type type, enum adf_proto_subtype subtype)
+{
+	struct adf_dp_trace_mgmt_buf buf;
+	int buf_size = sizeof(struct adf_dp_trace_mgmt_buf);
+
+	if (adf_dp_enable_check(NULL, code, ADF_NA) == false)
+		return;
+
+	if (buf_size > ADF_DP_TRACE_RECORD_SIZE)
+		ADF_BUG(0);
+
+	buf.type = type;
+	buf.subtype = subtype;
+	buf.vdev_id = vdev_id;
+	adf_dp_add_record(code, (uint8_t *)&buf, buf_size, true);
+}
+
+void adf_dp_display_event_record(struct adf_dp_trace_record_s *record,
+			      uint16_t index)
+{
+	struct adf_dp_trace_event_buf *buf =
+		(struct adf_dp_trace_event_buf *)record->data;
+
+	DPTRACE_PRINT("DPT: %04d: %s: %s vdev_id %d", index,
+		record->time, adf_dp_code_to_string(record->code),
+		buf->vdev_id);
+	DPTRACE_PRINT("DPT: Type %s Subtype %s", adf_dp_type_to_str(buf->type),
+		adf_dp_subtype_to_str(buf->subtype));
+}
+
+void adf_dp_trace_record_event(enum ADF_DP_TRACE_ID code, uint8_t vdev_id,
+		enum adf_proto_type type, enum adf_proto_subtype subtype)
+{
+	struct adf_dp_trace_event_buf buf;
+	int buf_size = sizeof(struct adf_dp_trace_event_buf);
+
+	if (adf_dp_enable_check(NULL, code, ADF_NA) == false)
+		return;
+
+	if (buf_size > ADF_DP_TRACE_RECORD_SIZE)
+		ADF_BUG(0);
+
+	buf.type = type;
+	buf.subtype = subtype;
+	buf.vdev_id = vdev_id;
+	adf_dp_add_record(code, (uint8_t *)&buf, buf_size, true);
+}
+
 /**
  * adf_dp_display_ptr_record() - display record
  * @record: dptrace record
@@ -620,11 +724,11 @@ void adf_dp_display_ptr_record(struct adf_dp_trace_record_s *record,
 		(struct adf_dp_trace_ptr_buf *)record->data;
 
 	if (record->code == ADF_DP_TRACE_FREE_PACKET_PTR_RECORD)
-		adf_os_print("%04d: %012llu: %s msdu_id: %d, status: %d\n", index,
+		DPTRACE_PRINT("DPT: %04d: %s: %s msdu_id: %d, status: %d\n", index,
 			record->time, adf_dp_code_to_string(record->code),
 			buf->msdu_id, buf->status);
 	else
-		adf_os_print("%04d: %012llu: %s msdu_id: %d, vdev_id: %d\n", index,
+		DPTRACE_PRINT("DPT: %04d: %s: %s msdu_id: %d, vdev_id: %d\n", index,
 			record->time, adf_dp_code_to_string(record->code),
 			buf->msdu_id, buf->status);
 
@@ -656,7 +760,8 @@ void adf_dp_trace_ptr(adf_nbuf_t nbuf, enum ADF_DP_TRACE_ID code,
 	adf_os_mem_copy(&buf.cookie, data, size);
 	buf.msdu_id = msdu_id;
 	buf.status = status;
-	adf_dp_add_record(code, (uint8_t *)&buf, buf_size, false);
+	adf_dp_add_record(code, (uint8_t *)&buf, buf_size,
+				ADF_NBUF_CB_DP_TRACE_PRINT(nbuf));
 }
 
 /**
@@ -673,16 +778,14 @@ void adf_dp_display_record(struct adf_dp_trace_record_s *pRecord,
 	if (rsize > ADF_DP_TRACE_RECORD_SIZE)
 		rsize = ADF_DP_TRACE_RECORD_SIZE;
 
-	adf_os_print("DPT: %04d: %012llu: %s\n", recIndex,
+	DPTRACE_PRINT("DPT: %04d: %s: %s\n", recIndex,
 		pRecord->time, adf_dp_code_to_string(pRecord->code));
 	switch (pRecord->code) {
 	case  ADF_DP_TRACE_HDD_TX_TIMEOUT:
-		VOS_TRACE(VOS_MODULE_ID_ADF, VOS_TRACE_LEVEL_ERROR,
-						"HDD TX Timeout\n");
+		DPTRACE_PRINT("DPT: HDD TX Timeout\n");
 		break;
 	case  ADF_DP_TRACE_HDD_SOFTAP_TX_TIMEOUT:
-		VOS_TRACE(VOS_MODULE_ID_ADF, VOS_TRACE_LEVEL_ERROR,
-						"HDD SoftAP TX Timeout\n");
+		DPTRACE_PRINT("DPT: HDD SoftAP TX Timeout\n");
 		break;
 	case ADF_DP_TRACE_HDD_TX_PACKET_RECORD:
 	case ADF_DP_TRACE_HDD_RX_PACKET_RECORD:
@@ -709,7 +812,8 @@ void adf_dp_trace(adf_nbuf_t nbuf, enum ADF_DP_TRACE_ID code,
 	if (adf_dp_enable_check(nbuf, code, dir) == false)
 		return;
 
-	adf_dp_add_record(code, data, size, false);
+	adf_dp_add_record(code, data, size,
+				ADF_NBUF_CB_DP_TRACE_PRINT(nbuf));
 }
 
 /**
@@ -727,10 +831,16 @@ void adf_dp_trace_clear_buffer(void)
 	g_adf_dp_trace_data.head = INVALID_ADF_DP_TRACE_ADDR;
 	g_adf_dp_trace_data.tail = INVALID_ADF_DP_TRACE_ADDR;
 	g_adf_dp_trace_data.num = 0;
-	g_adf_dp_trace_data.proto_bitmap = 0;
+	g_adf_dp_trace_data.proto_bitmap = NBUF_PKT_TRAC_TYPE_EAPOL |
+					   NBUF_PKT_TRAC_TYPE_DHCP |
+					   NBUF_PKT_TRAC_TYPE_MGMT_ACTION |
+					   NBUF_PKT_TRAC_TYPE_ARP;
 	g_adf_dp_trace_data.no_of_record = 0;
-	g_adf_dp_trace_data.verbosity	 = ADF_DP_TRACE_VERBOSITY_DEFAULT;
+	g_adf_dp_trace_data.verbosity	 = ADF_DP_TRACE_VERBOSITY_HIGH;
 	g_adf_dp_trace_data.enable = true;
+	g_adf_dp_trace_data.tx_count = 0;
+	g_adf_dp_trace_data.rx_count = 0;
+	g_adf_dp_trace_data.live_mode = 0;
 
 	memset(g_adf_dp_trace_tbl, 0,
 		MAX_ADF_DP_TRACE_RECORDS * sizeof(struct adf_dp_trace_record_s));

@@ -18972,20 +18972,9 @@ struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_list(
     struct wiphy *wiphy = wdev->wiphy;
     struct cfg80211_bss *bss = NULL;
 
-    bss = cfg80211_get_bss(wiphy, NULL, bssid,
+    bss = hdd_cfg80211_get_bss(wiphy, NULL, bssid,
                            NULL,
-                           0,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)) && !defined(WITH_BACKPORTS) \
-     && !defined(IEEE80211_PRIVACY)
-                           (pAdapter->device_mode == WLAN_HDD_IBSS) ? \
-                               WLAN_CAPABILITY_IBSS : WLAN_CAPABILITY_ESS,
-                           (pAdapter->device_mode == WLAN_HDD_IBSS) ? \
-                               WLAN_CAPABILITY_IBSS : WLAN_CAPABILITY_ESS);
-#else
-                           (pAdapter->device_mode == WLAN_HDD_IBSS) ? \
-                               IEEE80211_BSS_TYPE_IBSS : IEEE80211_BSS_TYPE_ESS,
-                           IEEE80211_PRIVACY_ANY);
-#endif
+                           0);
     if (bss == NULL) {
         hddLog(LOGE, FL("BSS not present"));
     } else {
@@ -20491,7 +20480,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     wlan_hdd_update_scan_rand_attrs((void *)&scanRequest, (void *)request,
                                     WLAN_HDD_HOST_SCAN);
 
-    if (!hdd_connIsConnected(station_ctx)) {
+    if (!hdd_connIsConnected(station_ctx) &&
+        (pHddCtx->cfg_ini->probe_req_ie_whitelist)) {
         if (pHddCtx->no_of_probe_req_ouis != 0) {
             scanRequest.voui = (struct vendor_oui *)vos_mem_malloc(
                                               pHddCtx->no_of_probe_req_ouis *
@@ -20504,12 +20494,11 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
             }
         }
 
-        if (pHddCtx->cfg_ini->probe_req_ie_whitelist)
-            wlan_hdd_fill_whitelist_ie_attrs(&scanRequest.ie_whitelist,
-                                             scanRequest.probe_req_ie_bitmap,
-                                             &scanRequest.num_vendor_oui,
-                                             scanRequest.voui,
-                                             pHddCtx);
+        wlan_hdd_fill_whitelist_ie_attrs(&scanRequest.ie_whitelist,
+                                         scanRequest.probe_req_ie_bitmap,
+                                         &scanRequest.num_vendor_oui,
+                                         scanRequest.voui,
+                                         pHddCtx);
     }
 
     vos_runtime_pm_prevent_suspend(pHddCtx->runtime_context.scan);
@@ -20937,8 +20926,11 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
         vos_mem_copy((void *)(pRoamProfile->SSIDs.SSIDList->SSID.ssId),
                 ssid, ssid_len);
 
-        if (bssid)
-        {
+        /* cleanup bssid hint and bssid */
+        vos_mem_zero(pRoamProfile->bssid_hint, VOS_MAC_ADDR_SIZE);
+        vos_mem_zero(pRoamProfile->BSSIDs.bssid, VOS_MAC_ADDR_SIZE);
+
+        if (bssid) {
             pRoamProfile->BSSIDs.numOfBSSIDs = 1;
             pRoamProfile->do_not_roam = true;
             vos_mem_copy((void *)(pRoamProfile->BSSIDs.bssid), bssid,
@@ -20949,11 +20941,8 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
              */
             vos_mem_copy((void *)(pWextState->req_bssId), bssid,
                     VOS_MAC_ADDR_SIZE);
-        }
-        else if (bssid_hint)
-        {
-            pRoamProfile->BSSIDs.numOfBSSIDs = 1;
-            vos_mem_copy((void *)(pRoamProfile->BSSIDs.bssid), bssid_hint,
+        } else if (bssid_hint) {
+            vos_mem_copy(pRoamProfile->bssid_hint, bssid_hint,
                     VOS_MAC_ADDR_SIZE);
             /* Save BSSID in separate variable as well, as RoamProfile
                BSSID is getting zeroed out in the association process. And in
@@ -20963,11 +20952,6 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
                     VOS_MAC_ADDR_SIZE);
             hddLog(LOGW, FL(" bssid_hint "MAC_ADDRESS_STR),
                    MAC_ADDR_ARRAY(bssid_hint));
-
-        }
-        else
-        {
-            vos_mem_zero((void *)(pRoamProfile->BSSIDs.bssid), VOS_MAC_ADDR_SIZE);
         }
 
         hddLog(LOG1, FL("Connect to SSID: %.*s operating Channel: %u"),
@@ -24592,7 +24576,8 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
         return -ENOTSUPP;
     }
 
-    if (!hdd_connIsConnected(station_ctx))
+    if (!hdd_connIsConnected(station_ctx) &&
+        pHddCtx->cfg_ini->probe_req_ie_whitelist)
         pPnoRequest = (tpSirPNOScanReq) vos_mem_malloc(sizeof(tSirPNOScanReq) +
                                     (pHddCtx->no_of_probe_req_ouis) *
                                     (sizeof(struct vendor_oui)));
@@ -24606,9 +24591,14 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
         return -ENOMEM;
     }
 
-    memset(pPnoRequest, 0, sizeof (tSirPNOScanReq) +
-                           (pHddCtx->no_of_probe_req_ouis) *
-                           (sizeof(struct vendor_oui)));
+    if (!hdd_connIsConnected(station_ctx) &&
+        pHddCtx->cfg_ini->probe_req_ie_whitelist)
+        memset(pPnoRequest, 0, sizeof (tSirPNOScanReq) +
+               (pHddCtx->no_of_probe_req_ouis) *
+               (sizeof(struct vendor_oui)));
+    else
+        memset(pPnoRequest, 0, sizeof (tSirPNOScanReq));
+
     pPnoRequest->enable = 1; /*Enable PNO */
     pPnoRequest->ucNetworksCount = request->n_match_sets;
     if ((!pPnoRequest->ucNetworksCount ) ||
