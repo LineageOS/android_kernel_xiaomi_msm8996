@@ -11159,6 +11159,8 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
             roam_profile.ChannelInfo.numOfChannels = 1;
             roam_profile.vht_channel_width = ch_info->channel_width;
             roam_profile.phyMode = ch_info->phy_mode;
+            roam_profile.sub20_channelwidth =
+                    (hdd_ctx->cfg_ini->sub_20_channel_width & 0x3);
 
             vos_mem_copy(bssid, pAdapter->macAddressCurrent.bytes,
                          VOS_MAC_ADDR_SIZE);
