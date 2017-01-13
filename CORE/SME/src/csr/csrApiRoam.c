@@ -8721,8 +8721,11 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
                         if (csrRoamIsHandoffInProgress(pMac, sessionId) &&
                                            csrRoamIs11rAssoc(pMac, sessionId))
                         {
-                            status = csrRoamIssueReassociate(pMac, sessionId, pBssDesc,
-                                    (tDot11fBeaconIEs *)( pScanResult->Result.pvIes ), &pCommand->u.roamCmd.roamProfile);
+                            status = csrRoamIssueReassociate(pMac,
+                                         sessionId,
+                                         pBssDesc,
+                                         pIesLocal,
+                                         &pCommand->u.roamCmd.roamProfile);
                         }
                         else
 #endif
@@ -8747,9 +8750,12 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
                         // else we are not connected and attempting to Join.  Issue the
                         // Join request.
                         {
-                            status = csrRoamIssueJoin( pMac, sessionId, pBssDesc,
-                                                (tDot11fBeaconIEs *)( pScanResult->Result.pvIes ),
-                                                &pCommand->u.roamCmd.roamProfile, pCommand->u.roamCmd.roamId );
+                            status = csrRoamIssueJoin(pMac,
+                                         sessionId,
+                                         pBssDesc,
+                                         pIesLocal,
+                                         &pCommand->u.roamCmd.roamProfile,
+                                         pCommand->u.roamCmd.roamId );
                         }
                         if(!HAL_STATUS_SUCCESS(status))
                         {
@@ -15249,83 +15255,84 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
         else
             statusCode = (tSirResultCodes)pal_cpu_to_be32(eSIR_SME_ASSOC_REFUSED);
         vos_mem_copy(pBuf, &statusCode, sizeof(tSirResultCodes)) ;
-        pBuf += sizeof(tSirResultCodes);
-        // bssId
+        /* bssId */
+        pBuf = (tANI_U8 *)&pMsg->bssId;
         vos_mem_copy((tSirMacAddr *)pBuf, pAssocInd->bssId, sizeof(tSirMacAddr));
-        pBuf += sizeof (tSirMacAddr);
-        // peerMacAddr
+        /* peerMacAddr */
+        pBuf = (tANI_U8 *)&pMsg->peerMacAddr;
         vos_mem_copy((tSirMacAddr *)pBuf, pAssocInd->peerMacAddr,
                       sizeof(tSirMacAddr));
-        pBuf += sizeof (tSirMacAddr);
-        // StaId
+        /* StaId */
+        pBuf = (tANI_U8 *)&pMsg->aid;
         wTmp = pal_cpu_to_be16(pAssocInd->staId);
         vos_mem_copy(pBuf, &wTmp, sizeof(tANI_U16));
-        pBuf += sizeof (tANI_U16);
-        // alternateBssId
+        /* alternateBssId */
+        pBuf = (tANI_U8 *)&pMsg->alternateBssId;
         vos_mem_copy((tSirMacAddr *)pBuf, pAssocInd->bssId, sizeof(tSirMacAddr));
-        pBuf += sizeof (tSirMacAddr);
-        // alternateChannelId
+        /* alternateChannelId */
+        pBuf = (tANI_U8 *)&pMsg->alternateChannelId;
         *pBuf = 11;
-        pBuf += sizeof (tANI_U8);
-        // Instead of copying roam Info, we just copy only WmmEnabled, RsnIE information
-        //Wmm
+        /*Instead of copying roam Info,just copy WmmEnabled,RsnIE information*/
+        /* Wmm */
+        pBuf = (tANI_U8 *)&pMsg->wmmEnabledSta;
         *pBuf = pAssocInd->wmmEnabledSta;
-        pBuf += sizeof (tANI_U8);
-        //RSN IE
+        /* RSN IE */
+        pBuf = (tANI_U8 *)&pMsg->rsnIE;
         vos_mem_copy((tSirRSNie *)pBuf, &pAssocInd->rsnIE, sizeof(tSirRSNie));
-        pBuf += sizeof (tSirRSNie);
 #ifdef FEATURE_WLAN_WAPI
-        //WAPI IE
+        /* WAPI IE */
+        pBuf = (tANI_U8 *)&pMsg->wapiIE;
         vos_mem_copy((tSirWAPIie *)pBuf, &pAssocInd->wapiIE,
                         sizeof(tSirWAPIie));
-        pBuf += sizeof (tSirWAPIie);
 #endif
-        //Additional IE
+        /* Additional IE */
+        pBuf = (tANI_U8 *)&pMsg->addIE;
         vos_mem_copy((void *)pBuf, &pAssocInd->addIE, sizeof(tSirAddie));
-        pBuf += sizeof (tSirAddie);
-        //reassocReq
+        /* reassocReq */
+        pBuf = (tANI_U8 *)&pMsg->reassocReq;
         *pBuf = pAssocInd->reassocReq;
-        pBuf += sizeof (tANI_U8);
-        //timingMeasCap
+        /* timingMeasCap */
+        pBuf = (tANI_U8 *)&pMsg->timingMeasCap;
         *pBuf = pAssocInd->timingMeasCap;
-        pBuf += sizeof (tANI_U8);
+        /* chan_info */
+        pBuf = (tANI_U8 *)&pMsg->chan_info;
         vos_mem_copy((void *)pBuf, &pAssocInd->chan_info,
                         sizeof(tSirSmeChanInfo));
-
-        pBuf += sizeof(tSirSmeChanInfo);
+        /* ecsa capable */
+        pBuf = (tANI_U8 *)&pMsg->ecsa_capable;
         *pBuf = pAssocInd->ecsa_capable;
-        pBuf += sizeof(pAssocInd->ecsa_capable);
-        /** ampdu */
+        /* ampdu */
+        pBuf = (tANI_U8 *)&pMsg->ampdu;
         *pBuf = pAssocInd->ampdu;
-        pBuf += sizeof(bool);
-        /** sgi_enable */
+        /* sgi_enable */
+        pBuf = (tANI_U8 *)&pMsg->sgi_enable;
         *pBuf = pAssocInd->sgi_enable;
-        pBuf += sizeof(bool);
-        /** tx stbc */
+        /* tx stbc */
+        pBuf = (tANI_U8 *)&pMsg->tx_stbc;
         *pBuf = pAssocInd->tx_stbc;
-        pBuf += sizeof(bool);
-        /** ch_width */
+        /* ch_width */
+        pBuf = (tANI_U8 *)&pMsg->ch_width;
         *pBuf = pAssocInd->ch_width;
-        pBuf += sizeof(pAssocInd->ch_width);
-        /** mode */
+        /* mode */
+        pBuf = (tANI_U8 *)&pMsg->mode;
         *pBuf = pAssocInd->mode;
-        pBuf += sizeof(pAssocInd->mode);
-        /** rx stbc */
+        /* rx stbc */
+        pBuf = (tANI_U8 *)&pMsg->rx_stbc;
         *pBuf = pAssocInd->rx_stbc;
-        pBuf += sizeof(bool);
-        /** max supported idx */
+        /* max supported idx */
+        pBuf = (tANI_U8 *)&pMsg->max_supp_idx;
         *pBuf = pAssocInd->max_supp_idx;
-        pBuf += sizeof(tANI_U8);
-        /** max extended idx */
+        /* max extended idx */
+        pBuf = (tANI_U8 *)&pMsg->max_ext_idx;
         *pBuf = pAssocInd->max_ext_idx;
-        pBuf += sizeof(tANI_U8);
-        /** max ht mcs idx */
+        /* max ht mcs idx */
+        pBuf = (tANI_U8 *)&pMsg->max_mcs_idx;
         *pBuf = pAssocInd->max_mcs_idx;
-        pBuf += sizeof(tANI_U8);
-        /** vht rx mcs map */
+        /* vht rx mcs map */
+        pBuf = (tANI_U8 *)&pMsg->rx_mcs_map;
         *pBuf = pAssocInd->rx_mcs_map;
-        pBuf += sizeof(tANI_U8);
-        /** vht tx mcs map */
+        /* vht tx mcs map */
+        pBuf = (tANI_U8 *)&pMsg->tx_mcs_map;
         *pBuf = pAssocInd->tx_mcs_map;
 
         msgQ.type = eWNI_SME_UPPER_LAYER_ASSOC_CNF;
