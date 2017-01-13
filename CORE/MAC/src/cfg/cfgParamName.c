@@ -337,4 +337,5 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"ASSOC_STA_LIMIT_GO",
     (unsigned char *)"ASSOC_STA_LIMIT_AP",
     (unsigned char *)"MAX_HT_MCS_TX_DATA",
+    (unsigned char *)"DISABLE_ABG_RATE_TX_DATA",
 };

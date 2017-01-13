@@ -1566,6 +1566,24 @@ typedef enum
 #define CFG_SAP_GET_PEER_INFO_DEFAULT               (0)
 
 /*
+ * <ini>
+ * gDisableABGRateForTxData - disable abg rate for tx data
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to disable abg rate for tx data.
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_DISABLE_ABG_RATE_FOR_TX_DATA                 "gDisableABGRateForTxData"
+#define CFG_DISABLE_ABG_RATE_FOR_TX_DATA_MIN             (WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA_STAMIN)
+#define CFG_DISABLE_ABG_RATE_FOR_TX_DATA_MAX             (WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA_STAMAX)
+#define CFG_DISABLE_ABG_RATE_FOR_TX_DATA_DEFAULT         (WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA_STADEF)
+
+/*
  * RSSI Thresholds
  * Used when eHDD_LINK_SPEED_REPORT_SCALED is selected
  */
@@ -5013,6 +5031,7 @@ struct hdd_config {
    uint8_t                     max_mpdus_inampdu;
    uint16_t                    max_ht_mcs_txdata;
    bool                        sap_get_peer_info;
+   bool                        disable_abg_rate_txdata;
 #ifdef QCA_LL_TX_FLOW_CT
    v_U32_t                     TxFlowLowWaterMark;
    v_U32_t                     TxFlowHighWaterMarkOffset;

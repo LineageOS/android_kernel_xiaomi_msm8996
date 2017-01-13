@@ -14886,6 +14886,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	u_int32_t num_peer_11a_rates=0;
 	u_int32_t phymode;
 	u_int32_t peer_nss=1;
+	u_int32_t disable_abg_rate;
 	struct wma_txrx_node *intr = NULL;
 
 	if (NULL == params) {
@@ -14912,29 +14913,39 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 	                           params->vhtCapable,
 	                           params->vhtTxChannelWidthSet);
 
-	/* Legacy Rateset */
-	rate_pos = (u_int8_t *) peer_legacy_rates.rates;
-	for (i = 0; i < SIR_NUM_11B_RATES; i++) {
-		if (!params->supportedRates.llbRates[i])
-			continue;
-		rate_pos[peer_legacy_rates.num_rates++] =
-			params->supportedRates.llbRates[i];
-                num_peer_11b_rates++;
-	}
-	for (i = 0; i < SIR_NUM_11A_RATES; i++) {
-		if (!params->supportedRates.llaRates[i])
-			continue;
-		rate_pos[peer_legacy_rates.num_rates++] =
-			params->supportedRates.llaRates[i];
-                num_peer_11a_rates++;
+	if (wlan_cfgGetInt(wma->mac_context,
+			   WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA,
+			   &disable_abg_rate) != eSIR_SUCCESS)
+		disable_abg_rate = WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA_STADEF;
+
+	if (!disable_abg_rate) {
+		/* Legacy Rateset */
+		rate_pos = (u_int8_t *) peer_legacy_rates.rates;
+		for (i = 0; i < SIR_NUM_11B_RATES; i++) {
+			if (!params->supportedRates.llbRates[i])
+				continue;
+			rate_pos[peer_legacy_rates.num_rates++] =
+				params->supportedRates.llbRates[i];
+			num_peer_11b_rates++;
+		}
+		for (i = 0; i < SIR_NUM_11A_RATES; i++) {
+			if (!params->supportedRates.llaRates[i])
+				continue;
+			rate_pos[peer_legacy_rates.num_rates++] =
+				params->supportedRates.llaRates[i];
+			num_peer_11a_rates++;
+		}
 	}
 
-    if ((phymode == MODE_11A && num_peer_11a_rates == 0) ||
-        (phymode == MODE_11B && num_peer_11b_rates == 0)) {
-	WMA_LOGW("%s: Invalid phy rates. phymode 0x%x, 11b_rates %d, 11a_rates %d",
-			__func__, phymode, num_peer_11b_rates, num_peer_11a_rates);
+	if ((phymode == MODE_11A && num_peer_11a_rates == 0) ||
+	    (phymode == MODE_11B && num_peer_11b_rates == 0)) {
+		WMA_LOGW("%s: Invalid phy rates. phymode 0x%x,"
+			 "11b_rates %d, 11a_rates %d",
+			 __func__, phymode,
+			 num_peer_11b_rates,
+			 num_peer_11a_rates);
 		return -EINVAL;
-    }
+	}
 	/* Set the Legacy Rates to Word Aligned */
 	num_peer_legacy_rates = roundup(peer_legacy_rates.num_rates,
 					sizeof(u_int32_t));
