@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -311,6 +311,7 @@ int wma_ocb_set_config(tp_wma_handle wma_handle, struct sir_ocb_config *config)
 	cmd->channel_count = config->channel_count;
 	cmd->schedule_size = config->schedule_size;
 	cmd->flags = config->flags;
+	cmd->ta_max_duration = config->ta_max_duration;
 	buf_ptr += sizeof(*cmd);
 
 	/* Add the wmi_channel info */

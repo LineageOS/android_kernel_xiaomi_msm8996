@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -815,7 +815,10 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
         if((fc.subType != SIR_MAC_MGMT_PROBE_RSP )&&
             (fc.subType != SIR_MAC_MGMT_BEACON)&&
             (fc.subType != SIR_MAC_MGMT_PROBE_REQ)
-            && (fc.subType != SIR_MAC_MGMT_ACTION ) //Public action frame can be received from non-associated stations.
+            /* TA for 11p DSRC */
+            && (fc.subType != SIR_MAC_MGMT_TIME_ADVERT)
+            /* Public action frame can be received from non-associated STAs */
+            && (fc.subType != SIR_MAC_MGMT_ACTION )
           )
         {
 
@@ -933,6 +936,16 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 
                 case SIR_MAC_MGMT_DEAUTH:
                     limProcessDeauthFrame(pMac, pRxPacketInfo,psessionEntry);
+                    break;
+
+                case SIR_MAC_MGMT_TIME_ADVERT:
+                {
+                    tANI_U32 frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+                    limSendSmeMgmtFrameInd(pMac, SIR_MAC_MGMT_TIME_ADVERT,
+                            (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr),
+                            0, WDA_GET_RX_CH(pRxPacketInfo), NULL,
+                            WDA_GET_RX_RSSI_RAW(pRxPacketInfo));
+                }
                     break;
 
                 case SIR_MAC_MGMT_ACTION:
