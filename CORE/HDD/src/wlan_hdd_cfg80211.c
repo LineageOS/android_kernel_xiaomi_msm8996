@@ -24335,7 +24335,6 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 
                     /* Send disassoc and deauth both to avoid some IOT issues */
                     vos_event_reset(&pHostapdState->sta_disassoc_event);
-                    hdd_softap_sta_disassoc(pAdapter, pDelStaParams);
 
                     vos_status = hdd_softap_sta_deauth(pAdapter, pDelStaParams);
                     if (VOS_IS_STATUS_SUCCESS(vos_status)) {
@@ -24346,6 +24345,7 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                             hddLog(VOS_TRACE_LEVEL_ERROR,
                                 "!!%s: ERROR: Deauth wait expired!!", __func__);
                     }
+                    hdd_softap_sta_disassoc(pAdapter, pDelStaParams);
                 }
             }
         } else {
