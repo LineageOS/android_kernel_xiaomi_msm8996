@@ -6782,8 +6782,12 @@ static int put_wifi_wmm_ac_tx_info(struct sir_wifi_tx *tx_stats,
 	fail_mcs = tx_stats->fail_mcs;
 	delay = tx_stats->delay;
 
-	if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_MPDU,
+	if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_MSDU,
+			tx_stats->msdus) ||
+	    nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_MPDU,
 			tx_stats->mpdus) ||
+	    nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_PPDU,
+			tx_stats->ppdus) ||
 	    nla_put_u32(skb,
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_BYTES,
 			tx_stats->bytes) ||

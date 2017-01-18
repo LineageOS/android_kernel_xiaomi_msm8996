@@ -5294,7 +5294,9 @@ static int wma_peer_ps_evt_handler(void *handle, u_int8_t *event,
 }
 
 #define WMA_FILL_TX_STATS(eve, msg)   do {\
+	(msg)->msdus = (eve)->tx_msdu_cnt;\
 	(msg)->mpdus = (eve)->tx_mpdu_cnt;\
+	(msg)->ppdus = (eve)->tx_ppdu_cnt;\
 	(msg)->bytes = (eve)->tx_bytes;\
 	(msg)->drops = (eve)->tx_msdu_drop_cnt;\
 	(msg)->drop_bytes = (eve)->tx_drop_bytes;\
@@ -5919,17 +5921,16 @@ void wma_config_stats_ext_threshold(struct wma_handle *wma,
 	wmi_tx_stats_thresh *tx;
 	wmi_rx_stats_thresh *rx;
 
-	if (thresh->period != LL_STATS_INVALID_PERIOD &&
-	    wmi_unified_pdev_set_param(wma->wmi_handle,
+	if (thresh->period != LL_STATS_INVALID_PERIOD) {
+		/*
+		 * only set period,
+		 * otherwise former threshold would be modified.
+		 */
+		if (wmi_unified_pdev_set_param(wma->wmi_handle,
 				       WMI_PDEV_PARAM_STATS_OBSERVATION_PERIOD,
-				       thresh->period)) {
-		WMA_LOGP(FL("Failed to set MAC counter period."));
-		return;
-	}
-
-	/* period==0, mac counter disabled. no parameter is needed. */
-	if (thresh->period == 0) {
-		WMA_LOGI("%s: Mac counter is disabled.", __func__);
+				       thresh->period))
+			WMA_LOGP(FL("Failed to set MAC counter period."));
+		WMA_LOGD(FL("Mac counter period=%d."), thresh->period);
 		return;
 	}
 
@@ -5974,6 +5975,12 @@ void wma_config_stats_ext_threshold(struct wma_handle *wma,
 	cca->rx_in_bad_cond_time = thresh->cca.rx_in_bad_cond_time;
 	cca->tx_in_bad_cond_time = thresh->cca.tx_in_bad_cond_time;
 	cca->wlan_not_avail_time = thresh->cca.wlan_not_avail_time;
+	WMA_LOGD(FL("idle time=%d, tx_time=%d, in_bss=%d, out_bss=%d"),
+		 cca->idle_time, cca->tx_time,
+		 cca->rx_in_bss_time, cca->rx_out_bss_time);
+	WMA_LOGD(FL("rx_busy=%d, rx_bad=%d, tx_bad=%d, not_avail=%d"),
+		 cca->rx_busy_time, cca->rx_in_bad_cond_time,
+		 cca->tx_in_bad_cond_time, cca->wlan_not_avail_time);
 	len += sizeof(wmi_chan_cca_stats_thresh);
 
 	signal = (wmi_peer_signal_stats_thresh *)(buf_ptr + len);
@@ -5983,6 +5990,8 @@ void wma_config_stats_ext_threshold(struct wma_handle *wma,
 	WMITLV_SET_HDR(&signal->tlv_header, tag, hdr_len);
 	signal->per_chain_snr = thresh->signal.snr;
 	signal->per_chain_nf = thresh->signal.nf;
+	WMA_LOGD(FL("snr=%d, nf=%d"), signal->per_chain_snr,
+		 signal->per_chain_nf);
 	len += sizeof(wmi_peer_signal_stats_thresh);
 
 	tx = (wmi_tx_stats_thresh *)(buf_ptr + len);
@@ -6003,6 +6012,15 @@ void wma_config_stats_ext_threshold(struct wma_handle *wma,
 	tx->tx_succ_mcs = thresh->tx.succ_mcs;
 	tx->tx_fail_mcs = thresh->tx.fail_mcs;
 	tx->tx_ppdu_delay = thresh->tx.delay;
+	WMA_LOGD(FL("msdu=%d, mpdu=%d, ppdu=%d, bytes=%d, msdu_drop=%d"),
+		 tx->tx_msdu_cnt, tx->tx_mpdu_cnt, tx->tx_ppdu_cnt,
+		 tx->tx_bytes, tx->tx_msdu_drop_cnt);
+	WMA_LOGD(FL("byte_drop=%d, mpdu_retry=%d, mpdu_fail=%d, ppdu_fail=%d"),
+		 tx->tx_drop_bytes, tx->tx_mpdu_retry_cnt,
+		 tx->tx_mpdu_fail_cnt, tx->tx_ppdu_fail_cnt);
+	WMA_LOGD(FL("aggr=%d, succ_mcs=%d, fail_mcs=%d, delay=%d"),
+		 tx->tx_mpdu_aggr, tx->tx_succ_mcs, tx->tx_fail_mcs,
+		 tx->tx_ppdu_delay);
 	len += sizeof(wmi_tx_stats_thresh);
 
 	rx = (wmi_rx_stats_thresh *)(buf_ptr + len);
@@ -6016,6 +6034,7 @@ void wma_config_stats_ext_threshold(struct wma_handle *wma,
 	rx->phy_rx_bytes = thresh->rx.ppdu_bytes;
 	rx->rx_disorder_cnt = thresh->rx.disorder;
 	rx->rx_mpdu_retry_cnt = thresh->rx.mpdu_retry;
+	rx->rx_mpdu_dup_cnt = thresh->rx.mpdu_dup;
 	rx->rx_mpdu_discard_cnt = thresh->rx.mpdu_discard;
 	rx->rx_mpdu_aggr = thresh->rx.aggregation;
 	rx->rx_mcs = thresh->rx.mcs;
@@ -6023,6 +6042,15 @@ void wma_config_stats_ext_threshold(struct wma_handle *wma,
 	rx->sta_ps_durs = thresh->rx.ps_durs;
 	rx->rx_probe_reqs = thresh->rx.probe_reqs;
 	rx->rx_oth_mgmts = thresh->rx.other_mgmt;
+	WMA_LOGD(FL("rx_mpdu=%d, rx_bytes=%d, rx_ppdu=%d, rx_pbytes=%d"),
+		 rx->mac_rx_mpdu_cnt, rx->mac_rx_bytes,
+		 rx->phy_rx_ppdu_cnt, rx->phy_rx_bytes);
+	WMA_LOGD(FL("disorder=%d, rx_dup=%d, rx_aggr=%d, rx_mcs=%d"),
+		 rx->rx_disorder_cnt, rx->rx_mpdu_dup_cnt,
+		 rx->rx_mpdu_aggr, rx->rx_mcs);
+	WMA_LOGD(FL("rx_ind=%d, rx_dur=%d, rx_probe=%d, rx_mgmt=%d"),
+		 rx->sta_ps_inds, rx->sta_ps_durs,
+		 rx->rx_probe_reqs, rx->rx_oth_mgmts);
 	len += sizeof(wmi_rx_stats_thresh);
 
 	WMA_LOGA("WMA --> WMI_PDEV_SET_STATS_THRESHOLD_CMDID(0x%x), length=%d",

@@ -6450,7 +6450,9 @@ struct sir_wifi_peer_signal_stats {
 
 /**
  * struct sir_wifi_tx - per AC tx stats
- * @mpdus: number of totoal TX packets on MAC layer in the period
+ * @msdus: number of totoal MSDUs on MAC layer in the period
+ * @mpdus: number of totoal MPDUs on MAC layer in the period
+ * @ppdus: number of totoal PPDUs on PHY layer in the period
  * @bytes: bytes of tx data on MAC layer in the period
  * @drops: number of TX packets cancelled due to any reason in the period,
  *	such as WMM limitation/bandwidth limitation/radio congestion
@@ -6467,7 +6469,9 @@ struct sir_wifi_peer_signal_stats {
  * @delay: histogram of delays on MAC layer
  */
 struct sir_wifi_tx {
+	uint32_t msdus;
 	uint32_t mpdus;
+	uint32_t ppdus;
 	uint32_t bytes;
 	uint32_t drops;
 	uint32_t drop_bytes;
