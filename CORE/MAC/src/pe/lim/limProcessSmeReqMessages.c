@@ -7611,11 +7611,9 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                        psessionEntry->gLimChannelSwitch.switchCount );
         /**
          * Send Action frame after updating the beacon
-         * Action frame is not required for dynamical sub20 channel
-         * width change
+         * Action frame is not required if sub20 enabled
          */
-        if (pDfsCsaIeRequest->sub20_channelwidth == 0 ||
-            psessionEntry->currentOperChannel != target_channel) {
+        if (pDfsCsaIeRequest->sub20_switch_mode == 0) {
             if (CHAN_HOP_ALL_BANDS_ENABLE)
                 lim_send_chan_switch_action_frame
                     (pMac, psessionEntry->gLimChannelSwitch.primaryChannel,

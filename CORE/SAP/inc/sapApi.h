@@ -727,6 +727,7 @@ typedef struct sSapDfsInfo
     uint8_t            sap_ch_switch_mode;
     bool               dfs_beacon_tx_enhanced;
     uint16_t           reduced_beacon_interval;
+    enum sub20_chan_switch_mode  sub20_switch_mode;
 } tSapDfsInfo;
 
 typedef struct tagSapCtxList
