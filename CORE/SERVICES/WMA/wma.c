@@ -8497,6 +8497,46 @@ wma_register_extscan_event_handler(tp_wma_handle wma_handle)
 
 }
 
+static int wma_antenna_isolation_event_handler(void *handle,
+                   u_int8_t *param, u_int32_t len)
+{
+    tp_wma_handle wma = (tp_wma_handle)handle;
+    wmi_coex_report_isolation_event_fixed_param *event;
+    WMI_COEX_REPORT_ANTENNA_ISOLATION_EVENTID_param_tlvs *param_buf;
+    struct sir_isolation_resp isolation;
+    tpAniSirGlobal mac = NULL;
+    WMA_LOGE("%s: handle %p param %p len %d", __func__, handle, param, len);
+
+    if(wma != NULL && wma->vos_context != NULL) {
+        mac = (tpAniSirGlobal)vos_get_context(
+                VOS_MODULE_ID_PE, wma->vos_context);
+    }
+    if (!mac) {
+        WMA_LOGE("%s: Invalid mac context", __func__);
+        return -EINVAL;
+    }
+
+    param_buf =
+        (WMI_COEX_REPORT_ANTENNA_ISOLATION_EVENTID_param_tlvs *)param;
+    if (!param_buf) {
+        WMA_LOGE("%s: Invalid isolation event", __func__);
+        return -EINVAL;
+    }
+    event = param_buf->fixed_param;
+    isolation.isolation_chain0 = event->isolation_chain0;
+    isolation.isolation_chain1 = event->isolation_chain1;
+    isolation.isolation_chain2 = event->isolation_chain2;
+    isolation.isolation_chain3 = event->isolation_chain3;
+
+    printk("\n*********************ANTENNA ISOLATION********************\n");
+
+    WMA_LOGD("%s: chain1 %d chain2 %d chain3 %d chain4 %d", __func__,
+            isolation.isolation_chain0, isolation.isolation_chain1,
+            isolation.isolation_chain2, isolation.isolation_chain3);
+    mac->sme.get_isolation(&isolation, mac->sme.get_isolation_cb_context);
+    return 0;
+}
+
 void wma_wow_tx_complete(void *wma)
 {
 	tp_wma_handle wma_handle = (tp_wma_handle)wma;
@@ -9211,6 +9251,10 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 		WMI_PDEV_CHIP_POWER_SAVE_FAILURE_DETECTED_EVENTID,
 		wma_chip_power_save_failure_detected_handler);
+
+     wmi_unified_register_event_handler(wma_handle->wmi_handle,
+                WMI_COEX_REPORT_ANTENNA_ISOLATION_EVENTID,
+                wma_antenna_isolation_event_handler);
 
 	wma_register_debug_callback();
 	wma_ndp_register_all_event_handlers(wma_handle);
@@ -32832,6 +32876,46 @@ wma_process_action_frame_random_mac(tp_wma_handle wma_handle,
 	return VOS_STATUS_SUCCESS;
 }
 
+static VOS_STATUS wma_get_isolation(tp_wma_handle wma)
+{
+    tp_wma_handle wma_handle = (tp_wma_handle)wma;
+    wmi_coex_get_antenna_isolation_cmd_fixed_param *cmd;
+    wmi_buf_t  wmi_buf;
+    uint32_t  len;
+    uint8_t *buf_ptr;
+
+    WMA_LOGE("%s: get isolation",
+            __func__);
+
+    if (!wma_handle || !wma_handle->wmi_handle) {
+        WMA_LOGE("%s: WMA is closed, can not issue get isolation",
+                __func__);
+        return VOS_STATUS_E_INVAL;
+    }
+
+    len  = sizeof(wmi_coex_get_antenna_isolation_cmd_fixed_param);
+    wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+    if (!wmi_buf) {
+        WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+        return VOS_STATUS_E_NOMEM;
+    }
+    buf_ptr = (uint8_t *)wmi_buf_data(wmi_buf);
+
+    cmd = (wmi_coex_get_antenna_isolation_cmd_fixed_param *)buf_ptr;
+    WMITLV_SET_HDR(&cmd->tlv_header,
+            WMITLV_TAG_STRUC_wmi_coex_get_antenna_isolation_cmd_fixed_param,
+            WMITLV_GET_STRUCT_TLVLEN(wmi_coex_get_antenna_isolation_cmd_fixed_param));
+
+    if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
+                WMI_COEX_GET_ANTENNA_ISOLATION_CMDID)) {
+        WMA_LOGE("Failed to get isolation request from fw");
+        wmi_buf_free(wmi_buf);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -33762,6 +33846,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			     (struct action_frame_random_filter *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+        case WDA_GET_ISOLATION:
+            wma_get_isolation(wma_handle);
+            break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

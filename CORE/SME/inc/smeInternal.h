@@ -214,6 +214,9 @@ typedef struct tagSmeStruct
     void (*pget_peer_info_ext_ind_cb) (struct sir_peer_info_ext_resp *param,
 		    void *pcontext);
     void *pget_peer_info_ext_cb_context;
+    /* get isolation callback */
+    void (*get_isolation) (struct sir_isolation_resp *param, void *context);
+    void *get_isolation_cb_context;
 #ifdef FEATURE_WLAN_EXTSCAN
     void (*pExtScanIndCb) (void *, const tANI_U16, void *);
 #endif /* FEATURE_WLAN_EXTSCAN */

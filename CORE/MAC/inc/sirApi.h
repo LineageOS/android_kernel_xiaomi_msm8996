@@ -4903,6 +4903,13 @@ struct sir_peer_info_ext_resp {
 	struct sir_peer_info_ext info[0];
 };
 
+struct sir_isolation_resp {
+    uint32_t isolation_chain0:8,    //[7:0],   isolation value for chain 0
+             isolation_chain1:8,    //[15:8],  isolation value for chain 1
+             isolation_chain2:8,    //[23:16], isolation value for chain 2
+             isolation_chain3:8;    //[31:24], isolation value for chain 3
+};
+
 typedef struct sSirAddPeriodicTxPtrn
 {
    /* MAC Address for the adapter */
