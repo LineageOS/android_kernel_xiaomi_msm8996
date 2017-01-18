@@ -1835,7 +1835,7 @@ typedef enum
 
 #define CFG_ACS_BAND_SWITCH_THRESHOLD             "gACSBandSwitchThreshold"
 #define CFG_ACS_BAND_SWITCH_THRESHOLD_MIN         (0)
-#define CFG_ACS_BAND_SWITCH_THRESHOLD_MAX         (4444)
+#define CFG_ACS_BAND_SWITCH_THRESHOLD_MAX         (26664)
 /* 2 BSS, maximum RSSI -90 */
 #define CFG_ACS_BAND_SWITCH_THRESHOLD_DEFAULT     (296)
 
