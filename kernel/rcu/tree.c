@@ -1108,6 +1108,8 @@ static void print_other_cpu_stall(struct rcu_state *rsp)
 
 	/* Complain about tasks blocking the grace period. */
 
+	trigger_allbutself_cpu_backtrace();
+
 	rcu_print_detail_task_stall(rsp);
 
 	panic_on_rcu_stall();
