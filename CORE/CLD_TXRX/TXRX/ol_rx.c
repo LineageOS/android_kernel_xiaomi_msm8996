@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -253,12 +253,13 @@ ol_rx_mon_indication_handler(
 
 	htt_pdev = pdev->htt_pdev;
 
+	adf_os_spin_lock_bh(&pdev->peer_ref_mutex);
 	peer = pdev->self_peer;
-
 	if (peer) {
-	    adf_os_atomic_inc(&peer->ref_cnt);
-	    vdev = peer->vdev;
+		adf_os_atomic_inc(&peer->ref_cnt);
+		vdev = peer->vdev;
 	}
+	adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
 
 	for (mpdu_range = 0; mpdu_range < num_mpdu_ranges; mpdu_range++) {
 		enum htt_rx_status status;

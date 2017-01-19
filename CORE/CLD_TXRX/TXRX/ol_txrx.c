@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1737,6 +1737,11 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
             peer->mac_addr.raw[2], peer->mac_addr.raw[3],
             peer->mac_addr.raw[4], peer->mac_addr.raw[5]);
 
+        /* set self_peer to null, otherwise may crash when unload driver */
+        if (peer == pdev->self_peer &&
+            VOS_MONITOR_MODE == vos_get_conparam())
+            pdev->self_peer = NULL;
+
         peer_id = peer->local_id;
         /* remove the reference to the peer from the hash table */
         ol_txrx_peer_find_hash_remove(pdev, peer);
@@ -1842,9 +1847,6 @@ ol_txrx_peer_unref_delete(ol_txrx_peer_handle peer)
         }
 
         adf_os_mem_free(peer);
-        /* set self_peer to null, otherwise may crash when unload driver */
-        if (VOS_MONITOR_MODE == vos_get_conparam())
-            pdev->self_peer = NULL;
     } else {
         adf_os_spin_unlock_bh(&pdev->peer_ref_mutex);
     }
