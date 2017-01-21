@@ -35,6 +35,7 @@
 #include "pktlog_ac_i.h"
 #include "wma_api.h"
 #include "wlan_logging_sock_svc.h"
+#include "ol_txrx.h"
 
 #define TX_DESC_ID_LOW_MASK	0xffff
 #define TX_DESC_ID_LOW_SHIFT	0
@@ -208,6 +209,14 @@ static void process_ieee_hdr(void *data)
 	}
 }
 
+static inline uint16_t get_desc_pool_size(struct ol_txrx_pdev_t *txrx_pdev)
+{
+	if (txrx_pdev->cfg.is_high_latency)
+		return ol_tx_desc_pool_size_hl(txrx_pdev->ctrl_pdev);
+	else
+		return ol_cfg_target_tx_credit(txrx_pdev->ctrl_pdev);
+}
+
 A_STATUS
 process_tx_info(struct ol_txrx_pdev_t *txrx_pdev,
 		void *data)
@@ -279,7 +288,14 @@ process_tx_info(struct ol_txrx_pdev_t *txrx_pdev,
 				adf_os_mem_free(data);
 			}
 		} else {
-			tx_desc = ol_tx_desc_find(txrx_pdev, desc_id);
+			tx_desc = ol_tx_desc_find_check(txrx_pdev, desc_id);
+			if (tx_desc == NULL) {
+				adf_os_print("%s: invalid desc_id(%u), ignore it.\n",
+					__func__,
+					desc_id);
+				return A_ERROR;
+			}
+
 			adf_os_assert(tx_desc);
 			netbuf = tx_desc->netbuf;
 			if (netbuf)
@@ -374,7 +390,7 @@ process_tx_info(struct ol_txrx_pdev_t *txrx_pdev,
 					     >> TX_DESC_ID_HIGH_SHIFT);
 				msdu_id += 1;
 			}
-			if (tx_desc_id >= ol_cfg_target_tx_credit(txrx_pdev->ctrl_pdev)) {
+			if (tx_desc_id >= get_desc_pool_size(txrx_pdev)) {
 				adf_os_print("%s: drop due to invalid msdu id = %x\n",
 						__func__, tx_desc_id);
 				return A_ERROR;

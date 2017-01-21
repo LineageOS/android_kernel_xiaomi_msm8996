@@ -102,8 +102,10 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
         msdu_info.htt.info.ext_tid = adf_nbuf_get_tid(msdu);
         msdu_info.peer = NULL;
 
-        adf_nbuf_map_single(adf_ctx, msdu,
+        if (!adf_nbuf_is_ipa_nbuf(msdu)) {
+            adf_nbuf_map_single(adf_ctx, msdu,
                              ADF_OS_DMA_TO_DEVICE);
+        }
         ol_tx_prepare_ll(tx_desc, vdev, msdu, &msdu_info);
 
         /*
@@ -208,7 +210,7 @@ ol_tx_vdev_ll_pause_queue_send_base(struct ol_txrx_vdev_t *vdev)
              */
             if (tx_msdu) {
                 adf_nbuf_unmap(vdev->pdev->osdev, tx_msdu, ADF_OS_DMA_TO_DEVICE);
-                adf_nbuf_tx_free(tx_msdu, 1 /* error */);
+                adf_nbuf_tx_free(tx_msdu, ADF_NBUF_PKT_ERROR);
             }
         }
     }
@@ -395,7 +397,7 @@ ol_tx_pdev_ll_pause_queue_send_all(struct ol_txrx_pdev_t *pdev)
                  */
                 if (tx_msdu) {
                     adf_nbuf_unmap(pdev->osdev, tx_msdu, ADF_OS_DMA_TO_DEVICE);
-                    adf_nbuf_tx_free(tx_msdu, 1 /* error */);
+                    adf_nbuf_tx_free(tx_msdu, ADF_NBUF_PKT_ERROR);
                 }
             }
             /*check if there are more msdus to transmit*/
@@ -1283,4 +1285,20 @@ adf_nbuf_t ol_tx_reinject(
     ol_tx_send(vdev->pdev, tx_desc, msdu, vdev->vdev_id);
 
     return NULL;
+}
+
+/**
+ * ol_tx_failure_cb_set() - add TX failure callback
+ * @pdev: PDEV TXRX handle
+ * @tx_failure_cb: TX failure callback
+ */
+void ol_tx_failure_cb_set(ol_txrx_pdev_handle pdev,
+			  void (*tx_failure_cb)(void *ctx,
+						unsigned int num_msdu,
+						unsigned char tid,
+						unsigned int status))
+{
+	 struct htt_pdev_t *htt_pdev = pdev->htt_pdev;
+
+	 htt_pdev->tx_failure_cb = tx_failure_cb;
 }

@@ -117,7 +117,7 @@ dfs_process_pulse_dur(struct ath_dfs *dfs, u_int8_t re_dur)
  * Return: None
  */
 static void dfs_process_dc_pulse(struct ath_dfs *dfs, struct dfs_event *event,
-                                 int *retval, int this_ts)
+                                 int *retval, uint64_t this_ts)
 {
     struct dfs_event re;
     struct dfs_state *rs=NULL;
@@ -463,8 +463,9 @@ dfs_process_radarevent(struct ath_dfs *dfs, struct ieee80211_channel *chan)
                (((u_int64_t) 1) << DFS_TSSHIFT);
             /* Now, see if it's been more than 1 wrap */
             deltafull_ts = re.re_full_ts - dfs->dfs_rinfo.rn_lastfull_ts;
-            if (deltafull_ts >
-                ((u_int64_t)((DFS_TSMASK - dfs->dfs_rinfo.rn_last_ts) + 1 + re.re_ts)))
+            if (deltafull_ts > ((u_int64_t)(DFS_TSMASK -
+                                      dfs->dfs_rinfo.rn_last_ts) +
+                                      1 + re.re_ts))
                deltafull_ts -= (DFS_TSMASK - dfs->dfs_rinfo.rn_last_ts) + 1 + re.re_ts;
             deltafull_ts = deltafull_ts >> DFS_TSSHIFT;
             if (deltafull_ts > 1) {

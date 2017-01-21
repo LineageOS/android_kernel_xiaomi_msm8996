@@ -39,7 +39,7 @@
  *
  */
 #include "aniGlobal.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "sirCommon.h"
 #include "sirDebug.h"
 #include "utilsApi.h"

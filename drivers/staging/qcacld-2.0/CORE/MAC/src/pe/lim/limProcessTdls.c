@@ -2968,10 +2968,14 @@ void limSendSmeTdlsLinkEstablishReqRsp(tpAniSirGlobal pMac,
         limLog(pMac, LOGE, FL("Failed to allocate memory"));
         return ;
     }
+
+    vos_mem_zero(pTdlsLinkEstablishReqRsp, sizeof(*pTdlsLinkEstablishReqRsp));
+
     pTdlsLinkEstablishReqRsp->statusCode = status ;
-    if ( peerMac )
+    if (pStaDs && peerMac)
     {
         vos_mem_copy(pTdlsLinkEstablishReqRsp->peerMac, peerMac, sizeof(tSirMacAddr));
+        pTdlsLinkEstablishReqRsp->sta_idx = pStaDs->staIndex;
     }
     pTdlsLinkEstablishReqRsp->sessionId = sessionId;
     mmhMsg.type = eWNI_SME_TDLS_LINK_ESTABLISH_RSP ;

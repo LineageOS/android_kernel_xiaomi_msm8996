@@ -45,7 +45,6 @@
 #include <wlan_hdd_tx_rx.h>
 #include <wniApi.h>
 #include <wlan_nlink_srv.h>
-#include <wlan_btc_svc.h>
 #include <wlan_hdd_cfg.h>
 #include <wlan_ptt_sock_svc.h>
 #include <wlan_hdd_wowl.h>
@@ -405,7 +404,7 @@ void epping_tx_complete_multiple(void *ctx,
       pktSkb = adf_nbuf_queue_remove(&skb_queue);
       if (pktSkb == NULL)
          break;
-      adf_nbuf_free(pktSkb);
+      adf_nbuf_tx_free(pktSkb, ADF_NBUF_PKT_ERROR);
       pEpping_ctx->total_tx_acks++;
    }
 

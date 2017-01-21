@@ -293,5 +293,7 @@ typedef void (*tp_pe_packetdump_cb)(adf_nbuf_t netbuf,
 void pe_register_packetdump_callback(tp_pe_packetdump_cb pe_packetdump_cb);
 void pe_deregister_packetdump_callback(void);
 
+eHalStatus pe_AcquireGlobalLock(tAniSirLim *pe);
+eHalStatus pe_ReleaseGlobalLock(tAniSirLim *pe);
 /************************************************************/
 #endif /* __LIM_API_H */

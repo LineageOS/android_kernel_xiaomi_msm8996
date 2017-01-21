@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013,2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -44,17 +44,13 @@
 
 #include "aniGlobal.h"
 
-
-#ifdef TRACE_RECORD
-
 #define MAC_TRACE_GET_MODULE_ID(data) ((data >> 8) & 0xff)
 #define MAC_TRACE_GET_MSG_ID(data)       (data & 0xffff)
-
 
 #define eLOG_NODROP_MISSED_BEACON_SCENARIO 0
 #define eLOG_PROC_DEAUTH_FRAME_SCENARIO 1
 
-
+#ifdef TRACE_RECORD
 void macTraceReset(tpAniSirGlobal pMac);
 void macTrace(tpAniSirGlobal pMac, tANI_U8 code, tANI_U16 session,
               tANI_U32 data);
@@ -66,8 +62,6 @@ tANI_U8* macTraceGetWdaMsgString( tANI_U16 wdaMsg );
 tANI_U8* macTraceGetSmeMsgString( tANI_U16 smeMsg );
 tANI_U8* macTraceGetModuleString( tANI_U8 moduleId);
 tANI_U8* macTraceGetInfoLogString( tANI_U16 infoLog );
-eHalStatus pe_AcquireGlobalLock( tAniSirLim *psPe);
-eHalStatus pe_ReleaseGlobalLock( tAniSirLim *psPe);
 
 tANI_U8* macTraceGetHDDWlanConnState(tANI_U16 connState);
 
@@ -81,7 +75,47 @@ tANI_U8* macTraceGetcsrRoamSubState(tANI_U16 csrRoamSubState);
 tANI_U8* macTraceGetLimSmeState(tANI_U16 limState);
 tANI_U8* macTraceGetLimMlmState(tANI_U16 mlmState);
 tANI_U8* macTraceGetTLState(tANI_U16 tlState);
-
+#else
+static inline tANI_U8*
+macTraceGetWdaMsgString( tANI_U16 wdamsg )
+{
+	return NULL;
+}
+static inline tANI_U8*
+macTraceGetHDDWlanConnState(tANI_U16 connstate)
+{
+	return NULL;
+}
+static inline tANI_U8*
+macTraceGetNeighbourRoamState(tANI_U16 neighbourroamstate)
+{
+	return NULL;
+}
+static inline tANI_U8*
+macTraceGetcsrRoamState(tANI_U16 csrroamstate)
+{
+	return NULL;
+}
+static inline tANI_U8*
+macTraceGetcsrRoamSubState(tANI_U16 csrroamsubstate)
+{
+	return NULL;
+}
+static inline tANI_U8*
+macTraceGetLimSmeState(tANI_U16 limstate)
+{
+	return NULL;
+}
+static inline tANI_U8*
+macTraceGetLimMlmState(tANI_U16 mlmstate)
+{
+	return NULL;
+}
+static inline tANI_U8*
+macTraceGetTLState(tANI_U16 tlstate)
+{
+	return NULL;
+}
 #endif
 
 #endif

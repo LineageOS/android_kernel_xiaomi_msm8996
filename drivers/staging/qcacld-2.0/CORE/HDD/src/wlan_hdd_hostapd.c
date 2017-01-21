@@ -71,13 +71,12 @@
 #include <linux/netdevice.h>
 #include <linux/mmc/sdio_func.h>
 #include "wlan_nlink_common.h"
-#include "wlan_btc_svc.h"
 #include "wlan_hdd_p2p.h"
 #ifdef IPA_OFFLOAD
 #include <wlan_hdd_ipa.h>
 #endif
 #include "cfgApi.h"
-#include "wniCfgAp.h"
+#include "wni_cfg.h"
 #include "wlan_hdd_misc.h"
 #include <vos_utils.h>
 #include "vos_cnss.h"
@@ -1287,6 +1286,78 @@ static VOS_STATUS hdd_wlan_set_dfs_nol(const void *pdfs_list, u16 sdfs_list)
 }
 #endif
 
+#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
+/**
+ * hdd_handle_acs_scan_event() - handle acs scan event for SAP
+ * @sap_event: tpSap_Event
+ * @adapter: hdd_adapter_t for SAP
+ *
+ * The function is to handle the eSAP_ACS_SCAN_SUCCESS_EVENT event.
+ * It will update scan result to cfg80211 and start a timer to flush the
+ * cached acs scan result.
+ *
+ * Return: VOS_STATUS_SUCCESS on success,
+          other value on failure
+ */
+static VOS_STATUS hdd_handle_acs_scan_event(tpSap_Event sap_event,
+		hdd_adapter_t *adapter)
+{
+	hdd_context_t *hdd_ctx;
+	struct tsap_acs_scan_complete_event *comp_evt;
+	VOS_STATUS vos_status;
+	int chan_list_size;
+
+	hdd_ctx = (hdd_context_t*)(adapter->pHddCtx);
+	if (!hdd_ctx) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("HDD context is null"));
+		return VOS_STATUS_E_FAILURE;
+	}
+	comp_evt = &sap_event->sapevt.sap_acs_scan_comp;
+	hdd_ctx->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
+	spin_lock(&hdd_ctx->acs_skip_lock);
+	vos_mem_free(hdd_ctx->last_acs_channel_list);
+	hdd_ctx->last_acs_channel_list = NULL;
+	hdd_ctx->num_of_channels = 0;
+	/* cache the previous ACS scan channel list .
+	 * If the following OBSS scan chan list is covered by ACS chan list,
+	 * we can skip OBSS Scan to save SAP starting total time.
+	 */
+	if (comp_evt->num_of_channels && comp_evt->channellist) {
+		chan_list_size = comp_evt->num_of_channels *
+			sizeof(comp_evt->channellist[0]);
+		hdd_ctx->last_acs_channel_list = vos_mem_malloc(
+			chan_list_size);
+		if (hdd_ctx->last_acs_channel_list) {
+			vos_mem_copy(hdd_ctx->last_acs_channel_list,
+				comp_evt->channellist,
+				chan_list_size);
+			hdd_ctx->num_of_channels = comp_evt->num_of_channels;
+		}
+	}
+	spin_unlock(&hdd_ctx->acs_skip_lock);
+	/* Update ACS scan result to cfg80211. Then OBSS scan can reuse the
+	 * scan result.
+	 */
+	if (wlan_hdd_cfg80211_update_bss(hdd_ctx->wiphy, adapter))
+		hddLog(VOS_TRACE_LEVEL_INFO, FL("NO SCAN result"));
+
+	hddLog(LOG1, FL("Reusing Last ACS scan result for %d sec"),
+		ACS_SCAN_EXPIRY_TIMEOUT_S);
+	vos_timer_stop( &hdd_ctx->skip_acs_scan_timer);
+	vos_status = vos_timer_start( &hdd_ctx->skip_acs_scan_timer,
+			ACS_SCAN_EXPIRY_TIMEOUT_S * 1000);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status))
+		hddLog(LOGE, FL("Failed to start ACS scan expiry timer"));
+	return VOS_STATUS_SUCCESS;
+}
+#else
+static VOS_STATUS hdd_handle_acs_scan_event(tpSap_Event sap_event,
+		hdd_adapter_t *adapter)
+{
+	return VOS_STATUS_SUCCESS;
+}
+#endif
+
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback)
 {
     hdd_adapter_t *pHostapdAdapter;
@@ -1451,11 +1522,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             pHostapdState->bssState = BSS_START;
 
-            hdd_wlan_green_ap_start_bss(pHddCtx);
-
-            // Send current operating channel of SoftAP to BTC-ES
-            send_btc_nlink_msg(WLAN_BTC_SOFTAP_BSS_START, 0);
-
             /* Set default key index */
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                     "%s: default key index %hu", __func__,
@@ -1565,8 +1631,6 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
                     pHddApCtx->operatingChannel);
-
-            hdd_wlan_green_ap_stop_bss(pHddCtx);
 
             //Free up Channel List incase if it is set
 
@@ -2151,19 +2215,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             else
                 return hdd_chan_change_notify(pHostapdAdapter, dev,
                            pSapEvent->sapevt.sapChSelected.pri_ch);
-#ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
         case eSAP_ACS_SCAN_SUCCESS_EVENT:
-            pHddCtx->skip_acs_scan_status = eSAP_SKIP_ACS_SCAN;
-            hddLog(LOG1, FL("Reusing Last ACS scan result for %d sec"),
-                ACS_SCAN_EXPIRY_TIMEOUT_S);
-            vos_timer_stop( &pHddCtx->skip_acs_scan_timer);
-            vos_status = vos_timer_start( &pHddCtx->skip_acs_scan_timer,
-                                   ACS_SCAN_EXPIRY_TIMEOUT_S * 1000);
-            if (!VOS_IS_STATUS_SUCCESS(vos_status))
-                hddLog(LOGE, FL("Failed to start ACS scan expiry timer"));
-            return VOS_STATUS_SUCCESS;
-#endif
-
+            return hdd_handle_acs_scan_event(pSapEvent, pHostapdAdapter);
         case eSAP_DFS_NOL_GET:
             hddLog(VOS_TRACE_LEVEL_INFO,
                     FL("Received eSAP_DFS_NOL_GET event"));
@@ -3658,8 +3711,11 @@ static __iw_softap_getparam(struct net_device *dev,
         }
 
     case QCSAP_PARAM_AUTO_CHANNEL:
-        *value = (WLAN_HDD_GET_CTX
+        {
+            *value = (WLAN_HDD_GET_CTX
                       (pHostapdAdapter))->cfg_ini->force_sap_acs;
+            break;
+        }
 
     case QCSAP_PARAM_RTSCTS:
         {
@@ -6804,6 +6860,12 @@ hdd_adapter_t* hdd_wlan_create_ap_dev(hdd_context_t *pHddCtx,
          */
         hdd_set_needed_headroom(pWlanHostapdDev,
                            pWlanHostapdDev->hard_header_len);
+
+        if (pHddCtx->cfg_ini->enableIPChecksumOffload)
+            pWlanHostapdDev->features |= NETIF_F_HW_CSUM;
+        else if (pHddCtx->cfg_ini->enableTCPChkSumOffld)
+            pWlanHostapdDev->features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
+        pWlanHostapdDev->features |= NETIF_F_RXCSUM;
 
         SET_NETDEV_DEV(pWlanHostapdDev, pHddCtx->parent_dev);
         spin_lock_init(&pHostapdAdapter->pause_map_lock);

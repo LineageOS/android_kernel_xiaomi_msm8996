@@ -78,13 +78,6 @@
 /** Length of the TX queue for the netdev */
 #define HDD_NETDEV_TX_QUEUE_LEN (3000)
 
-/** Bytes to reserve in the headroom */
-#if (!defined(QCA_WIFI_2_0)) || (defined(HIF_USB))
-#define HDD_HW_NEEDED_HEADROOM 128
-#else
-#define HDD_HW_NEEDED_HEADROOM 0
-#endif
-
 /** Hdd Tx Time out value */
 #ifdef LIBRA_LINUX_PC
 #define HDD_TX_TIMEOUT          (8000)
@@ -222,7 +215,11 @@
 
 /* Maximum number of interfaces allowed(STA, P2P Device, P2P Interfaces) */
 #ifndef WLAN_OPEN_P2P_INTERFACE
+#ifdef WLAN_4SAP_CONCURRENCY
+#define WLAN_MAX_INTERFACES 4
+#else
 #define WLAN_MAX_INTERFACES 3
+#endif
 #else
 #define WLAN_MAX_INTERFACES 4
 #endif
@@ -759,6 +756,8 @@ struct hdd_station_ctx
 #ifdef WLAN_FEATURE_NAN_DATAPATH
    struct nan_datapath_ctx ndp_ctx;
 #endif
+
+   uint8_t broadcast_staid;
 };
 
 #define BSS_STOP    0
@@ -1478,6 +1477,32 @@ struct acs_dfs_policy {
 	uint8_t acs_channel;
 };
 
+/**
+ * struct hdd_scan_chan_info - channel info
+ * @freq: radio frequence
+ * @cmd flag: cmd flag
+ * @noise_floor: noise floor
+ * @cycle_count: cycle count
+ * @rx_clear_count: rx clear count
+ * @tx_frame_count: TX frame count
+ * @delta_cycle_count: delta of cc
+ * @delta_rx_clear_count: delta of rcc
+ * @delta_tx_frame_count: delta of tfc
+ * @clock_freq: clock frequence MHZ
+ */
+struct hdd_scan_chan_info {
+	uint32_t freq;
+	uint32_t cmd_flag;
+	uint32_t noise_floor;
+	uint32_t cycle_count;
+	uint32_t rx_clear_count;
+	uint32_t tx_frame_count;
+	uint32_t delta_cycle_count;
+	uint32_t delta_rx_clear_count;
+	uint32_t delta_tx_frame_count;
+	uint32_t clock_freq;
+};
+
 /** Adapter stucture definition */
 
 struct hdd_context_s
@@ -1750,6 +1775,9 @@ struct hdd_context_s
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
     vos_timer_t skip_acs_scan_timer;
     v_U8_t skip_acs_scan_status;
+    uint8_t *last_acs_channel_list;
+    uint8_t num_of_channels;
+    spinlock_t acs_skip_lock;
 #endif
 
     vos_wake_lock_t sap_dfs_wakelock;
@@ -1844,6 +1872,12 @@ struct hdd_context_s
     uint8_t max_mc_addr_list;
     struct acs_dfs_policy acs_policy;
     uint8_t max_peers;
+    /* bit map to set/reset TDLS by different sources */
+    unsigned long tdls_source_bitmap;
+    /* tdls source timer to enable/disable TDLS on p2p listen */
+    vos_timer_t tdls_source_timer;
+    struct hdd_scan_chan_info *chan_info;
+    struct mutex chan_info_lock;
 };
 
 /*---------------------------------------------------------------------------
@@ -2016,6 +2050,7 @@ void hdd_wlan_green_ap_start_bss(hdd_context_t *hdd_ctx);
 void hdd_wlan_green_ap_stop_bss(struct hdd_context_s *hdd_ctx);
 void hdd_wlan_green_ap_add_sta(struct hdd_context_s *hdd_ctx);
 void hdd_wlan_green_ap_del_sta(struct hdd_context_s *hdd_ctx);
+int hdd_wlan_enable_egap(struct hdd_context_s *hdd_ctx);
 #else
 static inline void hdd_wlan_green_ap_init(struct hdd_context_s *hdd_ctx) {}
 static inline void hdd_wlan_green_ap_deinit(struct hdd_context_s *hdd_ctx) {}
@@ -2023,6 +2058,9 @@ static inline void hdd_wlan_green_ap_start_bss(hdd_context_t *hdd_ctx) {}
 static inline void hdd_wlan_green_ap_stop_bss(struct hdd_context_s *hdd_ctx) {}
 static inline void hdd_wlan_green_ap_add_sta(struct hdd_context_s *hdd_ctx) {}
 static inline void hdd_wlan_green_ap_del_sta(struct hdd_context_s *hdd_ctx) {}
+static inline int hdd_wlan_enable_egap(struct hdd_context_s *hdd_ctx) {
+    return -EINVAL;
+}
 #endif
 
 #ifdef WLAN_FEATURE_STATS_EXT
@@ -2251,4 +2289,7 @@ void hdd_sap_restart_handle(struct work_struct *work);
 void hdd_set_rps_cpu_mask(hdd_context_t *hdd_ctx);
 void hdd_initialize_adapter_common(hdd_adapter_t *adapter);
 void hdd_svc_fw_shutdown_ind(struct device *dev);
+void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx);
+void wlan_hdd_init_chan_info(hdd_context_t *hdd_ctx);
+void wlan_hdd_deinit_chan_info(hdd_context_t *hdd_ctx);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

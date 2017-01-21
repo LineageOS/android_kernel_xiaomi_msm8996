@@ -923,7 +923,16 @@ limAssocFailureTimerHandler(void *pMacGlobal, tANI_U32 param)
        (pMac->lim.pSessionEntry->limMlmState == eLIM_MLM_WT_FT_REASSOC_RSP_STATE))
     {
         limLog(pMac, LOGE, FL("Reassoc timeout happened"));
-        if(pMac->lim.reAssocRetryAttempt < LIM_MAX_REASSOC_RETRY_LIMIT)
+#ifdef FEATURE_WLAN_ESE
+	if (((pMac->lim.pSessionEntry->isESEconnection) &&
+             (pMac->lim.reAssocRetryAttempt <
+             (LIM_MAX_REASSOC_RETRY_LIMIT - 1)))||
+             ((!pMac->lim.pSessionEntry->isESEconnection) &&
+             (pMac->lim.reAssocRetryAttempt < LIM_MAX_REASSOC_RETRY_LIMIT))
+	   )
+#else
+        if (pMac->lim.reAssocRetryAttempt < LIM_MAX_REASSOC_RETRY_LIMIT)
+#endif
         {
             limSendRetryReassocReqFrame(pMac, pMac->lim.pSessionEntry->pLimMlmReassocRetryReq, pMac->lim.pSessionEntry);
             pMac->lim.reAssocRetryAttempt++;
@@ -1041,17 +1050,6 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
             if (pMac->lim.gpLimMlmScanReq) {
                 val =
                      SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTime);
-                if (pMac->btc.btcScanCompromise) {
-                    if (pMac->lim.gpLimMlmScanReq->minChannelTimeBtc) {
-                        val = SYS_MS_TO_TICKS(
-                                  pMac->lim.gpLimMlmScanReq->minChannelTimeBtc);
-                        limLog(pMac, LOG1,
-                               FL("Using BTC Min Active Scan time"));
-                    } else {
-                        limLog(pMac, LOGE,
-                               FL("BTC Active Scan Min Time is Not Set"));
-                    }
-                }
             } else {
                 limLog(pMac, LOGE, FL("gpLimMlmScanReq is NULL"));
                 break;
@@ -1078,17 +1076,6 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
             }
 
             val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTime)/2;
-            if (pMac->btc.btcScanCompromise)
-            {
-               if (pMac->lim.gpLimMlmScanReq->minChannelTimeBtc)
-               {
-                   val = SYS_MS_TO_TICKS(pMac->lim.gpLimMlmScanReq->minChannelTimeBtc)/2;
-               }
-               else
-               {
-                   limLog(pMac, LOGE, FL("BTC Active Scan Min Time is Not Set"));
-               }
-            }
             if (val)
             {
                if (tx_timer_change(&pMac->lim.limTimers.gLimPeriodicProbeReqTimer,
@@ -1129,17 +1116,6 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                 if (pMac->lim.gpLimMlmScanReq) {
                     val = SYS_MS_TO_TICKS(
                                      pMac->lim.gpLimMlmScanReq->maxChannelTime);
-                    if (pMac->btc.btcScanCompromise) {
-                        if (pMac->lim.gpLimMlmScanReq->maxChannelTimeBtc) {
-                            val = SYS_MS_TO_TICKS(
-                                  pMac->lim.gpLimMlmScanReq->maxChannelTimeBtc);
-                            limLog(pMac, LOG1,
-                                   FL("Using BTC Max Active Scan time"));
-                        } else {
-                            limLog(pMac, LOGE,
-                                   FL("BTC Active Scan Max Time is Not Set"));
-                        }
-                    }
                 } else {
                     limLog(pMac, LOGE, FL("gpLimMlmScanReq is NULL"));
                     break;

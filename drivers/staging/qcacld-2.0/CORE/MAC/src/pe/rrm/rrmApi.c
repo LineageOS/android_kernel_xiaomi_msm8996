@@ -44,7 +44,7 @@
 #include "wniApi.h"
 #include "sirApi.h"
 #include "aniGlobal.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "limTypes.h"
 #include "limUtils.h"
 #include "limSendSmeRspMessages.h"

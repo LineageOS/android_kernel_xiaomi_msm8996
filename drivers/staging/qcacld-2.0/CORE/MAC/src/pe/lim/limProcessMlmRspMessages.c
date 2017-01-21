@@ -36,7 +36,7 @@
  *
  */
 #include "wniApi.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "cfgApi.h"
 #include "sirApi.h"
 #include "schApi.h"
@@ -573,11 +573,11 @@ limSendMlmAssocReq( tpAniSirGlobal pMac,
         caps &= (~LIM_SPECTRUM_MANAGEMENT_BIT_MASK);
     }
 
-    /*
-     * RM capability should be independent of AP's capabilities
-     * Refer 8.4.1.4 Capability Information field in 802.11-2012
-     * Do not modify it.
-     */
+    /* Clear rrm bit if AP doesn't support it */
+    if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo &
+          LIM_RRM_BIT_MASK)) {
+        caps &= (~LIM_RRM_BIT_MASK);
+    }
 
     /* Clear short preamble bit if AP does not support it */
     if(!(psessionEntry->pLimJoinReq->bssDescription.capabilityInfo &
@@ -2961,6 +2961,11 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
     tpAddBssParams pAddBssParams = (tpAddBssParams) limMsgQ->bodyptr;
     tANI_U32 selfStaDot11Mode = 0;
 
+#ifdef FEATURE_WLAN_ESE
+    tLimMlmReassocReq *pMlmReassocReq;
+    tANI_U32 val = 0;
+#endif
+
     /* Sanity Checks */
 
     if (pAddBssParams == NULL)
@@ -2981,6 +2986,39 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
         limPrintMacAddr(pMac, pAddBssParams->staContext.staMac, LOGE);
         goto end;
     }
+
+#ifdef FEATURE_WLAN_ESE
+    /*
+     * In case of Ese Reassociation, change the reassoc timer
+     * value.
+     */
+    pMlmReassocReq = (tLimMlmReassocReq *)(psessionEntry->pLimMlmReassocReq);
+    if (pMlmReassocReq == NULL)
+    {
+        limLog(pMac, LOGE,
+                   FL("Invalid pMlmReassocReq"));
+        goto end;
+    }
+    val = pMlmReassocReq->reassocFailureTimeout;
+    if (psessionEntry->isESEconnection)
+    {
+        val = val/LIM_MAX_REASSOC_RETRY_LIMIT;
+    }
+    if (tx_timer_deactivate(&pMac->lim.limTimers.gLimReassocFailureTimer) !=
+            TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+                   FL("unable to deactivate Reassoc failure timer"));
+    }
+    val = SYS_MS_TO_TICKS(val);
+    if (tx_timer_change(&pMac->lim.limTimers.gLimReassocFailureTimer,
+                        val, 0) != TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+                   FL("unable to change Reassociation failure timer"));
+    }
+#endif
+
     // Prepare and send Reassociation request frame
     // start reassoc timer.
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
@@ -3814,6 +3852,11 @@ static void limProcessSwitchChannelReAssocReq(tpAniSirGlobal pMac, tpPESession p
 {
     tLimMlmReassocCnf       mlmReassocCnf;
     tLimMlmReassocReq       *pMlmReassocReq;
+
+#ifdef FEATURE_WLAN_ESE
+    tANI_U32                val = 0;
+#endif
+
     pMlmReassocReq = (tLimMlmReassocReq *)(psessionEntry->pLimMlmReassocReq);
     if(pMlmReassocReq == NULL)
     {
@@ -3828,6 +3871,32 @@ static void limProcessSwitchChannelReAssocReq(tpAniSirGlobal pMac, tpPESession p
         mlmReassocCnf.resultCode = eSIR_SME_CHANNEL_SWITCH_FAIL;
         goto end;
     }
+#ifdef FEATURE_WLAN_ESE
+    /*
+     * In case of Ese Reassociation, change the reassoc timer
+     * value.
+     */
+    val = pMlmReassocReq->reassocFailureTimeout;
+    if (psessionEntry->isESEconnection)
+    {
+        val = val/LIM_MAX_REASSOC_RETRY_LIMIT;
+    }
+    if (tx_timer_deactivate(&pMac->lim.limTimers.gLimReassocFailureTimer) !=
+                 TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+               FL("unable to deactivate Reassoc failure timer"));
+    }
+    val = SYS_MS_TO_TICKS(val);
+    if (tx_timer_change(&pMac->lim.limTimers.gLimReassocFailureTimer,
+                        val, 0) != TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+               FL("unable to change Reassociation failure timer"));
+
+    }
+#endif
+    pMac->lim.limTimers.gLimReassocFailureTimer.sessionId = psessionEntry->peSessionId;
     /// Start reassociation failure timer
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, psessionEntry->peSessionId, eLIM_REASSOC_FAIL_TIMER));
     if (tx_timer_activate(&pMac->lim.limTimers.gLimReassocFailureTimer)
@@ -5131,4 +5200,35 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
                     "Received unhandled scan event %u", pScanEvent->event);
     }
     vos_mem_free(buf);
+}
+
+/**
+ * lim_process_rx_channel_status_event() - processes
+ * 	event WDA_RX_CHN_STATUS_EVENT
+ * @mac_ctx Pointer to Global MAC structure
+ * @buf: Received message info
+ *
+ * Return: None
+ */
+void lim_process_rx_channel_status_event(tpAniSirGlobal mac_ctx, void *buf)
+{
+	struct lim_channel_status *channel_status_info = buf;
+
+	if (ACS_FW_REPORT_PARAM_CONFIGURED) {
+		if (channel_status_info != NULL)
+			lim_add_channel_status_info(mac_ctx,
+				 channel_status_info,
+				 channel_status_info->channel_id);
+		else
+			VOS_TRACE(VOS_MODULE_ID_PE,
+				VOS_TRACE_LEVEL_ERROR,
+				"%s: ACS evt report buf NULL", __func__);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
+			"%s: Error evt report", __func__);
+	}
+
+	if (NULL != buf)
+		vos_mem_free(buf);
+	return;
 }

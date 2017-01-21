@@ -44,9 +44,6 @@
 #endif
 #include <ol_txrx.h>
 
-#ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
-extern u_int32_t *g_dbg_htt_desc_end_addr, *g_dbg_htt_desc_start_addr;
-#endif
 
 #ifdef QCA_COMPUTE_TX_DELAY
 static inline void
@@ -69,7 +66,7 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
         tx_desc = &pdev->tx_desc.freelist->tx_desc;
         pdev->tx_desc.freelist = pdev->tx_desc.freelist->next;
 #ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
-        if (tx_desc->pkt_type != 0xff
+        if (tx_desc->pkt_type != ol_tx_frm_freed
 #ifdef QCA_COMPUTE_TX_DELAY
             || tx_desc->entry_timestamp_ticks != 0xffffffff
 #endif
@@ -81,13 +78,6 @@ ol_tx_desc_alloc(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
             TXRX_PRINT(TXRX_PRINT_LEVEL_ERR, "%s Timestamp:0x%x\n",
                        __func__, tx_desc->entry_timestamp_ticks);
 #endif
-            adf_os_assert(0);
-        }
-        if ((u_int32_t *) tx_desc->htt_tx_desc < g_dbg_htt_desc_start_addr ||
-            (u_int32_t *) tx_desc->htt_tx_desc > g_dbg_htt_desc_end_addr) {
-            TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
-                       "%s Potential htt_desc curruption:0x%p pdev:0x%p\n",
-                       __func__, tx_desc->htt_tx_desc, pdev);
             adf_os_assert(0);
         }
 #endif
@@ -125,7 +115,7 @@ ol_tx_desc_free(struct ol_txrx_pdev_t *pdev, struct ol_tx_desc_t *tx_desc)
 {
     adf_os_spin_lock_bh(&pdev->tx_mutex);
 #ifdef QCA_SUPPORT_TXDESC_SANITY_CHECKS
-    tx_desc->pkt_type = 0xff;
+    tx_desc->pkt_type = ol_tx_frm_freed;
 #ifdef QCA_COMPUTE_TX_DELAY
     tx_desc->entry_timestamp_ticks = 0xffffffff;
 #endif
@@ -333,7 +323,7 @@ void ol_tx_desc_frame_free_nonstd(
         adf_nbuf_set_next(tx_desc->netbuf, NULL);
         adf_nbuf_tx_free(tx_desc->netbuf, had_error);
     } else if ((tx_desc->pkt_type >= OL_TXRX_MGMT_TYPE_BASE) &&
-                (tx_desc->pkt_type != 0xff)) {
+                (tx_desc->pkt_type != ol_tx_frm_freed)) {
         /* FIX THIS -
          * The FW currently has trouble using the host's fragments table
          * for management frames.  Until this is fixed, rather than

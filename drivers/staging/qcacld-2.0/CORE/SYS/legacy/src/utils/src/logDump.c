@@ -299,17 +299,17 @@ char * dump_cfg_group_get( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tA
 
     (void) arg3; (void) arg4;
 
-    if (arg1 < CFG_PARAM_MAX_NUM) {
+    if (arg1 < WNI_CFG_MAX) {
         startId = arg1;
     } else {
-        p += log_sprintf( pMac, p, "Start CFGID must be less than %d\n", CFG_PARAM_MAX_NUM);
+        p += log_sprintf( pMac, p, "Start CFGID must be less than %d\n", WNI_CFG_MAX);
         return p;
     }
 
-    if ((arg2 == 0) || (arg2 > CFG_PARAM_MAX_NUM))
+    if ((arg2 == 0) || (arg2 > WNI_CFG_MAX))
         arg2 = 30;
 
-    endId = ((startId + arg2) < CFG_PARAM_MAX_NUM) ? (startId + arg2) : CFG_PARAM_MAX_NUM;
+    endId = ((startId + arg2) < WNI_CFG_MAX) ? (startId + arg2) : WNI_CFG_MAX;
 
     for (i=startId; i < endId; i++)
         Log_getCfg(pMac, (tANI_U16) i);

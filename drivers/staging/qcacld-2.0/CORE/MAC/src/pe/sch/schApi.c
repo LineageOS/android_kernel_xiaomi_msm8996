@@ -39,8 +39,7 @@
  */
 #include "palTypes.h"
 #include "aniGlobal.h"
-#include "wniCfgSta.h"
-
+#include "wni_cfg.h"
 #include "sirMacProtDef.h"
 #include "sirMacPropExts.h"
 #include "sirCommon.h"

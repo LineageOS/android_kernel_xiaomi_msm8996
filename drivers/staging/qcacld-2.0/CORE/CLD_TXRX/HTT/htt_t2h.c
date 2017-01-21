@@ -650,7 +650,25 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
                 }
             }
 
+            /* Indicate failure status to user space */
+            if (pdev->tx_failure_cb && (status != htt_tx_status_ok)) {
+                unsigned char tid = HTT_TX_COMPL_IND_TID_GET(*msg_word);
+
+                pdev->tx_failure_cb(pdev, num_msdus, tid, status);
+            }
+
             if (pdev->cfg.is_high_latency) {
+                /*
+                 * If status is not success, then check whether is
+                 * data frm. Once tx_free_at_download is true, data frm
+                 * has already been freed.
+                 * Just indicate the failure msg.
+                 */
+                if (ol_cfg_tx_free_at_download(pdev->ctrl_pdev)) {
+                    adf_os_print("HTT TX COMPL for failed data frm.\n");
+                    break;
+                }
+
                 if (!pdev->cfg.default_tx_comp_req) {
                     int credit_delta;
                     HTT_TX_MUTEX_ACQUIRE(&pdev->credit_mutex);

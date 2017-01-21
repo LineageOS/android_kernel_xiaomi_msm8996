@@ -38,7 +38,7 @@
  */
 
 #include "wniApi.h"
-#include "wniCfgSta.h"
+#include "wni_cfg.h"
 #include "aniGlobal.h"
 #include "cfgApi.h"
 
@@ -376,10 +376,6 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
     if (pHdr == NULL) {
         limLog(pMac, LOGE,
                FL("LFR3: Reassoc response packet header is NULL"));
-        return;
-    } else if ( pHdr->sa == NULL) {
-        limLog(pMac, LOGE,
-               FL("LFR3: Reassoc response packet source address is NULL"));
         return;
     }
 

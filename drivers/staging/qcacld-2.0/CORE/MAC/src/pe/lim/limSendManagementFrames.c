@@ -50,7 +50,7 @@
 #include "limAssocUtils.h"
 #include "limFT.h"
 #ifdef WLAN_FEATURE_11W
-#include "wniCfgAp.h"
+#include "wni_cfg.h"
 #endif
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
@@ -2989,6 +2989,16 @@ void limSendRetryReassocReqFrame(tpAniSirGlobal     pMac,
 {
     tLimMlmReassocCnf       mlmReassocCnf; // keep sme
     tLimMlmReassocReq       *pTmpMlmReassocReq = NULL;
+#ifdef FEATURE_WLAN_ESE
+    tANI_U32                val=0;
+#endif
+    if (pMlmReassocReq == NULL)
+    {
+	    limLog(pMac, LOGE,
+			    FL("Invalid pMlmReassocReq"));
+	    goto end;
+    }
+
     if(NULL == pTmpMlmReassocReq)
     {
         pTmpMlmReassocReq = vos_mem_malloc(sizeof(tLimMlmReassocReq));
@@ -2999,6 +3009,31 @@ void limSendRetryReassocReqFrame(tpAniSirGlobal     pMac,
 
     // Prepare and send Reassociation request frame
     // start reassoc timer.
+#ifdef FEATURE_WLAN_ESE
+    /*
+     * In case of Ese Reassociation, change the reassoc timer
+     * value.
+     */
+    val = pMlmReassocReq->reassocFailureTimeout;
+    if (psessionEntry->isESEconnection)
+    {
+        val = val/LIM_MAX_REASSOC_RETRY_LIMIT;
+    }
+    if (tx_timer_deactivate(&pMac->lim.limTimers.gLimReassocFailureTimer) !=
+                            TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+               FL("unable to deactivate Reassoc failure timer"));
+    }
+    val = SYS_MS_TO_TICKS(val);
+    if (tx_timer_change(&pMac->lim.limTimers.gLimReassocFailureTimer,
+                       val, 0) != TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,
+               FL("unable to change Reassociation failure timer"));
+    }
+#endif
+
     pMac->lim.limTimers.gLimReassocFailureTimer.sessionId = psessionEntry->peSessionId;
     // Start reassociation failure timer
     MTRACE(vos_trace(VOS_MODULE_ID_PE, TRACE_CODE_TIMER_ACTIVATE,

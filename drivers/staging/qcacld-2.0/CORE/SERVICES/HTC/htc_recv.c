@@ -104,14 +104,17 @@ static void DoRecvCompletion(HTC_ENDPOINT     *pEndpoint,
             /* using legacy EpRecv */
             while (!HTC_QUEUE_EMPTY(pQueueToIndicate)) {
                 pPacket = HTC_PACKET_DEQUEUE(pQueueToIndicate);
+                LOCK_HTC_ENDPOINT_RX(pEndpoint);
                 if (pEndpoint->EpCallBacks.EpRecv == NULL) {
                     AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("HTC ep %d has NULL recv callback on packet %p\n",
                             pEndpoint->Id, pPacket));
+                    UNLOCK_HTC_ENDPOINT_RX(pEndpoint);
                     continue;
                 }
                 AR_DEBUG_PRINTF(ATH_DEBUG_RECV, ("HTC calling ep %d recv callback on packet %p\n",
                         pEndpoint->Id, pPacket));
                 pEndpoint->EpCallBacks.EpRecv(pEndpoint->EpCallBacks.pContext, pPacket);
+                UNLOCK_HTC_ENDPOINT_RX(pEndpoint);
             }
         }
 

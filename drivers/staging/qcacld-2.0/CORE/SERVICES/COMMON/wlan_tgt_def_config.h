@@ -35,9 +35,12 @@
 /*
  * default limit of 8 VAPs per device.
  */
+#ifdef WLAN_4SAP_CONCURRENCY
+#define CFG_TGT_NUM_VDEV                4
+#else
 /* Rome PRD support 3 vdevs */
 #define CFG_TGT_NUM_VDEV                3
-
+#endif
 /*
  * We would need 1 AST entry per peer. Scale it by a factor of 2 to minimize hash collisions.
  * TODO: This scaling factor would be taken care inside the WAL in the future.
@@ -188,7 +191,11 @@
 /*
  * Maximum number of VDEV that beacon tx offload will support
  */
+#ifdef WLAN_4SAP_CONCURRENCY
+#define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 4
+#else
 #define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 2
+#endif
 
 /*
  * number of vdevs that can support tdls

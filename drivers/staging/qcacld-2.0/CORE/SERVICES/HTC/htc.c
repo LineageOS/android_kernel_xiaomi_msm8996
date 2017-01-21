@@ -144,6 +144,7 @@ static void HTCCleanup(HTC_TARGET *target)
 {
     HTC_PACKET *pPacket;
     adf_nbuf_t netbuf;
+    int j;
 
     if (target->hif_dev != NULL) {
         HIFDetachHTC(target->hif_dev);
@@ -207,6 +208,11 @@ static void HTCCleanup(HTC_TARGET *target)
     adf_os_spinlock_destroy(&target->HTCTxLock);
     adf_os_spinlock_destroy(&target->HTCCreditLock);
 
+    for (j = 0; j < ENDPOINT_MAX; j++) {
+        HTC_ENDPOINT *endpoint = &target->EndPoint[j];
+        adf_os_spinlock_destroy(&endpoint->htc_endpoint_rx_lock);
+    }
+
     /* free our instance */
     A_FREE(target);
 }
@@ -218,7 +224,7 @@ HTC_HANDLE HTCCreate(void *ol_sc, HTC_INIT_INFO *pInfo, adf_os_device_t osdev)
     MSG_BASED_HIF_CALLBACKS htcCallbacks;
     HTC_ENDPOINT            *pEndpoint=NULL;
     HTC_TARGET              *target = NULL;
-    int                     i;
+    int                     i, j;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("+HTCCreate ..  HIF :%p \n",hHIF));
 
@@ -235,6 +241,11 @@ HTC_HANDLE HTCCreate(void *ol_sc, HTC_INIT_INFO *pInfo, adf_os_device_t osdev)
     adf_os_spinlock_init(&target->HTCRxLock);
     adf_os_spinlock_init(&target->HTCTxLock);
     adf_os_spinlock_init(&target->HTCCreditLock);
+
+    for (j = 0; j < ENDPOINT_MAX; j++) {
+        pEndpoint = &target->EndPoint[j];
+        adf_os_spinlock_init(&pEndpoint->htc_endpoint_rx_lock);
+    }
     target->is_nodrop_pkt = FALSE;
 
     do {

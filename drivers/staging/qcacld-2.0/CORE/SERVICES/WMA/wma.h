@@ -294,6 +294,9 @@ static const t_probeTime_dwellTime
 #define WMA_EXTSCAN_BURST_DURATION      150
 #endif
 
+#define WMA_CHAN_START_RESP         0
+#define WMA_CHAN_END_RESP           1
+
 typedef void (*txFailIndCallback)(u_int8_t *peer_mac, u_int8_t seqNo);
 
 typedef struct {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -45,7 +45,6 @@
 #include <wlan_hdd_tx_rx.h>
 #include <wniApi.h>
 #include <wlan_nlink_srv.h>
-#include <wlan_btc_svc.h>
 #include <wlan_hdd_cfg.h>
 #include <wlan_ptt_sock_svc.h>
 #include <wlan_hdd_wowl.h>
@@ -164,6 +163,7 @@ void epping_rx(void *ctx, HTC_PACKET *pPacket)
                    &pEpping_ctx->kperf_num_rx_recv[eid],
                    sizeof(unsigned int));
                epping_set_kperf_flag(pAdapter, eid, false);
+               adf_net_buf_debug_release_skb(pktSkb);
                netif_rx_ni(pktSkb);
                break;
             case 0: /* RXPERF hard code 0 in FW */
@@ -176,9 +176,11 @@ void epping_rx(void *ctx, HTC_PACKET *pPacket)
                break;
             case EPPING_CMD_CAPTURE_RECV_CNT:
                epping_set_kperf_flag(pAdapter, eid, false);
+               adf_net_buf_debug_release_skb(pktSkb);
                netif_rx_ni(pktSkb);
                break;
             default:
+               adf_net_buf_debug_release_skb(pktSkb);
                netif_rx_ni(pktSkb);
                pEpping_ctx->kperf_num_rx_recv[eid]++;
                if ((pAdapter->stats.rx_packets % EPPING_STATS_LOG_COUNT) == 0) {
@@ -188,6 +190,7 @@ void epping_rx(void *ctx, HTC_PACKET *pPacket)
                break;
             }
          } else {
+            adf_net_buf_debug_release_skb(pktSkb);
             netif_rx_ni(pktSkb);
             if ((pAdapter->stats.rx_packets % EPPING_STATS_LOG_COUNT) == 0) {
                EPPING_LOG(VOS_TRACE_LEVEL_FATAL, "%s: total_rx_pkts = %lu",

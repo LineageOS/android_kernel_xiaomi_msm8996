@@ -271,6 +271,7 @@ static void hif_usb_remove(struct usb_interface *interface)
 		usb_sc->hdd_removed_wait_cnt ++;
 	}
 	atomic_set(&usb_sc->hdd_removed_processing, 1);
+	vos_set_shutdown_in_progress(VOS_MODULE_ID_HIF, TRUE);
 
 	/* disable lpm to avoid following cold reset will
 	 *cause xHCI U1/U2 timeout
@@ -315,6 +316,7 @@ static void hif_usb_remove(struct usb_interface *interface)
 
 	hif_nointrs(sc);
 	HIF_USBDeviceDetached(interface, 1);
+	vos_set_shutdown_in_progress(VOS_MODULE_ID_HIF, FALSE);
 	atomic_set(&usb_sc->hdd_removed_processing, 0);
 	hif_deinit_adf_ctx(scn);
 	A_FREE(scn);
@@ -346,22 +348,6 @@ static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 	if (wma_check_scan_in_progress(temp_module)) {
 		printk("%s: Scan in progress. Aborting suspend\n", __func__);
 		return (-1);
-	}
-
-	/* No need to send WMI_PDEV_SUSPEND_CMDID to FW if WOW is enabled */
-	if (wma_is_wow_mode_selected(temp_module)) {
-		if (wma_enable_wow_in_fw(temp_module, 0)) {
-			pr_warn("%s[%d]: fail\n", __func__, __LINE__);
-			return -1;
-		}
-	} else if ((PM_EVENT_FREEZE & state.event) == PM_EVENT_FREEZE ||
-		(PM_EVENT_SUSPEND & state.event) == PM_EVENT_SUSPEND ||
-		(PM_EVENT_HIBERNATE & state.event) == PM_EVENT_HIBERNATE) {
-		if (wma_suspend_target
-		    (vos_get_context(VOS_MODULE_ID_WDA, vos), 0)) {
-			pr_warn("%s[%d]: fail\n", __func__, __LINE__);
-			return -1;
-		}
 	}
 
 	sc->suspend_state = 1;
@@ -396,13 +382,6 @@ static int hif_usb_resume(struct usb_interface *interface)
 	usb_hif_post_recv_transfers(&device->pipes[HIF_RX_INT_PIPE],
 				    HIF_USB_RX_BUFFER_SIZE);
 #endif
-	/* No need to send WMI_PDEV_RESUME_CMDID to FW if WOW is enabled */
-	if (!wma_is_wow_mode_selected(temp_module)) {
-		wma_resume_target(temp_module, 0);
-	} else if (wma_disable_wow_in_fw(temp_module, 0)) {
-		pr_warn("%s[%d]: fail\n", __func__, __LINE__);
-		return (-1);
-	}
 	printk("Exit:%s,Line:%d\n", __func__,__LINE__);
 	return 0;
 }

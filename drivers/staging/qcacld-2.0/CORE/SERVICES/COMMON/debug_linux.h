@@ -51,12 +51,26 @@
     /* compile specific macro to get the function name string */
 #define _A_FUNCNAME_  __func__
 
+#ifdef PANIC_ON_BUG
+
 #define ADF_BUG(_condition) do {                                               \
 	if (!(_condition)) {                                                   \
 		printk(KERN_CRIT "ADF BUG in %s Line %d\n",                    \
 			__func__, __LINE__);                                   \
 		BUG_ON(1);                                                     \
 	}                                                                      \
-} while(0)
+} while (0)
+
+#else
+
+#define ADF_BUG(_condition) do {                                               \
+	if (!(_condition)) {                                                   \
+		printk(KERN_CRIT "ADF BUG in %s Line %d\n",                    \
+			__func__, __LINE__);                                   \
+		WARN_ON(1);                                                    \
+	}                                                                      \
+} while (0)
+
+#endif
 
 #endif /* _DEBUG_LINUX_H_ */
