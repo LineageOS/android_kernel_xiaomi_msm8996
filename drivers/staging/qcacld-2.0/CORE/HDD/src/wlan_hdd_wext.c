@@ -9952,11 +9952,12 @@ int wlan_hdd_setIPv6Filter(hdd_context_t *pHddCtx, tANI_U8 filterType,
  * @pAdapter: Adapter context
  * @set: flag to notify set/clear action on the multicast addr
  *
- * Returns: None
+ * Returns: 0 on success, errno on failure
  */
-void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
+int wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
 {
     v_U8_t i;
+    int ret = 0;
     tpSirRcvFltMcAddrList pMulticastAddrs = NULL;
     tHalHandle hHal;
     hdd_context_t* pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
@@ -9964,26 +9965,26 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
 
     ENTER();
 
-    if (wlan_hdd_validate_context(pHddCtx))
-        return;
+    if ((ret = wlan_hdd_validate_context(pHddCtx)))
+        return ret;
 
     hHal = pHddCtx->hHal;
 
     if (NULL == hHal) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("HAL Handle is NULL"));
-        return;
+        return -EINVAL;
     }
 
     if (!sta_ctx) {
         hddLog(LOGE, "sta_ctx is NULL");
-        return;
+        return -EINVAL;
     }
 
     if (pHddCtx->cfg_ini->fEnableMCAddrList) {
         pMulticastAddrs = vos_mem_malloc(sizeof(tSirRcvFltMcAddrList));
         if (NULL == pMulticastAddrs) {
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("Could not allocate Memory"));
-            return;
+            return -ENOMEM;
         }
         vos_mem_zero(pMulticastAddrs, sizeof(tSirRcvFltMcAddrList));
         pMulticastAddrs->action = set;
@@ -10056,10 +10057,11 @@ void wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set)
     } else {
         hddLog(VOS_TRACE_LEVEL_INFO,
                 FL("gMCAddrListEnable is not enabled in INI"));
+        return -EINVAL;
     }
 
     EXIT();
-    return;
+    return ret;
 }
 
 static int __iw_set_packet_filter_params(struct net_device *dev,
