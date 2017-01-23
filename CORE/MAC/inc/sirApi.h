@@ -4580,6 +4580,7 @@ typedef struct sSirScanOffloadReq {
     tANI_U16 uIEFieldLen;
     tANI_U16 uIEFieldOffset;
 
+    uint32_t burst_scan_duration;
     uint32_t enable_scan_randomization;
     uint8_t mac_addr[VOS_MAC_ADDR_SIZE];
     uint8_t mac_addr_mask[VOS_MAC_ADDR_SIZE];
