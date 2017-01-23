@@ -2655,4 +2655,5 @@ enum wlan_hdd_scan_type_for_randomization {
 	WLAN_HDD_PNO_SCAN,
 };
 
+int wlan_hdd_try_disconnect(hdd_adapter_t *pAdapter);
 #endif
