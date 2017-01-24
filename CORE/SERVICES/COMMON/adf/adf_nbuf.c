@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -752,6 +752,12 @@ __adf_nbuf_data_get_icmpv6_subtype(uint8_t *data)
 		break;
 	case ICMPV6_RESPONSE:
 		proto_subtype = ADF_PROTO_ICMPV6_RES;
+		break;
+	case ICMPV6_RS:
+		proto_subtype = ADF_PROTO_ICMPV6_RS;
+		break;
+	case ICMPV6_RA:
+		proto_subtype = ADF_PROTO_ICMPV6_RA;
 		break;
 	case ICMPV6_NS:
 		proto_subtype = ADF_PROTO_ICMPV6_NS;
