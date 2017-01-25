@@ -8637,8 +8637,8 @@ static int wlan_hdd_sap_cfg_dfs_override(hdd_adapter_t *adapter)
 
 	if (con_ch && vos_get_concurrency_mode() == VOS_STA_SAP) {
 
-		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
-			FL("concurrent STA role running on channel %d"), con_ch);
+		hddLog(LOG1, FL("concurrent STA role running on channel %d"),
+			con_ch);
 
 		/*
 		 * There is a STA role running on the same card, in that case
@@ -8646,7 +8646,7 @@ static int wlan_hdd_sap_cfg_dfs_override(hdd_adapter_t *adapter)
 		 * Try to use the same channel as the STA to achieve SCC
 		 */
 		if (VOS_IS_DFS_CH(sap_config->channel)) {
-			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+			hddLog(LOG1,
 				FL("SAP channel config overridden due to DFS channel not allowed in STA+SAP mode %d -> %d"),
 				sap_config->channel, con_ch);
 			sap_config->channel = con_ch;
