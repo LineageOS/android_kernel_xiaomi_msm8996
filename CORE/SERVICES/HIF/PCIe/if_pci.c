@@ -46,6 +46,7 @@
 #include "vos_api.h"
 #include "vos_sched.h"
 #include "wma_api.h"
+#include "wma.h"
 #include "adf_os_atomic.h"
 #include "wlan_hdd_power.h"
 #include "wlan_hdd_main.h"
@@ -2651,9 +2652,38 @@ static void hif_dump_crash_debug_info(struct hif_pci_softc *sc)
 	struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
 	struct ol_softc *scn = sc->ol_sc;
 	int ret;
+	tp_wma_handle wma_handle;
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
 
 	if (!hif_state)
 		return;
+	if (vos_context == NULL) {
+		pr_err("%s: vos context is null\n", __func__);
+		return;
+	}
+	wma_handle = (tp_wma_handle) vos_get_context(
+			VOS_MODULE_ID_WDA, vos_context);
+	if (wma_handle == NULL) {
+		pr_err("%s: wma_handle is null\n", __func__);
+		return;
+	}
+
+	/*
+	 * When kernel panic happen, if WiFi FW is still active,
+	 * it may cause NOC errors/memory corruption, to avoid
+	 * this, inject a fw crash first.
+	 * send crash_inject to FW directly, because we are now
+	 * in an atomic context, and preempt has been disabled,
+	 * MCThread won't be scheduled at the moment, at the same
+	 * time, TargetFailure event wont't be received after inject
+	 * crash due to the same reason
+	 */
+	ret = wma_crash_inject(wma_handle, 1, 0);
+	if (ret) {
+		pr_err("%s: failed to send crash inject - %d\n",
+				__func__, ret);
+		return;
+	}
 
 	adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
 	hif_irq_record(HIF_CRASH, sc);
