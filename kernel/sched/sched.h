@@ -1003,11 +1003,6 @@ extern unsigned int up_down_migrate_scale_factor;
 extern unsigned int sysctl_sched_restrict_cluster_spill;
 extern unsigned int sched_pred_alert_load;
 
-#ifdef CONFIG_SCHED_FREQ_INPUT
-#define MAJOR_TASK_PCT 85
-extern unsigned int sched_major_task_runtime;
-#endif
-
 extern void reset_cpu_hmp_stats(int cpu, int reset_cra);
 extern unsigned int max_task_load(void);
 extern void sched_account_irqtime(int cpu, struct task_struct *curr,
