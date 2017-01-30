@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -717,9 +717,8 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 
 	if (!fw_entry || !fw_entry->data) {
 		pr_err("%s: Invalid fw_entries\n", __func__);
-		if (bd_id_filename)
-			kfree(bd_id_filename);
-		return A_ERROR;
+		status = A_NO_MEMORY;
+		goto release_fw;
 	}
 
 	fw_entry_size = fw_entry->size;
@@ -909,7 +908,8 @@ end:
 		(filename!=NULL)?filename:"", fw_entry_size);
 
 release_fw:
-	release_firmware(fw_entry);
+	if (fw_entry)
+		release_firmware(fw_entry);
 
 	if (bd_id_filename)
 		kfree(bd_id_filename);

@@ -3236,6 +3236,299 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	return 0;
 }
 
+/**
+ * wma_fill_peer_info() - fill SIR peer info from WMI peer info struct
+ * @wma: wma interface
+ * @stats_info: WMI peer info pointer
+ * @peer_info: SIR peer info pointer
+ *
+ * This function will fill SIR peer info from WMI peer info struct
+ *
+ * Return: None
+ */
+static void wma_fill_peer_info(tp_wma_handle wma,
+		wmi_peer_stats_info *stats_info,
+		struct sir_peer_info_ext *peer_info)
+{
+	peer_info->tx_packets = stats_info->tx_packets.low_32;
+	peer_info->tx_bytes = stats_info->tx_bytes.high_32;
+	peer_info->tx_bytes <<= 32;
+	peer_info->tx_bytes += stats_info->tx_bytes.low_32;
+	peer_info->rx_packets = stats_info->rx_packets.low_32;
+	peer_info->rx_bytes = stats_info->rx_bytes.high_32;
+	peer_info->rx_bytes <<= 32;
+	peer_info->rx_bytes += stats_info->rx_bytes.low_32;
+	peer_info->tx_retries = stats_info->tx_retries;
+	peer_info->tx_failed = stats_info->tx_failed;
+	peer_info->rssi = stats_info->peer_rssi;
+	peer_info->tx_rate = stats_info->last_tx_bitrate_kbps;
+	peer_info->tx_rate_code = stats_info->last_tx_rate_code;
+	peer_info->rx_rate = stats_info->last_rx_bitrate_kbps;
+	peer_info->rx_rate_code = stats_info->last_rx_rate_code;
+}
+
+/**
+ * wma_peer_info_ext_rsp() - fill SIR peer info from WMI peer info struct
+ * @handle: wma interface
+ * @buf: wmi event buf pointer
+ *
+ * This function will send eWNI_SME_GET_PEER_INFO_EXT_IND to SME
+ *
+ * Return: 0 on success, error code otherwise
+ */
+static VOS_STATUS wma_peer_info_ext_rsp(tp_wma_handle wma, u_int8_t *buf)
+{
+	wmi_peer_stats_info_event_fixed_param *event;
+	wmi_peer_stats_info *stats_info = NULL;
+	struct sir_peer_info_ext_resp *resp;
+	struct sir_peer_info_ext *peer_info;
+	vos_msg_t sme_msg = {0};
+	int i, j = 0;
+	VOS_STATUS vos_status;
+
+	event = (wmi_peer_stats_info_event_fixed_param *)buf;
+	stats_info = (wmi_peer_stats_info *)(buf +
+			sizeof(wmi_peer_stats_info_event_fixed_param));
+
+	if (wma->get_one_peer_info) {
+		resp = vos_mem_malloc(sizeof(struct sir_peer_info_ext_resp) +
+				sizeof(resp->info[0]));
+		if (!resp) {
+			WMA_LOGE(FL("resp allocation failed."));
+			return VOS_STATUS_E_NOMEM;
+		}
+		resp->count = 0;
+		peer_info = &resp->info[0];
+		for (i = 0; i < event->num_peers; i++) {
+			WMI_MAC_ADDR_TO_CHAR_ARRAY(&stats_info->peer_macaddr,
+					peer_info->peer_macaddr);
+
+			if (TRUE == vos_mem_compare(
+					peer_info->peer_macaddr,
+					wma->peer_macaddr.bytes,
+					VOS_MAC_ADDR_SIZE)) {
+				wma_fill_peer_info(wma, stats_info, peer_info);
+				resp->count++;
+				break;
+			}
+
+			stats_info = stats_info + 1;
+		}
+	} else {
+		resp = vos_mem_malloc(sizeof(struct sir_peer_info_ext_resp) +
+				event->num_peers * sizeof(resp->info[0]));
+		if (!resp) {
+			WMA_LOGE(FL("resp allocation failed."));
+			return VOS_STATUS_E_NOMEM;
+		}
+		resp->count = event->num_peers;
+		for (i = 0; i < event->num_peers; i++) {
+			peer_info = &resp->info[j];
+			WMI_MAC_ADDR_TO_CHAR_ARRAY(&stats_info->peer_macaddr,
+					peer_info->peer_macaddr);
+
+			if (TRUE == vos_mem_compare(
+					peer_info->peer_macaddr,
+					wma->myaddr, VOS_MAC_ADDR_SIZE)) {
+				resp->count = resp->count - 1;
+				continue;
+			}
+			wma_fill_peer_info(wma, stats_info, peer_info);
+			stats_info = stats_info + 1;
+			j++;
+		}
+	}
+
+	sme_msg.type = eWNI_SME_GET_PEER_INFO_EXT_IND;
+	sme_msg.bodyptr = resp;
+	sme_msg.bodyval = 0;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		WMA_LOGE("%s: Fail to post get peer info msg", __func__);
+		vos_mem_free(resp);
+	}
+
+	return vos_status;
+}
+
+/**
+ * dump_peer_stats_info() - dump wmi peer info struct
+ * @event: wmi peer info fixed param pointer
+ * @peer_stats: wmi peer stats info pointer
+ *
+ * This function will dump wmi peer info struct
+ *
+ * Return: None
+ */
+static void dump_peer_stats_info(wmi_peer_stats_info_event_fixed_param *event,
+		wmi_peer_stats_info *peer_stats)
+{
+	int i;
+	wmi_peer_stats_info *stats = peer_stats;
+	char mac[6];
+
+	WMA_LOGI("%s vdev_id %d, num_peers %d more_data %d",
+			__func__, event->vdev_id,
+			event->num_peers, event->more_data);
+
+	for (i = 0; i < event->num_peers; i++) {
+		WMI_MAC_ADDR_TO_CHAR_ARRAY(&stats->peer_macaddr, mac);
+		WMA_LOGI("%s mac %pM", __func__, mac);
+		WMA_LOGI("%s tx_bytes %d %d tx_packets %d %d",
+				__func__,
+				stats->tx_bytes.low_32,
+				stats->tx_bytes.high_32,
+				stats->tx_packets.low_32,
+				stats->tx_packets.high_32);
+		WMA_LOGI("%s rx_bytes %d %d rx_packets %d %d",
+				__func__,
+				stats->rx_bytes.low_32,
+				stats->rx_bytes.high_32,
+				stats->rx_packets.low_32,
+				stats->rx_packets.high_32);
+		WMA_LOGI("%s tx_retries %d tx_failed %d",
+				__func__, stats->tx_retries, stats->tx_failed);
+		WMA_LOGI("%s tx_rate_code %x rx_rate_code %x",
+				__func__,
+				stats->last_tx_rate_code,
+				stats->last_rx_rate_code);
+		WMA_LOGI("%s tx_rate %x rx_rate %x",
+				__func__,
+				stats->last_tx_bitrate_kbps,
+				stats->last_rx_bitrate_kbps);
+		WMA_LOGI("%s peer_rssi %d", __func__, stats->peer_rssi);
+		stats++;
+	}
+}
+
+/**
+ * wma_peer_info_event_handler() - Handler for WMI_PEER_STATS_INFO_EVENTID
+ * @handle: WMA global handle
+ * @cmd_param_info: Command event data
+ * @len: Length of @cmd_param_info
+ *
+ * This function will handle WMI_PEER_STATS_INFO_EVENTID
+ *
+ * Return: 0 on success, error code otherwise
+ */
+static int wma_peer_info_event_handler(void *handle, u_int8_t *cmd_param_info,
+				   u_int32_t len)
+{
+	WMI_PEER_STATS_INFO_EVENTID_param_tlvs *param_buf;
+	wmi_peer_stats_info_event_fixed_param *event;
+	vos_msg_t vos_msg = {0};
+	u_int32_t buf_size;
+	u_int8_t *buf;
+
+	param_buf =
+		(WMI_PEER_STATS_INFO_EVENTID_param_tlvs *)cmd_param_info;
+	if (!param_buf) {
+		WMA_LOGA("%s: Invalid stats event", __func__);
+		return -EINVAL;
+	}
+
+	WMA_LOGI("%s Recv WMI_PEER_STATS_INFO_EVENTID", __func__);
+	event = param_buf->fixed_param;
+	buf_size = sizeof(wmi_peer_stats_info_event_fixed_param) +
+		sizeof(wmi_peer_stats_info) * event->num_peers;
+	buf = vos_mem_malloc(buf_size);
+	if (!buf) {
+		WMA_LOGE("%s: Failed alloc memory for buf", __func__);
+		return -ENOMEM;
+	}
+
+	vos_mem_zero(buf, buf_size);
+	vos_mem_copy(buf, param_buf->fixed_param,
+			sizeof(wmi_peer_stats_info_event_fixed_param));
+	vos_mem_copy((buf + sizeof(wmi_peer_stats_info_event_fixed_param)),
+			param_buf->peer_stats_info,
+			sizeof(wmi_peer_stats_info) * event->num_peers);
+	WMA_LOGI("%s dump peer stats info", __func__);
+	dump_peer_stats_info(event, param_buf->peer_stats_info);
+
+	vos_msg.type = WDA_GET_PEER_INFO_EXT_IND;
+	vos_msg.bodyptr = buf;
+	vos_msg.bodyval = 0;
+
+	if (VOS_STATUS_SUCCESS !=
+			vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg)) {
+		WMA_LOGP("%s: Failed to post WDA_GET_LINK_STATUS_RSP_IND msg",
+				__func__);
+		vos_mem_free(buf);
+		return eHAL_STATUS_FAILURE;
+	}
+	WMA_LOGD("posted WDA_GET_PEER_INFO_EXT_IND");
+
+	return 0;
+}
+
+/**
+ * wma_get_peer_info_ext() - get peer info
+ * @handle: wma interface
+ * @prssi_req: get peer info request information
+ *
+ * This function will send WMI_REQUEST_PEER_STATS_INFO_CMDID to FW
+ *
+ * Return: 0 on success, otherwise error value
+ */
+static VOS_STATUS wma_get_peer_info_ext(WMA_HANDLE handle,
+				struct sir_peer_info_ext_req *peer_info_req)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle)handle;
+	wmi_request_peer_stats_info_cmd_fixed_param *cmd;
+	wmi_buf_t  wmi_buf;
+	uint32_t  len;
+	uint8_t *buf_ptr;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE("%s: WMA is closed, can not issue get rssi",
+                        __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	WMA_LOGI("%s send WMI_REQUEST_PEER_STATS_INFO_CMDID", __func__);
+
+	len  = sizeof(wmi_request_peer_stats_info_cmd_fixed_param);
+	wmi_buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!wmi_buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	buf_ptr = (uint8_t *)wmi_buf_data(wmi_buf);
+
+	cmd = (wmi_request_peer_stats_info_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+	WMITLV_TAG_STRUC_wmi_request_peer_stats_info_cmd_fixed_param,
+	WMITLV_GET_STRUCT_TLVLEN(wmi_request_peer_stats_info_cmd_fixed_param));
+	cmd->vdev_id = peer_info_req->sessionid;
+	cmd->request_type = WMI_REQUEST_ONE_PEER_STATS_INFO;
+	wma_handle->get_one_peer_info = TRUE;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(peer_info_req->peer_macaddr.bytes,
+			&cmd->peer_macaddr);
+	cmd->reset_after_request = peer_info_req->reset_after_request;
+
+	if (wmi_unified_cmd_send(wma_handle->wmi_handle, wmi_buf, len,
+				WMI_REQUEST_PEER_STATS_INFO_CMDID)) {
+		WMA_LOGE("Failed to send host stats request to fw");
+		wmi_buf_free(wmi_buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGI("%s vdev_id %d, mac %pM, req_type %x, reset %x",
+			__func__,
+			cmd->vdev_id,
+			peer_info_req->peer_macaddr.bytes,
+			cmd->request_type,
+			cmd->reset_after_request);
+
+	vos_mem_copy(&(wma_handle->peer_macaddr),
+					&(peer_info_req->peer_macaddr),
+					VOS_MAC_ADDR_SIZE);
+
+	return VOS_STATUS_SUCCESS;
+}
+
 static VOS_STATUS wma_send_link_speed(u_int32_t link_speed)
 {
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
@@ -8514,6 +8807,11 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 					   WMI_UPDATE_STATS_EVENTID,
 					   wma_stats_event_handler);
+	/* register for peer info response event */
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+					   WMI_PEER_STATS_INFO_EVENTID,
+					   wma_peer_info_event_handler);
+
 	/* register for linkspeed response event */
 	wmi_unified_register_event_handler(wma_handle->wmi_handle,
 						WMI_PEER_ESTIMATED_LINKSPEED_EVENTID,
@@ -32461,6 +32759,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_get_peer_info(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_GET_PEER_INFO_EXT:
+			wma_get_peer_info_ext(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		case WDA_MODEM_POWER_STATE_IND:
 			wma_notify_modem_power_state(wma_handle,
 					(tSirModemPowerStateInd *)msg->bodyptr);
@@ -32651,6 +32953,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_GET_LINK_STATUS_RSP_IND:
 			wma_link_status_rsp(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_GET_PEER_INFO_EXT_IND:
+			wma_peer_info_ext_rsp(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_GET_TEMPERATURE_REQ:
@@ -35173,6 +35479,9 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 #endif
 	cfg->chain_mask_2g = wh->txrx_chainmask & 0xFF;
 	cfg->chain_mask_5g = (wh->txrx_chainmask >> 16 ) & 0xFF;
+	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+				WMI_SERVICE_PEER_STATS_INFO))
+		cfg->get_peer_info_enabled = 1;
 }
 
 static inline void wma_update_target_ht_cap(tp_wma_handle wh,

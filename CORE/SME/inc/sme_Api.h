@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3849,6 +3849,21 @@ eHalStatus sme_get_peer_info(tHalHandle hal, struct sir_peer_info_req req,
 			void *context,
 			void (*callbackfn)(struct sir_peer_info_resp *param,
 						void *pcontext));
+
+/*----------------------------------------------------------------------------
+ \fn  sme_get_peer_info_ext
+ \brief  This function sends msg to get info for remote peer
+ \param  hHal - global structure
+ \param  req - get peer info request pointer
+ \param  context - event handle context
+ \param  callbackfn - callback fn with response
+ \- return Success or failure
+-----------------------------------------------------------------------------*/
+eHalStatus sme_get_peer_info_ext(tHalHandle hal,
+		struct sir_peer_info_ext_req *req,
+		void *context,
+		void (*callbackfn)(struct sir_peer_info_ext_resp *param,
+			void *pcontext));
 
 /*----------------------------------------------------------------------------
  \fn  sme_ModifyAddIE

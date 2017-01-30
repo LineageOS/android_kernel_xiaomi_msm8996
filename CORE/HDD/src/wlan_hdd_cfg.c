@@ -2408,6 +2408,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_MAX_HT_MCS_FOR_TX_DATA_MIN,
                  CFG_MAX_HT_MCS_FOR_TX_DATA_MAX),
 
+   REG_VARIABLE(CFG_SAP_GET_PEER_INFO, WLAN_PARAM_Integer,
+                 hdd_config_t, sap_get_peer_info,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SAP_GET_PEER_INFO_DEFAULT,
+                 CFG_SAP_GET_PEER_INFO_MIN,
+                 CFG_SAP_GET_PEER_INFO_MAX),
+
    REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFirstScan2GOnly,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,

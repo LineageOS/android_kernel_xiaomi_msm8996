@@ -12828,7 +12828,7 @@ static int hdd_get_station_remote(hdd_context_t *hdd_ctx,
 	    nla_put_u32(skb, REMOTE_TX_PACKETS, stainfo->tx_packets) ||
 	    nla_put_u64(skb, REMOTE_TX_BYTES, stainfo->tx_bytes) ||
 	    nla_put_u32(skb, REMOTE_RX_PACKETS, stainfo->rx_packets) ||
-	    nla_put_u64(skb, REMOTE_TX_BYTES, stainfo->rx_bytes) ||
+	    nla_put_u64(skb, REMOTE_RX_BYTES, stainfo->rx_bytes) ||
 	    nla_put_u8(skb, REMOTE_WMM, stainfo->isQosEnabled) ||
 	    nla_put_u8(skb, REMOTE_SUPPORTED_MODE, stainfo->mode)) {
 		hddLog(LOGE, FL("put fail"));
@@ -23028,6 +23028,409 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
 	return ret;
 }
 
+/**
+ * hdd_get_rate_flags_ht() - get HT rate flags based on rate, nss and mcs
+ * @rate: Data rate (100 kbps)
+ * @nss: Number of streams
+ * @mcs: HT mcs index
+ *
+ * This function is used to construct HT rate flag with rate, nss and mcs
+ *
+ * Return: rate flags for success, 0 on failure.
+ */
+static uint8_t hdd_get_rate_flags_ht(uint32_t rate,
+		uint8_t nss,
+		uint8_t mcs)
+{
+	struct index_data_rate_type *mcs_rate;
+	uint8_t flags = 0;
+
+	mcs_rate = (struct index_data_rate_type *)
+		((nss == 1) ? &supported_mcs_rate_nss1 :
+		 &supported_mcs_rate_nss2);
+
+	if (rate == mcs_rate[mcs].supported_rate[0]) {
+		flags |= eHAL_TX_RATE_HT20;
+	} else if (rate == mcs_rate[mcs].supported_rate[1]) {
+		flags |= eHAL_TX_RATE_HT40;
+	} else if (rate == mcs_rate[mcs].supported_rate[2]) {
+		flags |= eHAL_TX_RATE_HT20;
+		flags |= eHAL_TX_RATE_SGI;
+	} else if (rate == mcs_rate[mcs].supported_rate[3]) {
+		flags |= eHAL_TX_RATE_HT40;
+		flags |= eHAL_TX_RATE_SGI;
+	} else {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("invalid params rate %d nss %d mcs %d"),
+				rate, nss, mcs);
+	}
+
+	return flags;
+}
+
+#ifdef WLAN_FEATURE_11AC
+/**
+ * hdd_get_rate_flags_vht() - get VHT rate flags based on rate, nss and mcs
+ * @rate: Data rate (100 kbps)
+ * @nss: Number of streams
+ * @mcs: VHT mcs index
+ *
+ * This function is used to construct VHT rate flag with rate, nss and mcs
+ *
+ * Return: rate flags for success, 0 on failure.
+ */
+static uint8_t hdd_get_rate_flags_vht(uint32_t rate,
+		uint8_t nss,
+		uint8_t mcs)
+{
+	struct index_vht_data_rate_type *mcs_rate;
+	uint8_t flags = 0;
+
+	mcs_rate = (struct index_vht_data_rate_type *)
+		((nss == 1) ?
+		 &supported_vht_mcs_rate_nss1 :
+		 &supported_vht_mcs_rate_nss2);
+
+	if (rate == mcs_rate[mcs].supported_VHT80_rate[0]) {
+		flags |= eHAL_TX_RATE_VHT80;
+	} else if (rate == mcs_rate[mcs].supported_VHT80_rate[1]) {
+		flags |= eHAL_TX_RATE_VHT80;
+		flags |= eHAL_TX_RATE_SGI;
+	} else if (rate == mcs_rate[mcs].supported_VHT40_rate[0]) {
+		flags |= eHAL_TX_RATE_VHT40;
+	} else if (rate == mcs_rate[mcs].supported_VHT40_rate[1]) {
+		flags |= eHAL_TX_RATE_VHT40;
+		flags |= eHAL_TX_RATE_SGI;
+	} else if (rate == mcs_rate[mcs].supported_VHT20_rate[0]) {
+		flags |= eHAL_TX_RATE_VHT20;
+	} else if (rate == mcs_rate[mcs].supported_VHT20_rate[1]) {
+		flags |= eHAL_TX_RATE_VHT20;
+		flags |= eHAL_TX_RATE_SGI;
+	} else {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("invalid params rate %d nss %d mcs %d"),
+				rate, nss, mcs);
+	}
+
+	return flags;
+}
+#else
+static uint8_t hdd_get_rate_flags_vht(uint32_t rate,
+		uint8_t nss,
+		uint8_t mcs)
+{
+	return 0;
+}
+#endif
+
+/**
+ * hdd_get_rate_flags() - get HT/VHT rate flags based on rate, nss and mcs
+ * @rate: Data rate (100 kbps)
+ * @mode: Tx/Rx mode
+ * @nss: Number of streams
+ * @mcs: Mcs index
+ *
+ * This function is used to construct rate flag with rate, nss and mcs
+ *
+ * Return: rate flags for success, 0 on failure.
+ */
+static uint8_t hdd_get_rate_flags(uint32_t rate,
+		uint8_t mode,
+		uint8_t nss,
+		uint8_t mcs)
+{
+	uint8_t flags = 0;
+
+	if (mode == SIR_SME_PHY_MODE_HT)
+		flags = hdd_get_rate_flags_ht(rate, nss, mcs);
+	else if (mode == SIR_SME_PHY_MODE_VHT)
+		flags = hdd_get_rate_flags_vht(rate, nss, mcs);
+	else
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("invalid mode param %d"),
+				mode);
+
+	return flags;
+}
+
+/**
+ * wlan_hdd_fill_rate_info() - fill HDD rate info from SIR peer info
+ * @ap_ctx: AP Context
+ * @peer_info: SIR peer info pointer
+ *
+ * This function is used to fill HDD rate info rom SIR peer info
+ *
+ * Return: None
+ */
+static void wlan_hdd_fill_rate_info(hdd_ap_ctx_t *ap_ctx,
+		struct sir_peer_info_ext *peer_info)
+{
+	uint8_t flags;
+	uint32_t rate_code;
+
+	/* tx rate info */
+	ap_ctx->txrx_stats.tx_rate.rate = peer_info->tx_rate;
+	rate_code = peer_info->tx_rate_code;
+
+	ap_ctx->txrx_stats.tx_rate.mode = SIR_SME_PHY_MODE_LEGACY;
+	if ((WMI_GET_HW_RATECODE_PREAM_V1(rate_code)) ==
+			WMI_RATE_PREAMBLE_HT)
+		ap_ctx->txrx_stats.tx_rate.mode = SIR_SME_PHY_MODE_HT;
+	else if ((WMI_GET_HW_RATECODE_PREAM_V1(rate_code)) ==
+			WMI_RATE_PREAMBLE_VHT)
+		ap_ctx->txrx_stats.tx_rate.mode = SIR_SME_PHY_MODE_VHT;
+
+	ap_ctx->txrx_stats.tx_rate.nss =
+		WMI_GET_HW_RATECODE_NSS_V1(rate_code) + 1;
+	ap_ctx->txrx_stats.tx_rate.mcs =
+		WMI_GET_HW_RATECODE_RATE_V1(rate_code);
+
+	flags = hdd_get_rate_flags(ap_ctx->txrx_stats.tx_rate.rate/100,
+			ap_ctx->txrx_stats.tx_rate.mode,
+			ap_ctx->txrx_stats.tx_rate.nss,
+			ap_ctx->txrx_stats.tx_rate.mcs);
+	if (flags != 0)
+		ap_ctx->txrx_stats.tx_rate.rate_flags = flags;
+
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("tx: mode %d nss %d mcs %d rate_flags %x flags %x"),
+			ap_ctx->txrx_stats.tx_rate.mode,
+			ap_ctx->txrx_stats.tx_rate.nss,
+			ap_ctx->txrx_stats.tx_rate.mcs,
+			ap_ctx->txrx_stats.tx_rate.rate_flags,
+			flags);
+
+	/* rx rate info */
+	ap_ctx->txrx_stats.rx_rate.rate = peer_info->rx_rate;
+	rate_code = peer_info->rx_rate_code;
+
+	ap_ctx->txrx_stats.rx_rate.mode = SIR_SME_PHY_MODE_LEGACY;
+	if ((WMI_GET_HW_RATECODE_PREAM_V1(rate_code)) ==
+			WMI_RATE_PREAMBLE_HT)
+		ap_ctx->txrx_stats.rx_rate.mode = SIR_SME_PHY_MODE_HT;
+	else if ((WMI_GET_HW_RATECODE_PREAM_V1(rate_code)) ==
+			WMI_RATE_PREAMBLE_VHT)
+		ap_ctx->txrx_stats.rx_rate.mode = SIR_SME_PHY_MODE_VHT;
+
+	ap_ctx->txrx_stats.rx_rate.nss =
+		WMI_GET_HW_RATECODE_NSS_V1(rate_code) + 1;
+	ap_ctx->txrx_stats.rx_rate.mcs =
+		WMI_GET_HW_RATECODE_RATE_V1(rate_code);
+
+	flags = hdd_get_rate_flags(ap_ctx->txrx_stats.rx_rate.rate/100,
+			ap_ctx->txrx_stats.rx_rate.mode,
+			ap_ctx->txrx_stats.rx_rate.nss,
+			ap_ctx->txrx_stats.rx_rate.mcs);
+	if (flags != 0)
+		ap_ctx->txrx_stats.rx_rate.rate_flags = flags;
+
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("rx: mode %d nss %d mcs %d rate_flags %x flags %x"),
+			ap_ctx->txrx_stats.rx_rate.mode,
+			ap_ctx->txrx_stats.rx_rate.nss,
+			ap_ctx->txrx_stats.rx_rate.mcs,
+			ap_ctx->txrx_stats.rx_rate.rate_flags,
+			flags);
+}
+
+/**
+ * wlan_hdd_get_peer_info_cb() - get peer info callback
+ * @sta_info: pointer of peer information
+ * @context: get peer info callback context
+ *
+ * This function will fill stats info of AP Context
+ *
+ */
+void wlan_hdd_get_peer_info_cb(struct sir_peer_info_ext_resp *sta_info,
+		void *context)
+{
+	struct statsContext *get_peer_info_context;
+	struct sir_peer_info_ext *peer_info;
+	hdd_adapter_t *adapter;
+	hdd_ap_ctx_t *ap_ctx;
+
+	if ((NULL == sta_info) || (NULL == context)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: Bad param, sta_info [%p] context [%p]",
+			__func__, sta_info, context);
+		return;
+	}
+
+	spin_lock(&hdd_context_lock);
+	/*
+	 * there is a race condition that exists between this callback
+	 * function and the caller since the caller could time out either
+	 * before or while this code is executing.  we use a spinlock to
+	 * serialize these actions
+	 */
+	get_peer_info_context = context;
+	if (PEER_INFO_CONTEXT_MAGIC !=
+			get_peer_info_context->magic) {
+		/*
+		 * the caller presumably timed out so there is nothing
+		 * we can do
+		 */
+		spin_unlock(&hdd_context_lock);
+		hddLog(VOS_TRACE_LEVEL_WARN,
+			"%s: Invalid context, magic [%08x]",
+			__func__,
+			get_peer_info_context->magic);
+		return;
+	}
+
+	if (!sta_info->count) {
+		spin_unlock(&hdd_context_lock);
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("Fail to get remote peer info"));
+		return;
+	}
+
+	adapter = get_peer_info_context->pAdapter;
+	ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(adapter);
+	vos_mem_zero(&ap_ctx->txrx_stats,
+			sizeof(struct hdd_fw_txrx_stats));
+
+	peer_info = sta_info->info;
+	ap_ctx->txrx_stats.tx_packets = peer_info->tx_packets;
+	ap_ctx->txrx_stats.tx_bytes = peer_info->tx_bytes;
+	ap_ctx->txrx_stats.rx_packets = peer_info->rx_packets;
+	ap_ctx->txrx_stats.rx_bytes = peer_info->rx_bytes;
+	ap_ctx->txrx_stats.tx_retries = peer_info->tx_retries;
+	ap_ctx->txrx_stats.tx_failed = peer_info->tx_failed;
+	ap_ctx->txrx_stats.rssi =
+		peer_info->rssi + WLAN_HDD_TGT_NOISE_FLOOR_DBM;
+	wlan_hdd_fill_rate_info(ap_ctx, peer_info);
+
+	get_peer_info_context->magic = 0;
+
+	/* notify the caller */
+	complete(&get_peer_info_context->completion);
+
+	/* serialization is complete */
+	spin_unlock(&hdd_context_lock);
+}
+
+/**
+ * wlan_hdd_get_peer_info() - get peer info
+ * @adapter: hostapd interface
+ * @macaddress: request peer mac address
+ *
+ * This function will call sme_get_peer_info_ext to get peer info
+ *
+ * Return: 0 on success, otherwise error value
+ */
+static int wlan_hdd_get_peer_info(hdd_adapter_t *adapter,
+					v_MACADDR_t macaddress)
+{
+	eHalStatus hstatus;
+	int ret;
+	struct statsContext context;
+	struct sir_peer_info_ext_req peer_info_req;
+
+	if (NULL == adapter) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL",
+			__func__);
+		return -EFAULT;
+	}
+
+	init_completion(&context.completion);
+	context.magic = PEER_INFO_CONTEXT_MAGIC;
+	context.pAdapter = adapter;
+
+	vos_mem_copy(&(peer_info_req.peer_macaddr), &macaddress,
+			VOS_MAC_ADDR_SIZE);
+	peer_info_req.sessionid = adapter->sessionId;
+	peer_info_req.reset_after_request = 0;
+	hstatus = sme_get_peer_info_ext(WLAN_HDD_GET_HAL_CTX(adapter),
+			&peer_info_req,
+			&context,
+			wlan_hdd_get_peer_info_cb);
+	if (eHAL_STATUS_SUCCESS != hstatus) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			"%s: Unable to retrieve statistics for peer info",
+			__func__);
+		ret = -EFAULT;
+	} else {
+		if (!wait_for_completion_timeout(&context.completion,
+				msecs_to_jiffies(WLAN_WAIT_TIME_STATS))) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+				"%s: SME timed out while retrieving peer info",
+				__func__);
+			ret = -EFAULT;
+		} else
+			ret = 0;
+	}
+	/*
+	 * either we never sent a request, we sent a request and received a
+	 * response or we sent a request and timed out.  if we never sent a
+	 * request or if we sent a request and got a response, we want to
+	 * clear the magic out of paranoia.  if we timed out there is a
+	 * race condition such that the callback function could be
+	 * executing at the same time we are. of primary concern is if the
+	 * callback function had already verified the "magic" but had not
+	 * yet set the completion variable when a timeout occurred. we
+	 * serialize these activities by invalidating the magic while
+	 * holding a shared spinlock which will cause us to block if the
+	 * callback is currently executing
+	 */
+	spin_lock(&hdd_context_lock);
+	context.magic = 0;
+	spin_unlock(&hdd_context_lock);
+	return ret;
+}
+
+/**
+ * wlan_hdd_get_station_remote() - NL80211_CMD_GET_STATION handler for SoftAP
+ * @wiphy: pointer to wiphy
+ * @dev: pointer to net_device structure
+ * @mac: request peer mac address
+ * @sinfo: pointer to station_info struct
+ *
+ * This function will get remote peer info from fw and fill sinfo struct
+ *
+ * Return: 0 on success, otherwise error value
+ */
+static int wlan_hdd_get_station_remote(struct wiphy *wiphy,
+		struct net_device *dev,
+		const u8 *mac,
+		struct station_info *sinfo)
+{
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	hdd_context_t *hddctx = (hdd_context_t *)wiphy_priv(wiphy);
+	hdd_station_info_t *stainfo = NULL;
+	v_MACADDR_t macaddr;
+	int status;
+	int i;
+
+	status = wlan_hdd_validate_context(hddctx);
+	if (0 != status)
+		return status;
+
+	hddLog(VOS_TRACE_LEVEL_INFO, FL("get peer %pM info"), mac);
+
+	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+		if (vos_mem_compare(adapter->aStaInfo[i].macAddrSTA.bytes,
+					mac,
+					VOS_MAC_ADDR_SIZE)) {
+			stainfo = &adapter->aStaInfo[i];
+			break;
+		}
+	}
+
+	if (!stainfo) {
+		hddLog(LOGE, FL("peer %pM not found"), mac);
+		return -EINVAL;
+	}
+
+	vos_mem_copy(macaddr.bytes, mac, VOS_MAC_ADDR_SIZE);
+	status = wlan_hdd_get_peer_info(adapter, macaddr);
+	if (status) {
+		hddLog(LOGE, FL("fail to get peer info from fw"));
+		return -EPERM;
+	}
+
+	return status;
+}
 
 static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
                                            struct net_device *dev,
@@ -23074,6 +23477,9 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
         return -EINVAL;
     }
+    if (pAdapter->device_mode == WLAN_HDD_SOFTAP &&
+		    pCfg->sap_get_peer_info)
+        return wlan_hdd_get_station_remote(wiphy, dev, mac, sinfo);
 
     if ((eConnectionState_Associated != pHddStaCtx->conn_info.connState) ||
             (0 == ssidlen))
@@ -23929,7 +24335,6 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 
                     /* Send disassoc and deauth both to avoid some IOT issues */
                     vos_event_reset(&pHostapdState->sta_disassoc_event);
-                    hdd_softap_sta_disassoc(pAdapter, pDelStaParams);
 
                     vos_status = hdd_softap_sta_deauth(pAdapter, pDelStaParams);
                     if (VOS_IS_STATUS_SUCCESS(vos_status)) {
@@ -23940,6 +24345,7 @@ static int __wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                             hddLog(VOS_TRACE_LEVEL_ERROR,
                                 "!!%s: ERROR: Deauth wait expired!!", __func__);
                     }
+                    hdd_softap_sta_disassoc(pAdapter, pDelStaParams);
                 }
             }
         } else {
