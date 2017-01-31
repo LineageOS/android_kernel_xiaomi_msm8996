@@ -288,7 +288,7 @@ int __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                goto drop_pkt;
            }
 
-           if (STAId == HDD_WLAN_INVALID_STA_ID)
+           if (STAId == HDD_WLAN_INVALID_STA_ID || STAId >= WLAN_MAX_STA_COUNT)
            {
                VOS_TRACE( VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_WARN,
                           "%s: Failed to find right station", __func__);

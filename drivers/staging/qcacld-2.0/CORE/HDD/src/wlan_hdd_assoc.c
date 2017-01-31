@@ -1683,7 +1683,7 @@ void hdd_sap_restart_handle(struct work_struct *work)
         wlan_hdd_restart_sap(sap_adapter);
         hdd_change_ch_avoidance_status(hdd_ctx, false);
     } else {
-        wlan_hdd_start_sap(sap_adapter);
+        wlan_hdd_start_sap(sap_adapter, false);
         hdd_change_sap_restart_required_status(hdd_ctx, false);
     }
     vos_ssr_unprotect(__func__);

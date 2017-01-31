@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -544,6 +544,21 @@ static inline bool hdd_ipa_uc_sta_is_enabled(struct hdd_ipa_priv *hdd_ipa)
 	return false;
 #endif /* IPA_UC_STA_OFFLOAD */
 }
+
+#ifdef IPA_UC_STA_OFFLOAD
+static inline void hdd_ipa_uc_sta_reset_sta_connected(
+		struct hdd_ipa_priv *hdd_ipa)
+{
+	vos_lock_acquire(&hdd_ipa->event_lock);
+	hdd_ipa->sta_connected = 0;
+	vos_lock_release(&hdd_ipa->event_lock);
+}
+#else
+static inline void hdd_ipa_uc_sta_reset_sta_connected(
+		struct hdd_ipa_priv *hdd_ipa)
+{
+}
+#endif
 
 static inline bool hdd_ipa_is_pre_filter_enabled(struct hdd_ipa_priv *hdd_ipa)
 {
@@ -2011,8 +2026,11 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 	vos_mem_zero(&pipe_out, sizeof(struct ipa_wdi_out_params));
 
 	vos_list_init(&ipa_ctxt->pending_event);
-	vos_lock_init(&ipa_ctxt->event_lock);
-	vos_lock_init(&ipa_ctxt->ipa_lock);
+
+	if (!hdd_ctx->isLogpInProgress) {
+		vos_lock_init(&ipa_ctxt->event_lock);
+		vos_lock_init(&ipa_ctxt->ipa_lock);
+	}
 
 	/* TX PIPE */
 	pipe_in.sys.ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
@@ -2164,17 +2182,62 @@ void hdd_ipa_uc_force_pipe_shutdown(hdd_context_t *hdd_ctx)
 }
 
 /**
- * hdd_ipa_send_disconnect() - ipa send disconnect clients
+ * hdd_ipa_uc_send_evt() - send event to ipa
+ * @hdd_ctx: pointer to hdd context
+ * @type: event type
+ * @mac_addr: pointer to mac address
  *
- * adapter: pointer to hdd adapter
- * Send disconnect evnt to IPA driver during SSR
+ * Send event to IPA driver
  *
  * Return: 0 - Success
  */
-static int hdd_ipa_send_disconnect(hdd_adapter_t *adapter)
+static int hdd_ipa_uc_send_evt(hdd_adapter_t *adapter,
+            enum ipa_wlan_event type, uint8_t *mac_addr )
 {
-        struct ipa_msg_meta meta;
-        struct ipa_wlan_msg *msg;
+	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+	struct ipa_msg_meta meta;
+	struct ipa_wlan_msg *msg;
+	int ret = 0;
+
+	meta.msg_len = sizeof(struct ipa_wlan_msg);
+	msg = adf_os_mem_alloc(NULL, meta.msg_len);
+	if (msg == NULL) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"msg allocation failed");
+		return -ENOMEM;
+	}
+
+	meta.msg_type = type;
+	strlcpy(msg->name, adapter->dev->name,
+		IPA_RESOURCE_NAME_MAX);
+	memcpy(msg->mac_addr, mac_addr, ETH_ALEN);
+	HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d",
+		msg->name, meta.msg_type);
+	ret = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
+	if (ret) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
+			"%s: Evt: %d fail:%d",
+			msg->name, meta.msg_type,  ret);
+		adf_os_mem_free(msg);
+		return ret;
+	}
+
+	hdd_ipa->stats.num_send_msg++;
+
+	return ret;
+}
+
+/**
+ * hdd_ipa_uc_disconnect_client() - send client disconnect event
+ * @hdd_ctx: pointer to hdd adapter
+ *
+ * Send disconnect client event to IPA driver during SSR
+ *
+ * Return: 0 - Success
+ */
+static int hdd_ipa_uc_disconnect_client(hdd_adapter_t *adapter)
+{
+	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 	int ret = 0;
 	int i;
 
@@ -2182,29 +2245,11 @@ static int hdd_ipa_send_disconnect(hdd_adapter_t *adapter)
 		if (vos_is_macaddr_broadcast(&adapter->aStaInfo[i].macAddrSTA))
 			return ret;
 		if ((adapter->aStaInfo[i].isUsed) &&
-			(!adapter->aStaInfo[i].isDeauthInProgress)) {
-			meta.msg_len = sizeof(struct ipa_wlan_msg);
-			msg = adf_os_mem_alloc(NULL, meta.msg_len);
-			if (msg == NULL) {
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-					"msg allocation failed");
-				return -ENOMEM;
-			}
-			meta.msg_type = WLAN_CLIENT_DISCONNECT;
-			strlcpy(msg->name, adapter->dev->name,
-				IPA_RESOURCE_NAME_MAX);
-			memcpy(msg->mac_addr, adapter->aStaInfo[i].macAddrSTA.bytes,
-				ETH_ALEN);
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO, "%s: Evt: %d",
-				msg->name, meta.msg_type);
-			ret = ipa_send_msg(&meta, msg, hdd_ipa_msg_free_fn);
-			if (ret) {
-				HDD_IPA_LOG(VOS_TRACE_LEVEL_ERROR,
-					"%s: Evt: %d fail:%d",
-					msg->name, meta.msg_type,  ret);
-				adf_os_mem_free(msg);
-				return ret;
-			}
+		   (!adapter->aStaInfo[i].isDeauthInProgress) &&
+		   hdd_ipa->sap_num_connected_sta) {
+			hdd_ipa_uc_send_evt(adapter, WLAN_CLIENT_DISCONNECT,
+				adapter->aStaInfo[i].macAddrSTA.bytes);
+			hdd_ipa->sap_num_connected_sta--;
 		}
 	}
 
@@ -2212,26 +2257,82 @@ static int hdd_ipa_send_disconnect(hdd_adapter_t *adapter)
 }
 
 /**
- * hdd_ipa_uc_disconnect_client() - disconnect ipa sap clients
+ * hdd_ipa_uc_disconnect_ap() - send ap disconnect event
+ * @hdd_ctx: pointer to hdd adapter
  *
- * hdd_ctx: pointer to hdd context
- * Send disconnect evnt to IPA driver during SSR
+ * Send disconnect ap event to IPA driver during SSR
  *
  * Return: 0 - Success
  */
-static int hdd_ipa_uc_disconnect_client(hdd_context_t *hdd_ctx)
+
+static int hdd_ipa_uc_disconnect_ap(hdd_adapter_t *adapter)
+{
+	int ret = 0;
+
+	if (adapter->ipa_context)
+		hdd_ipa_uc_send_evt(adapter, WLAN_AP_DISCONNECT,
+			adapter->dev->dev_addr);
+
+	return ret;
+}
+
+#ifdef IPA_UC_STA_OFFLOAD
+/**
+ * hdd_ipa_uc_disconnect_sta() - send sta disconnect event
+ * @hdd_ctx: pointer to hdd adapter
+ *
+ * Send disconnect sta event to IPA driver during SSR
+ *
+ * Return: 0 - Success
+ */
+static int hdd_ipa_uc_disconnect_sta(hdd_adapter_t *adapter)
+{
+	hdd_station_ctx_t *pHddStaCtx;
+	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
+	int ret = 0;
+
+	if (hdd_ipa_uc_sta_is_enabled(hdd_ipa) &&
+	    hdd_ipa->sta_connected) {
+		pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+		hdd_ipa_uc_send_evt(adapter, WLAN_STA_DISCONNECT,
+			pHddStaCtx->conn_info.bssId);
+	}
+
+	return ret;
+}
+#else
+static int hdd_ipa_uc_disconnect_sta(hdd_adapter_t *adapter)
+{
+	return 0;
+}
+
+#endif
+
+/**
+ * hdd_ipa_uc_disconnect() - send disconnect ipa event
+ * @hdd_ctx: pointer to hdd context
+ *
+ * Send disconnect event to IPA driver during SSR
+ *
+ * Return: 0 - Success
+ */
+static int hdd_ipa_uc_disconnect(hdd_context_t *hdd_ctx)
 {
 	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
 	VOS_STATUS status;
 	hdd_adapter_t *adapter;
 	int ret = 0;
 
-
 	status =  hdd_get_front_adapter (hdd_ctx, &adapter_node);
 	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
 		adapter = adapter_node->pAdapter;
-		if (adapter->device_mode == WLAN_HDD_SOFTAP)
-			hdd_ipa_send_disconnect(adapter);
+		if (adapter->device_mode == WLAN_HDD_SOFTAP) {
+			hdd_ipa_uc_disconnect_client(adapter);
+			hdd_ipa_uc_disconnect_ap(adapter);
+		} else if (adapter->device_mode == WLAN_HDD_INFRA_STATION) {
+			hdd_ipa_uc_disconnect_sta(adapter);
+		}
+
 		status = hdd_get_next_adapter(
 				hdd_ctx, adapter_node, &next);
 		adapter_node = next;
@@ -2253,12 +2354,13 @@ int hdd_ipa_uc_ssr_deinit()
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 	int idx;
 	struct hdd_ipa_iface_context *iface_context;
+	hdd_context_t *hdd_ctx = hdd_ipa->hdd_ctx;
 
 	if (!hdd_ipa_uc_is_enabled(hdd_ipa))
 		return 0;
 
-	/* send disconnect to ipa driver for connected clients */
-	hdd_ipa_uc_disconnect_client(hdd_ipa->hdd_ctx);
+	/* send disconnect to ipa driver */
+	hdd_ipa_uc_disconnect(hdd_ctx);
 
 	/* Clean up HDD IPA interfaces */
 	for (idx = 0; (hdd_ipa->num_iface > 0) &&
@@ -2282,6 +2384,26 @@ int hdd_ipa_uc_ssr_deinit()
 	}
 	vos_lock_release(&hdd_ipa->ipa_lock);
 
+	/*
+	 * Do WDI pipes disconnect here. During reinit new WDI pipes
+	 * will be created.
+	 */
+	/* In MDM case pipes will be disconnected as part of ipa cleanup */
+	if (hdd_ctx->cfg_ini->sap_internal_restart) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+			"%s: Disconnect TX PIPE tx_pipe_handle=0x%x",
+			__func__, hdd_ipa->tx_pipe_handle);
+		ipa_disconnect_wdi_pipe(hdd_ipa->tx_pipe_handle);
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+			"%s: Disconnect RX PIPE rx_pipe_handle=0x%x",
+			__func__, hdd_ipa->rx_pipe_handle);
+		ipa_disconnect_wdi_pipe(hdd_ipa->rx_pipe_handle);
+	}
+
+	if (hdd_ipa_uc_sta_is_enabled(hdd_ipa)) {
+		hdd_ipa_uc_sta_reset_sta_connected(hdd_ipa);
+	}
+
 	/* Full IPA driver cleanup not required since wlan driver is now
 	 * unloaded and reloaded after SSR.
 	 */
@@ -2296,19 +2418,16 @@ int hdd_ipa_uc_ssr_deinit()
  *
  * Return: 0 - Success
  */
-int hdd_ipa_uc_ssr_reinit()
+int hdd_ipa_uc_ssr_reinit(hdd_context_t *hdd_ctx)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 
 	if (!hdd_ipa_uc_is_enabled(hdd_ipa))
 		return 0;
 
-	/* After SSR is complete, IPA UC can resume operation. But now wlan
-	 * driver will be unloaded and reloaded, which takes care of IPA cleanup
-	 * and initialization.
-	 * This is a placeholder func if IPA has to resume operations without
-	 * driver reload.
-	 */
+	if (hdd_ctx->cfg_ini->sap_internal_restart)
+		hdd_ipa_uc_ol_init(hdd_ctx);
+
 	return 0;
 }
 #else

@@ -11098,6 +11098,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                                     {
                                        tpSirSetActiveModeSetBncFilterReq pMsg;
                                        pMsg = vos_mem_malloc(sizeof(tSirSetActiveModeSetBncFilterReq));
+                                       if (!pMsg) {
+                                           smsLog(pMac, LOGE,
+                                               FL("Failed to allocate memory"));
+                                           return;
+                                       }
                                        pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_SET_BCN_FILTER_REQ);
                                        pMsg->length = pal_cpu_to_be16(sizeof(
                                            tSirSetActiveModeSetBncFilterReq));
@@ -15259,12 +15264,7 @@ eHalStatus csrSendMBSetContextReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId,
                 // set pSirKey->keyLength = keyLength;
                 p = pal_set_U16( p, pal_cpu_to_be16(keyLength) );
         if (keyLength && pKey)
-        {
             vos_mem_copy(p, pKey, keyLength);
-            smsLog(pMac, LOG1, FL("SME set keyIndx (%d) encType (%d) key"),
-                                                keyId, edType);
-            sirDumpBuf(pMac, SIR_SMS_MODULE_ID, LOG2, pKey, keyLength);
-        }
         status = palSendMBMessage(pMac->hHdd, pMsg);
     } while( 0 );
     return( status );

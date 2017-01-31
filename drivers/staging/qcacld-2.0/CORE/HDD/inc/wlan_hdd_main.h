@@ -2046,10 +2046,10 @@ VOS_STATUS wlan_hdd_check_custom_con_channel_rules(hdd_adapter_t *sta_adapter,
                                               bool *concurrent_chnl_same);
 #ifdef WLAN_FEATURE_MBSSID
 void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter);
-void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter);
+void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter, bool reinit);
 #else
 static inline void wlan_hdd_stop_sap(hdd_adapter_t *ap_adapter) {}
-static inline void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter) {}
+static inline void wlan_hdd_start_sap(hdd_adapter_t *ap_adapter, bool reinit) {}
 #endif
 int wlan_hdd_get_link_speed(hdd_adapter_t *sta_adapter, uint32_t *link_speed);
 int hdd_wlan_go_set_mcc_p2p_quota(hdd_adapter_t *hostapd_adapter,

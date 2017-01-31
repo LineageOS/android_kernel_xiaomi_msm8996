@@ -1916,7 +1916,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 return VOS_STATUS_E_FAILURE;
             }
 #ifdef IPA_OFFLOAD
-            if (hdd_ipa_is_enabled(pHddCtx))
+            if (!pHddCtx->isLogpInProgress && hdd_ipa_is_enabled(pHddCtx))
             {
                 status = hdd_ipa_wlan_evt(pHostapdAdapter, staId, WLAN_CLIENT_DISCONNECT,
                 pSapEvent->sapevt.sapStationDisassocCompleteEvent.staMac.bytes);
@@ -6595,7 +6595,7 @@ void hdd_set_ap_ops( struct net_device *pWlanHostapdDev )
   pWlanHostapdDev->netdev_ops = &net_ops_struct;
 }
 
-VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
+VOS_STATUS hdd_init_ap_mode(hdd_adapter_t *pAdapter, bool reinit)
 {
     hdd_hostapd_state_t * phostapdBuf;
     struct net_device *dev = pAdapter->dev;
@@ -6621,20 +6621,27 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
             __func__, ret);
     }
 
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+               FL("SSR in progress: %d"), reinit);
 #ifdef WLAN_FEATURE_MBSSID
-    sapContext = WLANSAP_Open(pVosContext);
-    if (sapContext == NULL)
-    {
-          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: WLANSAP_Open failed!!"));
-          return VOS_STATUS_E_FAULT;
+    if (reinit) {
+        sapContext = pAdapter->sessionCtx.ap.sapContext;
+    } else {
+        sapContext = WLANSAP_Open(pVosContext);
+        if (sapContext == NULL)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                       FL("ERROR: WLANSAP_Open failed!!"));
+            return VOS_STATUS_E_FAULT;
+        }
+
+        pAdapter->sessionCtx.ap.sapContext = sapContext;
+        pAdapter->sessionCtx.ap.sapConfig.channel =
+                                   pHddCtx->acs_policy.acs_channel;
+        mode = pHddCtx->acs_policy.acs_dfs_mode;
+        pAdapter->sessionCtx.ap.sapConfig.acs_dfs_mode =
+                                        wlan_hdd_get_dfs_mode(mode);
     }
-
-    pAdapter->sessionCtx.ap.sapContext = sapContext;
-    pAdapter->sessionCtx.ap.sapConfig.channel = pHddCtx->acs_policy.acs_channel;
-    mode = pHddCtx->acs_policy.acs_dfs_mode;
-    pAdapter->sessionCtx.ap.sapConfig.acs_dfs_mode =
-          wlan_hdd_get_dfs_mode(mode);
-
 
     if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
         device_mode = VOS_P2P_GO_MODE;
@@ -6737,10 +6744,12 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
                     __func__, ret);
     }
 
-    pAdapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode = false;
-    vos_mem_free(pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
-    vos_mem_zero(&pAdapter->sessionCtx.ap.sapConfig.acs_cfg,
-                                                   sizeof(struct sap_acs_cfg));
+    if (!reinit) {
+        pAdapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode = false;
+        vos_mem_free(pAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
+        vos_mem_zero(&pAdapter->sessionCtx.ap.sapConfig.acs_cfg,
+                                           sizeof(struct sap_acs_cfg));
+    }
     return status;
 
 error_wmm_init:
@@ -6904,4 +6913,81 @@ VOS_STATUS hdd_unregister_hostapd(hdd_adapter_t *pAdapter, bool rtnl_held)
 
    EXIT();
    return 0;
+}
+
+/**
+ * hdd_sap_indicate_disconnect_for_sta() - Indicate disconnect indication
+ * to supplicant, if there any clients connected to SAP interface.
+ * @adapter: sap adapter context
+ *
+ * Return:   nothing
+ */
+void hdd_sap_indicate_disconnect_for_sta(hdd_adapter_t *adapter)
+{
+	tSap_Event sap_event;
+	int staId;
+	ptSapContext sap_ctx = WLAN_HDD_GET_SAP_CTX_PTR(adapter);
+
+	ENTER();
+
+	if (!sap_ctx) {
+		hddLog(LOGE, FL("invalid sap context"));
+		return;
+	}
+
+	for (staId = 0; staId < WLAN_MAX_STA_COUNT; staId++) {
+		if (adapter->aStaInfo[staId].isUsed) {
+			hddLog(LOG1, FL("staId: %d isUsed: %d %p"),
+				staId, adapter->aStaInfo[staId].isUsed,
+				sap_ctx);
+
+			if (vos_is_macaddr_broadcast(
+				&adapter->aStaInfo[staId].macAddrSTA))
+				continue;
+
+			sap_event.sapHddEventCode = eSAP_STA_DISASSOC_EVENT;
+			vos_mem_copy(
+				&sap_event.sapevt.
+					sapStationDisassocCompleteEvent.staMac,
+				&adapter->aStaInfo[staId].macAddrSTA,
+				sizeof(v_MACADDR_t));
+			sap_event.sapevt.sapStationDisassocCompleteEvent.
+			reason =
+				eSAP_MAC_INITATED_DISASSOC;
+			sap_event.sapevt.sapStationDisassocCompleteEvent.
+			statusCode =
+				eSIR_SME_RESOURCES_UNAVAILABLE;
+			hdd_hostapd_SAPEventCB(&sap_event,
+				sap_ctx->pUsrContext);
+		}
+	}
+
+	clear_bit(SOFTAP_BSS_STARTED, &adapter->event_flags);
+
+	EXIT();
+}
+
+/**
+ * hdd_sap_destroy_events() - Destroy sap evets
+ * @adapter: sap adapter context
+ *
+ * Return:   nothing
+ */
+void hdd_sap_destroy_events(hdd_adapter_t *adapter)
+{
+	ptSapContext sap_ctx = WLAN_HDD_GET_SAP_CTX_PTR(adapter);
+
+	if (!sap_ctx) {
+	hddLog(LOGE, FL("invalid sap context"));
+	return;
+	}
+
+	if (!VOS_IS_STATUS_SUCCESS(vos_lock_destroy(&sap_ctx->SapGlobalLock)))
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+		FL("WLANSAP_Stop failed destroy lock"));
+
+	if (!VOS_IS_STATUS_SUCCESS(vos_event_destroy(
+		&sap_ctx->sap_session_opened_evt)))
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+		FL("failed to destroy session open event"));
 }

@@ -4639,12 +4639,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_TGT_GTX_USR_CFG_MIN,
                 CFG_TGT_GTX_USR_CFG_MAX),
 
-   REG_VARIABLE(CFG_CH_AVOID_SAP_RESTART_NAME, WLAN_PARAM_Integer,
-                hdd_config_t, sap_restrt_ch_avoid,
+   REG_VARIABLE(CFG_SAP_INTERNAL_RESTART_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, sap_internal_restart,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                CFG_CH_AVOID_SAP_RESTART_DEFAULT,
-                CFG_CH_AVOID_SAP_RESTART_MIN,
-                CFG_CH_AVOID_SAP_RESTART_MAX),
+                CFG_SAP_INTERNAL_RESTART_DEFAULT,
+                CFG_SAP_INTERNAL_RESTART_MIN,
+                CFG_SAP_INTERNAL_RESTART_MAX),
 
    REG_VARIABLE(CFG_BUG_ON_REINIT_FAILURE_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, bug_on_reinit_failure,
@@ -5522,8 +5522,8 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                  pHddCtx->cfg_ini->tgt_gtx_usr_cfg);
 
   hddLog(LOG2, "Name = [%s] Value = [%u]",
-                 CFG_CH_AVOID_SAP_RESTART_NAME,
-                 pHddCtx->cfg_ini->sap_restrt_ch_avoid);
+                 CFG_SAP_INTERNAL_RESTART_NAME,
+                 pHddCtx->cfg_ini->sap_internal_restart);
 
   hddLog(LOG2, "Name = [%s] Value = [%u]",
                 CFG_SAP_FORCE_11N_FOR_11AC_NAME,

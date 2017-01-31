@@ -1705,29 +1705,6 @@ tANI_BOOLEAN limProcessFTUpdateKey(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf )
                        pKeyInfo->bssId);
 
         pAddBssParams->extSetStaKeyParam.sendRsp = FALSE;
-
-        if(pAddBssParams->extSetStaKeyParam.key[0].keyLength == 16)
-        {
-            PELOG1(limLog(pMac, LOG1,
-            FL("BSS key = %02X-%02X-%02X-%02X-%02X-%02X-%02X- "
-            "%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X"),
-            pAddBssParams->extSetStaKeyParam.key[0].key[0],
-            pAddBssParams->extSetStaKeyParam.key[0].key[1],
-            pAddBssParams->extSetStaKeyParam.key[0].key[2],
-            pAddBssParams->extSetStaKeyParam.key[0].key[3],
-            pAddBssParams->extSetStaKeyParam.key[0].key[4],
-            pAddBssParams->extSetStaKeyParam.key[0].key[5],
-            pAddBssParams->extSetStaKeyParam.key[0].key[6],
-            pAddBssParams->extSetStaKeyParam.key[0].key[7],
-            pAddBssParams->extSetStaKeyParam.key[0].key[8],
-            pAddBssParams->extSetStaKeyParam.key[0].key[9],
-            pAddBssParams->extSetStaKeyParam.key[0].key[10],
-            pAddBssParams->extSetStaKeyParam.key[0].key[11],
-            pAddBssParams->extSetStaKeyParam.key[0].key[12],
-            pAddBssParams->extSetStaKeyParam.key[0].key[13],
-            pAddBssParams->extSetStaKeyParam.key[0].key[14],
-            pAddBssParams->extSetStaKeyParam.key[0].key[15]);)
-        }
     }
     return TRUE;
 }

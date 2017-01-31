@@ -3931,10 +3931,10 @@ enum dot11p_mode {
 #define CFG_TGT_GTX_USR_CFG_MAX       (32)
 #define CFG_TGT_GTX_USR_CFG_DEFAULT   (32)
 
-#define CFG_CH_AVOID_SAP_RESTART_NAME    "sap_ch_avoid_restart"
-#define CFG_CH_AVOID_SAP_RESTART_MIN     (0)
-#define CFG_CH_AVOID_SAP_RESTART_MAX     (1)
-#define CFG_CH_AVOID_SAP_RESTART_DEFAULT (0)
+#define CFG_SAP_INTERNAL_RESTART_NAME    "gEnableSapInternalRestart"
+#define CFG_SAP_INTERNAL_RESTART_MIN     (0)
+#define CFG_SAP_INTERNAL_RESTART_MAX     (1)
+#define CFG_SAP_INTERNAL_RESTART_DEFAULT (0)
 
 /*
  * This parameter will help to debug ssr reinit failure issues
@@ -4779,7 +4779,7 @@ struct hdd_config {
 
    /* parameter to control GTX */
    uint32_t                    tgt_gtx_usr_cfg;
-   bool                        sap_restrt_ch_avoid;
+   bool                        sap_internal_restart;
    bool                        bug_on_reinit_failure;
    /* parameter to force sap into 11n */
    bool                        sap_force_11n_for_11ac;

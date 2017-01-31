@@ -1209,7 +1209,7 @@ void ol_tx_pdev_throttle_phase_timer(void *context)
             if (pdev->tx_throttle.current_throttle_level !=
                 THROTTLE_LEVEL_0) {
                 TXRX_PRINT(TXRX_PRINT_LEVEL_WARN, "start timer %d ms\n", ms);
-                adf_os_timer_start(&pdev->tx_throttle.phase_timer, ms);
+                adf_os_timer_mod(&pdev->tx_throttle.phase_timer, ms);
             }
         }
     }
@@ -1229,7 +1229,7 @@ void ol_tx_pdev_throttle_phase_timer(void *context)
         ms = pdev->tx_throttle.throttle_time_ms[cur_level][cur_phase];
         if (pdev->tx_throttle.current_throttle_level != THROTTLE_LEVEL_0) {
             TXRX_PRINT(TXRX_PRINT_LEVEL_WARN, "start timer %d ms\n", ms);
-            adf_os_timer_start(&pdev->tx_throttle.phase_timer, ms);
+            adf_os_timer_mod(&pdev->tx_throttle.phase_timer, ms);
         }
     }
 }
@@ -1268,7 +1268,7 @@ void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev, int level)
             ms = pdev->tx_throttle.throttle_time_ms[level][THROTTLE_PHASE_OFF];
             /* pause all */
             ol_txrx_throttle_pause(pdev);
-            adf_os_timer_start(&pdev->tx_throttle.phase_timer, ms);
+            adf_os_timer_mod(&pdev->tx_throttle.phase_timer, ms);
         } else {
             pdev->tx_throttle.current_throttle_phase = THROTTLE_PHASE_ON;
             ms = pdev->tx_throttle.throttle_time_ms[level][THROTTLE_PHASE_ON];
@@ -1283,7 +1283,7 @@ void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev, int level)
         ms = pdev->tx_throttle.throttle_time_ms[level][THROTTLE_PHASE_OFF];
 
         adf_os_timer_cancel(&pdev->tx_throttle.phase_timer);
-        adf_os_timer_start(&pdev->tx_throttle.phase_timer, ms);
+        adf_os_timer_mod(&pdev->tx_throttle.phase_timer, ms);
     }
 }
 

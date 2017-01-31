@@ -2162,7 +2162,34 @@ VOS_STATUS hdd_wlan_shutdown(void)
    return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * hdd_ssr_restart_sap() - restart sap on SSR
+ * @hdd_ctx:   hdd context
+ *
+ * Return:     nothing
+ */
+static void hdd_ssr_restart_sap(hdd_context_t *hdd_ctx)
+{
+	VOS_STATUS       status;
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	hdd_adapter_t *adapter;
 
+	ENTER();
+
+	status =  hdd_get_front_adapter (hdd_ctx, &adapter_node);
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		adapter = adapter_node->pAdapter;
+		if (adapter && adapter->device_mode == WLAN_HDD_SOFTAP) {
+			hddLog(VOS_TRACE_LEVEL_INFO, FL("in sap mode %p"),
+				adapter);
+			wlan_hdd_start_sap(adapter, true);
+		}
+		status = hdd_get_next_adapter ( hdd_ctx, adapter_node, &next );
+		adapter_node = next;
+	}
+
+	EXIT();
+}
 
 /* the HDD interface to WLAN driver re-init.
  * This is called to initialize/start WLAN driver after a shutdown.
@@ -2174,7 +2201,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    hdd_context_t    *pHddCtx = NULL;
    eHalStatus       halStatus;
    bool             bug_on_reinit_failure = 0;
-
    hdd_adapter_t *pAdapter;
    int i;
    hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_REINIT);
@@ -2207,7 +2233,8 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    ((VosContextType*)pVosContext)->pHIFContext = hif_sc;
 
    /* The driver should always be initialized in STA mode after SSR */
-   hdd_set_conparam(0);
+   if (VOS_STA_SAP_MODE != hdd_get_conparam())
+       hdd_set_conparam(0);
 
    /* Re-open VOSS, it is a re-open b'se control transport was never closed. */
    vosStatus = vos_open(&pVosContext, 0);
@@ -2274,6 +2301,15 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       goto err_vosclose;
    }
 
+   /*
+    * Invoke ipa reinit before vos_start so that doorbell registers are
+    * updated
+    */
+#ifdef IPA_UC_OFFLOAD
+   if (hdd_ipa_uc_ssr_reinit(pHddCtx))
+      hddLog(LOGE, "%s: HDD IPA UC reinit failed", __func__);
+#endif
+
    /* Start VOSS which starts up the SME/MAC/HAL modules and everything else
       Note: Firmware image will be read and downloaded inside vos_start API */
    vosStatus = vos_start( pVosContext );
@@ -2282,11 +2318,6 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
       goto err_vosclose;
    }
-#ifdef IPA_UC_OFFLOAD
-   if (hdd_ipa_uc_ssr_reinit())
-      hddLog(LOGE, "%s: HDD IPA UC reinit failed", __func__);
-#endif
-
 
    vosStatus = hdd_post_voss_start_config( pHddCtx );
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
@@ -2448,6 +2479,8 @@ err_re_init:
 success:
    /* Trigger replay of BTC events */
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+   if (pHddCtx->cfg_ini->sap_internal_restart)
+       hdd_ssr_restart_sap(pHddCtx);
    pHddCtx->isLogpInProgress = FALSE;
    hdd_ssr_timer_del();
    return VOS_STATUS_SUCCESS;
