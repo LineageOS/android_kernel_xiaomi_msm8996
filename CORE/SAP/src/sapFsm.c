@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1382,6 +1382,37 @@ sap_check_in_avoid_ch_list(ptSapContext sap_ctx, uint8_t channel)
 }
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
+/**
+ * sap_is_valid_acs_channel() - checks if given channel is in acs channel range
+ * @sap_ctx: sap context.
+ * @channel: channel to be checked in acs range
+ *
+ * Return: true, if channel is valid, false otherwise.
+ */
+static bool sap_is_valid_acs_channel(ptSapContext sap_ctx, uint8_t channel)
+{
+	int i = 0;
+
+	/* Check whether acs is enabled */
+	if (!sap_ctx->acs_cfg->acs_mode)
+		return true;
+
+	if ((channel < sap_ctx->acs_cfg->start_ch) ||
+			(channel > sap_ctx->acs_cfg->end_ch)) {
+		return false;
+	}
+	if (!sap_ctx->acs_cfg->ch_list) {
+		/* List not present, return */
+		return true;
+	} else {
+		for (i = 0; i < sap_ctx->acs_cfg->ch_list_count; i++)
+			if (channel == sap_ctx->acs_cfg->ch_list[i])
+				return true;
+	}
+
+	return false;
+}
+
 /*
  * This function randomly pick up an AVAILABLE channel
  */
@@ -1397,7 +1428,7 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
     uint8_t  avail_non_dfs_chan_list[WNI_CFG_VALID_CHANNEL_LIST_LEN] = {0,};
     v_U8_t   target_channel = 0;
     v_BOOL_t isChannelNol = VOS_FALSE;
-    v_BOOL_t isOutOfRange = VOS_FALSE;
+    v_BOOL_t is_valid_acs_chan = VOS_FALSE;
     chan_bonding_bitmap channelBitmap;
     v_U8_t   i = 0;
     v_U8_t   channelID;
@@ -1567,16 +1598,17 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
 
         /* check if the channel is within ACS channel range */
-        isOutOfRange = sapAcsChannelCheck(sapContext,
+        is_valid_acs_chan = sap_is_valid_acs_channel(sapContext,
                                           channelID);
-        if (VOS_TRUE == isOutOfRange)
+        if (is_valid_acs_chan == false)
         {
             /*
              * mark this channel invalid since it is out of ACS channel range
              */
             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_LOW,
-                     FL("index: %d, Channel = %d out of ACS channel range"),
-                     i, channelID);
+                     FL("index: %d, Channel=%d out of ACS channel range %d-%d"),
+                     i, channelID, sapContext->acs_cfg->start_ch,
+                     sapContext->acs_cfg->end_ch);
             sapContext->SapAllChnlList.channelList[i].valid = VOS_FALSE;
             valid_chnl_count--;
             continue;
@@ -1759,26 +1791,6 @@ static v_U8_t sapRandomChannelSel(ptSapContext sapContext)
 
     vos_mem_free(tempChannels);
     return target_channel;
-}
-
-v_BOOL_t
-sapAcsChannelCheck(ptSapContext sapContext, v_U8_t channelNumber)
-{
-    int i = 0;
-    if (!sapContext->acs_cfg->acs_mode)
-        return VOS_FALSE;
-
-    if ((channelNumber >= sapContext->acs_cfg->start_ch) ||
-        (channelNumber <= sapContext->acs_cfg->end_ch)) {
-        if (!sapContext->acs_cfg->ch_list) {
-            return VOS_FALSE;
-        } else {
-            for (i = 0; i < sapContext->acs_cfg->ch_list_count; i++)
-                if (channelNumber == sapContext->acs_cfg->ch_list[i])
-                    return VOS_FALSE;
-        }
-    }
-    return VOS_TRUE;
 }
 
 /*

@@ -984,8 +984,6 @@ SIDE EFFECTS
 ---------------------------------------------------------------------------*/
 void sap_CacResetNotify(tHalHandle hHal);
 
-v_BOOL_t sapAcsChannelCheck(ptSapContext sapContext, v_U8_t channelNumber);
-
 /*
  * This function is added to check if channel is in tx leak range
  *
