@@ -499,7 +499,9 @@ static ssize_t rmidev_read(struct file *filp, char __user *buf,
 		goto clean_up;
 	}
 
-	rmidev_allocate_buffer(count);
+	retval = rmidev_allocate_buffer(count);
+	if (retval != 0)
+		goto clean_up;
 
 	retval = synaptics_rmi4_reg_read(rmidev->rmi4_data,
 			*f_pos,
@@ -551,7 +553,9 @@ static ssize_t rmidev_write(struct file *filp, const char __user *buf,
 		goto unlock;
 	}
 
-	rmidev_allocate_buffer(count);
+	retval = rmidev_allocate_buffer(count);
+	if (retval != 0)
+		goto unlock;
 
 	if (copy_from_user(rmidev->tmpbuf, buf, count)) {
 		retval = -EFAULT;
