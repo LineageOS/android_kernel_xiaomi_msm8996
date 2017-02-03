@@ -3164,7 +3164,7 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
         vos_mem_copy(&bssId, pSession->pConnectBssDesc->bssId, sizeof(tCsrBssid));
     }
 
-        smsLog(pMac, LOG2, FL("CSR Attempting to Disassociate Bssid="MAC_ADDRESS_STR
+        smsLog(pMac, LOG1, FL("CSR Attempting to Disassociate Bssid="MAC_ADDRESS_STR
                               " subState = %s reason=%d"),
                               MAC_ADDR_ARRAY(bssId), macTraceGetcsrRoamSubState(NewSubstate),
                               reasonCode);
@@ -5223,6 +5223,8 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     case eCsrForcedDisassocSta:
        csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINING, sessionId);
        csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_DISASSOC_REQ, sessionId);
+       smsLog(pMac, LOG1, FL("Diassociate issued with reason: %d"),
+              pCommand->u.roamCmd.reason);
        status = csrSendMBDisassocReqMsg( pMac, sessionId, pCommand->u.roamCmd.peerMac,
                      pCommand->u.roamCmd.reason);
        break;
