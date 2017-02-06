@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2039,8 +2039,11 @@ static VOS_STATUS hdd_ipa_uc_ol_init(hdd_context_t *hdd_ctx)
 	vos_mem_zero(&pipe_out, sizeof(struct ipa_wdi_out_params));
 
 	vos_list_init(&ipa_ctxt->pending_event);
-	vos_lock_init(&ipa_ctxt->event_lock);
-	vos_lock_init(&ipa_ctxt->ipa_lock);
+
+	if (!hdd_ctx->isLogpInProgress) {
+		vos_lock_init(&ipa_ctxt->event_lock);
+		vos_lock_init(&ipa_ctxt->ipa_lock);
+	}
 
 	/* TX PIPE */
 	pipe_in.sys.ipa_ep_cfg.nat.nat_en = IPA_BYPASS_NAT;
@@ -2364,12 +2367,13 @@ int hdd_ipa_uc_ssr_deinit()
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 	int idx;
 	struct hdd_ipa_iface_context *iface_context;
+	hdd_context_t *hdd_ctx = hdd_ipa->hdd_ctx;
 
 	if (!hdd_ipa_uc_is_enabled(hdd_ipa))
 		return 0;
 
 	/* send disconnect to ipa driver */
-	hdd_ipa_uc_disconnect(hdd_ipa->hdd_ctx);
+	hdd_ipa_uc_disconnect(hdd_ctx);
 
 	/* Clean up HDD IPA interfaces */
 	for (idx = 0; (hdd_ipa->num_iface > 0) &&
@@ -2393,6 +2397,22 @@ int hdd_ipa_uc_ssr_deinit()
 	}
 	vos_lock_release(&hdd_ipa->ipa_lock);
 
+	/*
+	 * Do WDI pipes disconnect here. During reinit new WDI pipes
+	 * will be created.
+	 */
+	/* In MDM case pipes will be disconnected as part of ipa cleanup */
+	if (hdd_ctx->cfg_ini->sap_internal_restart) {
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+			"%s: Disconnect TX PIPE tx_pipe_handle=0x%x",
+			__func__, hdd_ipa->tx_pipe_handle);
+		ipa_disconnect_wdi_pipe(hdd_ipa->tx_pipe_handle);
+		HDD_IPA_LOG(VOS_TRACE_LEVEL_INFO,
+			"%s: Disconnect RX PIPE rx_pipe_handle=0x%x",
+			__func__, hdd_ipa->rx_pipe_handle);
+		ipa_disconnect_wdi_pipe(hdd_ipa->rx_pipe_handle);
+	}
+
 	if (hdd_ipa_uc_sta_is_enabled(hdd_ipa)) {
 		hdd_ipa_uc_sta_reset_sta_connected(hdd_ipa);
 	}
@@ -2411,19 +2431,16 @@ int hdd_ipa_uc_ssr_deinit()
  *
  * Return: 0 - Success
  */
-int hdd_ipa_uc_ssr_reinit()
+int hdd_ipa_uc_ssr_reinit(hdd_context_t *hdd_ctx)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 
 	if (!hdd_ipa_uc_is_enabled(hdd_ipa))
 		return 0;
 
-	/* After SSR is complete, IPA UC can resume operation. But now wlan
-	 * driver will be unloaded and reloaded, which takes care of IPA cleanup
-	 * and initialization.
-	 * This is a placeholder func if IPA has to resume operations without
-	 * driver reload.
-	 */
+	if (hdd_ctx->cfg_ini->sap_internal_restart)
+		hdd_ipa_uc_ol_init(hdd_ctx);
+
 	return 0;
 }
 #else

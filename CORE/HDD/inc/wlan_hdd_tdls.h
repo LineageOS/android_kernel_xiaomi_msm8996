@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -354,14 +354,16 @@ hddTdlsPeer_t *wlan_hdd_tdls_find_all_peer(hdd_context_t *pHddCtx,
 int wlan_hdd_tdls_get_link_establish_params(hdd_adapter_t *pAdapter,
                                             const u8 *mac,
                                             tCsrTdlsLinkEstablishParams* tdlsLinkEstablishParams);
-hddTdlsPeer_t *wlan_hdd_tdls_get_peer(hdd_adapter_t *pAdapter, const u8 *mac);
+hddTdlsPeer_t *wlan_hdd_tdls_get_peer(hdd_adapter_t *pAdapter, const u8 *mac,
+                                      bool need_lock);
 
 int wlan_hdd_tdls_set_cap(hdd_adapter_t *pAdapter, const u8* mac,
                           tTDLSCapType cap);
 
 void wlan_hdd_tdls_set_peer_link_status(hddTdlsPeer_t *curr_peer,
                                         tTDLSLinkStatus status,
-                                        tTDLSLinkReason reason);
+                                        tTDLSLinkReason reason,
+                                        bool need_lock);
 void wlan_hdd_tdls_set_link_status(hdd_adapter_t *pAdapter,
                                    const u8* mac,
                                    tTDLSLinkStatus linkStatus,
@@ -407,7 +409,7 @@ void wlan_hdd_tdls_check_bmps(hdd_adapter_t *pAdapter);
 
 hddTdlsPeer_t *wlan_hdd_tdls_is_progress(hdd_context_t *pHddCtx,
                                          const u8* mac,
-                                         u8 skip_self);
+                                         u8 skip_self, bool need_lock);
 
 int wlan_hdd_tdls_copy_scan_context(hdd_context_t *pHddCtx,
                             struct wiphy *wiphy,
