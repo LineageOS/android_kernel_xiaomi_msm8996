@@ -9515,6 +9515,16 @@ static int hdd_set_qpower_config(hdd_context_t *hddctx, hdd_adapter_t *adapter,
 {
 	VOS_STATUS vos_status;
 
+	if(!adapter) {
+		hddLog(LOGE,"invalid adapter");
+		return -EINVAL;
+	}
+	if (adapter->device_mode != WLAN_HDD_INFRA_STATION &&
+	    adapter->device_mode != WLAN_HDD_P2P_CLIENT) {
+		hddLog(VOS_TRACE_LEVEL_INFO,
+		       FL("QPOWER is only supported for STA/P2P-CLIENT"));
+		return -EINVAL;
+	}
 	if (!hddctx->cfg_ini->enablePowersaveOffload) {
 		hddLog(LOGE,
 		       FL("qpower is disabled in configuration"));
