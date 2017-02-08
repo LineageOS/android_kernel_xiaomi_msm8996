@@ -8212,8 +8212,7 @@ wma_chan_info_event_handler(void *handle, u_int8_t *event_buf,
 	}
 
 	if (ACS_FW_REPORT_PARAM_CONFIGURED &&
-		 mac->sme.currDeviceMode == VOS_STA_SAP_MODE &&
-		 mac->scan.curScanType == eSIR_ACTIVE_SCAN) {
+		 mac->sme.currDeviceMode == VOS_STA_SAP_MODE) {
 		param_buf = (WMI_CHAN_INFO_EVENTID_param_tlvs *) event_buf;
 		if (!param_buf)  {
 			WMA_LOGE("Invalid chan info event buffer");
@@ -8226,9 +8225,9 @@ wma_chan_info_event_handler(void *handle, u_int8_t *event_buf,
 			WMA_LOGE(FL("Mem alloc fail"));
 			return -ENOMEM;
 		}
-		WMA_LOGI(FL("freq=%d nf=%d rx_cnt=%d cycle_count=%d "
+		WMA_LOGI(FL("freq=%d nf=%d rx_cnt=%u cycle_count=%u "
 			    "tx_pwr_range=%d tx_pwr_tput=%d "
-			    "rx_frame_count=%d my_bss_rx_cycle_count=%d "
+			    "rx_frame_count=%u my_bss_rx_cycle_count=%u "
 			    "rx_11b_mode_data_duration=%d cmd_flags=%d"),
 			 event->freq,
 			 event->noise_floor,
@@ -10523,8 +10522,7 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 
 		if (ACS_FW_REPORT_PARAM_CONFIGURED) {
 			/* add chan stat info report tag */
-			if (scan_req->scanType == eSIR_ACTIVE_SCAN &&
-				scan_req->bssType == eSIR_INFRA_AP_MODE) {
+			if (scan_req->bssType == eSIR_INFRA_AP_MODE) {
 				cmd->scan_ctrl_flags |=
 					WMI_SCAN_CHAN_STAT_EVENT;
 				WMA_LOGI("set ACS ctrl BIT");
@@ -10610,8 +10608,14 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		    }
 		    if (wma_is_STA_active(wma_handle) ||
 			wma_is_P2P_CLI_active(wma_handle)) {
-			/* Typical background scan. Disable burst scan for now. */
-			cmd->burst_duration = 0;
+			if (scan_req->burst_scan_duration)
+				cmd->burst_duration =
+						scan_req->burst_scan_duration;
+			else
+				/* Typical background scan.
+				 * Disable burst scan for now.
+				 */
+				cmd->burst_duration = 0;
 			break;
 		    }
 		} while (0);
@@ -22612,6 +22616,14 @@ wma_pkt_proto_subtype_to_string(enum adf_proto_subtype proto_subtype)
 		return "ICMPV6 REQUEST";
 	case ADF_PROTO_ICMPV6_RES:
 		return "ICMPV6 RESPONSE";
+	case ADF_PROTO_ICMPV6_RS:
+		return "ICMPV6 RS";
+	case ADF_PROTO_ICMPV6_RA:
+		return "ICMPV6 RA";
+	case ADF_PROTO_ICMPV6_NS:
+		return "ICMPV6 NS";
+	case ADF_PROTO_ICMPV6_NA:
+		return "ICMPV6 NA";
 	case ADF_PROTO_IPV4_UDP:
 		return "IPV4 UDP Packet";
 	case ADF_PROTO_IPV4_TCP:
@@ -22804,6 +22816,10 @@ static void wma_wow_parse_data_pkt_buffer(uint8_t *data,
 
 	case ADF_PROTO_ICMPV6_REQ:
 	case ADF_PROTO_ICMPV6_RES:
+	case ADF_PROTO_ICMPV6_RS:
+	case ADF_PROTO_ICMPV6_RA:
+	case ADF_PROTO_ICMPV6_NS:
+	case ADF_PROTO_ICMPV6_NA:
 		WMA_LOGD("WOW Wakeup: %s rcvd",
 			wma_pkt_proto_subtype_to_string(proto_subtype));
 		if (buf_len >= WMA_IPV6_PKT_INFO_GET_MIN_LEN) {

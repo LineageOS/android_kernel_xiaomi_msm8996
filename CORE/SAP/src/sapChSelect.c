@@ -96,7 +96,7 @@
         acs_band = eCSR_DOT11_MODE_11a;\
 }
 
-#define ACS_WEIGHT_AMOUNT_LOCAL    40
+#define ACS_WEIGHT_AMOUNT_LOCAL    240
 
 #define ACS_WEIGHT_AMOUNT_CONFIG(weights) \
 	(((weights) & 0xf) + \
@@ -111,16 +111,15 @@
  * need to do modulation to ACS_WEIGHT_AMOUNT_LOCAL.
  */
 #define ACS_WEIGHT_COMPUTE(weights, weight, factor, base) \
-	((((((((weight) << 4) * ACS_WEIGHT_AMOUNT_LOCAL * (factor)) + \
+	(((((((((weight) << 4) * ACS_WEIGHT_AMOUNT_LOCAL * (factor)) + \
 	(ACS_WEIGHT_AMOUNT_CONFIG((weights)) >> 1)) / \
 	ACS_WEIGHT_AMOUNT_CONFIG((weights))) + \
-	((base) >> 1)) / (base)) \
-	>> 4)
+	((base) >> 1)) / (base)) + 8) >> 4)
 
 #define ACS_WEIGHT_CFG_TO_LOCAL(weights, weight) \
-	((((((weight) << 4) * ACS_WEIGHT_AMOUNT_LOCAL) + \
+	(((((((weight) << 4) * ACS_WEIGHT_AMOUNT_LOCAL) + \
 	(ACS_WEIGHT_AMOUNT_CONFIG((weights)) >> 1)) / \
-	ACS_WEIGHT_AMOUNT_CONFIG((weights))) >> 4)
+	ACS_WEIGHT_AMOUNT_CONFIG((weights))) + 8) >> 4)
 
 #define ACS_WEIGHT_SOFTAP_RSSI_CFG(weights) \
 	((weights) & 0xf)
@@ -194,7 +193,7 @@ typedef struct
     v_U32_t weight;
 } sapAcsChannelInfo;
 
-#define ACS_WEIGHT_MAX     4444
+#define ACS_WEIGHT_MAX     26664
 
 sapAcsChannelInfo acsHT40Channels5G[ ] = {
     {36,   ACS_WEIGHT_MAX},
@@ -541,6 +540,38 @@ void sapCleanupChannelList(v_PVOID_t pvosGCtx)
         vos_mem_free(pSapCtx->SapAllChnlList.channelList);
         pSapCtx->SapAllChnlList.channelList = NULL;
     }
+}
+
+/**
+ * sap_channel_in_acs_channel_list() - check if channel in acs channel list
+ * @channel_num: channel to check
+ * @sap_ctx: struct ptSapContext
+ * @spect_info_params: strcut tSapChSelSpectInfo
+ *
+ * This function checks if specified channel is in the configured ACS channel
+ * list.
+ *
+ * Return: channel number if in acs channel list or SAP_CHANNEL_NOT_SELECTED
+ */
+uint8_t sap_channel_in_acs_channel_list(uint8_t channel_num,
+                                        ptSapContext sap_ctx,
+                                        tSapChSelSpectInfo *spect_info_params)
+{
+	uint8_t i = 0;
+
+	if ((NULL == sap_ctx->acs_cfg->ch_list) ||
+	    (NULL == spect_info_params))
+		return channel_num;
+
+	if (channel_num > 0 && channel_num <= 252) {
+		for (i = 0; i < sap_ctx->acs_cfg->ch_list_count; i++) {
+			if ((sap_ctx->acs_cfg->ch_list[i]) == channel_num)
+				return channel_num;
+		}
+		return SAP_CHANNEL_NOT_SELECTED;
+	} else {
+		return SAP_CHANNEL_NOT_SELECTED;
+	}
 }
 
 /*==========================================================================
@@ -920,10 +951,11 @@ uint32_t sap_weight_channel_free(ptSapContext sap_ctx,
 			 (ACS_WEIGHT_COMPUTE(
 			  sap_ctx->auto_channel_select_weight,
 			  softap_channel_free_weight_cfg,
-			  (rx_clear_count << 4)/cycle_count -
-			  (SOFTAP_MIN_CHNFREE << 4),
+			  ((rx_clear_count << 8) +
+			   (cycle_count >> 1))/cycle_count -
+			  (SOFTAP_MIN_CHNFREE << 8),
 			  (SOFTAP_MAX_CHNFREE -
-			   SOFTAP_MIN_CHNFREE) << 4));
+			   SOFTAP_MIN_CHNFREE) << 8));
 
 	if (channel_free_weight > softap_channel_free_weight_local)
 		channel_free_weight = softap_channel_free_weight_local;
@@ -2189,6 +2221,8 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
                 (sapweightRssiCount(sap_ctx, rssi, pSpectCh->bssCount)
                  + sap_weight_channel_status(sap_ctx,
                  sap_get_channel_status(pMac, pSpectCh->chNum)));
+        if (pSpectCh->weight > ACS_WEIGHT_MAX)
+            pSpectCh->weight = ACS_WEIGHT_MAX;
         pSpectCh->weight_copy = pSpectCh->weight;
 
         //------ Debug Info ------
@@ -2813,7 +2847,12 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
     sapUpdateUnsafeChannelList(pSapCtx);
 #endif
 
-    if (NULL == pScanResult)
+    /*
+     * If ACS weight is not enabled on noise_floor/channel_free/tx_power,
+     * then skip acs process if no bss found.
+     */
+    if (NULL == pScanResult &&
+        !(pSapCtx->auto_channel_select_weight & 0xffff00))
     {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                   "%s: No external AP present", __func__);
@@ -3009,7 +3048,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, ptSapContext pSapCtx,  tScanResult
                                  pSapCtx->acsBestChannelInfo.weight))
                     {
                         tmpChNum = pSpectInfoParams->pSpectCh[count].chNum;
-                        tmpChNum = sapSelectPreferredChannelFromChannelList(
+                        tmpChNum = sap_channel_in_acs_channel_list(
                                        tmpChNum, pSapCtx, pSpectInfoParams);
                         if ( tmpChNum != SAP_CHANNEL_NOT_SELECTED)
                         {
