@@ -278,6 +278,8 @@ typedef enum {
     WMI_SERVICE_PEER_STATS_INFO = 116, /* support per peer stats info */
     WMI_SERVICE_REGULATORY_DB = 117, /* support regulatory database in FW */
     WMI_SERVICE_11D_OFFLOAD = 118, /* support 11D scan offload in FW */
+    WMI_SERVICE_HW_DATA_FILTERING = 119,
+
     /***** ADD NEW SERVICES HERE UNTIL ALL VALUES UP TO 128 ARE USED *****/
 
     WMI_MAX_SERVICE = 128, /* max service */
