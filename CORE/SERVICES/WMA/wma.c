@@ -5821,8 +5821,8 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 			WMA_LOGE(FL("Invalid length of PEER signal."));
 		}
 
-		peer = ol_txrx_peer_find_by_local_id(pdev,
-						     wmi_peer_signal->peer_id);
+		peer = ol_txrx_peer_find_by_id(pdev,
+					       wmi_peer_signal->peer_id);
 		if (!peer) {
 			WMA_LOGE(FL("Invalid Peer ID %d in FW message."),
 				 wmi_peer_signal->peer_id);
