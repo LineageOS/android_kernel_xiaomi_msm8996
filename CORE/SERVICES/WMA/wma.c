@@ -5735,6 +5735,8 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 	uint32_t i, peer_num, result_size, dst_len;
 	tpAniSirGlobal mac;
 	vos_msg_t vos_msg;
+	struct ol_txrx_peer_t *peer;
+	ol_txrx_pdev_handle pdev;
 
 	mac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 					      wma_handle->vos_context);
@@ -5745,6 +5747,12 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 
 	if (!mac->sme.link_layer_stats_ext_cb) {
 		WMA_LOGD("%s: HDD callback is null", __func__);
+		return -EINVAL;
+	}
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma_handle->vos_context);
+	if (!pdev) {
+		WMA_LOGD("%s: NULL ol_txrx pdev ptr. Exiting", __func__);
 		return -EINVAL;
 	}
 
@@ -5811,6 +5819,23 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 			result_size -= dst_len;
 		} else {
 			WMA_LOGE(FL("Invalid length of PEER signal."));
+		}
+
+		peer = ol_txrx_peer_find_by_local_id(pdev,
+						     wmi_peer_signal->peer_id);
+		if (!peer) {
+			WMA_LOGE(FL("Invalid Peer ID %d in FW message."),
+				 wmi_peer_signal->peer_id);
+		} else {
+			vos_mem_copy(&peer_stats[i].mac_address,
+				     &peer->mac_addr,
+				     sizeof(peer_stats[i].mac_address));
+			WMA_LOGI("Peer %d mac address is: ",
+				 wmi_peer_signal->peer_id);
+			WMA_LOGI("%2x:%2x:%2x:%2x:%2x:%2x.",
+				 peer->mac_addr.raw[0], peer->mac_addr.raw[1],
+				 peer->mac_addr.raw[2], peer->mac_addr.raw[3],
+				 peer->mac_addr.raw[4], peer->mac_addr.raw[5]);
 		}
 	}
 
