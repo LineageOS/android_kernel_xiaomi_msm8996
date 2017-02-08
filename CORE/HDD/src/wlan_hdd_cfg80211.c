@@ -20397,8 +20397,7 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
         /* set the scan type to active */
         scanRequest.scanType = eSIR_ACTIVE_SCAN;
     }
-    else if (WLAN_HDD_P2P_GO == pAdapter->device_mode ||
-             WLAN_HDD_SOFTAP == pAdapter->device_mode)
+    else if (WLAN_HDD_P2P_GO == pAdapter->device_mode)
     {
         /* set the scan type to active */
         scanRequest.scanType = eSIR_ACTIVE_SCAN;
@@ -20409,8 +20408,19 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
          *Set the scan type to passive if there is no ssid list provided else
          *set default type configured in the driver.
          */
-        if (!request->ssids)
-            scanRequest.scanType = eSIR_PASSIVE_SCAN;
+        if (!request->ssids) {
+            /* In case of AP+AP there is a reason to fix scanType to
+             * ACTIVE, historically this is to increase probablity of
+             * successfull OBSS scan
+             */
+            if((WLAN_HDD_SOFTAP == pAdapter->device_mode) && \
+               (pHddCtx->no_of_active_sessions[VOS_STA_SAP_MODE] > 1)) {
+                scanRequest.scanType = eSIR_ACTIVE_SCAN;
+            }
+            else {
+                scanRequest.scanType = eSIR_PASSIVE_SCAN;
+            }
+        }
         else
             scanRequest.scanType = pHddCtx->ioctl_scan_mode;
     }
