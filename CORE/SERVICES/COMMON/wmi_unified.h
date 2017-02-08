@@ -6499,6 +6499,11 @@ typedef enum {
      *  valid values: 0-Disable ER, 1-Enable ER.
      */
     WMI_VDEV_PARAM_HE_RANGE_EXT,
+    /* enable or disable BCAST probe response feature */
+    WMI_VDEV_PARAM_ENABLE_BCAST_PROBE_RESPONSE,
+
+    /* param to specify probe request Tx delay during Fast Initial Link Setup */
+    WMI_VDEV_PARAM_FILS_MAX_CHANNEL_GUARD_TIME, /* units = milliseconds */
 
     /*
      * === ADD NEW VDEV PARAM TYPES ABOVE THIS LINE ===
