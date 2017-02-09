@@ -1621,7 +1621,11 @@ static v_VOID_t wma_set_default_tgt_config(tp_wma_handle wma_handle)
 	}
 	no_of_peers_supported = ol_get_number_of_peers_supported(scn);
 	tgt_cfg.num_peers = no_of_peers_supported + CFG_TGT_NUM_VDEV + 2;
+#if defined(CONFIG_HL_SUPPORT)
+	tgt_cfg.num_tids = 4 * no_of_peers_supported;
+#else
 	tgt_cfg.num_tids = (2 * (no_of_peers_supported + CFG_TGT_NUM_VDEV + 2));
+#endif
 
 	WMITLV_SET_HDR(&tgt_cfg.tlv_header,WMITLV_TAG_STRUC_wmi_resource_config,
 		       WMITLV_GET_STRUCT_TLVLEN(wmi_resource_config));
