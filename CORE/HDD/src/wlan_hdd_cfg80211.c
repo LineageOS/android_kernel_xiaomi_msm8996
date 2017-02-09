@@ -8637,8 +8637,8 @@ static int wlan_hdd_sap_cfg_dfs_override(hdd_adapter_t *adapter)
 
 	if (con_ch && vos_get_concurrency_mode() == VOS_STA_SAP) {
 
-		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
-			FL("concurrent STA role running on channel %d"), con_ch);
+		hddLog(LOG1, FL("concurrent STA role running on channel %d"),
+			con_ch);
 
 		/*
 		 * There is a STA role running on the same card, in that case
@@ -8646,7 +8646,7 @@ static int wlan_hdd_sap_cfg_dfs_override(hdd_adapter_t *adapter)
 		 * Try to use the same channel as the STA to achieve SCC
 		 */
 		if (VOS_IS_DFS_CH(sap_config->channel)) {
-			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+			hddLog(LOG1,
 				FL("SAP channel config overridden due to DFS channel not allowed in STA+SAP mode %d -> %d"),
 				sap_config->channel, con_ch);
 			sap_config->channel = con_ch;
@@ -14016,6 +14016,27 @@ static void wlan_hdd_cfg80211_scan_randomization_init(struct wiphy *wiphy)
 }
 #endif
 
+/**
+ * wlan_hdd_cfg80211_add_connected_pno_support() - Set connected PNO support
+ * @wiphy: Pointer to wireless phy
+ *
+ * This function is used to set connected PNO support to kernel
+ *
+ * Return: None
+ */
+#if defined(CFG80211_REPORT_BETTER_BSS_IN_SCHED_SCAN)
+static void wlan_hdd_cfg80211_add_connected_pno_support(struct wiphy *wiphy)
+{
+	wiphy_ext_feature_set(wiphy,
+		NL80211_EXT_FEATURE_SCHED_SCAN_RELATIVE_RSSI);
+}
+#else
+static void wlan_hdd_cfg80211_add_connected_pno_support(struct wiphy *wiphy)
+{
+	return;
+}
+#endif
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_init
  * This function is called by hdd_wlan_startup()
@@ -14099,6 +14120,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
         wiphy->max_match_sets       = SIR_PNO_MAX_SUPP_NETWORKS;
         wiphy->max_sched_scan_ie_len = SIR_MAC_MAX_IE_LENGTH;
     }
+    wlan_hdd_cfg80211_add_connected_pno_support(wiphy);
 #endif/*FEATURE_WLAN_SCAN_PNO*/
 
 #if  defined QCA_WIFI_FTM
@@ -23380,6 +23402,614 @@ static int wlan_hdd_get_peer_info(hdd_adapter_t *adapter,
 }
 
 /**
+ * hdd_get_max_rate_legacy() - get max rate for legacy mode
+ * @stainfo: stainfo pointer
+ * @rssidx: rssi index
+ *
+ * This function will get max rate for legacy mode
+ *
+ * Return: max rate on success, otherwise 0
+ */
+static uint32_t hdd_get_max_rate_legacy(hdd_station_info_t *stainfo,
+		uint8_t rssidx)
+{
+	uint32_t maxrate = 0;
+	int maxidx = 12;
+	int i;
+
+	/* check supported rates */
+	if (stainfo->max_supp_idx != 0xff &&
+			maxidx < stainfo->max_supp_idx)
+		maxidx = stainfo->max_supp_idx;
+
+	/* check extended rates */
+	if (stainfo->max_ext_idx != 0xff &&
+			maxidx < stainfo->max_ext_idx)
+		maxidx = stainfo->max_ext_idx;
+
+	for (i = 0;
+		i < sizeof(supported_data_rate)/sizeof(supported_data_rate[0]);
+		i++) {
+		if (supported_data_rate[i].beacon_rate_index == maxidx)
+			maxrate =
+				supported_data_rate[i].supported_rate[rssidx];
+	}
+
+	hddLog(VOS_TRACE_LEVEL_INFO, FL("maxrate %d"), maxrate);
+
+	return maxrate;
+}
+
+/**
+ * hdd_get_max_rate_ht() - get max rate for ht mode
+ * @stainfo: stainfo pointer
+ * @stats: fw txrx status pointer
+ * @nss: number of streams
+ * @maxrate: returned max rate buffer pointer
+ * @max_mcs_idx: max mcs idx
+ * @report_max: report max rate or max rate
+ *
+ * This function will get max rate for ht mode
+ *
+ * Return: None
+ */
+static void hdd_get_max_rate_ht(hdd_station_info_t *stainfo,
+		struct hdd_fw_txrx_stats *stats,
+		uint32_t rate_flags,
+		uint8_t nss,
+		uint32_t *maxrate,
+		uint8_t *max_mcs_idx,
+		bool report_max)
+{
+	struct index_data_rate_type *supported_mcs_rate;
+	uint32_t tmprate, mcsidx;
+	uint8_t flag = 0;
+	int8_t rssi = stats->rssi;
+	int mode = 0;
+	int i;
+
+	if (rate_flags & eHAL_TX_RATE_HT40)
+		mode = 1;
+	else
+		mode = 0;
+
+	if (rate_flags & eHAL_TX_RATE_HT40)
+		flag |= 1;
+	if (rate_flags & eHAL_TX_RATE_SGI)
+		flag |= 2;
+
+	supported_mcs_rate = (struct index_data_rate_type *)
+		((nss == 1) ? &supported_mcs_rate_nss1 :
+		 &supported_mcs_rate_nss2);
+
+	if (stainfo->max_mcs_idx == 0xff) {
+		hddLog(LOGE, FL("invalid max_mcs_idx"));
+		/* report real mcs idx */
+		mcsidx = stats->tx_rate.mcs;
+	} else {
+		mcsidx = stainfo->max_mcs_idx;
+	}
+
+	if (!report_max) {
+		for (i = 0; i < mcsidx; i++) {
+			if (rssi <= rssiMcsTbl[mode][i]) {
+				mcsidx = i;
+				break;
+			}
+		}
+		if (mcsidx < stats->tx_rate.mcs)
+			mcsidx = stats->tx_rate.mcs;
+	}
+
+	tmprate = supported_mcs_rate[mcsidx].supported_rate[flag];
+
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("tmprate %d mcsidx %d"),
+			tmprate, mcsidx);
+
+	*maxrate = tmprate;
+	*max_mcs_idx = mcsidx;
+}
+
+#ifdef WLAN_FEATURE_11AC
+/**
+ * hdd_get_max_rate_vht() - get max rate for vht mode
+ * @stainfo: stainfo pointer
+ * @stats: fw txrx status pointer
+ * @nss: number of streams
+ * @maxrate: returned max rate buffer pointer
+ * @max_mcs_idx: max mcs idx
+ * @report_max: report max rate or max rate
+ *
+ * This function will get max rate for vht mode
+ *
+ * Return: None
+ */
+static void hdd_get_max_rate_vht(hdd_station_info_t *stainfo,
+		struct hdd_fw_txrx_stats *stats,
+		uint32_t rate_flags,
+		uint8_t nss,
+		uint32_t *maxrate,
+		uint8_t *max_mcs_idx,
+		bool report_max)
+{
+	struct index_vht_data_rate_type *supported_vht_mcs_rate;
+	uint32_t tmprate = 0, mcsidx = INVALID_MCS_IDX;
+	uint32_t vht_max_mcs;
+	uint8_t flag = 0;
+	int8_t rssi = stats->rssi;
+	int mode = 0;
+	int i;
+
+	supported_vht_mcs_rate = (struct index_vht_data_rate_type *)
+		((nss == 1) ?
+		 &supported_vht_mcs_rate_nss1 :
+		 &supported_vht_mcs_rate_nss2);
+
+	if (rate_flags & eHAL_TX_RATE_VHT80)
+		mode = 2;
+	else if (rate_flags & eHAL_TX_RATE_VHT40)
+		mode = 1;
+	else
+		mode = 0;
+
+	if (rate_flags &
+	    (eHAL_TX_RATE_VHT20 | eHAL_TX_RATE_VHT40 | eHAL_TX_RATE_VHT80)) {
+		vht_max_mcs =
+			(eDataRate11ACMaxMcs)
+			(stainfo->tx_mcs_map & DATA_RATE_11AC_MCS_MASK);
+		if (rate_flags & eHAL_TX_RATE_SGI)
+			flag |= 1;
+
+		if (DATA_RATE_11AC_MAX_MCS_7 == vht_max_mcs) {
+			mcsidx = 7;
+		} else if (DATA_RATE_11AC_MAX_MCS_8 == vht_max_mcs) {
+			mcsidx = 8;
+		} else if (DATA_RATE_11AC_MAX_MCS_9 == vht_max_mcs) {
+			/*
+			 * 'IEEE_P802.11ac_2013.pdf' page 325, 326
+			 * - MCS9 is valid for VHT20 when Nss = 3 or Nss = 6
+			 * - MCS9 is not valid for VHT20 when Nss = 1,2,4,5,7,8
+			 */
+			if ((rate_flags & eHAL_TX_RATE_VHT20) &&
+			    (nss != 3 && nss != 6))
+				mcsidx = 8;
+			else
+				mcsidx = 9;
+		} else {
+			hddLog(LOGE, FL("invalid vht_max_mcs"));
+			/* report real mcs idx */
+			mcsidx = stats->tx_rate.mcs;
+		}
+
+		if (!report_max) {
+			for (i = 0; i <= mcsidx; i++) {
+				if (rssi <= rssiMcsTbl[mode][i]) {
+					mcsidx = i;
+					break;
+				}
+			}
+			if (mcsidx < stats->tx_rate.mcs)
+				mcsidx = stats->tx_rate.mcs;
+		}
+
+		if (rate_flags & eHAL_TX_RATE_VHT80)
+			tmprate =
+		    supported_vht_mcs_rate[mcsidx].supported_VHT80_rate[flag];
+		else if (rate_flags & eHAL_TX_RATE_VHT40)
+			tmprate =
+		    supported_vht_mcs_rate[mcsidx].supported_VHT40_rate[flag];
+		else if (rate_flags & eHAL_TX_RATE_VHT20)
+			tmprate =
+		    supported_vht_mcs_rate[mcsidx].supported_VHT20_rate[flag];
+	}
+
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("tmprate %d mcsidx %d"),
+			tmprate, mcsidx);
+
+	*maxrate = tmprate;
+	*max_mcs_idx = mcsidx;
+}
+#else
+static void hdd_get_max_rate_vht(hdd_station_info_t *stainfo,
+		struct hdd_fw_txrx_stats *stats,
+		uint32_t rate_flags,
+		uint8_t nss,
+		uint32_t *maxrate,
+		uint8_t *max_mcs_idx,
+		bool report_max) { }
+#endif
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+/**
+ * hdd_fill_bw_mcs() - fill ch width and mcs flags
+ * @stainfo: stainfo pointer
+ * @rate_flags: HDD rate flags
+ * @mcsidx: mcs index
+ * @nss: number of streams
+ * @vht: vht mode or not
+ *
+ * This function will fill ch width and mcs flags
+ *
+ * Return: None
+ */
+static void hdd_fill_bw_mcs(struct station_info *sinfo,
+		uint8_t rate_flags,
+		uint8_t mcsidx,
+		uint8_t nss,
+		bool vht)
+{
+	if (vht) {
+		sinfo->tx_rate.mcs = mcsidx;
+		if (rate_flags & eHAL_TX_RATE_VHT80)
+			sinfo->txrate.bw = RATE_INFO_BW_80;
+		else if (rate_flags & eHAL_TX_RATE_VHT40)
+			sinfo->txrate.bw = RATE_INFO_BW_40;
+		else if (rate_flags & eHAL_TX_RATE_VHT20)
+			sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
+	} else {
+		sinfo->txrate.mcs = (nss-1) << 3;
+		sinfo->txrate.mcs |= mcsidx;
+		sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
+		if (rate_flags & eHAL_TX_RATE_HT40)
+			sinfo->txrate.bw = RATE_INFO_BW_40;
+	}
+}
+#else
+/**
+ * hdd_fill_bw_mcs() - fill ch width and mcs flags
+ * @stainfo: stainfo pointer
+ * @rate_flags: HDD rate flags
+ * @mcsidx: mcs index
+ * @nss: number of streams
+ * @vht: vht mode or not
+ *
+ * This function will fill ch width and mcs flags
+ *
+ * Return: None
+ */
+static void hdd_fill_bw_mcs(struct station_info *sinfo,
+		uint8_t rate_flags,
+		uint8_t mcsidx,
+		uint8_t nss,
+		bool vht)
+{
+	if (vht) {
+		sinfo->txrate.mcs = mcsidx;
+		if (rate_flags & eHAL_TX_RATE_VHT80)
+			sinfo->txrate.flags |= RATE_INFO_FLAGS_80_MHZ_WIDTH;
+		else if (rate_flags & eHAL_TX_RATE_VHT40)
+			sinfo->txrate.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
+		else if (rate_flags & eHAL_TX_RATE_VHT20)
+			sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
+	} else {
+		sinfo->txrate.mcs = (nss-1) << 3;
+		sinfo->txrate.mcs |= mcsidx;
+		sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
+		if (rate_flags & eHAL_TX_RATE_HT40)
+			sinfo->txrate.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
+	}
+}
+#endif
+
+#ifdef WLAN_FEATURE_11AC
+/**
+ * hdd_fill_bw_mcs_vht() - fill ch width and mcs flags for VHT mode
+ * @stainfo: stainfo pointer
+ * @rate_flags: HDD rate flags
+ * @mcsidx: mcs index
+ * @nss: number of streams
+ *
+ * This function will fill ch width and mcs flags for VHT mode
+ *
+ * Return: None
+ */
+static void hdd_fill_bw_mcs_vht(struct station_info *sinfo,
+		uint8_t rate_flags,
+		uint8_t mcsidx,
+		uint8_t nss)
+{
+	hdd_fill_bw_mcs(sinfo, rate_flags, mcsidx, nss, TRUE);
+}
+#else
+static void hdd_fill_bw_mcs_vht(struct station_info *sinfo,
+		uint8_t rate_flags,
+		uint8_t mcsidx,
+		uint8_t nss) { }
+#endif
+
+/**
+ * hdd_fill_sinfo_rate_info() - fill rate info of sinfo struct
+ * @sinfo: station_info struct pointer
+ * @rate_flags: HDD rate flags
+ * @mcsidx: mcs index
+ * @nss: number of streams
+ * @maxrate: data rate (kbps)
+ *
+ * This function will fill rate info of sinfo struct
+ *
+ * Return: None
+ */
+static void hdd_fill_sinfo_rate_info(struct station_info *sinfo,
+		uint32_t rate_flags,
+		uint8_t mcsidx,
+		uint8_t nss,
+		uint32_t maxrate)
+{
+	if (rate_flags & eHAL_TX_RATE_LEGACY) {
+		/* provide to the UI in units of 100kbps */
+		sinfo->txrate.legacy = maxrate;
+	} else {
+		/* must be MCS */
+		sinfo->txrate.nss = nss;
+		hdd_fill_bw_mcs_vht(sinfo, rate_flags, mcsidx, nss);
+		hdd_fill_bw_mcs(sinfo, rate_flags, mcsidx, nss, FALSE);
+		if (rate_flags & eHAL_TX_RATE_SGI) {
+			if (!(sinfo->txrate.flags & RATE_INFO_FLAGS_VHT_MCS))
+				sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
+			sinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
+		}
+	}
+
+	hddLog(VOS_TRACE_LEVEL_INFO, FL("flag %x mcs %d legacy %d nss %d"),
+			sinfo->txrate.flags,
+			sinfo->txrate.mcs,
+			sinfo->txrate.legacy,
+			sinfo->txrate.nss);
+}
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0))
+/**
+ * hdd_fill_sinfo_rate_info() - fill flags of sinfo struct
+ * @sinfo: station_info struct pointer
+ *
+ * This function will fill flags of sinfo struct
+ *
+ * Return: None
+ */
+static void hdd_fill_station_info_flags(struct station_info *sinfo)
+{
+	sinfo->filled |= STATION_INFO_SIGNAL |
+		STATION_INFO_TX_BITRATE |
+		STATION_INFO_TX_BYTES   |
+		STATION_INFO_TX_BYTES64   |
+		STATION_INFO_TX_PACKETS |
+		STATION_INFO_TX_RETRIES |
+		STATION_INFO_TX_FAILED  |
+		STATION_INFO_RX_BYTES   |
+		STATION_INFO_RX_BYTES64   |
+		STATION_INFO_RX_PACKETS |
+		STATION_INFO_INACTIVE_TIME |
+		STATION_INFO_CONNECTED_TIME;
+}
+#else
+/**
+ * hdd_fill_sinfo_rate_info() - fill flags of sinfo struct
+ * @sinfo: station_info struct pointer
+ *
+ * This function will fill flags of sinfo struct
+ *
+ * Return: None
+ */
+static void hdd_fill_station_info_flags(struct station_info *sinfo)
+{
+	sinfo->filled |= BIT(NL80211_STA_INFO_SIGNAL) |
+		BIT(NL80211_STA_INFO_TX_BYTES)   |
+		BIT(NL80211_STA_INFO_TX_BYTES64)   |
+		BIT(NL80211_STA_INFO_TX_BITRATE) |
+		BIT(NL80211_STA_INFO_TX_PACKETS) |
+		BIT(NL80211_STA_INFO_TX_RETRIES) |
+		BIT(NL80211_STA_INFO_TX_FAILED)  |
+		BIT(NL80211_STA_INFO_RX_BYTES)   |
+		BIT(NL80211_STA_INFO_RX_BYTES64)   |
+		BIT(NL80211_STA_INFO_RX_PACKETS) |
+		BIT(NL80211_STA_INFO_INACTIVE_TIME) |
+		BIT(NL80211_STA_INFO_CONNECTED_TIME);
+}
+#endif
+
+/**
+ * hdd_fill_rate_info() - fill rate info of sinfo
+ * @sinfo: station_info struct pointer
+ * @stainfo: stainfo pointer
+ * @stats: fw txrx status pointer
+ * @cfg: hdd config pointer
+ *
+ * This function will fill rate info of sinfo
+ *
+ * Return: None
+ */
+static void hdd_fill_rate_info(struct station_info *sinfo,
+		hdd_station_info_t *stainfo,
+		struct hdd_fw_txrx_stats *stats,
+		hdd_config_t *cfg)
+{
+	uint8_t rate_flags;
+	uint8_t mcsidx = 0xff;
+	uint32_t myrate, maxrate, tmprate;
+	int rssidx;
+	int nss = 1;
+
+	hddLog(VOS_TRACE_LEVEL_INFO, FL("reportMaxLinkSpeed %d"),
+			cfg->reportMaxLinkSpeed);
+
+	/* convert to 100kbps expected in rate table */
+	myrate = stats->last_tx_rate/100;
+	rate_flags = stainfo->rate_flags;
+	if (!(rate_flags & eHAL_TX_RATE_LEGACY)) {
+		nss = stainfo->nss;
+		if (eHDD_LINK_SPEED_REPORT_ACTUAL == cfg->reportMaxLinkSpeed) {
+			/* Get current rate flags if report actual */
+			if (stats->tx_rate.rate_flags)
+				rate_flags =
+					stats->tx_rate.rate_flags;
+			nss = stats->tx_rate.nss;
+		}
+
+		if (stats->tx_rate.mcs == INVALID_MCS_IDX)
+			rate_flags = eHAL_TX_RATE_LEGACY;
+	}
+
+	if (eHDD_LINK_SPEED_REPORT_ACTUAL != cfg->reportMaxLinkSpeed) {
+		/* we do not want to necessarily report the current speed */
+		if (eHDD_LINK_SPEED_REPORT_MAX == cfg->reportMaxLinkSpeed) {
+			/* report the max possible speed */
+			rssidx = 0;
+		} else if (eHDD_LINK_SPEED_REPORT_MAX_SCALED ==
+				cfg->reportMaxLinkSpeed) {
+			/* report the max possible speed with RSSI scaling */
+			if (stats->rssi >= cfg->linkSpeedRssiHigh) {
+				/* report the max possible speed */
+				rssidx = 0;
+			} else if (stats->rssi >=
+					cfg->linkSpeedRssiMid) {
+				/* report middle speed */
+				rssidx = 1;
+			} else if (stats->rssi >=
+					cfg->linkSpeedRssiLow) {
+				/* report middle speed */
+				rssidx = 2;
+			} else {
+				/* report actual speed */
+				rssidx = 3;
+			}
+		} else {
+			/* unknown, treat as eHDD_LINK_SPEED_REPORT_MAX */
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			    "%s: Invalid value for reportMaxLinkSpeed: %u",
+			    __func__, cfg->reportMaxLinkSpeed);
+			rssidx = 0;
+		}
+
+		maxrate = hdd_get_max_rate_legacy(stainfo, rssidx);
+
+		/*
+		 * Get MCS Rate Set --
+		 * Only if we are connected in non legacy mode and not
+		 * reporting actual speed
+		 */
+		if ((3 != rssidx) &&
+				!(rate_flags & eHAL_TX_RATE_LEGACY)) {
+			hdd_get_max_rate_vht(stainfo,
+					stats,
+					rate_flags,
+					nss,
+					&tmprate,
+					&mcsidx,
+					rssidx == 0);
+
+			if (maxrate < tmprate &&
+					mcsidx != INVALID_MCS_IDX)
+				maxrate = tmprate;
+
+			if (mcsidx == INVALID_MCS_IDX)
+				hdd_get_max_rate_ht(stainfo,
+						stats,
+						rate_flags,
+						nss,
+						&tmprate,
+						&mcsidx,
+						rssidx == 0);
+
+			if (maxrate < tmprate &&
+					mcsidx != INVALID_MCS_IDX)
+				maxrate = tmprate;
+		} else if (!(rate_flags & eHAL_TX_RATE_LEGACY)) {
+			maxrate = myrate;
+			mcsidx = stats->tx_rate.mcs;
+		}
+
+		/*
+		 * make sure we report a value at least as big as our
+		 * current rate
+		 */
+		if ((maxrate < myrate) || (0 == maxrate)) {
+			maxrate = myrate;
+			if (!(rate_flags & eHAL_TX_RATE_LEGACY)) {
+				mcsidx = stats->tx_rate.mcs;
+				/*
+				 * 'IEEE_P802.11ac_2013.pdf' page 325, 326
+				 * - MCS9 is valid for VHT20 when Nss = 3 or
+				 *   Nss = 6
+				 * - MCS9 is not valid for VHT20 when
+				 *   Nss = 1,2,4,5,7,8
+				 */
+				if ((rate_flags & eHAL_TX_RATE_VHT20) &&
+						(mcsidx > 8) &&
+						(nss != 3 && nss != 6))
+					mcsidx = 8;
+			}
+		}
+	} else {
+		/* report current rate instead of max rate */
+		maxrate = myrate;
+		if (!(rate_flags & eHAL_TX_RATE_LEGACY))
+			mcsidx = stats->tx_rate.mcs;
+	}
+
+	hdd_fill_sinfo_rate_info(sinfo,
+			rate_flags,
+			mcsidx,
+			nss,
+			maxrate);
+}
+
+/**
+ * wlan_hdd_fill_station_info() - fill station_info struct
+ * @sinfo: station_info struct pointer
+ * @stainfo: stainfo pointer
+ * @stats: fw txrx status pointer
+ * @cfg: hdd config pointer
+ *
+ * This function will fill station_info struct
+ *
+ * Return: None
+ */
+static void wlan_hdd_fill_station_info(struct station_info *sinfo,
+		hdd_station_info_t *stainfo,
+		struct hdd_fw_txrx_stats *stats,
+		hdd_config_t *cfg)
+{
+	adf_os_time_t curr_time, dur;
+
+	curr_time = vos_system_ticks();
+	dur = curr_time - stainfo->assoc_ts;
+	sinfo->connected_time = vos_system_ticks_to_msecs(dur)/1000;
+	dur = curr_time - stainfo->last_tx_rx_ts;
+	sinfo->inactive_time = vos_system_ticks_to_msecs(dur);
+	sinfo->signal = stats->rssi;
+	sinfo->tx_bytes = stats->tx_bytes;
+	sinfo->tx_packets = stats->tx_packets;
+	sinfo->rx_bytes = stats->rx_bytes;
+	sinfo->rx_packets = stats->rx_packets;
+	sinfo->tx_failed = stats->tx_failed;
+	sinfo->tx_retries = stats->tx_retries;
+
+	/* tx rate info */
+	hdd_fill_rate_info(sinfo, stainfo, stats, cfg);
+
+	hdd_fill_station_info_flags(sinfo);
+
+	/* dump sta info*/
+	hddLog(VOS_TRACE_LEVEL_INFO, FL("dump stainfo"));
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("con_time %d inact_time %d tx_pkts %d rx_pkts %d"),
+			sinfo->connected_time, sinfo->inactive_time,
+			sinfo->tx_packets, sinfo->rx_packets);
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("failed %d retries %d tx_bytes %lld rx_bytes %lld"),
+			sinfo->tx_failed, sinfo->tx_retries,
+			sinfo->tx_bytes, sinfo->rx_bytes);
+	hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("rssi %d mcs %d legacy %d nss %d flags %x"),
+			sinfo->signal, sinfo->txrate.mcs,
+			sinfo->txrate.legacy, sinfo->txrate.nss,
+			sinfo->txrate.flags);
+
+}
+
+/**
  * wlan_hdd_get_station_remote() - NL80211_CMD_GET_STATION handler for SoftAP
  * @wiphy: pointer to wiphy
  * @dev: pointer to net_device structure
@@ -23397,7 +24027,9 @@ static int wlan_hdd_get_station_remote(struct wiphy *wiphy,
 {
 	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
 	hdd_context_t *hddctx = (hdd_context_t *)wiphy_priv(wiphy);
+	hdd_ap_ctx_t *ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(adapter);
 	hdd_station_info_t *stainfo = NULL;
+	hdd_config_t *cfg = hddctx->cfg_ini;
 	v_MACADDR_t macaddr;
 	int status;
 	int i;
@@ -23428,6 +24060,8 @@ static int wlan_hdd_get_station_remote(struct wiphy *wiphy,
 		hddLog(LOGE, FL("fail to get peer info from fw"));
 		return -EPERM;
 	}
+
+	wlan_hdd_fill_station_info(sinfo, stainfo, &ap_ctx->txrx_stats, cfg);
 
 	return status;
 }
@@ -24831,31 +25465,6 @@ void hdd_cfg80211_sched_scan_done_callback(void *callbackContext,
             "%s: cfg80211 scan result database updated", __func__);
 }
 
-/**
- * wlan_hdd_is_pno_allowed() -  Check if PNO is allowed
- * @adapter: HDD Device Adapter
- *
- * The PNO Start request is coming from upper layers.
- * It is to be allowed only for Infra STA device type
- * and the link should be in a disconnected state.
- *
- * Return: Success if PNO is allowed, Failure otherwise.
- */
-static eHalStatus wlan_hdd_is_pno_allowed(hdd_adapter_t *adapter)
-{
-	hddLog(LOG1,
-		FL("dev_mode=%d, conn_state=%d, session ID=%d"),
-		adapter->device_mode,
-		adapter->sessionCtx.station.conn_info.connState,
-		adapter->sessionId);
-	if ((adapter->device_mode == WLAN_HDD_INFRA_STATION) &&
-		(eConnectionState_NotConnected ==
-			 adapter->sessionCtx.station.conn_info.connState))
-		return eHAL_STATUS_SUCCESS;
-	else
-		return eHAL_STATUS_FAILURE;
-
-}
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)) || \
     defined (CFG80211_MULTI_SCAN_PLAN_BACKPORT)
 /**
@@ -24906,6 +25515,36 @@ static void hdd_config_sched_scan_plan(tpSirPNOScanReq pno_req,
 	hddLog(LOGE, "Base scan interval: %d sec PNOScanTimerRepeatValue: %d",
 		    (request->interval / 1000),
 		    hdd_ctx->cfg_ini->configPNOScanTimerRepeatValue);
+}
+#endif
+
+/**
+ * wlan_hdd_sched_scan_update_relative_rssi() - update CPNO params
+ * @pno_request: pointer to PNO scan request
+ * @request: Pointer to cfg80211 scheduled scan start request
+ *
+ * This function is used to update Connected PNO params sent by kernel
+ *
+ * Return: None
+ */
+#if defined(CFG80211_REPORT_BETTER_BSS_IN_SCHED_SCAN)
+static inline void wlan_hdd_sched_scan_update_relative_rssi(
+			tpSirPNOScanReq pno_request,
+			struct cfg80211_sched_scan_request *request)
+{
+	pno_request->relative_rssi_set = request->relative_rssi_set;
+	pno_request->relative_rssi = request->relative_rssi;
+	if (NL80211_BAND_2GHZ == request->rssi_adjust.band)
+		pno_request->band_rssi_pref.band = SIR_BAND_2_4_GHZ;
+	else if (NL80211_BAND_5GHZ == request->rssi_adjust.band)
+		pno_request->band_rssi_pref.band = SIR_BAND_5_GHZ;
+	pno_request->band_rssi_pref.rssi = request->rssi_adjust.delta;
+}
+#else
+static inline void wlan_hdd_sched_scan_update_relative_rssi(
+			tpSirPNOScanReq pno_request,
+			struct cfg80211_sched_scan_request *request)
+{
 }
 #endif
 
@@ -24982,13 +25621,6 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
                   "%s: aborting the existing scan is unsuccessful", __func__);
             return -EBUSY;
         }
-    }
-
-    if (eHAL_STATUS_FAILURE == wlan_hdd_is_pno_allowed(pAdapter))
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                  "%s: pno is not allowed", __func__);
-        return -ENOTSUPP;
     }
 
     if (!hdd_connIsConnected(station_ctx) &&
@@ -25161,6 +25793,7 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
     }
 
     hdd_config_sched_scan_plan(pPnoRequest, request, pHddCtx);
+    wlan_hdd_sched_scan_update_relative_rssi(pPnoRequest, request);
 
     pPnoRequest->modePNO = SIR_PNO_MODE_IMMEDIATE;
 

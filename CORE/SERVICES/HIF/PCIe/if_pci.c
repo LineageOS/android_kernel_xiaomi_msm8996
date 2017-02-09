@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -899,7 +899,7 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 						"SUSPENDED"};
 	unsigned int msecs_age;
 	int pm_state = atomic_read(&sc->pm_state);
-	unsigned long timer_expires, flags;
+	unsigned long timer_expires;
 	struct hif_pm_runtime_context *ctx;
 
 	seq_printf(s, "%30s: %s\n", "Runtime PM state",
@@ -937,11 +937,8 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 				msecs_age / 1000, msecs_age % 1000);
 	}
 
-	spin_lock_irqsave(&sc->runtime_lock, flags);
-	if (list_empty(&sc->prevent_suspend_list)) {
-		spin_unlock_irqrestore(&sc->runtime_lock, flags);
+	if (list_empty(&sc->prevent_suspend_list))
 		return 0;
-	}
 
 	seq_printf(s, "%30s: ", "Active Wakeup_Sources");
 	list_for_each_entry(ctx, &sc->prevent_suspend_list, list) {
@@ -951,7 +948,6 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 		seq_puts(s, " ");
 	}
 	seq_puts(s, "\n");
-	spin_unlock_irqrestore(&sc->runtime_lock, flags);
 
 	return 0;
 #undef HIF_PCI_AUTOPM_STATS
@@ -1052,18 +1048,15 @@ void hif_runtime_test_init(struct hif_pci_softc *sc)
 {
 	int i;
 	struct hif_pm_runtime_context *ctx = NULL, *tmp;
-	unsigned long flags;
 
 	for (i = 0; i < MAX_RUNTIME_DEBUG_CONTEXT; i++) {
 		ctx = &rpm_data[i];
 		ctx->active = false;
 		ctx->name = NULL;
-		spin_lock_irqsave(&sc->runtime_lock, flags);
 		list_for_each_entry_safe(ctx, tmp,
 				&sc->prevent_suspend_list, list) {
 			list_del(&ctx->list);
 		}
-		spin_unlock_irqrestore(&sc->runtime_lock, flags);
 	}
 }
 
@@ -1499,7 +1492,6 @@ static void hif_pci_pm_runtime_exit(struct hif_pci_softc *sc)
  */
 static void hif_pci_pm_runtime_post_exit(struct hif_pci_softc *sc)
 {
-	unsigned long flags;
 	struct hif_pm_runtime_context *ctx, *tmp;
 
 	/*
@@ -1507,20 +1499,18 @@ static void hif_pci_pm_runtime_post_exit(struct hif_pci_softc *sc)
 	 * HTT/WMI pkts should get tx complete and driver should
 	 * will increment the usage count to 1 to prevent any suspend
 	 */
-	if (atomic_read(&sc->dev->power.usage_count) != 1) {
-		spin_lock_irqsave(&sc->runtime_lock, flags);
+	if (atomic_read(&sc->dev->power.usage_count) != 1)
 		hif_pci_runtime_pm_warn(sc, "Driver UnLoading");
-		spin_unlock_irqrestore(&sc->runtime_lock, flags);
-	} else
+	else
 		return;
 
-	spin_lock_irqsave(&sc->runtime_lock, flags);
+	spin_lock_bh(&sc->runtime_lock);
 	list_for_each_entry_safe(ctx, tmp, &sc->prevent_suspend_list, list) {
-		spin_unlock_irqrestore(&sc->runtime_lock, flags);
+		spin_unlock_bh(&sc->runtime_lock);
 		hif_runtime_pm_prevent_suspend_deinit(ctx);
-		spin_lock_irqsave(&sc->runtime_lock, flags);
+		spin_lock_bh(&sc->runtime_lock);
 	}
-	spin_unlock_irqrestore(&sc->runtime_lock, flags);
+	spin_unlock_bh(&sc->runtime_lock);
 	/*
 	 * This is totally a preventive measure to ensure Runtime PM
 	 * isn't disabled for life time.
@@ -1547,14 +1537,13 @@ static void hif_pci_pm_runtime_post_exit(struct hif_pci_softc *sc)
  */
 static void hif_pci_pm_runtime_ssr_post_exit(struct hif_pci_softc *sc)
 {
-	unsigned long flags;
 	struct hif_pm_runtime_context *ctx, *tmp;
 
-	spin_lock_irqsave(&sc->runtime_lock, flags);
+	spin_lock_bh(&sc->runtime_lock);
 	list_for_each_entry_safe(ctx, tmp, &sc->prevent_suspend_list, list) {
 		hif_pm_ssr_runtime_allow_suspend(sc, ctx);
 	}
-	spin_unlock_irqrestore(&sc->runtime_lock, flags);
+	spin_unlock_bh(&sc->runtime_lock);
 }
 
 #else
