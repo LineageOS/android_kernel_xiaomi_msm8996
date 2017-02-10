@@ -1094,6 +1094,8 @@ typedef enum {
     WMI_PDEV_ANTDIV_STATUS_EVENTID,
     /** Chip level Power stats */
     WMI_PDEV_CHIP_POWER_STATS_EVENTID,
+    /** Power Save Failure Detected */
+    WMI_PDEV_CHIP_POWER_SAVE_FAILURE_DETECTED_EVENTID,
 
     /* VDEV specific events */
     /** VDEV started event in response to VDEV_START request */
@@ -1157,6 +1159,8 @@ typedef enum {
     WMI_PEER_STA_PS_STATECHG_EVENTID,
     /** Peer Ant Div Info Event with rssi per chain, etc */
     WMI_PEER_ANTDIV_INFO_EVENTID,
+    /** Peer operating mode change indication sent to host to update stats */
+    WMI_PEER_OPER_MODE_CHANGE_EVENTID,
 
     /* beacon/mgmt specific events */
     /** RX management frame. the entire frame is carried along with the event.  */
@@ -8655,7 +8659,7 @@ typedef struct {
  * WMI_ROAM_REASON_HO_FAILED no matter WMI_ROAM_INVOKE_CMDID is called or not.
  */
 #define WMI_ROAM_REASON_INVOKE_ROAM_FAIL 0x6
-#define ROAM_REASON_RSO_STATUS           0x7
+#define WMI_ROAM_REASON_RSO_STATUS       0x7
 /* reserved up through 0xF */
 
 /* subnet status: bits 4-5 */
@@ -9250,6 +9254,7 @@ typedef enum event_type_e {
     WOW_OEM_RESPONSE_EVENT = WOW_NAN_RTT_EVENT, /* reuse deprecated event value */
     WOW_TDLS_CONN_TRACKER_EVENT,
     WOW_CRITICAL_LOG_EVENT,
+    WOW_CHIP_POWER_FAILURE_DETECT_EVENT,
 } WOW_WAKE_EVENT_TYPE;
 
 typedef enum wake_reason_e {
@@ -9301,6 +9306,7 @@ typedef enum wake_reason_e {
     WOW_REASON_CRITICAL_LOG,
     WOW_REASON_P2P_LISTEN_OFFLOAD,
     WOW_REASON_NAN_EVENT_WAKE_HOST,
+    WOW_REASON_CHIP_POWER_FAILURE_DETECT,
     WOW_REASON_DEBUG_TEST = 0xFF,
 } WOW_WAKE_REASON_TYPE;
 
@@ -10789,7 +10795,10 @@ typedef struct {
     A_UINT32 cwmin;
     A_UINT32 cwmax;
     A_UINT32 aifs;
-    A_UINT32 txoplimit;
+    union {
+        A_UINT32 txoplimit;
+        A_UINT32 mu_edca_timer;
+    };
     A_UINT32 acm;
     A_UINT32 no_ack;
 } wmi_wmm_vparams;
@@ -11932,6 +11941,35 @@ typedef struct {
      */
     A_INT32 chain_rssi[8];
 } wmi_peer_antdiv_info;
+
+typedef enum {
+    WMI_PEER_IND_SMPS = 0x0, /* spatial multiplexing power save */
+    WMI_PEER_IND_OMN,        /* operating mode notification */
+    WMI_PEER_IND_OMI,        /* operating mode indication */
+} WMI_PEER_OPER_MODE_IND;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_peer_oper_mode_change */
+    A_UINT32 tlv_header;
+    /** mac addr of the peer */
+    wmi_mac_addr peer_mac_address;
+    /** Peer type indication WMI_PEER_OPER_MODE_IND. */
+    A_UINT32 ind_type;
+    /** new_rxnss valid for all peer_operating mode ind. */
+    A_UINT32 new_rxnss;
+    /** new_bw  valid for peer_operating mode ind. OMN/OMI
+     *  value of this bw is as per 11ax/ac standard:
+     *  0 = 20MHz,1 = 40MHz, 2= 80MHz, 3 = 160MHz
+     */
+    A_UINT32 new_bw;
+    /** new_txnss valid for peer_operating mode ind. OMI */
+    A_UINT32 new_txnss;
+    /** new_disablemu: disable mu mode
+     *  valid for peer_operating mode ind. OMI
+     */
+    A_UINT32 new_disablemu;
+} wmi_peer_oper_mode_change_event_fixed_param;
 
 /** FW response when tx failure count has reached threshold
  *  for a peer */
@@ -16769,6 +16807,18 @@ typedef struct {
      * A_UINT32 debug_registers[num_debug_registers];
      */
 } wmi_pdev_chip_power_stats_event_fixed_param;
+
+typedef enum wmi_chip_power_save_failure_reason_code_type {
+    WMI_PROTOCOL_POWER_SAVE_FAILURE_REASON,
+    WMI_HW_POWER_SAVE_FAILURE_REASON,
+    WMI_POWER_SAVE_FAILURE_REASON_MAX = 0xf,
+} WMI_POWER_SAVE_FAILURE_REASON_TYPE;
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_chip_power_save_failure_detected_fixed_param */
+    A_UINT32 power_save_failure_reason_code; /* Chip power save failuire reason as defined in WMI_POWER_SAVE_FAILURE_REASON_TYPE */
+    A_UINT32 protocol_wake_lock_bitmap[4]; /* bitmap with bits set for modules (from WLAN_MODULE_ID enum) voting against sleep for prolonged duration */
+} wmi_chip_power_save_failure_detected_fixed_param;
 
 typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_ani_ofdm_event_fixed_param */

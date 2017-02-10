@@ -19587,7 +19587,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
-    if (!(pAdapter->dev->flags & IFF_UP)) {
+    if (pAdapter->dev && !(pAdapter->dev->flags & IFF_UP)) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Interface is down"));
         iface_down = true;
     }
