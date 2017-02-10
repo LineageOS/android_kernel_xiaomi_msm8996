@@ -3911,6 +3911,53 @@ VOS_STATUS sap_CacEndNotify(tHalHandle hHal, tCsrRoamInfo *roamInfo)
       return vosStatus;
 }
 
+/**
+ * sap_relaunch_acs_result_handler() - handle relaunched ACS result
+ * @sap_context: pointer of ptSapContext
+ * @roam_info:   pointer to tCsrRoamInfo which contains result channel
+ *
+ * This function handle the relaunched ACS result and check if need to
+ * trigger CSA.
+ *
+ * Return: VOS_STATUS
+ */
+VOS_STATUS
+sap_relaunch_acs_result_handler(ptSapContext sap_context,
+				tCsrRoamInfo *roam_info)
+{
+	VOS_STATUS vos_status;
+
+	vos_mem_zero(sap_context->acs_cfg,
+		     sizeof(struct sap_acs_cfg));
+
+	vos_status = sapSignalHDDevent(sap_context, NULL,
+				       eSAP_ACS_CHANNEL_SELECTED,
+				       (v_PVOID_t)eSAP_STATUS_SUCCESS);
+
+	if (!VOS_IS_STATUS_SUCCESS(vos_status))
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			  FL("Failed to indicate ACS complete."));
+
+	VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
+		  "In %s: acs_target_channel=%d cur_channel=%d",
+		  __func__,
+		  roam_info->target_channel,
+		  sap_context->channel);
+
+	if (!((roam_info->target_channel == sap_context->channel) ||
+	      (roam_info->target_channel == SAP_CHANNEL_NOT_SELECTED))) {
+		vos_status = sapSignalHDDevent(sap_context, roam_info,
+					       eSAP_ECSA_CHANGE_CHAN_IND,
+					       (v_PVOID_t)NULL);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status))
+			VOS_TRACE(VOS_MODULE_ID_SAP,
+				  VOS_TRACE_LEVEL_ERROR,
+				  FL("trigger channel switch failed"));
+	}
+
+	return vos_status;
+}
+
 /*==========================================================================
   FUNCTION    sapFsm
 
@@ -4474,6 +4521,27 @@ sapFsm
                         }
                     }
                 }
+            } else if (eSAP_MAC_SCAN_COMPLETE == msg) {
+                if (!sapContext->acs_cfg->acs_mode) {
+                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                              "In %s, not a in ACS mode", __func__);
+                    return VOS_STATUS_E_INVAL;
+                }
+
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                          "In %s, ACS scan complete in state %s",
+                          __func__,
+                          "eSAP_STARTED");
+
+                if (!roamInfo) {
+                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                              "In %s, roam info can't be NULL",
+                              __func__);
+                    return VOS_STATUS_E_INVAL;
+                }
+
+                vosStatus = sap_relaunch_acs_result_handler(sapContext,
+                                                            roamInfo);
             }
             else
             {

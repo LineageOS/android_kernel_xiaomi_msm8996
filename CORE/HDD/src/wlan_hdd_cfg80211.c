@@ -8929,6 +8929,10 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 	int status;
 
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
+
+	if (test_bit(SOFTAP_BSS_STARTED, &adapter->event_flags))
+		sap_config->backup_channel = sap_config->channel;
+
 	if (hdd_ctx->acs_policy.acs_channel)
 		sap_config->channel = hdd_ctx->acs_policy.acs_channel;
 	else
@@ -8976,6 +8980,98 @@ static int wlan_hdd_cfg80211_start_acs(hdd_adapter_t *adapter)
 	set_bit(ACS_IN_PROGRESS, &hdd_ctx->g_event_flags);
 
 	return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_relaunch_acs() - Relaunch ACS for SAP
+ * @adapter: pointer to SAP adapter structure
+ *
+ * This function relaunches ACS.
+ *
+ * Return: Result status of ACS relaunch
+ */
+
+static int wlan_hdd_cfg80211_relaunch_acs(hdd_adapter_t *adapter)
+{
+	uint8_t channel_list[MAX_CHANNEL] = {0};
+	uint8_t number_of_channels = 0;
+	hdd_context_t *hdd_ctx = (hdd_context_t *)adapter->pHddCtx;
+	tsap_Config_t *sap_config;
+	int status;
+	uint8_t cur_band, i;
+	uint8_t band_start_channel;
+	uint8_t band_end_channel;
+	bool ht_enabled = false, vht_enabled = false;
+
+	if (!test_bit(SOFTAP_BSS_STARTED, &adapter->event_flags)) {
+		hddLog(LOGE, FL("Softap is not started"));
+		return -EINVAL;
+	}
+
+	cur_band = vos_chan_to_band((WLAN_HDD_GET_AP_CTX_PTR(
+				   adapter))->operatingChannel);
+	sap_config = &adapter->sessionCtx.ap.sapConfig;
+	vos_mem_zero(&sap_config->acs_cfg, sizeof(struct sap_acs_cfg));
+
+	if (VOS_BAND_2GHZ == cur_band) {
+		band_start_channel = RF_CHAN_1;
+		band_end_channel = RF_CHAN_14;
+	} else {
+		band_start_channel = RF_CHAN_36;
+		band_end_channel = RF_CHAN_165;
+	}
+
+	for (i = band_start_channel; i <= band_end_channel; i++) {
+		if (NV_CHANNEL_ENABLE ==
+			vos_nv_getChannelEnabledState(
+			    rfChannels[i].channelNum)) {
+			channel_list[number_of_channels++] =
+			    rfChannels[i].channelNum;
+			hddLog(LOG1,
+			       FL("Config acs channel[%d]"),
+			       rfChannels[i].channelNum);
+		}
+	}
+
+	if (sap_config->SapHw_mode &
+		(eCSR_DOT11_MODE_11n |
+		 eCSR_DOT11_MODE_11n_ONLY |
+		 eCSR_DOT11_MODE_11ac))
+		ht_enabled = true;
+
+	if (sap_config->SapHw_mode &
+		(eCSR_DOT11_MODE_11ac |
+		 eCSR_DOT11_MODE_11ac_ONLY))
+		vht_enabled = true;
+
+	sap_config->acs_cfg.ch_width = sap_config->ch_width_orig;
+
+	hddLog(LOG1,
+	       FL("ht_enabled=%d vht_enabled=%d ch_width=%d"),
+	       ht_enabled,
+	       vht_enabled,
+	       sap_config->acs_cfg.ch_width);
+
+	wlan_hdd_set_acs_ch_range(sap_config, ht_enabled, vht_enabled);
+
+	sap_config->acsBandSwitchThreshold =
+	    hdd_ctx->cfg_ini->acsBandSwitchThreshold;
+
+	if (hdd_ctx->cfg_ini->auto_channel_select_weight)
+		sap_config->auto_channel_select_weight =
+		    hdd_ctx->cfg_ini->auto_channel_select_weight;
+
+	sap_config->acs_cfg.acs_mode = true;
+	if (test_bit(ACS_IN_PROGRESS, &hdd_ctx->g_event_flags)) {
+		hddLog(LOG1, FL("ACS Pending for wlan"));
+		status = -EINVAL;
+	} else {
+		hddLog(LOG1, FL("Relaunch ACS"));
+		wlan_hdd_cfg80211_start_acs(adapter);
+		status = 0;
+	}
+
+	return status;
 }
 
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
@@ -9069,6 +9165,19 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 		hddLog(LOGE, FL("ACS not support if static sub20 enable"));
 		status = -EINVAL;
 		goto out;
+	}
+
+	if (test_bit(SOFTAP_BSS_STARTED, &adapter->event_flags)) {
+		if (WLANSAP_get_sub20_channel_width(
+			    WLAN_HDD_GET_SAP_CTX_PTR(adapter))
+			== SUB20_MODE_NONE) {
+			hddLog(LOGE, FL("Bss started, relaunch ACS"));
+			status = wlan_hdd_cfg80211_relaunch_acs(adapter);
+		} else {
+			hddLog(LOGE, FL("ACS not support in sub20 enable"));
+			status = -EINVAL;
+		}
+		return status;
 	}
 
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
@@ -9766,7 +9875,6 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 					(int)WMI_PDEV_PARAM_NON_AGG_SW_RETRY_TH,
 					retry, PDEV_CMD);
 		}
-
 	}
 
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_AGG_RETRY]) {
@@ -12561,6 +12669,7 @@ __wlan_hdd_cfg80211_sap_configuration_set(struct wiphy *wiphy,
 		hddLog(LOGE, FL("invalid attr"));
 		return -EINVAL;
 	}
+
 	if (tb[QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_CHANNEL])
 		config_channel =
 			nla_get_u8(tb[QCA_WLAN_VENDOR_ATTR_SAP_CONFIG_CHANNEL]);

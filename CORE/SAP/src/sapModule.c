@@ -1881,6 +1881,15 @@ WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width)
 
 	return VOS_STATUS_SUCCESS;
 }
+
+uint8_t
+WLANSAP_get_sub20_channel_width(void *vos_ctx_ptr)
+{
+	ptSapContext sap_context_ptr =
+	    VOS_GET_SAP_CB(vos_ctx_ptr);
+
+	return sap_context_ptr->sub20_channelwidth;
+}
 #endif
 
 /*==========================================================================
@@ -3957,6 +3966,13 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
         sapInitDfsChannelNolList(sapContext);
 
         /*
+         * If ACS is relaunched, the current operation channel needs
+         * to be backed up. If no better channel is found by ACS,
+         * need to use the current operating channel.
+         */
+        sapContext->backup_channel = sapContext->channel;
+
+        /*
          * Now, configure the scan and ACS channel params
          * to issue a scan request.
          */
@@ -3975,7 +3991,10 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
          * different scan callback fucntion to process
          * the results pre start BSS.
          */
-        vosStatus = sapGotoChannelSel(sapContext, NULL, VOS_TRUE);
+        vosStatus = sapGotoChannelSel(sapContext,
+                                      NULL,
+                                      sapContext->sapsMachine == eSAP_STARTED ?
+                                      VOS_FALSE : VOS_TRUE);
 
         if (VOS_STATUS_E_ABORTED == vosStatus) {
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -3995,10 +4014,14 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
 
              return sapSignalHDDevent(sapContext, NULL,
                      eSAP_ACS_CHANNEL_SELECTED, (v_PVOID_t) eSAP_STATUS_SUCCESS);
+        } else if (VOS_STATUS_SUCCESS == vosStatus) {
+            if (sapContext->sapsMachine == eSAP_STARTED)
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          FL("Successfully Issued a post start bss scan Request"));
+            else
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          FL("Successfully Issued a Pre Start Bss Scan Request"));
         }
-        else if (VOS_STATUS_SUCCESS == vosStatus)
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                       FL("Successfully Issued a Pre Start Bss Scan Request"));
     return vosStatus;
 }
 /**
