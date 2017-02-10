@@ -787,6 +787,7 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_bpf_set_vdev_active_mode_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_hw_data_filter_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_connected_nlo_bss_band_rssi_pref,
+    WMITLV_TAG_STRUC_wmi_peer_oper_mode_change_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -1277,6 +1278,7 @@ typedef enum {
     OP(WMI_11D_NEW_COUNTRY_EVENTID) \
     OP(WMI_RADIO_CHAN_STATS_EVENTID) \
     OP(WMI_VDEV_ADD_MAC_ADDR_TO_RX_FILTER_STATUS_EVENTID) \
+    OP(WMI_PEER_OPER_MODE_CHANGE_EVENTID) \
     /* add new EVT_LIST elements above this line */
 
 
@@ -3690,6 +3692,10 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PEER_ANTDIV_INFO_EVENTID);
 #define WMITLV_TABLE_WMI_PEER_TX_FAIL_CNT_THR_EVENTID(id,op,buf,len)                                                                                      \
 WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_tx_fail_cnt_thr_event_fixed_param, wmi_peer_tx_fail_cnt_thr_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
     WMITLV_CREATE_PARAM_STRUC(WMI_PEER_TX_FAIL_CNT_THR_EVENTID);
+
+#define WMITLV_TABLE_WMI_PEER_OPER_MODE_CHANGE_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_oper_mode_change_event_fixed_param, wmi_peer_oper_mode_change_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+    WMITLV_CREATE_PARAM_STRUC(WMI_PEER_OPER_MODE_CHANGE_EVENTID);
 
 /* DFS radar Event */
 #define WMITLV_TABLE_WMI_DFS_RADAR_EVENTID(id,op,buf,len) \
