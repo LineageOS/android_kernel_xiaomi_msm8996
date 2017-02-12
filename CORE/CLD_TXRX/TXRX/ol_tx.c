@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -667,7 +667,7 @@ ol_tx_hl_base(
         struct ol_tx_desc_t *tx_desc = NULL;
 
         adf_os_mem_zero(&tx_ctrl, sizeof(tx_ctrl));
-
+        tx_msdu_info.peer = NULL;
         /*
          * The netbuf will get stored into a (peer-TID) tx queue list
          * inside the ol_tx_classify_store function or else dropped,

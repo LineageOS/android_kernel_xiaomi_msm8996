@@ -2415,6 +2415,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_SAP_GET_PEER_INFO_MIN,
                  CFG_SAP_GET_PEER_INFO_MAX),
 
+   REG_VARIABLE(CFG_DISABLE_ABG_RATE_FOR_TX_DATA, WLAN_PARAM_Integer,
+                 hdd_config_t, disable_abg_rate_txdata,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DISABLE_ABG_RATE_FOR_TX_DATA_DEFAULT,
+                 CFG_DISABLE_ABG_RATE_FOR_TX_DATA_MIN,
+                 CFG_DISABLE_ABG_RATE_FOR_TX_DATA_MAX),
+
+   REG_VARIABLE(CFG_RATE_FOR_TX_MGMT, WLAN_PARAM_HexInteger,
+                 hdd_config_t, rate_for_tx_mgmt,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_RATE_FOR_TX_MGMT_DEFAULT,
+                 CFG_RATE_FOR_TX_MGMT_MIN,
+                 CFG_RATE_FOR_TX_MGMT_MAX),
+
    REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFirstScan2GOnly,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -5001,6 +5015,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_REDUCED_BEACON_INTERVAL_DEFAULT,
                CFG_REDUCED_BEACON_INTERVAL_MIN,
                CFG_REDUCED_BEACON_INTERVAL_MAX),
+
+   REG_VARIABLE(CFG_ARP_AC_CATEGORY, WLAN_PARAM_Integer,
+                hdd_config_t, arp_ac_category,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ARP_AC_CATEGORY_DEFAULT,
+                CFG_ARP_AC_CATEGORY_MIN,
+                CFG_ARP_AC_CATEGORY_MAX),
+
 };
 
 
@@ -5901,6 +5923,10 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   hddLog(LOG2, "Name = [%s] Value =[%s]",
                CFG_PROBE_REQ_OUI_NAME,
                pHddCtx->cfg_ini->probe_req_ouis);
+
+  hddLog(LOG2, "Name = [%s] Value = [%u]",
+                 CFG_ARP_AC_CATEGORY,
+                 pHddCtx->cfg_ini->arp_ac_category);
 }
 
 #define CFG_VALUE_MAX_LEN 256
@@ -7532,6 +7558,19 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
        hddLog(LOGE, "Could not pass on WNI_CFG_MAX_HT_MCS_TX_DATA to CCM");
    }
 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA,
+                    pConfig->disable_abg_rate_txdata, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA to CCM");
+   }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RATE_FOR_TX_MGMT,
+                    pConfig->rate_for_tx_mgmt, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_RATE_FOR_TX_MGMT to CCM");
+   }
    return fStatus;
 }
 

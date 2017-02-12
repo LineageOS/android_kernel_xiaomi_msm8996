@@ -1566,6 +1566,43 @@ typedef enum
 #define CFG_SAP_GET_PEER_INFO_DEFAULT               (0)
 
 /*
+ * <ini>
+ * gDisableABGRateForTxData - disable abg rate for tx data
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to disable abg rate for tx data.
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_DISABLE_ABG_RATE_FOR_TX_DATA                 "gDisableABGRateForTxData"
+#define CFG_DISABLE_ABG_RATE_FOR_TX_DATA_MIN             (WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA_STAMIN)
+#define CFG_DISABLE_ABG_RATE_FOR_TX_DATA_MAX             (WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA_STAMAX)
+#define CFG_DISABLE_ABG_RATE_FOR_TX_DATA_DEFAULT         (WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA_STADEF)
+
+/*
+ * <ini>
+ * gRateForTxMgmt - rate for tx mgmt frame
+ * @Min: 0x0
+ * @Max: 0xFF
+ * @Default: 0x0
+ *
+ * This ini is used to configure the rate for tx
+ * mgmt frame.
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_RATE_FOR_TX_MGMT                  "gRateForTxMgmt"
+#define CFG_RATE_FOR_TX_MGMT_MIN              (WNI_CFG_RATE_FOR_TX_MGMT_STAMIN)
+#define CFG_RATE_FOR_TX_MGMT_MAX              (WNI_CFG_RATE_FOR_TX_MGMT_STAMAX)
+#define CFG_RATE_FOR_TX_MGMT_DEFAULT          (WNI_CFG_RATE_FOR_TX_MGMT_STADEF)
+
+/*
  * RSSI Thresholds
  * Used when eHDD_LINK_SPEED_REPORT_SCALED is selected
  */
@@ -4503,6 +4540,33 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_REDUCED_BEACON_INTERVAL_MIN     (0)
 #define CFG_REDUCED_BEACON_INTERVAL_MAX     (100)
 #define CFG_REDUCED_BEACON_INTERVAL_DEFAULT (0)
+
+/*
+ * <ini>
+ * arp_ac_category - ARP access category
+ * @Min: 0
+ * @Max: 3
+ * @Default: 3
+ *
+ * Firmware by default categorizes ARP packets with VOICE TID.
+ * This ini shall be used to override the default configuration.
+ * Access category enums are referenced in ieee80211_common.h
+ * WME_AC_BE = 0 (Best effort)
+ * WME_AC_BK = 1 (Background)
+ * WME_AC_VI = 2 (Video)
+ * WME_AC_VO = 3 (Voice)
+ *
+ * Related: none
+ *
+ * Usage: Internal/External
+ *
+ * </ini>
+ */
+#define CFG_ARP_AC_CATEGORY                "arp_ac_category"
+#define CFG_ARP_AC_CATEGORY_MIN            (0)
+#define CFG_ARP_AC_CATEGORY_MAX            (3)
+#define CFG_ARP_AC_CATEGORY_DEFAULT        (3)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -5013,6 +5077,8 @@ struct hdd_config {
    uint8_t                     max_mpdus_inampdu;
    uint16_t                    max_ht_mcs_txdata;
    bool                        sap_get_peer_info;
+   bool                        disable_abg_rate_txdata;
+   uint8_t                     rate_for_tx_mgmt;
 #ifdef QCA_LL_TX_FLOW_CT
    v_U32_t                     TxFlowLowWaterMark;
    v_U32_t                     TxFlowHighWaterMarkOffset;
@@ -5347,6 +5413,7 @@ struct hdd_config {
    uint8_t                     sap_chanswitch_mode;
    uint8_t                     dfs_beacon_tx_enhanced;
    uint16_t                    reduced_beacon_interval;
+   uint32_t                    arp_ac_category;
 };
 
 typedef struct hdd_config hdd_config_t;
