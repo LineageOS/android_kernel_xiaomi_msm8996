@@ -5223,7 +5223,7 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     case eCsrForcedDisassocSta:
        csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINING, sessionId);
        csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_DISASSOC_REQ, sessionId);
-       smsLog(pMac, LOG1, FL("Diassociate issued with reason: %d"),
+       smsLog(pMac, LOG1, FL("Disassociate issued with reason: %d"),
               pCommand->u.roamCmd.reason);
        status = csrSendMBDisassocReqMsg( pMac, sessionId, pCommand->u.roamCmd.peerMac,
                      pCommand->u.roamCmd.reason);
