@@ -376,15 +376,27 @@ populate_dot11f_sub_20_channel_width_ie(
 	tDot11fIEQComVendorIE *dot11f_ptr,
 	tpPESession pe_session)
 {
-	if (mac_ctx_ptr->sub20_dynamic_channelwidth == 0)
+	uint8_t  sub20_static_channelwidth;
+	uint8_t  sub20_dynamic_channelwidth;
+	uint8_t  sub20_capability;
+
+	sub20_static_channelwidth = mac_ctx_ptr->sub20_channelwidth;
+	sub20_dynamic_channelwidth = mac_ctx_ptr->sub20_dynamic_channelwidth;
+
+	if (sub20_static_channelwidth == 0 &&
+	    sub20_dynamic_channelwidth == 0)
 		return;
+
+	if (sub20_dynamic_channelwidth != 0)
+		sub20_capability = sub20_dynamic_channelwidth;
+	else
+		sub20_capability = sub20_static_channelwidth;
 
 	if (LIM_IS_AP_ROLE(pe_session) ||
 	    LIM_IS_STA_ROLE(pe_session)) {
 		dot11f_ptr->present = true;
 		dot11f_ptr->Sub20Info.present = true;
-		dot11f_ptr->Sub20Info.capability =
-			 mac_ctx_ptr->sub20_dynamic_channelwidth;
+		dot11f_ptr->Sub20Info.capability = sub20_capability;
 	}
 
 	if (LIM_IS_AP_ROLE(pe_session) &&
