@@ -1240,7 +1240,7 @@ void ol_ramdump_handler(struct ol_softc *scn)
 				false);
 		scn->fw_ram_dumping = 0;
 
-		if (scn->enableFwSelfRecovery)
+		if (scn->enableFwSelfRecovery || scn->enableRamdumpCollection)
 			vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 	}
 	else if (pattern == FW_REG_PATTERN) {
