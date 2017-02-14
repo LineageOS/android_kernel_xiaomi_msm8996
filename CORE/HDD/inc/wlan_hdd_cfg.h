@@ -1593,10 +1593,10 @@ typedef enum
  * gRateForTxMgmt - rate for tx mgmt frame
  * @Min: 0x0
  * @Max: 0xFF
- * @Default: 0x0
+ * @Default: 0xFF
  *
  * This ini is used to configure the rate for tx
- * mgmt frame.
+ * mgmt frame. Default 0xFF means disable.
  *
  * Usage: External
  *

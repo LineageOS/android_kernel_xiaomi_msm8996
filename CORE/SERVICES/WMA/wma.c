@@ -9743,9 +9743,9 @@ static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id)
 
 	if (wlan_cfgGetInt(mac, WNI_CFG_RATE_FOR_TX_MGMT,
 			   &cfg_val) == eSIR_SUCCESS) {
-		if (!cfg_val) {
+		if (cfg_val == WNI_CFG_RATE_FOR_TX_MGMT_STADEF) {
 			WMA_LOGD("WNI_CFG_RATE_FOR_TX_MGMT "
-				"is 0, ignore");
+				"is default, ignore");
 		} else {
 			ret = wmi_unified_vdev_set_param_send(
 				wma->wmi_handle,
