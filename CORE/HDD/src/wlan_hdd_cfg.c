@@ -6502,20 +6502,20 @@ eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode )
 uint8_t hdd_cfg_get_sub20_dyn_capabilities(hdd_context_t *hdd_ctx_ptr)
 {
 	hdd_config_t *config_ptr = hdd_ctx_ptr->cfg_ini;
+	uint8_t sub_20_channel_width = config_ptr->sub_20_channel_width;
 
-	if (config_ptr->sub_20_channel_width ==
-	    CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ) {
+	switch (sub_20_channel_width) {
+	case CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ:
 		return SUB20_MODE_5MHZ;
-	} else if (config_ptr->sub_20_channel_width ==
-		   CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ) {
+	case CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ:
 		return SUB20_MODE_10MHZ;
-	} else if (config_ptr->sub_20_channel_width ==
-		   CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL) {
+	case CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL:
+	case CFG_SUB_20_CHANNEL_WIDTH_MANUAL:
 		return SUB20_MODE_5MHZ | SUB20_MODE_10MHZ;
+	default:
+		return SUB20_MODE_NONE;
 	}
-	return SUB20_MODE_NONE;
 }
-
 /**
  * hdd_cfg_get_static_sub20_channel_width()
  * @hdd_ctx_ptr:  HDD context

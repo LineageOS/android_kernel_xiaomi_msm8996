@@ -830,6 +830,9 @@ WLANSAP_StartBss
             pConfig->dfs_beacon_tx_enhanced;
         pmac->sap.SapDfsInfo.reduced_beacon_interval =
             pConfig->reduced_beacon_interval;
+        if (pConfig->sub20_switch_mode == SUB20_STATIC)
+                pmac->sap.SapDfsInfo.new_sub20_channelwidth =
+                                            pmac->sub20_channelwidth;
         // Copy MAC filtering settings to sap context
         pSapCtx->eSapMacAddrAclMode = pConfig->SapMacaddr_acl;
         vos_mem_copy(pSapCtx->acceptMacList, pConfig->accept_mac, sizeof(pConfig->accept_mac));
@@ -1852,8 +1855,10 @@ WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width)
 		} else {
 			VOS_TRACE(VOS_MODULE_ID_SAP,
 				  VOS_TRACE_LEVEL_ERROR,
-				  "%s: SAP is not in eSAP_STARTED state",
-				  __func__);
+				  "%s: orgl chan_width=%d new chan_width=%d",
+				  __func__,
+				  sap_context_ptr->sub20_channelwidth,
+				  chan_width);
 			return VOS_STATUS_E_FAULT;
 		}
 

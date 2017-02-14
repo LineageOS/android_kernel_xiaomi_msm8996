@@ -7463,6 +7463,7 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
     tpPESession           psessionEntry = NULL;
     tANI_U32 chanWidth = 0;
     tANI_U8               sessionId;
+    uint8_t target_channel;
 
     if ( pMsg == NULL )
     {
@@ -7487,11 +7488,12 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         return;
     }
 
+    target_channel = pDfsCsaIeRequest->targetChannel;
+
     if ( psessionEntry )
     {
         /* target channel */
-        psessionEntry->gLimChannelSwitch.primaryChannel =
-                                    pDfsCsaIeRequest->targetChannel;
+        psessionEntry->gLimChannelSwitch.primaryChannel = target_channel;
 
         /* Channel switch announcement needs to be included in beacon */
         psessionEntry->dfsIncludeChanSwIe = VOS_TRUE;
@@ -7577,10 +7579,10 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
              * Fetch the center channel based on the channel width
              */
             psessionEntry->gLimWiderBWChannelSwitch.newCenterChanFreq0 =
-                           limGetCenterChannel(pMac,
-                             pDfsCsaIeRequest->targetChannel,
-                             psessionEntry->htSecondaryChannelOffset,
-                             psessionEntry->gLimWiderBWChannelSwitch.newChanWidth);
+                    limGetCenterChannel(
+                        pMac, target_channel,
+                        psessionEntry->htSecondaryChannelOffset,
+                        psessionEntry->gLimWiderBWChannelSwitch.newChanWidth);
             /*
              * This is not applicable for 20/40/80 Mhz.
              * Only used when we support 80+80 Mhz
@@ -7609,9 +7611,11 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                        psessionEntry->gLimChannelSwitch.switchCount );
         /**
          * Send Action frame after updating the beacon
-         * Action frame is not required for sub 20 channel width changing
+         * Action frame is not required for dynamical sub20 channel
+         * width change
          */
-        if (pDfsCsaIeRequest->sub20_channelwidth == 0) {
+        if (pDfsCsaIeRequest->sub20_channelwidth == 0 ||
+            psessionEntry->currentOperChannel != target_channel) {
             if (CHAN_HOP_ALL_BANDS_ENABLE)
                 lim_send_chan_switch_action_frame
                     (pMac, psessionEntry->gLimChannelSwitch.primaryChannel,

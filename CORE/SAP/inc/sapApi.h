@@ -512,6 +512,24 @@ enum vendor_ie_access_policy {
 	ACCESS_POLICY_DONOT_RESPOND_IF_IE_IS_PRESENT,
 };
 
+/*
+ * enum sub20_chan_switch_mode- sub20 channel
+ * switch mode
+ * @SUB20_NONE: unsupport sub20 channel width
+ * @SUB20_STATIC: support sub20 channel width,
+ * but unsupport sub20 channel width switch
+ * @SUB20_DYN: support sub20 channel width,
+ * sub20 channel width switch auto
+ * @SUB20_MANUAL: support sub20 channel width,
+ * sub20 channel width switch manual
+ */
+enum sub20_chan_switch_mode {
+	SUB20_NONE,
+	SUB20_STATIC,
+	SUB20_DYN,
+	SUB20_MANUAL
+};
+
 typedef struct sap_Config {
     tSap_SSIDInfo_t SSIDinfo;
     eCsrPhyMode     SapHw_mode; /* Wireless Mode */
@@ -592,6 +610,7 @@ typedef struct sap_Config {
     uint8_t          sap_chanswitch_mode;
     bool             dfs_beacon_tx_enhanced;
     uint16_t         reduced_beacon_interval;
+    enum sub20_chan_switch_mode  sub20_switch_mode;
 } tsap_Config_t;
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE

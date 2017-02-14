@@ -368,8 +368,9 @@ bool hdd_hostapd_sub20_channelwidth_can_switch(
 	int i;
 	int sta_count = 0;
 	uint8_t sap_s20_caps;
+	uint8_t sap_s20_config;
 	uint8_t sta_s20_caps = SUB20_MODE_NONE;
-	tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(adapter);
+	tHalHandle hal_ptr = WLAN_HDD_GET_HAL_CTX(adapter);
 	tSmeConfigParams *sme_config;
 	hdd_station_info_t *sta;
 	hdd_ap_ctx_t *ap = WLAN_HDD_GET_AP_CTX_PTR(adapter);
@@ -381,11 +382,13 @@ bool hdd_hostapd_sub20_channelwidth_can_switch(
 	}
 	vos_mem_zero(sme_config, sizeof(*sme_config));
 
-	sme_GetConfigParam(hHal, sme_config);
+	sme_GetConfigParam(hal_ptr, sme_config);
 	sap_s20_caps = sme_config->sub20_dynamic_channelwidth;
+	sap_s20_config = sme_config->sub20_config_info;
 	vos_mem_free(sme_config);
-	if (sap_s20_caps == SUB20_MODE_NONE) {
-		hddLog(LOGE, FL("sub20 none"));
+	if (sap_s20_caps == SUB20_MODE_NONE ||
+	    sap_s20_config == CFG_SUB_20_CHANNEL_WIDTH_MANUAL) {
+		hddLog(LOGE, FL("sub20 not switch"));
 		return false;
 	}
 
@@ -432,7 +435,7 @@ bool hdd_hostapd_sub20_channelwidth_can_restore(
 	int sta_count = 0;
 	uint8_t sap_s20_caps;
 	uint8_t sta_s20_caps = SUB20_MODE_NONE;
-	tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(adapter);
+	tHalHandle hal_ptr = WLAN_HDD_GET_HAL_CTX(adapter);
 	tSmeConfigParams *sme_config;
 	hdd_station_info_t *sta;
 	hdd_ap_ctx_t *ap = WLAN_HDD_GET_AP_CTX_PTR(adapter);
@@ -443,7 +446,7 @@ bool hdd_hostapd_sub20_channelwidth_can_restore(
 		return false;
 	}
 	vos_mem_zero(sme_config, sizeof(*sme_config));
-	sme_GetConfigParam(hHal, sme_config);
+	sme_GetConfigParam(hal_ptr, sme_config);
 
 	sap_s20_caps = sme_config->sub20_dynamic_channelwidth;
 	vos_mem_free(sme_config);
@@ -471,6 +474,92 @@ bool hdd_hostapd_sub20_channelwidth_can_restore(
 		return true;
 	}
 }
+
+/**
+  * hdd_hostapd_sub20_channelwidth_can_set() - check
+  * channel width manual switch to 5/10M condition
+  * @adapter: pointer to HDD context
+  * @sub20_channel_width: new channel width
+  *
+  * Return:  true or false
+  */
+bool hdd_hostapd_sub20_channelwidth_can_set(
+	hdd_adapter_t *adapter, uint32_t sub20_channel_width)
+{
+	int i;
+	int sta_count = 0;
+	uint8_t sap_s20_config;
+	uint8_t sta_s20_caps = SUB20_MODE_NONE;
+	tHalHandle hal_ptr = WLAN_HDD_GET_HAL_CTX(adapter);
+	tSmeConfigParams *sme_config;
+	hdd_station_info_t *sta;
+	hdd_ap_ctx_t *ap = WLAN_HDD_GET_AP_CTX_PTR(adapter);
+	bool channel_support_sub20 = true;
+	enum phy_ch_width phy_sub20_channel_width = CH_WIDTH_INVALID;
+
+	sme_config = vos_mem_malloc(sizeof(*sme_config));
+	if (!sme_config) {
+		hddLog(LOGE, FL("mem alloc failed for sme_config"));
+		return false;
+	}
+	vos_mem_zero(sme_config, sizeof(*sme_config));
+
+	sme_GetConfigParam(hal_ptr, sme_config);
+	sap_s20_config = sme_config->sub20_config_info;
+	vos_mem_free(sme_config);
+	sme_config = NULL;
+	if (sap_s20_config != CFG_SUB_20_CHANNEL_WIDTH_MANUAL) {
+		hddLog(LOGE, FL("ini unsupport manual set sub20"));
+		return false;
+	}
+
+	switch (sub20_channel_width) {
+	case SUB20_MODE_5MHZ:
+		phy_sub20_channel_width = CH_WIDTH_5MHZ;
+		break;
+	case SUB20_MODE_10MHZ:
+		phy_sub20_channel_width = CH_WIDTH_10MHZ;
+		break;
+	case SUB20_MODE_NONE:
+		return true;
+	default:
+		return false;
+	}
+
+	channel_support_sub20 =
+	      vos_is_channel_support_sub20(ap->operatingChannel,
+					   phy_sub20_channel_width,
+					   0);
+	if (!channel_support_sub20) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("ch%d width%d unsupport by reg domain"),
+		       ap->operatingChannel, phy_sub20_channel_width);
+		return false;
+	}
+
+	spin_lock_bh(&adapter->staInfo_lock);
+	for (i = 0; i < WLAN_MAX_STA_COUNT; i++) {
+		sta = &adapter->aStaInfo[i];
+		if (sta->isUsed && (ap->uBCStaId != i)) {
+			sta_count++;
+			sta_s20_caps |=
+				sta->sub20_dynamic_channelwidth;
+		}
+	}
+	spin_unlock_bh(&adapter->staInfo_lock);
+	if (sta_count != 1) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%d STAs connected with sub20 Channelwidth %d",
+		       sta_count, sta_s20_caps);
+		return false;
+	}
+
+	if (!(sta_s20_caps & sub20_channel_width))
+		return false;
+
+	return true;
+}
+
 #endif
 
 /**
@@ -3022,6 +3111,115 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
 
     return ret;
 }
+
+#ifdef FEATURE_WLAN_SUB_20_MHZ
+/**
+ * hdd_softap_set_channel_sub20_chanwidth_change() -This
+ * function to support SAP channel change with CSA IE
+ * set in the beacons.
+ * @dev: Pointer to the net device
+ * @chan_width: new sub20 channel width
+ *
+ * Return:  true or false
+ */
+int hdd_softap_set_channel_sub20_chanwidth_change(struct net_device *dev,
+						  uint32_t chan_width)
+{
+	VOS_STATUS status;
+	int ret;
+	hdd_adapter_t *hostapd_adapter = (netdev_priv(dev));
+	hdd_context_t *hdd_ctx_ptr;
+	hdd_adapter_t *sta_adapter;
+	hdd_station_ctx_t *sta_ctx;
+	uint32_t sub20_chan_width;
+	bool sub20_operate_permission;
+	void *vos_ctx_ptr;
+
+	hdd_ctx_ptr = WLAN_HDD_GET_CTX(hostapd_adapter);
+	ret = wlan_hdd_validate_context(hdd_ctx_ptr);
+	if (ret)
+		return ret;
+
+	sta_adapter = hdd_get_adapter(hdd_ctx_ptr, WLAN_HDD_INFRA_STATION);
+	/*
+	 * conc_custom_rule1:
+	 * Force SCC for SAP + STA
+	 * if STA is already connected then we shouldn't allow
+	 * channel switch in SAP interface
+	 */
+	if (sta_adapter && hdd_ctx_ptr->cfg_ini->conc_custom_rule1) {
+		sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(sta_adapter);
+		if (hdd_connIsConnected(sta_ctx)) {
+			hddLog(LOGE,
+			       FL("sub20 chan switch not allowed"));
+			return -EBUSY;
+		}
+	}
+
+	switch (chan_width) {
+	case NL80211_CHAN_WIDTH_5:
+		sub20_chan_width = SUB20_MODE_5MHZ;
+		break;
+	case NL80211_CHAN_WIDTH_10:
+		sub20_chan_width = SUB20_MODE_10MHZ;
+		break;
+	case NL80211_CHAN_WIDTH_20_NOHT:
+		sub20_chan_width = SUB20_MODE_NONE;
+		break;
+	default:
+		hddLog(LOGE, FL("invalid param %d"), chan_width);
+		return -EINVAL;
+	}
+
+	sub20_operate_permission =
+		hdd_hostapd_sub20_channelwidth_can_set(hostapd_adapter,
+						       sub20_chan_width);
+	if (!sub20_operate_permission) {
+		hddLog(LOGE, FL("can't set sub20_chan_width in curr chan"));
+		return -EINVAL;
+	}
+
+	spin_lock_bh(&hdd_ctx_ptr->dfs_lock);
+	if (hdd_ctx_ptr->dfs_radar_found == VOS_TRUE) {
+		spin_unlock_bh(&hdd_ctx_ptr->dfs_lock);
+		hddLog(LOGE,
+		       FL("sub20 chan width switch in progress!!"));
+		return -EBUSY;
+	}
+	/*
+	 * Set the dfs_radar_found flag to mimic channel change
+	 * when a radar is found. This will enable synchronizing
+	 * SAP and HDD states similar to that of radar indication.
+	 * Suspend the netif queues to stop queuing Tx frames
+	 * from upper layers.  netif queues will be resumed
+	 * once the channel change is completed and SAP will
+	 * post eSAP_START_BSS_EVENT success event to HDD.
+	 */
+	hdd_ctx_ptr->dfs_radar_found = VOS_TRUE;
+	spin_unlock_bh(&hdd_ctx_ptr->dfs_lock);
+
+	vos_ctx_ptr = WLAN_HDD_GET_SAP_CTX_PTR(hostapd_adapter);
+	status = WLANSAP_set_sub20_channelwidth_with_csa(vos_ctx_ptr,
+							 sub20_chan_width);
+	if (VOS_STATUS_SUCCESS != status) {
+		hddLog(LOGE,
+		       FL("sub20 chan width %d switch failed"),
+		       sub20_chan_width);
+		/*
+		 * If channel change command fails then clear the
+		 * radar found flag and also restart the netif
+		 * queues.
+		 */
+		spin_lock_bh(&hdd_ctx_ptr->dfs_lock);
+		hdd_ctx_ptr->dfs_radar_found = VOS_FALSE;
+		spin_unlock_bh(&hdd_ctx_ptr->dfs_lock);
+
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+#endif
 
 /**
  * hdd_sap_get_chan_width() - get channel width of sap
