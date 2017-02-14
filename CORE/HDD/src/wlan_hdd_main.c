@@ -10270,6 +10270,19 @@ static inline void
 hdd_adapter_runtime_suspend_denit(hdd_adapter_t *adapter) { }
 #endif
 
+/**
+ * hdd_adapter_init_action_frame_random_mac() - Initialze attributes needed for
+ * randomization of SA in management action frames
+ * @adapter: Pointer to adapter
+ *
+ * Return: None
+ */
+static void hdd_adapter_init_action_frame_random_mac(hdd_adapter_t *adapter)
+{
+	spin_lock_init(&adapter->random_mac_lock);
+	vos_mem_zero(adapter->random_mac, sizeof(adapter->random_mac));
+}
+
 static hdd_adapter_t* hdd_alloc_station_adapter(hdd_context_t *pHddCtx,
                                                 tSirMacAddr macAddr,
                                                 unsigned char name_assign_type,
@@ -11101,6 +11114,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
          if( VOS_STATUS_SUCCESS != status )
             goto err_free_netdev;
+
+         /* initialize action frame random mac info */
+         hdd_adapter_init_action_frame_random_mac(pAdapter);
 
          // Workqueue which gets scheduled in IPv4 notification callback
          vos_init_work(&pAdapter->ipv4NotifierWorkQueue,
@@ -12661,6 +12677,25 @@ hdd_adapter_t * hdd_get_adapter_by_macaddr( hdd_context_t *pHddCtx,
 
    return NULL;
 
+}
+
+hdd_adapter_t * hdd_get_adapter_by_rand_macaddr(hdd_context_t *hdd_ctx,
+						tSirMacAddr mac_addr)
+{
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	hdd_adapter_t *adapter;
+	VOS_STATUS status;
+
+	status = hdd_get_front_adapter(hdd_ctx, &adapter_node);
+	while (adapter_node && status == VOS_STATUS_SUCCESS) {
+		adapter = adapter_node->pAdapter;
+		if(adapter && hdd_check_random_mac(adapter, mac_addr))
+			return adapter;
+		status = hdd_get_next_adapter(hdd_ctx, adapter_node, &next);
+		adapter_node = next;
+	}
+
+	return NULL;
 }
 
 hdd_adapter_t * hdd_get_adapter_by_name( hdd_context_t *pHddCtx, tANI_U8 *name )

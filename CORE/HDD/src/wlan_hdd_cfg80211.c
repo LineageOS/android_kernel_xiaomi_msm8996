@@ -14047,6 +14047,29 @@ static void wlan_hdd_cfg80211_add_connected_pno_support(struct wiphy *wiphy)
 }
 #endif
 
+#ifdef CFG80211_RAND_TA_FOR_PUBLIC_ACTION_FRAME
+/**
+ * wlan_hdd_cfg80211_action_frame_randomization_init() - Randomize SA of MA frms
+ * @wiphy: Pointer to wiphy
+ *
+ * This function is used to indicate the support of source mac address
+ * randomization of management action frames
+ *
+ * Return: None
+ */
+static void
+wlan_hdd_cfg80211_action_frame_randomization_init(struct wiphy *wiphy)
+{
+       wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_MGMT_TX_RANDOM_TA);
+}
+#else
+static void
+wlan_hdd_cfg80211_action_frame_randomization_init(struct wiphy *wiphy)
+{
+       return;
+}
+#endif
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_init
  * This function is called by hdd_wlan_startup()
@@ -14302,6 +14325,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 
     hdd_config_sched_scan_plans_to_wiphy(wiphy, pCfg);
     wlan_hdd_cfg80211_scan_randomization_init(wiphy);
+    wlan_hdd_cfg80211_action_frame_randomization_init(wiphy);
 
     EXIT();
     return 0;
@@ -16858,7 +16882,8 @@ static int wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
 }
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)) || defined(BEACON_RATE_BACKPORTS)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)) || \
+	defined(CFG80211_BEACON_TX_RATE_CUSTOM_BACKPORT)
 /**
  * hdd_get_data_rate_from_rate_mask() - convert mask to rate
  * @wiphy: Pointer to wiphy

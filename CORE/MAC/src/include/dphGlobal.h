@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -513,11 +513,13 @@ typedef struct sDphHashNode
 
     tANI_U8 isDisassocDeauthInProgress;
     bool sta_deletion_in_progress;
-    struct sDphHashNode  *next;
     tANI_S8 del_sta_ctx_rssi;
     uint8_t sub20_dynamic_channelwidth;
     /* Flag indicating connected STA doesn't support ECSA */
     uint8_t non_ecsa_capable;
+    /* DO NOT ADD NEW MEMBER AFTER MEMBER *next */
+    struct sDphHashNode  *next;
+    /* DO NOT ADD NEW MEMBER AFTER MEMBER *next */
 } tDphHashNode, *tpDphHashNode;
 
 
