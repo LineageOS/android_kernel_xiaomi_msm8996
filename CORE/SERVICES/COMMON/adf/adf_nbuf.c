@@ -1708,12 +1708,20 @@ int adf_nbuf_update_radiotap(struct mon_rx_status *rx_status, adf_nbuf_t nbuf,
 	rtap_len += 1;
 
 	/* IEEE80211_RADIOTAP_RATE  u8           500kb/s*/
-	rthdr->it_present |= cpu_to_le32(1 << IEEE80211_RADIOTAP_RATE);
-	rtap_buf[rtap_len] = rx_status->rate;
-	rtap_len += 1;
+	if (!(rx_status->mcs_info.valid || rx_status->vht_info.valid)) {
+		rthdr->it_present |=
+			cpu_to_le32(1 << IEEE80211_RADIOTAP_RATE);
+		rtap_buf[rtap_len] = rx_status->rate;
+		rtap_len += 1;
+	}
 
 	/* IEEE80211_RADIOTAP_CHANNEL */
 	rthdr->it_present |= cpu_to_le32(1 << IEEE80211_RADIOTAP_CHANNEL);
+	/* padding */
+	if (rx_status->mcs_info.valid || rx_status->vht_info.valid) {
+		rtap_buf[rtap_len] = 0;
+		rtap_len += 1;
+	}
 	/* Channel frequency in Mhz */
 	put_unaligned_le16(rx_status->chan, (void *)&rtap_buf[rtap_len]);
 	rtap_len += 2;
@@ -1741,6 +1749,94 @@ int adf_nbuf_update_radiotap(struct mon_rx_status *rx_status, adf_nbuf_t nbuf,
 	rthdr->it_present |= cpu_to_le32(1 << IEEE80211_RADIOTAP_ANTENNA);
 	rtap_buf[rtap_len] = rx_status->nr_ant;
 	rtap_len += 1;
+
+	/* IEEE80211_RADIOTAP_MCS: u8 known, u8 flags, u8 mcs */
+	if (rx_status->mcs_info.valid) {
+		rthdr->it_present |= cpu_to_le32(1 << IEEE80211_RADIOTAP_MCS);
+		/*
+		 * known fields: band width, mcs index, short GI, FEC type,
+		 * STBC streams, ness.
+		 */
+		rtap_buf[rtap_len] = 0x77;
+		rtap_len += 1;
+		/* band width */
+		rtap_buf[rtap_len] = 0;
+		rtap_buf[rtap_len] |= (rx_status->mcs_info.bw & 0x3);
+		/* short GI */
+		rtap_buf[rtap_len] |= ((rx_status->mcs_info.sgi << 2) & 0x4);
+		/* FEC type */
+		rtap_buf[rtap_len] |= ((rx_status->mcs_info.fec << 4) & 0x10);
+		/* STBC streams */
+		rtap_buf[rtap_len] |= ((rx_status->mcs_info.stbc << 5) & 0x60);
+		/* ness */
+		rtap_buf[rtap_len] |= ((rx_status->mcs_info.ness << 7) & 0x80);
+		rtap_len += 1;
+		/* mcs index */
+		rtap_buf[rtap_len] = rx_status->mcs_info.mcs;
+		rtap_len += 1;
+	}
+
+	/* IEEE80211_RADIOTAP_VHT: u16, u8, u8, u8[4], u8, u8, u16 */
+	if (rx_status->vht_info.valid) {
+		rthdr->it_present |= cpu_to_le32(1 << IEEE80211_RADIOTAP_VHT);
+		/* padding */
+		rtap_buf[rtap_len] = 0;
+		rtap_len += 1;
+		/*
+		 * known fields: STBC, TXOP_PS_NOT_ALLOWED,
+		 * Short GI NSYM disambiguation, short GI,
+		 * LDPC extra OFDM symbol, Beamformed ,
+		 * bandwidth, gid, Partial AID
+		 */
+		put_unaligned_le16(0x1ff, (void *)&rtap_buf[rtap_len]);
+		rtap_len += 2;
+		/* STBC */
+		rtap_buf[rtap_len] = 0;
+		rtap_buf[rtap_len] |= (rx_status->vht_info.stbc & 0x1);
+		/* TXOP_PS_NOT_ALLOWED */
+		rtap_buf[rtap_len] |=
+			((rx_status->vht_info.txps_forbidden << 1) & 0x2);
+		/* short GI */
+		rtap_buf[rtap_len] |=
+			((rx_status->vht_info.sgi << 2) & 0x4);
+		/* short GI NSYM disambiguation */
+		rtap_buf[rtap_len] |=
+			((rx_status->vht_info.sgi_disambiguation << 3) & 0x8);
+		/* LDPC Extra OFDM symbol */
+		rtap_buf[rtap_len] |=
+			((rx_status->vht_info.ldpc_extra_symbol << 4) & 0x10);
+		/* Beamformed */
+		rtap_buf[rtap_len] |=
+			((rx_status->vht_info.beamformed << 5) & 0x20);
+		rtap_len += 1;
+		/* band width, transform to radiotap format */
+		rtap_buf[rtap_len] =
+			((rx_status->vht_info.bw == 2) ?
+			 4 : rx_status->vht_info.bw) & 0x1f;
+		rtap_len += 1;
+		/* nss */
+		rtap_buf[rtap_len] |= ((1 + rx_status->vht_info.nss) & 0x0f);
+		/* mcs */
+		rtap_buf[rtap_len] |= ((rx_status->vht_info.mcs << 4) & 0xf0);
+		rtap_len += 1;
+		/* only support SG, so set 0 other 3 users */
+		rtap_buf[rtap_len] = 0;
+		rtap_len += 1;
+		rtap_buf[rtap_len] = 0;
+		rtap_len += 1;
+		rtap_buf[rtap_len] = 0;
+		rtap_len += 1;
+		/* LDPC */
+		rtap_buf[rtap_len] = rx_status->vht_info.coding;
+		rtap_len += 1;
+		/* gid */
+		rtap_buf[rtap_len] = rx_status->vht_info.gid;
+		rtap_len += 1;
+		/* pid */
+		put_unaligned_le16((uint16_t)(rx_status->vht_info.paid),
+				   (void *)&rtap_buf[rtap_len]);
+		rtap_len += 2;
+	}
 
 	rthdr->it_len = cpu_to_le16(rtap_len);
 
