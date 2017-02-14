@@ -19931,6 +19931,7 @@ csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tCsrBssid bssid,
     pMsg->ch_switch_beacon_cnt = pMac->sap.SapDfsInfo.sap_ch_switch_beacon_cnt;
     pMsg->ch_switch_mode = pMac->sap.SapDfsInfo.sap_ch_switch_mode;
     pMsg->dfs_ch_switch_disable = pMac->sap.SapDfsInfo.disable_dfs_ch_switch;
+    pMsg->sub20_switch_mode = pMac->sap.SapDfsInfo.sub20_switch_mode;
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 

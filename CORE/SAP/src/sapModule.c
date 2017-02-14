@@ -830,6 +830,7 @@ WLANSAP_StartBss
             pConfig->dfs_beacon_tx_enhanced;
         pmac->sap.SapDfsInfo.reduced_beacon_interval =
             pConfig->reduced_beacon_interval;
+        pmac->sap.SapDfsInfo.sub20_switch_mode = pConfig->sub20_switch_mode;
         if (pConfig->sub20_switch_mode == SUB20_STATIC)
                 pmac->sap.SapDfsInfo.new_sub20_channelwidth =
                                             pmac->sub20_channelwidth;
