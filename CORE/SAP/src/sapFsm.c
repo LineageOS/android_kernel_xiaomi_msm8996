@@ -4162,6 +4162,8 @@ sapFsm
                  VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                            "\n\n***In %s, Cannot start BSS, ACS Fail***\n\n",
                              __func__);
+                sapSignalHDDevent(sapContext, NULL, eSAP_START_BSS_EVENT,
+                               (v_PVOID_t) eSAP_STATUS_FAILURE);
             } else if (msg == eSAP_HDD_STOP_INFRA_BSS) {
                  sapContext->sapsMachine = eSAP_DISCONNECTED;
                  sapSignalHDDevent(sapContext, NULL, eSAP_START_BSS_EVENT,
