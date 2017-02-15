@@ -1153,9 +1153,10 @@ struct ol_txrx_peer_t {
 	u_int8_t last_rmf_pn_valid;
 #endif
 
-        /* Properties of the last received PPDU */
+	/* Properties of the last received PPDU */
 	int16_t last_pkt_rssi_cmb;
 	int16_t last_pkt_rssi[4];
+	int8_t last_pkt_noise_floor[4];
 	uint8_t last_pkt_legacy_rate;
 	uint8_t last_pkt_legacy_rate_sel;
 	uint32_t last_pkt_timestamp_microsec;

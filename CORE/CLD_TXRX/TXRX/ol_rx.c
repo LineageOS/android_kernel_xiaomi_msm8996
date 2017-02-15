@@ -341,6 +341,9 @@ ol_rx_indication_handler(
             for (i = 0; i < 4; i++)
                 peer->last_pkt_rssi[i] = htt_rx_ind_rssi_dbm_chain(
                     pdev->htt_pdev, rx_ind_msg, i);
+            for (i = 0; i < 4; i++)
+                peer->last_pkt_noise_floor[i] = htt_rx_ind_noise_floor_chain(
+                    pdev->htt_pdev, rx_ind_msg, i);
             htt_rx_ind_timestamp(pdev->htt_pdev, rx_ind_msg,
                                  &peer->last_pkt_timestamp_microsec,
                                  &peer->last_pkt_timestamp_submicrosec);
@@ -1117,6 +1120,9 @@ DONE:
                     rx_header.rssi_cmb = peer->last_pkt_rssi_cmb;
                     adf_os_mem_copy(rx_header.rssi, peer->last_pkt_rssi,
                                     sizeof(rx_header.rssi));
+                    adf_os_mem_copy(rx_header.noise_floor,
+                                    peer->last_pkt_noise_floor,
+                                    sizeof(rx_header.noise_floor));
                     if (peer->last_pkt_legacy_rate_sel == 0) {
                         switch (peer->last_pkt_legacy_rate) {
                         case 0x8:
