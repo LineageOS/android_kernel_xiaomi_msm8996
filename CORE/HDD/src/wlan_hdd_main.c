@@ -16068,6 +16068,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (hdd_wlan_enable_egap(pHddCtx))
         hddLog(LOGE, FL("enhance green ap is not enabled"));
 
+   /* set chip power save failure detected callback */
+   sme_set_chip_pwr_save_fail_cb(pHddCtx->hHal,
+                                 hdd_chip_pwr_save_fail_detected_cb);
+
    wlan_comp.status = 0;
    complete(&wlan_comp.wlan_start_comp);
    goto success;
