@@ -813,7 +813,7 @@ void adf_dp_trace(adf_nbuf_t nbuf, enum ADF_DP_TRACE_ID code,
 		return;
 
 	adf_dp_add_record(code, data, size,
-				ADF_NBUF_CB_DP_TRACE_PRINT(nbuf));
+			nbuf ? ADF_NBUF_CB_DP_TRACE_PRINT(nbuf) : false);
 }
 
 /**

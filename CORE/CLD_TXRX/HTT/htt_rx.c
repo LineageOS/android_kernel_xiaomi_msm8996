@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1746,34 +1746,71 @@ htt_rx_mon_amsdu_rx_in_order_pop_ll(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
 }
 
 /**
- * get_num_antenna_hl() - get number of antenna
+ * get_ht_vht_info() - get ht/vht information
  * @rx_desc: pointer to htt_host_rx_desc_base.
+ * @rx_status: pointer to mon_rx_status.
  *
- * Return: number of antenna.
+ * This function retrieve MCS/VHT info by parsing preamble,
+ * vht_sig_a1 and vht_sig_a2, which follows ieee80211 spec.
+ * Since high latency path doesn't config PPDU/MPDU start/end,
+ * it only uses the info which htt_rx_ppdu_desc_t has.
+ *
+ * Return: None.
  */
-static uint8_t get_num_antenna_hl(struct htt_rx_ppdu_desc_t *rx_desc)
+static void get_ht_vht_info_hl(struct htt_rx_ppdu_desc_t *rx_desc,
+			       struct mon_rx_status *rx_status)
 {
 	uint8_t preamble_type =
 		(uint8_t)rx_desc->preamble_type;
-	uint8_t mcs, nss = 1;
 
 	switch (preamble_type) {
 	case 8:
 	case 9:
-		mcs = (uint8_t)(rx_desc->vht_sig_a1 & 0x7f);
-		nss = mcs >> 3;
+		rx_status->mcs_info.valid = 1;
+		rx_status->vht_info.valid = 0;
+		rx_status->mcs_info.mcs = rx_desc->vht_sig_a1 & 0x7f;
+		rx_status->nr_ant = rx_status->mcs_info.mcs >> 3;
+		rx_status->mcs_info.bw = (rx_desc->vht_sig_a1 >> 7) & 0x1;
+		rx_status->mcs_info.smoothing = rx_desc->vht_sig_a2 & 0x1;
+		rx_status->mcs_info.not_sounding =
+			(rx_desc->vht_sig_a2 >> 1) & 0x1;
+		rx_status->mcs_info.aggregation =
+			(rx_desc->vht_sig_a2 >> 3) & 0x1;
+		rx_status->mcs_info.stbc = (rx_desc->vht_sig_a2 >> 4) & 0x3;
+		rx_status->mcs_info.fec = (rx_desc->vht_sig_a2 >> 6) & 0x1;
+		rx_status->mcs_info.sgi = (rx_desc->vht_sig_a2 >> 7) & 0x1;
+		rx_status->mcs_info.ness = (rx_desc->vht_sig_a2 >> 8) & 0x3;
 		break;
 	case 0x0c: /* VHT w/o TxBF */
 	case 0x0d: /* VHT w/ TxBF */
-		mcs = (uint8_t)((rx_desc->vht_sig_a2
-					>> 4) & 0xf);
-		nss = (uint8_t)((rx_desc->vht_sig_a1
-					>> 10) & 0x7);
+		rx_status->vht_info.valid = 1;
+		rx_status->mcs_info.valid = 0;
+		rx_status->vht_info.bw = rx_desc->vht_sig_a1 & 0x3;
+		rx_status->vht_info.stbc = (rx_desc->vht_sig_a1 >> 3) & 0x1;
+		/* Currently only handle SU case */
+		rx_status->vht_info.gid = (rx_desc->vht_sig_a1 >> 4) & 0x3f;
+		rx_status->vht_info.nss = (rx_desc->vht_sig_a1 >> 10) & 0x7;
+		rx_status->nr_ant = (rx_desc->vht_sig_a1 >> 10) & 0x7;
+		rx_status->vht_info.paid = (rx_desc->vht_sig_a1 >> 13) & 0x1ff;
+		rx_status->vht_info.txps_forbidden =
+			(rx_desc->vht_sig_a1 >> 22) & 0x1;
+		rx_status->vht_info.sgi = rx_desc->vht_sig_a2 & 0x1;
+		rx_status->vht_info.sgi_disambiguation =
+			(rx_desc->vht_sig_a2 >> 1) & 0x1;
+		rx_status->vht_info.coding = (rx_desc->vht_sig_a2 >> 2) & 0x1;
+		rx_status->vht_info.ldpc_extra_symbol =
+			(rx_desc->vht_sig_a2 >> 3) & 0x1;
+		rx_status->vht_info.mcs = (rx_desc->vht_sig_a2
+					>> 4) & 0xf;
+		rx_status->vht_info.beamformed = (rx_desc->vht_sig_a2
+					>> 8) & 0x1;
 		break;
 	default:
+		rx_status->mcs_info.valid = 0;
+		rx_status->vht_info.valid = 0;
+		rx_status->nr_ant = 1;
 		break;
 	}
-	return nss;
 }
 
 /**
@@ -1796,9 +1833,14 @@ void htt_get_radiotap_rx_status_hl(struct htt_rx_ppdu_desc_t *rx_desc,
 				   rx_desc->legacy_rate);
 	channel_flags |= rx_desc->legacy_rate_sel ?
 		IEEE80211_CHAN_CCK : IEEE80211_CHAN_OFDM;
+	if (rx_status->chan)
+		channel_flags |=
+			(vos_chan_to_band(vos_freq_to_chan(rx_status->chan))
+			== VOS_BAND_2GHZ ?
+			IEEE80211_CHAN_2GHZ : IEEE80211_CHAN_5GHZ);
 	rx_status->chan_flags = channel_flags;
 	rx_status->ant_signal_db = rx_desc->rssi_cmb;
-	rx_status->nr_ant = get_num_antenna_hl(rx_desc);
+	get_ht_vht_info_hl(rx_desc, rx_status);
 }
 
 /**
@@ -1840,7 +1882,6 @@ htt_rx_mon_amsdu_pop_hl(
 	rx_desc = htt_rx_msdu_desc_retrieve(pdev, *head_msdu);
 	rx_ppdu_desc = (struct htt_rx_ppdu_desc_t *)((uint8_t *)(rx_desc) -
 			HTT_RX_IND_HL_BYTES + HTT_RX_IND_HDR_PREFIX_BYTES);
-	htt_get_radiotap_rx_status_hl(rx_ppdu_desc, &rx_status);
 
 	rx_mpdu_desc =
 		htt_rx_mpdu_desc_list_next(pdev, rx_ind_msg);
@@ -1852,6 +1893,7 @@ htt_rx_mon_amsdu_pop_hl(
 	else
 		rx_status.chan = 0;
 
+	htt_get_radiotap_rx_status_hl(rx_ppdu_desc, &rx_status);
 	/*
 	 * set headroom size to 0 to append to tail of skb. For HL path,
 	 * rx desc size is variable and will be used later in ol_rx_deliver

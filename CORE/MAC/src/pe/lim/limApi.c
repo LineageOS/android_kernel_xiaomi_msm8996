@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2435,6 +2435,7 @@ void lim_mon_init_session(tpAniSirGlobal mac_ptr,
 		return;
 	}
 	psession_entry->vhtCapability = 1;
+	psession_entry->sub20_channelwidth = mac_ptr->sub20_channelwidth;
 }
 
 /** -----------------------------------------------------------------

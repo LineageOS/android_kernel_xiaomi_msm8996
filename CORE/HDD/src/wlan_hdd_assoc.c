@@ -4790,18 +4790,15 @@ static int __iw_set_essid(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-    unsigned long rc;
     v_U32_t status = 0;
     hdd_wext_state_t *pWextState;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     v_U32_t roamId;
     tCsrRoamProfile          *pRoamProfile;
     hdd_context_t *pHddCtx;
-    eMib_dot11DesiredBssType connectedBssType;
     eCsrAuthType RSNAuthType;
     uint16_t ch_width;
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     int ret;
 
     ENTER();
@@ -4829,25 +4826,15 @@ static int __iw_set_essid(struct net_device *dev,
         return -EINVAL;
 
     pRoamProfile = &pWextState->roamProfile;
-    if (hdd_connGetConnectedBssType(pHddStaCtx, &connectedBssType) ||
-       (eMib_dot11DesiredBssType_independent ==
-                               pHddStaCtx->conn_info.connDot11DesiredBssType)) {
-        VOS_STATUS vosStatus;
 
-        /* Need to issue a disconnect to CSR. */
-        INIT_COMPLETION(pAdapter->disconnect_comp_var);
-        vosStatus = sme_RoamDisconnect(hHal, pAdapter->sessionId,
-                                       eCSR_DISCONNECT_REASON_UNSPECIFIED);
-
-        if (VOS_STATUS_SUCCESS == vosStatus) {
-            rc = wait_for_completion_timeout(&pAdapter->disconnect_comp_var,
-                          msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-            if (!rc) {
-                hddLog( LOGE, FL("Disconnect event timed out"));
-            }
-        }
+    /*Try disconnecting if already in connected state*/
+    status = wlan_hdd_try_disconnect(pAdapter);
+    if (0 > status)
+    {
+      hddLog(VOS_TRACE_LEVEL_ERROR, FL("Failed to disconnect the existing"
+            " connection"));
+      return -EALREADY;
     }
-
     /** when cfg80211 defined, wpa_supplicant wext driver uses
       zero-length, null-string ssid for force disconnection.
       after disconnection (if previously connected) and cleaning ssid,

@@ -5223,7 +5223,7 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     case eCsrForcedDisassocSta:
        csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINING, sessionId);
        csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_DISASSOC_REQ, sessionId);
-       smsLog(pMac, LOG1, FL("Diassociate issued with reason: %d"),
+       smsLog(pMac, LOG1, FL("Disassociate issued with reason: %d"),
               pCommand->u.roamCmd.reason);
        status = csrSendMBDisassocReqMsg( pMac, sessionId, pCommand->u.roamCmd.peerMac,
                      pCommand->u.roamCmd.reason);
@@ -19931,6 +19931,7 @@ csrRoamSendChanSwIERequest(tpAniSirGlobal pMac, tCsrBssid bssid,
     pMsg->ch_switch_beacon_cnt = pMac->sap.SapDfsInfo.sap_ch_switch_beacon_cnt;
     pMsg->ch_switch_mode = pMac->sap.SapDfsInfo.sap_ch_switch_mode;
     pMsg->dfs_ch_switch_disable = pMac->sap.SapDfsInfo.disable_dfs_ch_switch;
+    pMsg->sub20_switch_mode = pMac->sap.SapDfsInfo.sub20_switch_mode;
 
     status = palSendMBMessage(pMac->hHdd, pMsg);
 

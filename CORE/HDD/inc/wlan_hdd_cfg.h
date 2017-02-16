@@ -4333,6 +4333,7 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
  * g_sub20_channel_width=3: Switch between 5 and 20 MHz bandwidth dynamically
  * g_sub20_channel_width=4: Switch between 10 and 20 MHz bandwidth dynamically
  * g_sub20_channel_width=5: Switch between 5/10 and 20 MHz bandwidth dynamically
+ * g_sub20_channel_width=6: Switch between 5/10 and 20 MHz bandwidth manually
  * Default : Disable
  */
 #define CFG_SUB_20_CHANNEL_WIDTH_NAME      "g_sub20_channel_width"
@@ -4342,8 +4343,10 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ        (3)
 #define CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ       (4)
 #define CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL         (5)
+#define CFG_SUB_20_CHANNEL_WIDTH_MANUAL          (6)
+
 #define CFG_SUB_20_CHANNEL_WIDTH_MIN             (0)
-#define CFG_SUB_20_CHANNEL_WIDTH_MAX             (5)
+#define CFG_SUB_20_CHANNEL_WIDTH_MAX             (6)
 #define CFG_SUB_20_CHANNEL_WIDTH_DEFAULT         (0)
 
 /*
