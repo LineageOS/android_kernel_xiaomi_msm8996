@@ -647,6 +647,8 @@ struct wma_txrx_node {
 	bool is_vdev_valid;
 	uint16_t channelwidth;
 	struct action_frame_random_filter *action_frame_filter;
+	uint8_t in_bmps;
+	uint8_t in_imps;
 };
 
 #if defined(QCA_WIFI_FTM)
