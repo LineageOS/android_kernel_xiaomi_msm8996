@@ -570,6 +570,7 @@ typedef struct sap_Config {
     v_U32_t         ht_op_mode_fixed;
     tVOS_CON_MODE   persona; /*Tells us which persona it is GO or AP for now*/
     v_U8_t          disableDFSChSwitch;
+    v_U8_t          enable_radar_war;
     eCsrBand        scanBandPreference;
     v_BOOL_t        enOverLapCh;
     v_U16_t         acsBandSwitchThreshold;
@@ -720,6 +721,7 @@ typedef struct sSapDfsInfo
      * channel switch is disabled.
      */
     v_U8_t              disable_dfs_ch_switch;
+    v_U8_t              sap_enable_radar_war;
     uint16_t            tx_leakage_threshold;
     uint8_t             new_sub20_channelwidth;
     /* beacon count before channel switch */

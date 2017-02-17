@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -202,6 +202,7 @@ typedef struct ieee80211com
     int (*ic_dfs_control)(struct ieee80211com *ic,
                           u_int id, void *indata, u_int32_t insize,
                           void *outdata, u_int32_t *outsize);
+    void (*ic_update_dfs_cac_block_tx)(bool cac_block_tx);
     HAL_DFS_DOMAIN current_dfs_regdomain;
     u_int8_t vdev_id;
     u_int8_t last_radar_found_chan;

@@ -2364,6 +2364,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_DISABLE_DFS_CH_SWITCH_MIN,
                  CFG_DISABLE_DFS_CH_SWITCH_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_RADAR_WAR, WLAN_PARAM_Integer,
+                 hdd_config_t, enable_radar_war,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_RADAR_WAR_DEFAULT,
+                 CFG_ENABLE_RADAR_WAR_MIN,
+                 CFG_ENABLE_RADAR_WAR_MAX ),
+
    REG_VARIABLE( CFG_ENABLE_DFS_MASTER_CAPABILITY, WLAN_PARAM_Integer,
                  hdd_config_t, enableDFSMasterCap,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,

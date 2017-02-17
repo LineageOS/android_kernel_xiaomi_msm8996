@@ -776,6 +776,7 @@ typedef struct wma_handle {
 	wda_tgt_cfg_cb tgt_cfg_update_cb;
    /*Callback to indicate radar to HDD*/
    wda_dfs_radar_indication_cb dfs_radar_indication_cb;
+	wda_dfs_block_tx_cb dfs_block_tx_cb;
 	HAL_REG_CAPABILITIES reg_cap;
 	u_int32_t scan_id;
 	struct wma_txrx_node *interfaces;
@@ -1689,6 +1690,22 @@ int ol_if_dfs_get_mib_cycle_counts_pct(struct ieee80211com *ic,
 u_int16_t ol_if_dfs_usenol(struct ieee80211com *ic);
 void ieee80211_mark_dfs(struct ieee80211com *ic,
                                struct ieee80211_channel *ichan);
+/**
+ * wma_update_dfs_cac_block_tx - to set dfs_cac_block_tx flag
+ * @cac_block_tx: value to be set
+ *
+ * Return: none
+ */
+void wma_update_dfs_cac_block_tx(bool cac_block_tx);
+/**
+ * ieee80211_update_dfs_cac_block_tx() - to set dfs_cac_block_tx flag
+ * @cac_block_tx: value to be set
+ *
+ * Return: none
+ */
+static inline void ieee80211_update_dfs_cac_block_tx(bool cac_block_tx) {
+	wma_update_dfs_cac_block_tx(cac_block_tx);
+}
 int  wma_dfs_indicate_radar(struct ieee80211com *ic,
                                struct ieee80211_channel *ichan);
 u_int16_t   dfs_usenol(struct ieee80211com *ic);
@@ -1862,6 +1879,20 @@ struct wma_version_info {
 	u_int32_t minor;
 	u_int32_t revision;
 };
+
+/**
+ * wma_stop_radar_delay_timer() - stop radar delay found event timer
+ *
+ * Return: none
+ */
+void wma_stop_radar_delay_timer(void);
+
+/**
+ * wma_ignore_radar_soon_after_assoc() - ignore radar found 300ms after assoc
+ *
+ * Return: none
+ */
+void wma_ignore_radar_soon_after_assoc(void);
 
 void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 			u_int8_t vdev_id, ol_txrx_peer_handle peer,
