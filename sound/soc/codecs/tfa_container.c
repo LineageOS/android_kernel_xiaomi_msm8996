@@ -1306,12 +1306,12 @@ enum Tfa98xx_Error tfaContWriteProfile(int dev_idx, int prof_idx, int vstep_idx)
 
 	if (!prof)
 		return Tfa98xx_Error_Bad_Parameter;
-
+	/*
 	if (tfa98xx_cnt_verbose) {
 		trace_printk("device:%s profile:%s vstep:%d\n", tfaContDeviceName(dev_idx),
 					tfaContProfileName(dev_idx, prof_idx), vstep_idx);
 	}
-
+	*/
 	/* We only make a power cycle when the profiles are not in the same group */
 	if (prof->group == previous_prof->group && prof->group != 0) {
 		if (tfa98xx_cnt_verbose) {
@@ -1533,11 +1533,11 @@ enum Tfa98xx_Error tfaContWriteFilesVstep(int dev_idx, int prof_idx, int vstep_i
 
 	if (!prof)
 		return Tfa98xx_Error_Bad_Parameter;
-
+	/*
 	if (tfa98xx_cnt_verbose)
 		trace_printk("device:%s profile:%s vstep:%d\n", tfaContDeviceName(dev_idx),
 					tfaContProfileName(dev_idx, prof_idx), vstep_idx);
-
+	*/
 	/* write vstep file only! */
 	for (i = 0; i < prof->length; i++) {
 		if (prof->list[i].type == dscFile) {

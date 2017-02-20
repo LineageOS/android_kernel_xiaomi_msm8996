@@ -65,7 +65,7 @@ void tfa9887_ops(struct tfa_device_ops *ops);
 #define MTPBWAIT_TRIES   125
 
 static int tfa98xx_runtime_verbose;
-static int tfa98xx_trace_level;
+static int tfa98xx_trace_level = 0;
 
 /* 4 possible I2C addresses
  */
@@ -320,8 +320,9 @@ tfa_probe(unsigned char slave_address, Tfa98xx_handle_t *pHandle)
 		*pHandle = idx;
 		error = Tfa98xx_Error_Ok;
 #ifdef __KERNEL__ /* don't spam userspace with information */
-		trace_printk("slave:0x%02x revid:0x%04x\n", slave_address, rev);
-		pr_debug("slave:0x%02x revid:0x%04x\n", slave_address, rev);
+		if (tfa98xx_trace_level) {
+			pr_debug("slave:0x%02x revid:0x%04x\n", slave_address, rev);
+		}
 #endif
 		break;
 	default:
@@ -2469,13 +2470,7 @@ enum Tfa98xx_Error tfaRunSpeakerBoost(Tfa98xx_handle_t handle, int force, int pr
 	}
 
 	value = TFA_GET_BF(handle, ACS);
-
-#ifdef __KERNEL__ /* TODO try to combine this with the pr_debug below */
-	trace_printk("%s %sstart\n",
-			tfaContDeviceName(handle),
-			value ? "cold" : "warm");
-#endif
-
+	
 	if (value == 1) {
 		/* Run startup and write all files */
 		err = tfaRunSpeakerStartup(handle, force, profile);
