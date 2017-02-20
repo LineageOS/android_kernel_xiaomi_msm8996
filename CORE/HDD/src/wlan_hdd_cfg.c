@@ -5044,6 +5044,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_STA_AUTH_RETRIES_FOR_CODE17_DEFAULT,
                 CFG_STA_AUTH_RETRIES_FOR_CODE17_MIN,
                 CFG_STA_AUTH_RETRIES_FOR_CODE17_MAX ),
+
+  REG_VARIABLE(CFG_SKIP_MAC_CONFIG, WLAN_PARAM_Integer,
+               hdd_config_t, skip_mac_config,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_SKIP_MAC_CONFIG_DEFAULT,
+               CFG_SKIP_MAC_CONFIG_MIN,
+               CFG_SKIP_MAC_CONFIG_MAX),
 };
 
 

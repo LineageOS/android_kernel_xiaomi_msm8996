@@ -4647,6 +4647,26 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_SAP_PROBE_RESP_OFFLOAD_MAX     (1)
 #define CFG_SAP_PROBE_RESP_OFFLOAD_DEFAULT (1)
 
+/*
+ * <ini>
+ * gSkipMacConfig - skip mac config
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to avoid loading mac_wlan.bin if needed
+ * during startup to save time.
+ *
+ * Related: none
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_SKIP_MAC_CONFIG         "gSkipMacConfig"
+#define CFG_SKIP_MAC_CONFIG_MIN     (0)
+#define CFG_SKIP_MAC_CONFIG_MAX     (1)
+#define CFG_SKIP_MAC_CONFIG_DEFAULT (0)
 
 /*---------------------------------------------------------------------------
   Type declarations
@@ -5501,6 +5521,7 @@ struct hdd_config {
    /* parameter to control probe resp offloads */
    bool                        sap_probe_resp_offload;
    uint32_t                    sta_auth_retries_for_code17;
+   uint8_t                     skip_mac_config;
 };
 
 typedef struct hdd_config hdd_config_t;
