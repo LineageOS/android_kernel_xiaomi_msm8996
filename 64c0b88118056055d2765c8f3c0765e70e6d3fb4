@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa5d592f_2c7c2920",
+        "filename": "sound/soc/codecs/tfa98xx.c",
+        "patchSetId": 6
+      },
+      "lineNbr": 3143,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-02-20T16:47:05Z",
+      "side": 1,
+      "message": "Keep the newline.",
+      "range": {
+        "startLine": 3143,
+        "startChar": 0,
+        "endLine": 3143,
+        "endChar": 22
+      },
+      "revId": "64c0b88118056055d2765c8f3c0765e70e6d3fb4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_0c79652f",
+        "filename": "sound/soc/codecs/tfa_container.c",
+        "patchSetId": 6
+      },
+      "lineNbr": 2047,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-02-20T16:47:05Z",
+      "side": 1,
+      "message": "Keep the newline.",
+      "range": {
+        "startLine": 2047,
+        "startChar": 0,
+        "endLine": 2047,
+        "endChar": 1
+      },
+      "revId": "64c0b88118056055d2765c8f3c0765e70e6d3fb4",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
