@@ -23832,7 +23832,7 @@ static void hdd_fill_bw_mcs(struct station_info *sinfo,
 		bool vht)
 {
 	if (vht) {
-		sinfo->tx_rate.mcs = mcsidx;
+		sinfo->txrate.mcs = mcsidx;
 		if (rate_flags & eHAL_TX_RATE_VHT80)
 			sinfo->txrate.bw = RATE_INFO_BW_80;
 		else if (rate_flags & eHAL_TX_RATE_VHT40)
