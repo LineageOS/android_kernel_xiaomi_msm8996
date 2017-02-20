@@ -13,7 +13,7 @@
  *See the License for the specific language governing permissions and
  *limitations under the License.
  */
-#define DEBUG
+
 #include "tfa_config.h"
 #include "tfa98xx_tfafieldnames.h"
 #include "tfa_internal.h"
@@ -320,7 +320,7 @@ tfa_probe(unsigned char slave_address, Tfa98xx_handle_t *pHandle)
 		 *pHandle = idx;
 		error = Tfa98xx_Error_Ok;
 #ifdef __KERNEL__ /* don't spam userspace with information */
-		trace_printk("slave:0x%02x revid:0x%04x\n", slave_address, rev);
+		tfa98xx_trace_printk("slave:0x%02x revid:0x%04x\n", slave_address, rev);
 		pr_debug("slave:0x%02x revid:0x%04x\n", slave_address, rev);
 #endif
 		break;
@@ -2466,7 +2466,7 @@ enum Tfa98xx_Error tfaRunSpeakerBoost(Tfa98xx_handle_t handle, int force, int pr
 	value = TFA_GET_BF(handle, ACS);
 
 #ifdef __KERNEL__ /* TODO try to combine this with the pr_debug below */
-	trace_printk("%s %sstart\n",
+	tfa98xx_trace_printk("%s %sstart\n",
 			tfaContDeviceName(handle),
 			value ? "cold" : "warm");
 #endif
