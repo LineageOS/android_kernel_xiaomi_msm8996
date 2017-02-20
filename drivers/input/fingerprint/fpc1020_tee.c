@@ -149,18 +149,44 @@ static const struct input_device_id ids[] = {
 	{ },
 };
 
+static void set_fingerprintd_nice(int nice)
+{
+	struct task_struct *p;
+
+	read_lock(&tasklist_lock);
+	for_each_process(p) {
+		if (!memcmp(p->comm, "fingerprintd", 13)) {
+			set_user_nice(p, nice);
+			break;
+		}
+	}
+	read_unlock(&tasklist_lock);
+}
+
 #ifdef CONFIG_FB
 static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 		unsigned long event, void *data)
 {
-	int *transition;
 	struct fb_event *evdata = data;
 	struct fpc1020_data *fpc1020 =
 			container_of(self, struct fpc1020_data,
 			fb_notifier);
+	int *transition = evdata->data;
+
+	if (*transition == FB_BLANK_NORMAL) {
+		/*
+		 * Elevate fingerprintd priority when screen is off to ensure
+		 * the fingerprint sensor is responsive and that the haptic
+		 * response on successful verification always fires.
+		 */
+		set_fingerprintd_nice(-1);
+		dev_info(fpc1020->dev, "fingerprintd set to -1");
+	} else {
+		set_fingerprintd_nice(0);
+		dev_info(fpc1020->dev, "fingerprintd set to 0");
+	}
 
 	if (evdata && evdata->data && fpc1020) {
-		transition = evdata->data;
 		if (event == FB_EVENT_BLANK) {
 			if (*transition == FB_BLANK_POWERDOWN) {
 				fpc1020->screen_on = false;
