@@ -39,6 +39,7 @@
 #include "wlan_tgt_def_config.h"
 #include "schApi.h"
 #include "wma.h"
+#include "vos_types.h"
 
 /* Structure definitions for WLAN_SET_DOT11P_CHANNEL_SCHED */
 #define AIFSN_MIN		(2)
@@ -850,6 +851,8 @@ struct wlan_hdd_ocb_config_channel {
 	sir_qos_params_t qos_params[MAX_NUM_AC];
 	uint32_t max_pwr;
 	uint32_t min_pwr;
+	uint32_t datarate;
+	uint8_t mac_address[6];
 };
 
 static void wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
@@ -876,6 +879,7 @@ static void wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
 		dest[i].max_pwr = src[i].max_pwr / 2;
 		dest[i].min_pwr = (src[i].min_pwr + 1) / 2;
 		dest[i].flags = src[i].flags;
+		vos_mem_copy(dest[i].mac_address, src[i].mac_address, 6);
 	}
 }
 
@@ -1039,10 +1043,19 @@ static int __wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 	adapter->ocb_mac_addr_count = 0;
 
 	/*
-	 * Setup locally administered mac addresses for each channel.
-	 * First channel uses the adapter's address.
+	 * Setup locally managed mac addresses for each channel.
+	 * If no configured mac address set from userspace,
+	 * first channel uses the adapter's default address.
 	 */
 	for (i = 0; i < config->channel_count; i++) {
+		/*
+		 * If dsrc_config not set the mac address, then default mac
+		 * address from dsrc_config app is all zero and invalid.
+		 */
+		if (!vos_is_macaddr_zero(
+		    (v_MACADDR_t *)config->channels[i].mac_address))
+			continue;
+
 		if (i == 0) {
 			vos_mem_copy(config->channels[i].mac_address,
 				adapter->macAddressCurrent.bytes,

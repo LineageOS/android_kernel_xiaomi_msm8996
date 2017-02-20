@@ -600,10 +600,27 @@ static bool parse_ocb_tx_header(adf_nbuf_t msdu,
  * equivalent parameter in def_ctrl_hdr will be copied to tx_ctrl.
  */
 static void merge_ocb_tx_ctrl_hdr(struct ocb_tx_ctrl_hdr_t *tx_ctrl,
-				  struct ocb_tx_ctrl_hdr_t *def_ctrl_hdr)
+				  struct ocb_tx_ctrl_hdr_t *def_ctrl_hdr,
+				  uint32_t ocb_channel_count)
 {
-	if (!tx_ctrl || !def_ctrl_hdr)
+	int i;
+	struct ocb_tx_ctrl_hdr_t *temp;
+
+	if (!tx_ctrl || !def_ctrl_hdr || !ocb_channel_count)
 		return;
+
+	/*
+	 * Find default TX ctrl parameters based on channel frequence.
+	 * Up to two different channels are supported. Default TX ctrl
+	 * parameters are configured from ocb set configure command.
+	 */
+	temp = def_ctrl_hdr;
+	for (i = 0; i < ocb_channel_count; i++, temp++) {
+		if (temp->channel_freq == tx_ctrl->channel_freq) {
+			def_ctrl_hdr = temp;
+			break;
+		}
+	}
 
 	if (!tx_ctrl->channel_freq && def_ctrl_hdr->channel_freq)
 		tx_ctrl->channel_freq = def_ctrl_hdr->channel_freq;
@@ -761,12 +778,18 @@ ol_tx_hl_base(
                 /* There was an error parsing the header. Skip this packet. */
                 goto MSDU_LOOP_BOTTOM;
             }
-            /* If the TX control header was not found, just use the defaults */
-            if (!tx_ctrl_header_found && vdev->ocb_def_tx_param)
-                vos_mem_copy(&tx_ctrl, vdev->ocb_def_tx_param, sizeof(tx_ctrl));
-            /* If the TX control header was found, merge the defaults into it */
-            else if (tx_ctrl_header_found && vdev->ocb_def_tx_param)
-                merge_ocb_tx_ctrl_hdr(&tx_ctrl, vdev->ocb_def_tx_param);
+            /*
+             * For dsrc tx frame, the TX control header MUST be provided by
+             * dsrc app, merge the saved defaults into it.
+             * The non-dsrc(like IPv6 frames etc.) tx frame has no tx_ctrl_hdr,
+             * and we distingush dsrc and non-dsrc tx frame only by whether
+             * tx_ctrl_hdr is found in the frame.
+             * So, if there has no tx_ctrl_hdr from dsrc app, then there will
+             * has no tx_ctrl_hdr added to send down to FW.
+             */
+            if (tx_ctrl_header_found && vdev->ocb_def_tx_param)
+                merge_ocb_tx_ctrl_hdr(&tx_ctrl, vdev->ocb_def_tx_param,
+                                      vdev->ocb_channel_count);
         }
 
         txq = ol_tx_classify(vdev, tx_desc, msdu, &tx_msdu_info);
