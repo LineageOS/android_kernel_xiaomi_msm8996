@@ -12,7 +12,6 @@
  * option) any later version.
  */
 
-#define DEBUG
 #define pr_fmt(fmt) "%s(): " fmt, __func__
 
 #include <linux/module.h>
@@ -1590,7 +1589,7 @@ retry:
 				ret < 0 ? "Error!!" : "");
 
 		if (tfa98xx_ftrace_regs)
-			trace_printk("\tWR     reg=0x%02x, val=0x%04x %s\n",
+			tfa98xx_trace_printk("\tWR     reg=0x%02x, val=0x%04x %s\n",
 				subaddress, value,
 				ret < 0 ? "Error!!" : "");
 	} else {
@@ -1632,7 +1631,7 @@ retry:
 			dev_dbg(&tfa98xx->i2c->dev, "RD   reg=0x%02x, val=0x%04x %s\n",
 				subaddress, *val, ret < 0 ? "Error!!" : "");
 		if (tfa98xx_ftrace_regs)
-			trace_printk("\tRD     reg=0x%02x, val=0x%04x %s\n",
+			tfa98xx_trace_printk("\tRD     reg=0x%02x, val=0x%04x %s\n",
 				subaddress, *val, ret < 0 ? "Error!!" : "");
 	} else {
 		pr_err("No device available\n");
@@ -1684,7 +1683,7 @@ enum Tfa98xx_Error tfa98xx_read_data(Tfa98xx_handle_t handle,
 			dev_dbg(&tfa98xx_client->dev, "RD-DAT reg=0x%02x, len=%d\n",
 					reg, len);
 		if (tfa98xx_ftrace_regs)
-			trace_printk("\t\tRD-DAT reg=0x%02x, len=%d\n",
+			tfa98xx_trace_printk("\t\tRD-DAT reg=0x%02x, len=%d\n",
 					reg, len);
 	} else {
 		pr_err("No device available\n");
@@ -1718,7 +1717,7 @@ retry:
 			if (tfa98xx_kmsg_regs)
 				dev_dbg(&tfa98xx->i2c->dev, "  WR-RAW len=%d\n", len);
 			if (tfa98xx_ftrace_regs)
-				trace_printk("\t\tWR-RAW len=%d\n", len);
+				tfa98xx_trace_printk("\t\tWR-RAW len=%d\n", len);
 			return Tfa98xx_Error_Ok;
 		}
 		pr_err("  WR-RAW (len=%d) Error I2C send size mismatch %d\n", len, ret);
@@ -3115,7 +3114,7 @@ static struct i2c_driver tfa98xx_i2c_driver = {
 	.id_table = tfa98xx_i2c_id,
 };
 
-static int trace_level = 1;
+static int trace_level = 0;
 module_param(trace_level, int, S_IRUGO);
 MODULE_PARM_DESC(trace_level, "TFA98xx debug trace level (0=off, bits:1=verbose,2=regdmesg,3=regftrace).");
 static int __init tfa98xx_i2c_init(void)

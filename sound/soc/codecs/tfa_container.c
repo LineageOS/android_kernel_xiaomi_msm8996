@@ -14,7 +14,6 @@
  *limitations under the License.
  */
 
-#define DEBUG
 #include "tfa_service.h"
 #include "tfa_container.h"
 #include "tfa_config.h"
@@ -1304,7 +1303,7 @@ enum Tfa98xx_Error tfaContWriteProfile(int dev_idx, int prof_idx, int vstep_idx)
 		return Tfa98xx_Error_Bad_Parameter;
 
 	if (tfa98xx_cnt_verbose) {
-		trace_printk("device:%s profile:%s vstep:%d\n", tfaContDeviceName(dev_idx),
+		tfa98xx_trace_printk("device:%s profile:%s vstep:%d\n", tfaContDeviceName(dev_idx),
 					tfaContProfileName(dev_idx, prof_idx), vstep_idx);
 	}
 
@@ -1531,7 +1530,7 @@ enum Tfa98xx_Error tfaContWriteFilesVstep(int dev_idx, int prof_idx, int vstep_i
 		return Tfa98xx_Error_Bad_Parameter;
 
 	if (tfa98xx_cnt_verbose)
-		trace_printk("device:%s profile:%s vstep:%d\n", tfaContDeviceName(dev_idx),
+		tfa98xx_trace_printk("device:%s profile:%s vstep:%d\n", tfaContDeviceName(dev_idx),
 					tfaContProfileName(dev_idx, prof_idx), vstep_idx);
 
 	/* write vstep file only! */
