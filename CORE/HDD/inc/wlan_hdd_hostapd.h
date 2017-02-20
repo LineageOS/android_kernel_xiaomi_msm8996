@@ -228,7 +228,7 @@ bool hdd_hostapd_sub20_channelwidth_can_switch(
 	hdd_adapter_t *adapter, uint32_t *sub20_channel_width);
 bool hdd_hostapd_sub20_channelwidth_can_restore(
 	hdd_adapter_t *adapter);
-bool hdd_hostapd_sub20_channelwidth_can_set(
+bool hdd_sub20_channelwidth_can_set(
 	hdd_adapter_t *adapter, uint32_t sub20_channel_width);
 int hdd_softap_set_channel_sub20_chanwidth_change(
 	struct net_device *dev, uint32_t chan_width);
@@ -245,7 +245,7 @@ static inline bool hdd_hostapd_sub20_channelwidth_can_restore(
 	return false;
 }
 
-static inline bool hdd_hostapd_sub20_channelwidth_can_set(
+static inline bool hdd_sub20_channelwidth_can_set(
 	hdd_adapter_t *adapter, uint32_t sub20_channel_width)
 {
 	return false;

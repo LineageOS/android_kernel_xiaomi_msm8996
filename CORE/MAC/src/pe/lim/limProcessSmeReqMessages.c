@@ -733,6 +733,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         /* Update sub 20MHz channel width */
         psessionEntry->sub20_channelwidth = pSmeStartBssReq->sub20_channelwidth;
+        psessionEntry->lim_sub20_channel_switch_bandwidth =
+            pSmeStartBssReq->sub20_channelwidth;
 
         vos_mem_copy((void*)&psessionEntry->rateSet,
             (void*)&pSmeStartBssReq->operationalRateSet,

@@ -235,6 +235,7 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
     tSirRetStatus   retCode = eSIR_SUCCESS;
     tSirMsgQ msgQ;
     tpPESession pSessionEntry;
+    uint32_t old_channelwidth;
     if((pSessionEntry = peFindSessionBySessionId(pMac, peSessionId)) == NULL)
     {
        limLog( pMac, LOGP,
@@ -273,10 +274,15 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
     pChnlParams->reduced_beacon_interval =
        pMac->sap.SapDfsInfo.reduced_beacon_interval;
 
+    old_channelwidth = pChnlParams->channelwidth;
     if (pSessionEntry->sub20_channelwidth == SUB20_MODE_5MHZ)
             pChnlParams->channelwidth = CH_WIDTH_5MHZ;
     else if (pSessionEntry->sub20_channelwidth == SUB20_MODE_10MHZ)
             pChnlParams->channelwidth = CH_WIDTH_10MHZ;
+
+    if (old_channelwidth != pChnlParams->channelwidth)
+        sme_set_sta_chanlist_with_sub20(pMac,
+                                        pSessionEntry->sub20_channelwidth);
 
     limLog(pMac, LOG1, FL("Set sub20 channel width %d"),
            pSessionEntry->sub20_channelwidth);

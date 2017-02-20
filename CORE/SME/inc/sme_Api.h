@@ -4580,7 +4580,8 @@ void sme_add_set_thermal_level_callback(tHalHandle hHal,
 eHalStatus sme_handle_set_fcc_channel(tHalHandle hHal,
 		bool fcc_constraint,
 		uint32_t scan_pending);
-
+eHalStatus sme_set_sta_chanlist_with_sub20(tHalHandle hal_ptr,
+					   uint8_t chan_width);
 eHalStatus sme_set_rssi_monitoring(tHalHandle hal,
 					struct rssi_monitor_req *input);
 eHalStatus sme_set_rssi_threshold_breached_cb(tHalHandle hal,
