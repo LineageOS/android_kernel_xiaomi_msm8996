@@ -6537,6 +6537,7 @@ struct sir_wifi_ll_ext_wmm_ac_stats {
  * struct sir_wifi_ll_ext_peer_stats - per peer stats
  * @peer_id: peer ID
  * @vdev_id: VDEV ID
+ * mac_address: MAC address
  * @sta_ps_inds: how many times STAs go to sleep
  * @sta_ps_durs: total sleep time of STAs (units in ms)
  * @rx_probe_reqs: number of probe requests received
@@ -6548,6 +6549,7 @@ struct sir_wifi_ll_ext_wmm_ac_stats {
 struct sir_wifi_ll_ext_peer_stats {
 	uint32_t peer_id;
 	uint32_t vdev_id;
+	tSirMacAddr mac_address;
 	uint32_t sta_ps_inds;
 	uint32_t sta_ps_durs;
 	uint32_t rx_probe_reqs;
