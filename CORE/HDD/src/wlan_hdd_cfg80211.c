@@ -1856,7 +1856,7 @@ __wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 	uint8_t session_id;
 	struct roam_ext_params roam_params;
 	uint32_t cmd_type, req_id;
-	struct nlattr *curr_attr;
+	struct nlattr *curr_attr = NULL;
 	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX + 1];
 	struct nlattr *tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX + 1];
 	int rem, i;
@@ -1898,46 +1898,61 @@ __wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 	switch(cmd_type) {
 	case QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_SSID_WHITE_LIST:
 		i = 0;
-		nla_for_each_nested(curr_attr,
-			tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID_LIST],
-			rem) {
-			if (nla_parse(tb2,
-				QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_MAX,
-				nla_data(curr_attr), nla_len(curr_attr),
-				NULL)) {
-				hddLog(LOGE, FL("nla_parse failed"));
-				goto fail;
+		if (tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID_NUM_NETWORKS]) {
+			count = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID_NUM_NETWORKS]);
+		} else {
+			hddLog(LOGE, FL("Number of networks is not provided"));
+			goto fail;
+		}
+
+		if (count &&
+		    tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID_LIST]) {
+			nla_for_each_nested(curr_attr,
+				tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID_LIST],
+				rem) {
+				if (nla_parse(tb2,
+					QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_MAX,
+					nla_data(curr_attr), nla_len(curr_attr),
+					NULL)) {
+					hddLog(LOGE, FL("nla_parse failed"));
+					goto fail;
+				}
+				/* Parse and Fetch allowed SSID list*/
+				if (!tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID]) {
+					hddLog(LOGE, FL("attr allowed ssid failed"));
+					goto fail;
+				}
+				buf_len = nla_len(tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID]);
+				/*
+				 * Upper Layers include a null termination character.
+				 * Check for the actual permissible length of SSID and
+				 * also ensure not to copy the NULL termination
+				 * character to the driver buffer.
+				 */
+				if (buf_len && (i < MAX_SSID_ALLOWED_LIST) &&
+					((buf_len - 1) <= SIR_MAC_MAX_SSID_LENGTH)) {
+					nla_memcpy(roam_params.ssid_allowed_list[i].ssId,
+						tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID],
+						buf_len - 1);
+					roam_params.ssid_allowed_list[i].length =
+						buf_len - 1;
+					hddLog(VOS_TRACE_LEVEL_DEBUG,
+						FL("SSID[%d]: %.*s,length = %d"), i,
+						roam_params.ssid_allowed_list[i].length,
+						roam_params.ssid_allowed_list[i].ssId,
+						roam_params.ssid_allowed_list[i].length);
+					i++;
+				} else {
+					hddLog(LOGE, FL("Invalid SSID len %d,idx %d"),
+						buf_len, i);
+				}
 			}
-			/* Parse and Fetch allowed SSID list*/
-			if (!tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID]) {
-				hddLog(LOGE, FL("attr allowed ssid failed"));
-				goto fail;
-			}
-			buf_len = nla_len(tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID]);
-			/*
-			 * Upper Layers include a null termination character.
-			 * Check for the actual permissible length of SSID and
-			 * also ensure not to copy the NULL termination
-			 * character to the driver buffer.
-			 */
-			if (buf_len && (i < MAX_SSID_ALLOWED_LIST) &&
-				((buf_len - 1) <= SIR_MAC_MAX_SSID_LENGTH)) {
-				nla_memcpy(roam_params.ssid_allowed_list[i].ssId,
-					tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID],
-					buf_len - 1);
-				roam_params.ssid_allowed_list[i].length =
-					buf_len - 1;
-				hddLog(VOS_TRACE_LEVEL_DEBUG,
-					FL("SSID[%d]: %.*s,length = %d"), i,
-					roam_params.ssid_allowed_list[i].length,
-					roam_params.ssid_allowed_list[i].ssId,
-					roam_params.ssid_allowed_list[i].length);
-				i++;
-			}
-			else {
-				hddLog(LOGE, FL("Invalid SSID len %d,idx %d"),
-					buf_len, i);
-			}
+		}
+		if (i != count) {
+			hddLog(LOGE, FL("Invalid number of SSIDs i = %d, count = %d"),
+						i, count);
+			goto fail;
 		}
 		roam_params.num_ssid_allowed_list = i;
 		hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Num of Allowed SSID %d"),
@@ -2109,34 +2124,39 @@ __wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 		hddLog(VOS_TRACE_LEVEL_DEBUG,
 			FL("Num of blacklist BSSID: %d"), count);
 		i = 0;
-		nla_for_each_nested(curr_attr,
-			tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS],
-			rem) {
-
-			if (i == count) {
-				hddLog(LOGW, FL("Ignoring excess Blacklist BSSID"));
-				break;
+		if (count &&
+		    tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS]) {
+			nla_for_each_nested(curr_attr,
+				tb[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS],
+				rem) {
+				if (i == count) {
+					hddLog(LOGW, FL("Ignoring excess Blacklist BSSID"));
+					break;
+				}
+				if (curr_attr == NULL) {
+					hddLog(LOGW, FL("Blacklist BSSID, curr_attr is null"));
+					continue;
+				}
+				if (nla_parse(tb2,
+					QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX,
+					nla_data(curr_attr), nla_len(curr_attr),
+					NULL)) {
+					hddLog(LOGE, FL("nla_parse failed"));
+					goto fail;
+				}
+				/* Parse and fetch MAC address */
+				if (!tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS_BSSID]) {
+					hddLog(LOGE, FL("attr blacklist addr failed"));
+					goto fail;
+				}
+				nla_memcpy(roam_params.bssid_avoid_list[i],
+					tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS_BSSID],
+					sizeof(tSirMacAddr));
+				hddLog(VOS_TRACE_LEVEL_DEBUG, MAC_ADDRESS_STR,
+					MAC_ADDR_ARRAY(
+					roam_params.bssid_avoid_list[i]));
+				i++;
 			}
-
-			if (nla_parse(tb2,
-				QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX,
-				nla_data(curr_attr), nla_len(curr_attr),
-				NULL)) {
-				hddLog(LOGE, FL("nla_parse failed"));
-				goto fail;
-			}
-			/* Parse and fetch MAC address */
-			if (!tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS_BSSID]) {
-				hddLog(LOGE, FL("attr blacklist addr failed"));
-				goto fail;
-			}
-			nla_memcpy(roam_params.bssid_avoid_list[i],
-				tb2[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS_BSSID],
-				sizeof(tSirMacAddr));
-			hddLog(VOS_TRACE_LEVEL_DEBUG, MAC_ADDRESS_STR,
-				MAC_ADDR_ARRAY(
-				roam_params.bssid_avoid_list[i]));
-			i++;
 		}
 		if (i < count)
 			hddLog(LOGW,
@@ -6978,6 +6998,8 @@ static int put_wifi_ll_ext_peer_info(struct sir_wifi_ll_ext_peer_stats *peers,
 	    nla_put_u32(skb,
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_MGMT,
 			peers->rx_oth_mgmts) ||
+	    nla_put(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS,
+		    VOS_MAC_ADDR_SIZE, peers->mac_address) ||
 	    put_wifi_signal_info(&peers->peer_signal_stats, skb)) {
 		hddLog(LOGE, FL("put peer signal attr failed"));
 		return -EINVAL;

@@ -2135,6 +2135,42 @@ VOS_STATUS tl_shim_get_vdevid(struct ol_txrx_peer_t *peer, u_int8_t *vdev_id)
 	return VOS_STATUS_SUCCESS;
 }
 
+#ifdef QCA_SUPPORT_TXRX_LOCAL_PEER_ID
+/**
+ * tl_shim_get_sta_id_by_addr() - get peer local id given the MAC address.
+ * @vos_context: pointer to vos context
+ * @mac_addr: pointer to mac address
+ *
+ * Return: local id of the peer given the MAC address.
+ */
+uint16_t tl_shim_get_sta_id_by_addr(void *vos_context, uint8_t *mac_addr)
+{
+	struct ol_txrx_peer_t *peer;
+	ol_txrx_pdev_handle pdev;
+	uint8_t peer_id;
+
+	if (vos_context == NULL || mac_addr == NULL) {
+		TLSHIM_LOGE("Invalid argument %p, %p", vos_context, mac_addr);
+		return 0;
+	}
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_context);
+	if (!pdev) {
+		TLSHIM_LOGE("PDEV [%pM] not found", mac_addr);
+		return 0;
+	}
+
+	peer = ol_txrx_find_peer_by_addr(pdev, mac_addr, &peer_id);
+
+	if (!peer) {
+		TLSHIM_LOGW("PEER [%pM] not found", mac_addr);
+		return 0;
+	}
+
+	return peer->local_id;
+}
+#endif
+
 /*
  * Function to get vdev(tl_context) given the MAC address.
  */
