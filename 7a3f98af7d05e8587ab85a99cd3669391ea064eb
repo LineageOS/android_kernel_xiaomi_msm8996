@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa5d592f_81b63e89",
+        "filename": "mm/swap_ratio.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 10258
+      },
+      "writtenOn": "2017-02-20T13:14:39Z",
+      "side": 1,
+      "message": "not needed",
+      "range": {
+        "startLine": 69,
+        "startChar": 0,
+        "endLine": 70,
+        "endChar": 61
+      },
+      "revId": "7a3f98af7d05e8587ab85a99cd3669391ea064eb",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa5d592f_a1c142e6",
+        "filename": "sound/soc/msm/qdsp6v2/msm-pcm-q6-noirq.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 10258
+      },
+      "writtenOn": "2017-02-20T13:14:39Z",
+      "side": 1,
+      "message": "not needed",
+      "range": {
+        "startLine": 52,
+        "startChar": 0,
+        "endLine": 61,
+        "endChar": 6
+      },
+      "revId": "7a3f98af7d05e8587ab85a99cd3669391ea064eb",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
