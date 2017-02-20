@@ -119,5 +119,11 @@ struct tfa98xx {
 	unsigned int flags;
 };
 
+#if defined(CONFIG_TRACING) && defined(DEBUG)
+#define tfa98xx_trace_printk(...) trace_printk(__VA_ARGS__)
+#else
+#define tfa98xx_trace_printk(...)
+#endif
+
 #endif /* __CONFIG_LINUX_KERNEL_INC__ */
 
