@@ -1266,9 +1266,6 @@ int wlan_hdd_validate_context(hdd_context_t *pHddCtx)
 
     if ((pHddCtx->isLoadInProgress) ||
         (pHddCtx->isUnloadInProgress)) {
-        hddLog(LOG1,
-             FL("%pS Unloading/Loading in Progress. Ignore!!!"),
-             (void *)_RET_IP_);
         return -EAGAIN;
     }
     return 0;
