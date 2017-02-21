@@ -36,7 +36,11 @@
 #include <linux/netdevice.h>
 #include <linux/dma-mapping.h>
 #include <asm/types.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,2,0))
+#include <linux/scatterlist.h>
+#else
 #include <asm/scatterlist.h>
+#endif
 #include <adf_os_types.h>
 #include <adf_nbuf.h>
 
