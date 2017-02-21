@@ -1784,7 +1784,12 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
 #endif
 
     ret = hifEnableFunc(device, func);
-    return (ret == A_OK || ret == A_PENDING) ? 0 : -1;
+    if (ret == A_OK || ret == A_PENDING) {
+        return 0;
+    } else {
+        delHifDevice(device);
+        return -1;
+    }
 }
 
 
@@ -2088,9 +2093,17 @@ static A_STATUS hifEnableFunc(HIF_DEVICE *device, struct sdio_func *func)
         ret = osdrvCallbacks.deviceInsertedHandler(
             osdrvCallbacks.context,device);
         /* start  up inform DRV layer */
-        if (ret != A_OK)
+        if (ret != A_OK) {
             AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
                 ("AR6k: Device rejected error:%d \n", ret));
+            /*
+             * Disable the SDIO func & Reset the sdio
+             * for automated tests to move ahead, where
+             * the card does not need to be removed at
+             * the end of the test.
+             */
+            hifDisableFunc(device, func);
+        }
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27) && defined(CONFIG_PM)
     } else {
         AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,

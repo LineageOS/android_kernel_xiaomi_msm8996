@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -265,6 +265,8 @@ ath_hif_sdio_probe(void *context, void *hif_handle)
 
 err_attach2:
     athdiag_procfs_remove();
+    if (sc->ol_sc->ramdump_base)
+        hif_release_ramdump_mem(sc->ol_sc->ramdump_base);
     hif_deinit_adf_ctx(ol_sc);
 err_attach1:
     A_FREE(ol_sc);
