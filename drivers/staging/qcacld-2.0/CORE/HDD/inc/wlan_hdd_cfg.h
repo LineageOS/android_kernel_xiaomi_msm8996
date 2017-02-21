@@ -3934,7 +3934,7 @@ enum dot11p_mode {
 #define CFG_SAP_INTERNAL_RESTART_NAME    "gEnableSapInternalRestart"
 #define CFG_SAP_INTERNAL_RESTART_MIN     (0)
 #define CFG_SAP_INTERNAL_RESTART_MAX     (1)
-#define CFG_SAP_INTERNAL_RESTART_DEFAULT (0)
+#define CFG_SAP_INTERNAL_RESTART_DEFAULT (1)
 
 /*
  * This parameter will help to debug ssr reinit failure issues

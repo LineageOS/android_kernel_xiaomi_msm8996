@@ -14420,23 +14420,21 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         // txBFIniFeatureEnabled
         *pBuf = (tANI_U8)pMac->roam.configParam.txBFEnable;
         pBuf++;
-
         // txBFCsnValue
         if (IS_BSS_VHT_CAPABLE(pIes->VHTCaps) &&
-			pMac->roam.configParam.txBFEnable) {
-		txBFCsnValue = (tANI_U8)pMac->roam.configParam.txBFCsnValue;
-		if (pIes->VHTCaps.numSoundingDim)
-			txBFCsnValue = MIN(txBFCsnValue,
-					pIes->VHTCaps.numSoundingDim);
-        }
-        else if (IS_BSS_VHT_CAPABLE(pIes->vendor2_ie.VHTCaps) &&
+           pMac->roam.configParam.txBFEnable) {
+            txBFCsnValue =
+              (tANI_U8)pMac->roam.configParam.txBFCsnValue;
+            if (pIes->VHTCaps.csnofBeamformerAntSup)
+                txBFCsnValue = MIN(txBFCsnValue,
+                  pIes->VHTCaps.csnofBeamformerAntSup);
+        } else if (IS_BSS_VHT_CAPABLE(pIes->vendor2_ie.VHTCaps) &&
                        pMac->roam.configParam.txBFEnable) {
-               txBFCsnValue = (tANI_U8)pMac->roam.configParam.txBFCsnValue;
-               if (pIes->vendor2_ie.VHTCaps.numSoundingDim)
-                       txBFCsnValue = MIN(txBFCsnValue,
-                                       pIes->vendor2_ie.VHTCaps.numSoundingDim);
+            txBFCsnValue = (tANI_U8)pMac->roam.configParam.txBFCsnValue;
+            if (pIes->vendor2_ie.VHTCaps.csnofBeamformerAntSup)
+                txBFCsnValue = MIN(txBFCsnValue,
+                   pIes->vendor2_ie.VHTCaps.csnofBeamformerAntSup);
         }
-
         *pBuf = txBFCsnValue;
         pBuf++;
 
