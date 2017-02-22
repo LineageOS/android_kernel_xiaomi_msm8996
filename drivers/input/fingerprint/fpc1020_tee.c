@@ -83,6 +83,7 @@ struct fpc1020_data {
 
 	struct input_handler input_handler;
 	bool report_key_events;
+	struct work_struct pm_work;
 };
 
 enum {
@@ -151,6 +152,20 @@ static const struct input_device_id ids[] = {
 	{ },
 };
 
+static void set_fingerprintd_nice(int nice)
+{
+	struct task_struct *p;
+
+	read_lock(&tasklist_lock);
+	for_each_process(p) {
+		if (!memcmp(p->comm, "fingerprintd", 13)) {
+			set_user_nice(p, nice);
+			break;
+		}
+	}
+	read_unlock(&tasklist_lock);
+}
+
 static void set_fpc_irq(struct fpc1020_data *fpc1020, bool enable)
 {
 	bool irq_enabled;
@@ -169,18 +184,34 @@ static void set_fpc_irq(struct fpc1020_data *fpc1020, bool enable)
 		disable_irq(gpio_to_irq(fpc1020->irq_gpio));
 }
 
+static void fpc1020_suspend_resume(struct work_struct *work)
+{
+	struct fpc1020_data *fpc1020 =
+		container_of(work, typeof(*fpc1020), pm_work);
+
+	if (fpc1020->screen_on) {
+		set_fingerprintd_nice(0);
+	} else {
+		/*
+		 * Elevate fingerprintd priority when screen is off to ensure
+		 * the fingerprint sensor is responsive and that the haptic
+		 * response on successful verification always fires.
+		 */
+		set_fingerprintd_nice(-1);
+	}
+}
+
 #ifdef CONFIG_FB
 static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 		unsigned long event, void *data)
 {
-	int *transition;
 	struct fb_event *evdata = data;
 	struct fpc1020_data *fpc1020 =
 			container_of(self, struct fpc1020_data,
 			fb_notifier);
+	int *transition = evdata->data;
 
 	if (evdata && evdata->data && fpc1020) {
-		transition = evdata->data;
 		if (event == FB_EVENT_BLANK) {
 			if (*transition == FB_BLANK_POWERDOWN) {
 				fpc1020->screen_on = false;
@@ -189,6 +220,7 @@ static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 				   only if fingerprint wake up is disabled */
 				if (fpc1020->wakeup_enabled == 0 && fpc1020->irq_enabled) {
 					set_fpc_irq(fpc1020, false);
+					queue_work(system_highpri_wq, &fpc1020->pm_work);
 				}
 			}
 		} else if (event == FB_EARLY_EVENT_BLANK) {
@@ -198,7 +230,7 @@ static int fpc1020_fb_notifier_cb(struct notifier_block *self,
 				/* Unconditionally enable IRQ when screen turns on */
 				if (!fpc1020->irq_enabled) {
 					set_fpc_irq(fpc1020, true);
-
+					queue_work(system_highpri_wq, &fpc1020->pm_work);
 				}
 			}
 		}
@@ -639,6 +671,8 @@ static int fpc1020_tee_probe(struct platform_device *pdev)
 	fp_id = fpc1020_get_fp_id_tee(fpc1020);
 	dev_info(fpc1020->dev,
 		"fpc vendor fp_id is %d (0:low 1:high 2:float 3:unknown)\n", fp_id);
+
+	INIT_WORK(&fpc1020->pm_work, fpc1020_suspend_resume);
 
 #ifdef CONFIG_FB
 	fpc1020->fb_notifier.notifier_call = fpc1020_fb_notifier_cb;
