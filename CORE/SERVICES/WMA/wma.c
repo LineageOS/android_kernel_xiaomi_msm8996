@@ -8348,7 +8348,8 @@ wma_chan_info_event_handler(void *handle, u_int8_t *event_buf,
 		WMA_LOGI(FL("freq=%d nf=%d rx_cnt=%u cycle_count=%u "
 			    "tx_pwr_range=%d tx_pwr_tput=%d "
 			    "rx_frame_count=%u my_bss_rx_cycle_count=%u "
-			    "rx_11b_mode_data_duration=%d cmd_flags=%d"),
+			    "rx_11b_mode_data_duration=%d "
+			    "tx_frame_cnt=%d mac_clk_mhz=%d cmd_flags=%d"),
 			 event->freq,
 			 event->noise_floor,
 			 event->rx_clear_count,
@@ -8358,6 +8359,8 @@ wma_chan_info_event_handler(void *handle, u_int8_t *event_buf,
 			 event->rx_frame_count,
 			 event->my_bss_rx_cycle_count,
 			 event->rx_11b_mode_data_duration,
+			 event->tx_frame_cnt,
+			 event->mac_clk_mhz,
 			 event->cmd_flags
 			);
 
@@ -8376,6 +8379,10 @@ wma_chan_info_event_handler(void *handle, u_int8_t *event_buf,
 			event->my_bss_rx_cycle_count;
 		channel_status->rx_11b_mode_data_duration =
 			event->rx_11b_mode_data_duration;
+		channel_status->tx_frame_count =
+			event->tx_frame_cnt;
+		channel_status->mac_clk_mhz =
+			event->mac_clk_mhz;
 		channel_status->channel_id =
 			vos_freq_to_chan(event->freq);
 		channel_status->cmd_flags =

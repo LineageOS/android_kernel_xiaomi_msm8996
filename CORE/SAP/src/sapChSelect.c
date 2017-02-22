@@ -943,7 +943,9 @@ uint32_t sap_weight_channel_free(ptSapContext sap_ctx,
 		return softap_channel_free_weight_local;
 	}
 
-	rx_clear_count = channel_stat->rx_clear_count;
+	rx_clear_count = channel_stat->rx_clear_count -
+			 channel_stat->tx_frame_count -
+			 channel_stat->rx_frame_count;
 	cycle_count = channel_stat->cycle_count;
 
 	/* LSH 4, otherwise it is always 0. */
@@ -961,8 +963,10 @@ uint32_t sap_weight_channel_free(ptSapContext sap_ctx,
 		channel_free_weight = softap_channel_free_weight_local;
 
 	VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-		  "In %s, rcc=%d, cc=%d, cfwc=%d, cfwl=%d, cfw=%d",
+		  "In %s, rcc=%d, cc=%d, tc=%d, rc=%d, cfwc=%d, cfwl=%d, cfw=%d",
 		  __func__, rx_clear_count, cycle_count,
+		  channel_stat->tx_frame_count,
+		  channel_stat->rx_frame_count,
 		  softap_channel_free_weight_cfg,
 		  softap_channel_free_weight_local,
 		  channel_free_weight);
