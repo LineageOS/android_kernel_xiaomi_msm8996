@@ -15858,6 +15858,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         break;
     }
 
+    pConfig->auto_channel_select_weight = iniConfig->auto_channel_select_weight;
     //channel is already set in the set_channel Call back
     //pConfig->channel = pCommitConfig->channel;
 
