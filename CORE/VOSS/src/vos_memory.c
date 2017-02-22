@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -465,9 +465,6 @@ v_VOID_t *vos_mem_malloc_debug(v_SIZE_t size, const char *fileName,
       memPtr = (v_VOID_t*)(memStruct + 1);
    }
 
-   if (!memPtr)
-       vos_log_low_resource_failure(WIFI_EVENT_MEMORY_FAILURE);
-
    return memPtr;
 }
 
@@ -560,8 +557,6 @@ v_VOID_t * vos_mem_malloc( v_SIZE_t size )
            __func__,
            vos_timer_get_system_time() - time_before_kmalloc,
            size, (void *)_RET_IP_);
-   if (!memPtr)
-       vos_log_low_resource_failure(WIFI_EVENT_MEMORY_FAILURE);
 
    return memPtr;
 }
