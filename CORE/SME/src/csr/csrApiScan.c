@@ -74,6 +74,8 @@
 /* Must be less than 100, represent the percentage of new RSSI */
 #define CSR_SCAN_RESULT_RSSI_WEIGHT     80
 
+#define CSR_PURGE_RSSI_THRESHOLD     -70
+
 #define MAX_ACTIVE_SCAN_FOR_ONE_CHANNEL 140
 #define MIN_ACTIVE_SCAN_FOR_ONE_CHANNEL 120
 
@@ -111,7 +113,7 @@ eHalStatus csrSetBGScanChannelList( tpAniSirGlobal pMac, tANI_U8 *pAdjustChannel
 void csrReleaseCmdSingle(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 tANI_BOOLEAN csrRoamIsValidChannel( tpAniSirGlobal pMac, tANI_U8 channel );
 void csrPruneChannelListForMode( tpAniSirGlobal pMac, tCsrChannel *pChannelList );
-void csr_purge_old_scan_results(tpAniSirGlobal mac_ctx);
+void csr_purge_scan_result(tpAniSirGlobal mac_ctx);
 
 #define CSR_IS_SOCIAL_CHANNEL(channel) (((channel) == 1) || ((channel) == 6) || ((channel) == 11) )
 
@@ -3326,7 +3328,7 @@ static void csrMoveTempScanResultsToMainList(tpAniSirGlobal pMac,
           )
         {
             smsLog(pMac, LOG1, FL("########## BSS Limit reached ###########"));
-            csr_purge_old_scan_results(pMac);
+            csr_purge_scan_result(pMac);
         }
         // check for duplicate scan results
         if ( !fDupBss )
@@ -3432,47 +3434,62 @@ end:
 }
 
 /**
- * csr_purge_old_scan_results() - This function removes old scan entries
+ * csr_purge_scan_results() - This function removes scan entry based
+ * on RSSI or AGE
  * @mac_ctx: pointer to Global MAC structure
  *
- * This function removes old scan entries
+ * This function removes scan entry based on RSSI or AGE.
+ * If an scan entry with RSSI less than CSR_PURGE_RSSI_THRESHOLD,
+ * the scan entry is removed else oldest entry is removed.
  *
  * Return: None
  */
 
-void csr_purge_old_scan_results(tpAniSirGlobal mac_ctx)
+void csr_purge_scan_result(tpAniSirGlobal mac_ctx)
 {
 	tListElem *pentry, *tmp_entry;
-	tCsrScanResult *presult, *oldest_bss = NULL;
-    v_TIME_t oldest_entry = 0;
-    v_TIME_t curr_time = vos_timer_get_system_time();
+	tCsrScanResult *presult, *oldest_bss = NULL, *weakest_bss = NULL;
+	v_TIME_t oldest_entry = 0;
+	v_TIME_t curr_time = vos_timer_get_system_time();
+	tANI_S8 weakest_rssi = 0;
 
 	csrLLLock(&mac_ctx->scan.scanResultList);
 	pentry = csrLLPeekHead(&mac_ctx->scan.scanResultList, LL_ACCESS_NOLOCK);
-	while(pentry)
-	{
+	while (pentry) {
 		tmp_entry = csrLLNext(&mac_ctx->scan.scanResultList, pentry,
 			LL_ACCESS_NOLOCK);
 		presult = GET_BASE_ADDR(pentry, tCsrScanResult, Link);
-		if((curr_time - presult->Result.BssDescriptor.nReceivedTime) >
-		    oldest_entry) {
+		if ((curr_time -
+		   presult->Result.BssDescriptor.nReceivedTime) >
+		   oldest_entry) {
 			oldest_entry = curr_time -
 				presult->Result.BssDescriptor.nReceivedTime;
 			oldest_bss = presult;
 		}
+		if (presult->Result.BssDescriptor.rssi < weakest_rssi) {
+			weakest_rssi = presult->Result.BssDescriptor.rssi;
+			weakest_bss = presult;
+		}
 		pentry = tmp_entry;
 	}
 	if (oldest_bss) {
+		tCsrScanResult *bss_to_remove;
+
+		if (weakest_rssi < CSR_PURGE_RSSI_THRESHOLD)
+			bss_to_remove = weakest_bss;
+		else
+			bss_to_remove = oldest_bss;
 		/* Free the old BSS Entries */
-		if(csrLLRemoveEntry(&mac_ctx->scan.scanResultList,
-		   &oldest_bss->Link, LL_ACCESS_NOLOCK)) {
+		if (csrLLRemoveEntry(&mac_ctx->scan.scanResultList,
+		   &bss_to_remove->Link, LL_ACCESS_NOLOCK)) {
 			smsLog(mac_ctx, LOG1,
-				FL("Current time delta (%lu) of BSSID to be removed" MAC_ADDRESS_STR),
-				(curr_time -
-				oldest_bss->Result.BssDescriptor.nReceivedTime),
+				FL("BSSID: "MAC_ADDRESS_STR" Removed, time delta (%lu) RSSI %d"),
 				MAC_ADDR_ARRAY(
-				oldest_bss->Result.BssDescriptor.bssId));
-			csrFreeScanResultEntry(mac_ctx, oldest_bss);
+				bss_to_remove->Result.BssDescriptor.bssId),
+				(curr_time -
+				bss_to_remove->Result.BssDescriptor.nReceivedTime),
+				bss_to_remove->Result.BssDescriptor.rssi);
+			csrFreeScanResultEntry(mac_ctx, bss_to_remove);
 		}
 	}
 	csrLLUnlock(&mac_ctx->scan.scanResultList);
