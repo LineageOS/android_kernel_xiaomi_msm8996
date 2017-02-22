@@ -2590,4 +2590,8 @@ void hdd_svc_fw_shutdown_ind(struct device *dev);
 void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx);
 void wlan_hdd_init_chan_info(hdd_context_t *hdd_ctx);
 void wlan_hdd_deinit_chan_info(hdd_context_t *hdd_ctx);
+
+void hdd_chip_pwr_save_fail_detected_cb(void *hddctx,
+				struct chip_pwr_save_fail_detected_params
+				*data);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
