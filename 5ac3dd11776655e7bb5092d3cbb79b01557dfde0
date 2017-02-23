@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa5d592f_22fc2d3e",
+        "filename": "drivers/input/fingerprint/fpc1020_tee.c",
+        "patchSetId": 8
+      },
+      "lineNbr": 207,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-02-23T14:26:43Z",
+      "side": 1,
+      "message": "Better do this conditionally as well: if (fpc1020-\u003ewakeup_enabled \u003d\u003d 0).\n\nNo point changing fingerprintd prio if fingerprint wakeup feature is disabled.",
+      "range": {
+        "startLine": 207,
+        "startChar": 2,
+        "endLine": 207,
+        "endChar": 28
+      },
+      "revId": "5ac3dd11776655e7bb5092d3cbb79b01557dfde0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
