@@ -3042,6 +3042,8 @@ typedef struct sLimScanChn
  * @rx_frame_count: rx frame count (cumulative)
  * @bss_rx_cycle_count: BSS rx cycle count
  * @rx_11b_mode_data_duration: b-mode data rx time (units are microseconds)
+ * @tx_frame_count: BSS tx cycle count
+ * @mac_clk_mhz: sample frequency
  * @channel_id: channel index
  * @cmd_flags: indicate which stat event is this status coming from
  */
@@ -3055,6 +3057,8 @@ struct lim_channel_status {
 	uint32_t    rx_frame_count;
 	uint32_t    bss_rx_cycle_count;
 	uint32_t    rx_11b_mode_data_duration;
+	uint32_t    tx_frame_count;
+	uint32_t    mac_clk_mhz;
 	uint32_t    channel_id;
 	uint32_t    cmd_flags;
 };
@@ -7370,6 +7374,17 @@ struct rssi_breach_event {
 	uint32_t     session_id;
 	int8_t       curr_rssi;
 	v_MACADDR_t  curr_bssid;
+};
+
+/**
+ * struct chip_pwr_save_fail_detected_params - chip power save failure detected
+ * event params
+ * @failure_reason_code:failure reason code
+ * @wake_lock_bitmap:bitmap for modules voting against sleep for long duration.
+ */
+struct chip_pwr_save_fail_detected_params {
+	uint32_t     failure_reason_code;
+	uint32_t     wake_lock_bitmap[4];
 };
 
 /**

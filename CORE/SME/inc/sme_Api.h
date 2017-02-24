@@ -4798,4 +4798,7 @@ eHalStatus sme_set_random_mac(tHalHandle hal,
 eHalStatus sme_clear_random_mac(tHalHandle hal, uint32_t session_id,
 				uint8_t *random_mac);
 
+eHalStatus sme_set_chip_pwr_save_fail_cb(tHalHandle hal, void (*cb)( void *,
+				struct chip_pwr_save_fail_detected_params *));
+
 #endif //#if !defined( __SME_API_H )

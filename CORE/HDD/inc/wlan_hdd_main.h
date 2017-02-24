@@ -2099,6 +2099,7 @@ struct hdd_context_s
     v_U8_t last_scan_reject_session_id;
     scan_reject_states last_scan_reject_reason;
     v_TIME_t last_scan_reject_timestamp;
+    uint8_t hdd_dfs_regdomain;
 };
 
 /*---------------------------------------------------------------------------
@@ -2590,4 +2591,8 @@ void hdd_svc_fw_shutdown_ind(struct device *dev);
 void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx);
 void wlan_hdd_init_chan_info(hdd_context_t *hdd_ctx);
 void wlan_hdd_deinit_chan_info(hdd_context_t *hdd_ctx);
+
+void hdd_chip_pwr_save_fail_detected_cb(void *hddctx,
+				struct chip_pwr_save_fail_detected_params
+				*data);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

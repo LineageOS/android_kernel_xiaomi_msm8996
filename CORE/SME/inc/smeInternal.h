@@ -260,6 +260,8 @@ typedef struct tagSmeStruct
     void *mib_stats_context;
     void (*csr_mib_stats_callback) (struct mib_stats_metrics*, void*);
     void (*stats_ext2_cb)(void *, struct stats_ext2_event *);
+    void (*chip_power_save_fail_cb)(void *,
+			struct chip_pwr_save_fail_detected_params *);
 } tSmeStruct, *tpSmeStruct;
 
 

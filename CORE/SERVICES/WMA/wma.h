@@ -911,6 +911,7 @@ typedef struct wma_handle {
 	uint32_t wow_gscan_wake_up_count;
 	uint32_t wow_low_rssi_wake_up_count;
 	uint32_t wow_rssi_breach_wake_up_count;
+	uint32_t wow_pwr_save_fail_detected_wake_up_count;
 	uint32_t wow_ucast_wake_up_count;
 	uint32_t wow_bcast_wake_up_count;
 	uint32_t wow_ipv4_mcast_wake_up_count;
@@ -921,8 +922,8 @@ typedef struct wma_handle {
 	uint32_t wow_icmpv4_count;
 	uint32_t wow_icmpv6_count;
 	uint32_t wow_oem_response_wake_up_count;
-	uint32_t wow_wakeup_enable_mask;
-	uint32_t wow_wakeup_disable_mask;
+	uint32_t wow_wakeup_enable_mask[4];
+	uint32_t wow_wakeup_disable_mask[4];
 	uint16_t max_mgmt_tx_fail_count;
 	uint32_t ccmp_replays_attack_cnt;
 
@@ -1898,6 +1899,7 @@ void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 			u_int8_t vdev_id, ol_txrx_peer_handle peer,
 			v_BOOL_t roam_synch_in_progress);
 
+#define WOW_BITMAP_FIELD_SIZE 32
 void wma_add_wow_wakeup_event(tp_wma_handle wma, WOW_WAKE_EVENT_TYPE event,
 			bool enable);
 VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,

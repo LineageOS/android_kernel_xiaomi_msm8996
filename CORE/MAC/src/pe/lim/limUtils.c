@@ -6029,6 +6029,8 @@ void lim_add_channel_status_info(tpAniSirGlobal p_mac,
 			    channel_status_list[i].cycle_count;
 			channel_stat->rx_frame_count -=
 			    channel_status_list[i].rx_frame_count;
+			channel_stat->tx_frame_count -=
+			    channel_status_list[i].tx_frame_count;
 			channel_stat->bss_rx_cycle_count -=
 			    channel_status_list[i].bss_rx_cycle_count;
 		    }

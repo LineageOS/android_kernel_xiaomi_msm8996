@@ -134,6 +134,10 @@ extern int hdd_hostapd_stop (struct net_device *dev);
 #include "tl_shim.h"
 #include "wlan_hdd_oemdata.h"
 
+#ifdef CNSS_GENL
+#include <net/cnss_nl.h>
+#endif
+
 #if defined(LINUX_QCMBR)
 #define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
 #endif
@@ -1262,9 +1266,6 @@ int wlan_hdd_validate_context(hdd_context_t *pHddCtx)
 
     if ((pHddCtx->isLoadInProgress) ||
         (pHddCtx->isUnloadInProgress)) {
-        hddLog(LOG1,
-             FL("%pS Unloading/Loading in Progress. Ignore!!!"),
-             (void *)_RET_IP_);
         return -EAGAIN;
     }
     return 0;
@@ -13923,6 +13924,24 @@ VOS_STATUS hdd_set_sme_chan_list(hdd_context_t *hdd_ctx)
                               hdd_ctx->reg.cc_src);
 }
 
+void hdd_set_dfs_regdomain(hdd_context_t *phddctx, bool restore)
+{
+    if(!restore) {
+        if (vos_nv_get_dfs_region(&phddctx->hdd_dfs_regdomain)) {
+             hddLog(VOS_TRACE_LEVEL_FATAL,
+                    "%s: unable to retrieve dfs region from hdd",
+                    __func__);
+        }
+    }
+    else {
+        if (vos_nv_set_dfs_region(phddctx->hdd_dfs_regdomain)) {
+             hddLog(VOS_TRACE_LEVEL_FATAL,
+                    "%s: unable to set dfs region",
+                    __func__);
+        }
+    }
+}
+
 /**
  * hdd_is_5g_supported() - to know if ini configuration supports 5GHz
  * @pHddCtx: Pointer to the hdd context
@@ -16068,6 +16087,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (hdd_wlan_enable_egap(pHddCtx))
         hddLog(LOGE, FL("enhance green ap is not enabled"));
 
+   /* set chip power save failure detected callback */
+   sme_set_chip_pwr_save_fail_cb(pHddCtx->hHal,
+                                 hdd_chip_pwr_save_fail_detected_cb);
+
    wlan_comp.status = 0;
    complete(&wlan_comp.wlan_start_comp);
    goto success;
@@ -17679,6 +17702,23 @@ void wlan_hdd_enable_roaming(hdd_adapter_t *pAdapter)
 }
 #endif
 
+/**
+ * nl_srv_bcast_svc() - Wrapper function to send bcast msgs to SVC mcast group
+ * @skb: sk buffer pointer
+ *
+ * Sends the bcast message to SVC multicast group with generic nl socket
+ * if CNSS_GENL is enabled. Else, use the legacy netlink socket to send.
+ *
+ * Return: None
+ */
+static void nl_srv_bcast_svc(struct sk_buff *skb)
+{
+#ifdef CNSS_GENL
+	nl_srv_bcast(skb, CLD80211_MCGRP_SVC_MSGS, WLAN_NL_MSG_SVC);
+#else
+	nl_srv_bcast(skb);
+#endif
+}
 
 void wlan_hdd_send_svc_nlink_msg(int radio, int type, void *data, int len)
 {
@@ -17763,7 +17803,7 @@ void wlan_hdd_send_svc_nlink_msg(int radio, int type, void *data, int len)
     nlh->nlmsg_len += tlv_len;
     skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr) + len + tlv_len));
 
-    nl_srv_bcast(skb);
+    nl_srv_bcast_svc(skb);
 
     return;
 }
