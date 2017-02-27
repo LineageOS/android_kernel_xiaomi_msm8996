@@ -960,6 +960,7 @@ static int async_task(void *param)
     A_STATUS status;
     unsigned long flags;
 
+    set_user_nice(current, -3);
     device = (HIF_DEVICE *)param;
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: async task\n"));
     set_current_state(TASK_INTERRUPTIBLE);
