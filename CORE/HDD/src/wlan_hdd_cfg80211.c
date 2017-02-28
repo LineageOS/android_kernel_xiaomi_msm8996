@@ -16622,6 +16622,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
     if (pHddCtx->cfg_ini->enable_dynamic_sta_chainmask)
        hdd_decide_dynamic_chain_mask(pHddCtx, HDD_ANTENNA_MODE_2X2);
 
+    set_bit(SOFTAP_INIT_DONE, &pHostapdAdapter->event_flags);
+
     vos_event_reset(&pHostapdState->vosEvent);
     status = WLANSAP_StartBss(
 #ifdef WLAN_FEATURE_MBSSID
@@ -16704,6 +16706,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
    return 0;
 
 error:
+    clear_bit(SOFTAP_INIT_DONE, &pHostapdAdapter->event_flags);
     if (pHostapdAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list) {
         vos_mem_free(pHostapdAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list);
         pHostapdAdapter->sessionCtx.ap.sapConfig.acs_cfg.ch_list = NULL;
@@ -17072,6 +17075,7 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 
     // Reset WNI_CFG_PROBE_RSP Flags
     wlan_hdd_reset_prob_rspies(pAdapter);
+    clear_bit(SOFTAP_INIT_DONE, &pAdapter->event_flags);
 
 #ifdef WLAN_FEATURE_P2P_DEBUG
     if((pAdapter->device_mode == WLAN_HDD_P2P_GO) &&
@@ -17211,6 +17215,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
     int            status;
     ENTER();
 
+    clear_bit(SOFTAP_INIT_DONE, &pAdapter->event_flags);
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_START_AP, pAdapter->sessionId,
                      params->beacon_interval));
