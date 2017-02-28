@@ -9069,8 +9069,8 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	if (0 != status)
 		return status;
 
-	if (hdd_cfg_is_sub20_channel_width_enabled(hdd_ctx)) {
-		hddLog(LOGE, FL("ACS not support in sub20 enable"));
+	if (hdd_cfg_is_static_sub20_channel_width_enabled(hdd_ctx)) {
+		hddLog(LOGE, FL("ACS not support if static sub20 enable"));
 		status = -EINVAL;
 		goto out;
 	}
