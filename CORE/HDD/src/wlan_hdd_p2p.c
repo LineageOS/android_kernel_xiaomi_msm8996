@@ -2260,12 +2260,16 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
         vos_mem_copy( cfgState->buf, buf, len);
 
         mutex_lock(&cfgState->remain_on_chan_ctx_lock);
-
-        *cookie = (uintptr_t) cfgState->buf;
-        cfgState->action_cookie = *cookie;
-        if (cfgState->remain_on_chan_ctx)
-            cfgState->remain_on_chan_ctx->cookie = cfgState->action_cookie;
-
+       if( cfgState->remain_on_chan_ctx )
+       {
+          cfgState->action_cookie = cfgState->remain_on_chan_ctx->cookie;
+          *cookie = cfgState->action_cookie;
+       }
+       else
+       {
+          *cookie = (uintptr_t) cfgState->buf;
+          cfgState->action_cookie = *cookie;
+       }
         mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
     }
 

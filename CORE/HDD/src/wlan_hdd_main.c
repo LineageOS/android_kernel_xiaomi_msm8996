@@ -243,6 +243,9 @@ DEFINE_SPINLOCK(hdd_context_lock);
 
 #define WLAN_NLINK_CESIUM 30
 
+/*Nss - 1, (Nss = 2 for 2x2)*/
+#define NUM_OF_SOUNDING_DIMENSIONS 1
+
 /*
  * Android DRIVER command structures
  */
@@ -8898,6 +8901,18 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                       "%s: could not set the VHT TXOP PS",
                       __func__);
+        }
+    }
+
+    hddLog(LOG1, "enable2x2 %d ", pconfig->enable2x2);
+    if (pconfig->enable2x2)
+    {
+        if (ccmCfgSetInt(hdd_ctx->hHal,
+                         WNI_CFG_VHT_NUM_SOUNDING_DIMENSIONS,
+                         NUM_OF_SOUNDING_DIMENSIONS, NULL,
+                         eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+            hddLog(LOGE,
+                   "Could not set WNI_CFG_VHT_NUM_SOUNDING_DIMENSIONS to CCM");
         }
     }
 }
