@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -384,4 +384,5 @@ int vos_get_radio_index(void);
 int vos_set_radio_index(int radio_index);
 void vos_svc_fw_shutdown_ind(struct device *dev);
 uint64_t vos_do_div(uint64_t, uint32_t);
+VOS_STATUS vos_force_fw_dump(void);
 #endif // if !defined __VOS_API_H
