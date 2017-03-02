@@ -49,48 +49,50 @@ int wma_ocb_set_config_resp(tp_wma_handle wma_handle, uint8_t status)
 	ol_txrx_vdev_handle vdev = (req ?
 		wma_handle->interfaces[req->session_id].handle : 0);
 
-	/*
-	 * If the command was successful, save the channel information in the
-	 * vdev.
-	 */
-	if (status == VOS_STATUS_SUCCESS) {
-		if (vdev && req) {
-			/* Save the channel info in the vdev */
-			if (vdev->ocb_channel_info)
-				vos_mem_free(vdev->ocb_channel_info);
-			vdev->ocb_channel_count =
-				req->channel_count;
-			if (req->channel_count) {
-				int i;
-				int buf_size = sizeof(*vdev->ocb_channel_info) *
-				    req->channel_count;
-				vdev->ocb_channel_info =
-					vos_mem_malloc(buf_size);
-				if (!vdev->ocb_channel_info)
-					return -ENOMEM;
-				vos_mem_zero(vdev->ocb_channel_info, buf_size);
-				for (i = 0; i < req->channel_count; i++) {
-					vdev->ocb_channel_info[i].chan_freq =
-						req->channels[i].chan_freq;
-					if (req->channels[i].flags &
-					  OCB_CHANNEL_FLAG_DISABLE_RX_STATS_HDR)
-						vdev->ocb_channel_info[i].
-						disable_rx_stats_hdr = 1;
-				}
-			} else {
-				vdev->ocb_channel_info = 0;
-			}
+	if (status != VOS_STATUS_SUCCESS)
+		goto out;
 
-			/* Default TX parameter */
-			if (!ol_txrx_set_ocb_def_tx_param(vdev,
-				req->def_tx_param, req->def_tx_param_size)) {
-				/* Setting the default param failed */
-				WMA_LOGE(FL("Invalid default TX parameters"));
-				status = VOS_STATUS_E_INVAL;
+	/* If config succeeded, save the channel information in the vdev. */
+	if (vdev && req) {
+		if (vdev->ocb_channel_info)
+			vos_mem_free(vdev->ocb_channel_info);
+		vdev->ocb_channel_count = req->channel_count;
+		if (req->channel_count) {
+			int i;
+			int buf_size = sizeof(*vdev->ocb_channel_info) *
+				req->channel_count;
+			vdev->ocb_channel_info = vos_mem_malloc(buf_size);
+			if (!vdev->ocb_channel_info)
+				return -ENOMEM;
+			vos_mem_zero(vdev->ocb_channel_info, buf_size);
+			for (i = 0; i < req->channel_count; i++) {
+				vdev->ocb_channel_info[i].chan_freq =
+					req->channels[i].chan_freq;
+				vdev->ocb_channel_info[i].bandwidth =
+					req->channels[i].bandwidth;
+				if (req->channels[i].flags &
+				    OCB_CHANNEL_FLAG_DISABLE_RX_STATS_HDR)
+					vdev->ocb_channel_info[i].
+						disable_rx_stats_hdr = 1;
+				vos_mem_copy(
+					vdev->ocb_channel_info[i].mac_address,
+					req->channels[i].mac_address,
+					sizeof(req->channels[i].mac_address));
 			}
+		} else {
+			vdev->ocb_channel_info = 0;
+		}
+
+		/* Default TX parameter */
+		if (!ol_txrx_set_ocb_def_tx_param(vdev,
+		    req->def_tx_param, req->def_tx_param_size)) {
+			/* Setting the default param failed */
+			WMA_LOGE(FL("Invalid default TX parameters"));
+			status = VOS_STATUS_E_INVAL;
 		}
 	}
 
+out:
 	/* Free the configuration that was saved in wma_ocb_set_config. */
 	vos_mem_free(wma_handle->ocb_config_req);
 	wma_handle->ocb_config_req = 0;

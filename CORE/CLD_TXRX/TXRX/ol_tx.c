@@ -53,6 +53,184 @@
 #include <ol_txrx_encap.h>    /* OL_TX_ENCAP, etc */
 #include "vos_lock.h"
 
+#ifdef WLAN_FEATURE_DSRC
+#include "ol_tx.h"
+#include "adf_os_lock.h"
+
+struct ol_tx_stats_ring_head {
+	adf_os_spinlock_t mutex;
+	uint8_t head;
+	uint8_t tail;
+};
+
+struct ol_tx_stats_ring_item {
+	struct ol_tx_per_pkt_stats stats;
+	uint16_t msdu_id;
+	uint8_t reserved[2];
+};
+
+#define TX_STATS_RING_SZ 32
+#define INVALID_TX_MSDU_ID (-1)
+
+static struct ol_tx_stats_ring_head *tx_stats_ring_head;
+static struct ol_tx_stats_ring_item *tx_stats_ring;
+static int ol_per_pkt_tx_stats_enabled = 0;
+
+static int ol_tx_stats_ring_init(void)
+{
+	struct ol_tx_stats_ring_head *head;
+	struct ol_tx_stats_ring_item *ring;
+	int i;
+
+	TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "%s()\n", __func__);
+	head = vos_mem_malloc(sizeof(*head));
+	if (!head)
+		return -ENOMEM;
+	ring = vos_mem_malloc(sizeof(*ring) * TX_STATS_RING_SZ);
+	if (!ring) {
+		vos_mem_free(head);
+		return -ENOMEM;
+	}
+	tx_stats_ring_head = head;
+	tx_stats_ring = ring;
+
+	vos_mem_zero(head, sizeof(*head));
+	vos_mem_zero(ring, sizeof(*ring) * TX_STATS_RING_SZ);
+	for (i = 0; i < TX_STATS_RING_SZ; i++)
+		ring[i].msdu_id = INVALID_TX_MSDU_ID;
+	adf_os_spinlock_init(&head->mutex);
+
+	return 0;
+}
+
+static void ol_tx_stats_ring_deinit(void)
+{
+	TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "%s()\n", __func__);
+	if (tx_stats_ring_head) {
+		vos_mem_free(tx_stats_ring_head);
+		tx_stats_ring_head = NULL;
+	}
+	if (tx_stats_ring) {
+		vos_mem_free(tx_stats_ring);
+		tx_stats_ring = NULL;
+	}
+}
+
+void ol_per_pkt_tx_stats_enable(int enable)
+{
+	int ret = 0;
+
+	if (ol_per_pkt_tx_stats_enabled == !!enable)
+		return;
+
+	if (enable)
+		ret = ol_tx_stats_ring_init();
+	else
+		ol_tx_stats_ring_deinit();
+
+	if (!ret)
+		ol_per_pkt_tx_stats_enabled = !!enable;
+	else
+		ol_per_pkt_tx_stats_enabled = 0;
+
+	adf_os_mb();
+}
+
+/**
+ * ol_tx_stats_ring_enque() - enqueue the tx per packet stats
+ * @msdu_id: ol_tx_desc_id
+ * @chan_freq: channel freqency
+ * @bandwidth: channel bandwith like 10 or 20MHz
+ * @mac_address: mac address used
+ * @datarate: data rate used
+ *
+ * This interface is for caller from TXRX layer in interrupt context.
+ *
+ * Return: None
+ */
+void ol_tx_stats_ring_enque(uint32_t msdu_id, uint32_t chan_freq,
+			    uint32_t bandwidth, uint8_t *mac_address,
+			    uint8_t datarate, uint8_t power)
+{
+	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
+	struct ol_tx_stats_ring_item *ring = tx_stats_ring;
+	struct ol_tx_stats_ring_item *item;
+	static uint32_t seq_no = 0;
+
+	if (!h || !ring)
+		return;
+
+	adf_os_spin_lock(&h->mutex);
+
+	item = &ring[h->head++];
+	if (h->head == TX_STATS_RING_SZ)
+		h->head = 0;
+
+	item->msdu_id = msdu_id;
+	item->stats.seq_no = seq_no++;
+	item->stats.chan_freq = chan_freq;
+	item->stats.bandwidth = bandwidth;
+	vos_mem_copy(item->stats.mac_address, mac_address, 6);
+	item->stats.datarate = datarate;
+	item->stats.tx_power = power;
+
+	/* if ring is full, discard the oldest one. */
+	if (h->head == h->tail) {
+		item = &ring[h->tail++];
+		if (h->tail == TX_STATS_RING_SZ)
+			h->tail = 0;
+
+		item->msdu_id = INVALID_TX_MSDU_ID;
+	}
+
+	adf_os_spin_unlock(&h->mutex);
+
+	TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "%s(), msdu_id=%u,head=%u,tail=%u\n",
+		   __func__, msdu_id, h->head, h->tail);
+}
+
+/**
+ * ol_tx_stats_ring_deque() - dequeue a tx per packet stats
+ * @stats: tx per packet stats
+ *
+ * This interface is for caller from user space process context.
+ *
+ * Return: 1 if get a tx stats, 0 for no stats got
+ */
+int ol_tx_stats_ring_deque(struct ol_tx_per_pkt_stats *stats)
+{
+	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
+	struct ol_tx_stats_ring_item *ring = tx_stats_ring;
+	struct ol_tx_stats_ring_item *item;
+	int ret = 0;
+
+	if (!h || !ring)
+		return ret;
+
+	adf_os_spin_lock(&h->mutex);
+
+	if (h->head == h->tail) {
+		goto exit;
+	}
+
+	item = &ring[h->tail++];
+	if (h->tail == TX_STATS_RING_SZ)
+		h->tail = 0;
+
+	TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "%s(), msdu_id=%u,head=%u,tail=%u\n",
+		   __func__, item->msdu_id, h->head, h->tail);
+
+	vos_mem_copy(stats, &item->stats, sizeof(*stats));
+	item->msdu_id = INVALID_TX_MSDU_ID;
+	ret = 1;
+
+exit:
+	adf_os_spin_unlock(&h->mutex);
+
+	return ret;
+}
+#endif /* WLAN_FEATURE_DSRC */
+
 #define ol_tx_prepare_ll(tx_desc, vdev, msdu, msdu_info) \
     do {                                                                      \
         struct ol_txrx_pdev_t *pdev = vdev->pdev;                             \
@@ -651,6 +829,38 @@ static void merge_ocb_tx_ctrl_hdr(struct ocb_tx_ctrl_hdr_t *tx_ctrl,
 	}
 }
 
+#ifdef WLAN_FEATURE_DSRC
+/* If the vdev is in OCB mode, collect per packet tx stats. */
+static inline void
+ol_collect_per_pkt_tx_stats(ol_txrx_vdev_handle vdev,
+			    struct ocb_tx_ctrl_hdr_t *tx_ctrl, uint32_t msdu_id)
+{
+	struct ol_txrx_ocb_chan_info *chan_info;
+	int i;
+
+	if (!ol_per_pkt_tx_stats_enabled)
+		return;
+
+	chan_info = &vdev->ocb_channel_info[0];
+	for (i = 0; i < vdev->ocb_channel_count; i++) {
+		if (tx_ctrl->channel_freq ==
+		    vdev->ocb_channel_info[i].chan_freq) {
+			chan_info = &vdev->ocb_channel_info[i];
+			break;
+		}
+	}
+	ol_tx_stats_ring_enque(msdu_id, tx_ctrl->channel_freq,
+			       chan_info->bandwidth, chan_info->mac_address,
+			       tx_ctrl->datarate, tx_ctrl->pwr);
+}
+#else
+static inline void
+ol_collect_per_pkt_tx_stats(ol_txrx_vdev_handle vdev,
+			    struct ocb_tx_ctrl_hdr_t *tx_ctrl, uint32_t msdu_id)
+{
+}
+#endif
+
 static inline adf_nbuf_t
 ol_tx_hl_base(
     ol_txrx_vdev_handle vdev,
@@ -790,6 +1000,12 @@ ol_tx_hl_base(
             if (tx_ctrl_header_found && vdev->ocb_def_tx_param)
                 merge_ocb_tx_ctrl_hdr(&tx_ctrl, vdev->ocb_def_tx_param,
                                       vdev->ocb_channel_count);
+
+            /* TODO: only collect dsrc tx packet stats.*/
+            if (adf_nbuf_headroom(msdu) >=
+                sizeof(struct htt_tx_msdu_desc_ext_t)) {
+                ol_collect_per_pkt_tx_stats(vdev, &tx_ctrl, tx_desc->id);
+            }
         }
 
         txq = ol_tx_classify(vdev, tx_desc, msdu, &tx_msdu_info);

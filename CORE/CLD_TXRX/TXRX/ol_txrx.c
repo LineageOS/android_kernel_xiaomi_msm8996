@@ -905,6 +905,8 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
 
     OL_RX_REORDER_TIMEOUT_CLEANUP(pdev);
 
+    ol_per_pkt_tx_stats_enable(0);
+
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         ol_tx_sched_detach(pdev);
     }

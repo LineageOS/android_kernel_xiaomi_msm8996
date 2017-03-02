@@ -876,7 +876,9 @@ struct ol_txrx_pdev_t {
 
 struct ol_txrx_ocb_chan_info {
 	uint32_t chan_freq;
+	uint32_t bandwidth;
 	uint16_t disable_rx_stats_hdr:1;
+	uint8_t mac_address[6];
 };
 
 struct ol_txrx_vdev_t {

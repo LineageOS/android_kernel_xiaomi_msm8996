@@ -435,7 +435,8 @@ HDD_OBJS := 	$(HDD_SRC_DIR)/wlan_hdd_assoc.o \
 		$(HDD_SRC_DIR)/wlan_hdd_wowl.o
 
 ifeq ($(CONFIG_WLAN_FEATURE_DSRC), y)
-HDD_OBJS+=	$(HDD_SRC_DIR)/wlan_hdd_ocb.o
+HDD_OBJS+=	$(HDD_SRC_DIR)/wlan_hdd_ocb.o \
+		$(HDD_SRC_DIR)/wlan_hdd_debugfs_ocb.o
 endif
 
 ifeq ($(CONFIG_IPA_OFFLOAD), 1)
