@@ -13523,6 +13523,10 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     */
    hdd_stop_all_adapters( pHddCtx );
 
+#ifdef QCA_PKT_PROTO_TRACE
+   if (VOS_FTM_MODE != hdd_get_conparam())
+       vos_pkt_proto_trace_close();
+#endif
 
    //Stop all the modules
    vosStatus = vos_stop( pVosContext );
@@ -16644,11 +16648,6 @@ static void hdd_driver_exit(void)
    vos_wait_for_work_thread_completion(__func__);
    hif_unregister_driver();
    vos_preClose( &pVosContext );
-
-#ifdef QCA_PKT_PROTO_TRACE
-   if (VOS_FTM_MODE != hdd_get_conparam())
-       vos_pkt_proto_trace_close();
-#endif /* QCA_PKT_PROTO_TRACE */
 
 #ifdef TIMER_MANAGER
    vos_timer_exit();
