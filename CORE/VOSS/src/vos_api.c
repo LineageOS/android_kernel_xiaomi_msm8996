@@ -1448,6 +1448,9 @@ void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
         "%s: global voss context is NULL", __func__);
     return;
   }
+
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_DEBUG,
+           "%s:%pS setting value %d",__func__, (void *)_RET_IP_, value);
   gpVosContext->isLogpInProgress = value;
 
   /* HDD uses it's own context variable to check if SSR in progress,
