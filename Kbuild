@@ -44,6 +44,10 @@ ifeq ($(KERNEL_BUILD), 0)
 	CONFIG_QCOM_LTE_COEX := y
 	endif
 
+	ifeq ($(CONFIG_ARCH_SDXHEDGEHOG), y)
+	CONFIG_MOBILE_ROUTER := y
+	endif
+
 	# As per target team, build is done as follows:
 	# Defconfig : build with default flags
 	# Slub      : defconfig  + CONFIG_SLUB_DEBUG=y +
@@ -1065,6 +1069,14 @@ endif
 endif
 endif
 
+ifeq ($(CONFIG_ARCH_SDXHEDGEHOG), y)
+ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
+ifeq ($(CONFIG_WCNSS_SKB_PRE_ALLOC), y)
+CDEFINES += -DFEATURE_SKB_PRE_ALLOC
+endif
+endif
+endif
+
 ifeq ($(CONFIG_ARCH_MDM9607), y)
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 CDEFINES += -DHIF_SYNC_READ
@@ -1390,6 +1402,10 @@ endif
 endif
 
 ifeq ($(CONFIG_ARCH_MDM9650), y)
+CDEFINES += -DSYNC_IPA_READY
+endif
+
+ifeq ($(CONFIG_ARCH_SDXHEDGEHOG), y)
 CDEFINES += -DSYNC_IPA_READY
 endif
 
