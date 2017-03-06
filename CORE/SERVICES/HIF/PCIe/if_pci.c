@@ -937,8 +937,11 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 				msecs_age / 1000, msecs_age % 1000);
 	}
 
-	if (list_empty(&sc->prevent_suspend_list))
+	spin_lock_bh(&sc->runtime_lock);
+	if (list_empty(&sc->prevent_suspend_list)) {
+		spin_unlock_bh(&sc->runtime_lock);
 		return 0;
+	}
 
 	seq_printf(s, "%30s: ", "Active Wakeup_Sources");
 	list_for_each_entry(ctx, &sc->prevent_suspend_list, list) {
@@ -948,6 +951,7 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 		seq_puts(s, " ");
 	}
 	seq_puts(s, "\n");
+	spin_unlock_bh(&sc->runtime_lock);
 
 	return 0;
 #undef HIF_PCI_AUTOPM_STATS
