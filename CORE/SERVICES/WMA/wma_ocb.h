@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -63,6 +63,9 @@ int wma_dcc_clear_stats(tp_wma_handle wma_handle,
 
 int wma_dcc_update_ndl(tp_wma_handle wma_handle,
 		       struct sir_dcc_update_ndl *update_ndl_param);
+
+int wma_process_radio_chan_stats_req(tp_wma_handle wma_handle,
+			struct radio_chan_stats_req *req);
 
 int wma_ocb_register_event_handlers(tp_wma_handle wma_handle);
 #else
@@ -136,6 +139,13 @@ static inline int wma_dcc_update_ndl(tp_wma_handle wma_handle,
 {
 	return 0;
 }
+
+static inline int wma_process_radio_chan_stats_req(tp_wma_handle wma_handle,
+		struct radio_chan_stats_req *req)
+{
+	return 0;
+}
+
 
 static inline int wma_ocb_register_event_handlers(tp_wma_handle wma_handle)
 {

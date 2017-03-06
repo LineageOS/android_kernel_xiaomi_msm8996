@@ -1081,6 +1081,128 @@ int wma_dcc_stats_event_handler(void *handle, uint8_t *event_buf,
 }
 
 /**
+ * wma_process_radio_chan_stats_req() - Send request radio chan stats to FW
+ * @wma_handle: WMI handle
+ * @req: radio channel
+ *
+ * This function is used to reads the incoming @req and fill in the
+ * destination WMI structure, then send radio channel statistics request
+ * command to FW.
+ *
+ * Return: 0 on success; error number otherwise.
+ */
+int wma_process_radio_chan_stats_req(tp_wma_handle wma_handle,
+					struct radio_chan_stats_req *req)
+{
+	VOS_STATUS status;
+	wmi_buf_t buf;
+	wmi_request_radio_chan_stats_cmd_fixed_param *cmd;
+	int len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE(FL("%s: wmi_buf_alloc failed"), __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_request_radio_chan_stats_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_request_radio_chan_stats_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_request_radio_chan_stats_cmd_fixed_param));
+	cmd->request_type = req->req_type;
+	if (cmd->request_type == WMI_REQUEST_ONE_RADIO_CHAN_STATS)
+		cmd->chan_mhz = req->chan_freq;
+	cmd->reset_after_request = req->reset_after_req;
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				      WMI_REQUEST_RADIO_CHAN_STATS_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("Failed to send WMI_REQUEST_RADIO_CHAN_STATS_CMDID");
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGI("Sent WMI_REQUEST_RADIO_CHAN_STATS_CMDID to FW");
+	return 0;
+}
+
+/**
+ * wma_radio_chan_stats_event_handler() - handle radio channel statistics event
+ * @handle - pointer to wma handle.
+ * @event - pointer to TLV info received in the event.
+ * @evt_len - length of data in @event.
+ *
+ * This Function is a handler for firmware radio channel statistics event.
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int wma_radio_chan_stats_event_handler(void *handle, u_int8_t *event,
+					      u_int32_t evt_len)
+{
+	uint8_t *buf;
+	uint32_t i, len;
+	VOS_STATUS vos_status;
+	WMI_RADIO_CHAN_STATS_EVENTID_param_tlvs *param_tlvs;
+	wmi_radio_chan_stats_event_fixed_param *fix_param;
+	wmi_radio_chan_stats *chan_stats;
+	struct radio_chan_stats_rsp *resp;
+	vos_msg_t msg = { 0 };
+
+	param_tlvs = (WMI_RADIO_CHAN_STATS_EVENTID_param_tlvs *) event;
+	if (!param_tlvs) {
+		WMA_LOGE("Invalid radio_chan_stats event buffer");
+		return -EINVAL;
+	}
+
+	fix_param = param_tlvs->fixed_param;
+	chan_stats = param_tlvs->radio_chan_stats;
+	if (!chan_stats) {
+		WMA_LOGE("Invalid radio_chan_stats ptr");
+		return -EINVAL;
+	}
+
+	len = sizeof(*resp) +
+		fix_param->num_chans * sizeof(struct radio_chan_stats_info);
+	buf = vos_mem_malloc(len);
+	if (!buf)
+		return -ENOMEM;
+
+	resp = (struct radio_chan_stats_rsp *)buf;
+	buf += sizeof(struct radio_chan_stats_rsp);
+	resp->chan_stats = (struct radio_chan_stats_info *)buf;
+	resp->num_chans = fix_param->num_chans;
+	for (i = 0; i < resp->num_chans; i++) {
+		resp->chan_stats[i].chan_freq = chan_stats[i].chan_mhz;
+		resp->chan_stats[i].measurement_period =
+					chan_stats[i].measurement_period_us;
+		resp->chan_stats[i].on_chan_us = chan_stats[i].on_chan_us;
+		resp->chan_stats[i].on_chan_ratio = chan_stats[i].on_chan_ratio;
+		resp->chan_stats[i].tx_duration_us =
+					chan_stats[i].tx_duration_us;
+		resp->chan_stats[i].rx_duration_us =
+					chan_stats[i].rx_duration_us;
+		resp->chan_stats[i].chan_busy_ratio =
+					chan_stats[i].chan_busy_ratio;
+		resp->chan_stats[i].tx_pkts = chan_stats[i].tx_mpdus +
+					chan_stats[i].tx_msdus;
+		resp->chan_stats[i].rx_succ_pkts = chan_stats[i].rx_succ_mpdus;
+		resp->chan_stats[i].rx_fail_pkts = chan_stats[i].rx_fail_mpdus;
+	}
+
+	msg.type = eWNI_SME_RADIO_CHAN_STATS_IND;
+	msg.bodyptr = resp;
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		WMA_LOGE("Fail to post message to SME");
+		vos_mem_free(resp);
+		return vos_status;
+	}
+
+	return 0;
+}
+
+/**
  * wma_ocb_register_event_handlers() - register handlers for the OCB WMI
  * events
  * @wma_handle: pointer to the WMA handle
@@ -1127,6 +1249,12 @@ int wma_ocb_register_event_handlers(tp_wma_handle wma_handle)
 	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
 			WMI_DCC_STATS_EVENTID,
 			wma_dcc_stats_event_handler);
+	if (status)
+		return status;
+
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+			WMI_RADIO_CHAN_STATS_EVENTID,
+			wma_radio_chan_stats_event_handler);
 	if (status)
 		return status;
 

@@ -922,6 +922,9 @@ VOS_STATUS hdd_debugfs_init(hdd_adapter_t *pAdapter)
     if (wlan_hdd_create_dsrc_tx_stats_file(pAdapter, pHddCtx))
         return VOS_STATUS_E_FAILURE;
 
+    if (wlan_hdd_create_dsrc_chan_stats_file(pAdapter, pHddCtx))
+        return VOS_STATUS_E_FAILURE;
+
     return VOS_STATUS_SUCCESS;
 }
 

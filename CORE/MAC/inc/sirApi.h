@@ -7310,6 +7310,101 @@ struct sir_dcc_update_ndl {
 };
 
 /**
+ * DSRC Radio channel statistics request type
+ * 0x01 - Stats for only one channel with specified frequence.
+ * 0x02 - Stats for all channels which is configured through
+ *	ocb_set_config command.
+ */
+enum dsrc_radio_chan_stats_req_type {
+	WLAN_DSRC_REQUEST_ONE_RADIO_CHAN_STATS = 0x01,
+	WLAN_DSRC_REQUEST_ALL_RADIO_CHAN_STATS = 0x02,
+};
+
+/**
+ * struct radio_chan_stats_req - Request for radio channel statistics.
+ * @req_type - request type to indicate statistics of
+ *	0x01: one specified channel.
+ *	0x02: all channels.
+ * @chan_freq - frequence of requested channel,
+ *	only used when req_type == 0x01
+ * @reset_after_req - flags to indicate whether FW needs reset statistics
+ *	of specified channel/channels.
+ */
+struct radio_chan_stats_req {
+	uint32_t req_type;
+	uint32_t chan_freq;
+	uint32_t reset_after_req;
+};
+
+/**
+ * struct radio_chan_stats_info - struct for radio channel statistics event.
+ * @chan_freq - channel frequence.
+ * @measurement_period - meaurement period, in uints of microseconds.
+ * @on_chan_us - accumulation of time the radio is tuned on this channel,
+ *	in uints of microseconds.
+ * @on_chan_ratio - ratio of on_chan_us to meaurement period,
+ *	in uints of percents.
+ * @tx_duration_us - accumulation of TX PPDU duration over the meaurement
+ *	period, in uints of microseconds.
+ * @rx_duration_us - accumulation of RX PPDU duration over the meaurement
+ *	period, in uints of microseconds.
+ * @chan_busy_ratio - ratio of channel busy time to on_chan_us,
+ *	in uints of percents.
+ * @tx_pkts - total packets transmitted on this channel.
+ * @rx_succ_pkts - MPDUs successfully received on this channel.
+ * @rx_fail_pkts - Failed MPDUs (CRC failures) received on this channel.
+ */
+struct radio_chan_stats_info {
+	uint32_t chan_freq;
+	uint32_t measurement_period;
+	uint32_t on_chan_us;
+	uint32_t on_chan_ratio;
+	uint32_t tx_duration_us;
+	uint32_t rx_duration_us;
+	uint32_t chan_busy_ratio;
+	uint32_t tx_pkts;
+	uint32_t rx_succ_pkts;
+	uint32_t rx_fail_pkts;
+};
+
+/**
+ * struct radio_chan_stats_response - struct for reporting radio channel
+ *	statistics to applicatopn.
+ * @num_chans - channel numbers of this report included.
+ * @chan_stats - pointer to specified channel statistics info.
+ */
+struct radio_chan_stats_rsp {
+	uint32_t num_chans;
+	struct radio_chan_stats_info *chan_stats;
+};
+
+#define DSRC_MAX_CHAN_STATS_CNT 2
+#define DSRC_MAX_VALUE 0xffffffff
+
+/**
+ * struct dsrc_radio_chan_stats_ctxt - DSRC radio channel statistics context.
+ * @magic:     For OCB specific magic.
+ * @enable_chan_stats: Radio channel statistics is current enabled/disabled.
+ * @cur_req:   Pointer to current channel statistics request.
+ * @completion_evt:    completion structure to wait for request completed.
+ * @config_chans_num:  Configured channel numbers to firmware by ocb.
+ * @config_chans_freq: Configured channel frequence.
+ * @chan_stats_num:    current channel number of whose statistics is existent.
+ * @chan_stats:        Array of radio channel statistics.
+ */
+struct dsrc_radio_chan_stats_ctxt {
+	uint32_t magic;
+	uint32_t enable_chan_stats;
+	struct radio_chan_stats_req *cur_req;
+	struct completion completion_evt;
+	uint32_t config_chans_num;
+	uint32_t config_chans_freq[DSRC_MAX_CHAN_STATS_CNT];
+	spinlock_t chan_stats_lock;
+	uint32_t chan_stats_num;
+	struct radio_chan_stats_info chan_stats[DSRC_MAX_CHAN_STATS_CNT];
+};
+
+/**
  * struct sir_stats_avg_factor
  * @vdev_id: session id
  * @stats_avg_factor: average factor

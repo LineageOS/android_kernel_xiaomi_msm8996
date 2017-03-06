@@ -21,9 +21,19 @@
 
 #ifdef WLAN_OPEN_SOURCE
 int
+wlan_hdd_create_dsrc_chan_stats_file(hdd_adapter_t *adapter,
+				     hdd_context_t *hdd_ctx);
+int
 wlan_hdd_create_dsrc_tx_stats_file(hdd_adapter_t *adapter,
 				   hdd_context_t *hdd_ctx);
 #else
+static inline int
+wlan_hdd_create_dsrc_chan_stats_file(hdd_adapter_t *adapter,
+				     hdd_context_t *hdd_ctx)
+{
+	return 0;
+}
+
 static inline int
 wlan_hdd_create_dsrc_tx_stats_file(hdd_adapter_t *adapter,
 				   hdd_context_t *hdd_ctx)

@@ -17103,6 +17103,7 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_PDEV_PARAM_FORCE_CHAIN_ANT:
 		case WMI_PDEV_PARAM_ANT_DIV_SELFTEST:
 		case WMI_PDEV_PARAM_ANT_DIV_SELFTEST_INTVL:
+		case WMI_PDEV_PARAM_RADIO_CHAN_STATS_ENABLE:
 			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set pdev command/Not"
@@ -33811,6 +33812,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif /* WLAN_FEATURE_APFIND */
+		case WDA_DSRC_RADIO_CHAN_STATS_REQ:
+			wma_process_radio_chan_stats_req(wma_handle,
+				(struct radio_chan_stats_req *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		case WDA_OCB_SET_CONFIG_CMD:
 			wma_ocb_set_config_req(wma_handle,
 				(struct sir_ocb_config *)msg->bodyptr);

@@ -3966,6 +3966,14 @@ eHalStatus sme_dcc_update_ndl(tHalHandle hHal, void* context,
 
 eHalStatus sme_register_for_dcc_stats_event(tHalHandle hHal, void* context,
                                             ocb_callback callback);
+
+eHalStatus sme_register_radio_chan_stats_cb(tHalHandle hHal, void *context,
+					    ocb_callback callback);
+
+eHalStatus sme_unregister_radio_chan_stats_cb(tHalHandle hHal);
+
+eHalStatus sme_request_radio_chan_stats(tHalHandle hHal,
+					struct radio_chan_stats_req *req);
 #else
 static inline void sme_set_dot11p_config(tHalHandle hal, bool enable_dot11p)
 {
@@ -4037,6 +4045,22 @@ static inline eHalStatus sme_register_for_dcc_stats_event(tHalHandle hHal,
 	return eHAL_STATUS_SUCCESS;
 }
 
+static inline eHalStatus sme_register_radio_chan_stats_cb(tHalHandle hHal,
+		void *context, ocb_callback callback)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline eHalStatus sme_unregister_radio_chan_stats_cb(tHalHandle hHal)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+
+static inline eHalStatus sme_request_radio_chan_stats(tHalHandle hHal,
+		struct radio_chan_stats_req *req)
+{
+	return eHAL_STATUS_SUCCESS;
+}
 #endif
 
 /* ---------------------------------------------------------------------------

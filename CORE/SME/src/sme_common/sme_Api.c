@@ -3410,6 +3410,17 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                }
                vos_mem_free(pMsg->bodyptr);
                break;
+          case eWNI_SME_RADIO_CHAN_STATS_IND:
+               if (pMac->sme.radio_chan_stats_callback) {
+                   pMac->sme.radio_chan_stats_callback(
+                       pMac->sme.radio_chan_stats_context, pMsg->bodyptr);
+               } else {
+                   smsLog(pMac, LOGE, FL(
+                       "Error processing message. The callback is NULL."));
+               }
+               vos_mem_free(pMsg->bodyptr);
+               break;
+
           case eWNI_SME_FW_DUMP_IND:
                sme_process_fw_mem_dump_rsp(pMac, pMsg);
                break;
@@ -14178,6 +14189,102 @@ eHalStatus sme_register_for_dcc_stats_event(tHalHandle hHal, void *context,
 	sme_ReleaseGlobalLock(&pMac->sme);
 
 	return 0;
+}
+
+/**
+ * sme_register_radio_chan_stats_cb() - Register callback for DSRC radio
+ *	channel statistics event indication.
+ * @hal: reference to the HAL
+ * @context: the context of the call
+ * @callback: the callback to hdd
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_register_radio_chan_stats_cb(tHalHandle hal, void *context,
+					    ocb_callback callback)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		mac->sme.radio_chan_stats_callback = callback;
+		mac->sme.radio_chan_stats_context = context;
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock error"));
+	}
+
+	return status;
+}
+
+/**
+ * sme_unregister_radio_chan_stats_cb() - Unregister DSRC radio channel
+ *	statistics callback.
+ * @hal: reference to the HAL
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_unregister_radio_chan_stats_cb(tHalHandle hal)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		mac->sme.radio_chan_stats_callback = NULL;
+		mac->sme.radio_chan_stats_context = NULL;
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock error"));
+	}
+
+	return status;
+}
+
+/**
+ * sme_request_radio_chan_stats() - Set request for DSRC
+ *	radio channel statistics.
+ * @hal: reference to the HAL
+ * @req: request parameters for radio channel stats.
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_request_radio_chan_stats(tHalHandle hal,
+					struct radio_chan_stats_req *req)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	struct radio_chan_stats_req *msg_body;
+	vos_msg_t msg = { 0 };
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (!HAL_STATUS_SUCCESS(status))
+		return status;
+
+	msg_body = vos_mem_malloc(sizeof(*msg_body));
+	if (!msg_body)
+		return eHAL_STATUS_FAILED_ALLOC;
+
+	vos_mem_copy(msg_body, req, sizeof(*msg_body));
+
+	msg.type = WDA_DSRC_RADIO_CHAN_STATS_REQ;
+	msg.bodyptr = msg_body;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA, &msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Error posting message to WDA: %d"), vos_status);
+		vos_mem_free(msg_body);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	sme_ReleaseGlobalLock(&mac->sme);
+
+	return eHAL_STATUS_SUCCESS;
 }
 #endif
 void sme_getRecoveryStats(tHalHandle hHal) {
