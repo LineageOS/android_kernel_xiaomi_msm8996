@@ -697,6 +697,14 @@ static int reg_init_from_eeprom(hdd_context_t *pHddCtx, struct regulatory *reg,
 {
 	int ret_val = 0;
 
+	if((pHddCtx->cfg_ini->overrideCountryCode[0] != '0' )&&
+	   (pHddCtx->cfg_ini->overrideCountryCode[1] != '0')) {
+		reg->alpha2[0] = pHddCtx->cfg_ini->overrideCountryCode[0];
+		reg->alpha2[1] = pHddCtx->cfg_ini->overrideCountryCode[1];
+		reg->reg_domain = COUNTRY_ERD_FLAG;
+		reg->reg_domain |= regdmn_find_ctry_by_name(reg->alpha2);
+	}
+
 	ret_val = regdmn_get_country_alpha2(reg);
 	if (ret_val) {
 		adf_os_print(KERN_ERR "Error in getting country code\n");

@@ -11127,11 +11127,13 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
             hddLog(LOGE, "Crash Inject ini disabled, Ignore Crash Inject");
             return 0;
         }
+
+        hdd_ctx->isLogpInProgress = true;
         ret = process_wma_set_command_twoargs((int) pAdapter->sessionId,
                                               (int) GEN_PARAM_CRASH_INJECT,
                                               value[1], value[2], GEN_CMD);
-        if (!ret)
-           hdd_ctx->isLogpInProgress = true;
+        if (ret)
+            hdd_ctx->isLogpInProgress = false;
 
         break;
 #endif
