@@ -830,6 +830,53 @@ static void merge_ocb_tx_ctrl_hdr(struct ocb_tx_ctrl_hdr_t *tx_ctrl,
 }
 
 #ifdef WLAN_FEATURE_DSRC
+/**
+ * dsrc_update_broadcast_frame_sa() - update source address of DSRC broadcast
+ * frame
+ * @vdev: virtual device handle corresponding to wlanocb0.
+ * @tx_ctrl: default TX control header.
+ * @msdu: MAC service data unit.
+ *
+ * For each channel of DSRC has its MAC address, which may be different from
+ * the MAC address of interface wlanocb0, so we need to update the source MAC
+ * address per channel.
+ */
+static void dsrc_update_broadcast_frame_sa(ol_txrx_vdev_handle vdev,
+					   struct ocb_tx_ctrl_hdr_t *tx_ctrl,
+					   adf_nbuf_t msdu)
+{
+	int i;
+	uint8_t *da;
+	uint8_t *sa;
+	struct ieee80211_frame *wh;
+	struct ether_header *eh;
+	struct ol_txrx_ocb_chan_info *chan_info;
+
+	chan_info = &vdev->ocb_channel_info[0];
+	for (i = 0; i < vdev->ocb_channel_count; i++) {
+		if (tx_ctrl->channel_freq ==
+		    vdev->ocb_channel_info[i].chan_freq) {
+			chan_info = &vdev->ocb_channel_info[i];
+			break;
+		}
+	}
+
+	if (tx_ctrl->valid_eth_mode) {
+		eh = (struct ether_header *)adf_nbuf_data(msdu);
+		da = eh->ether_dhost;
+		sa = eh->ether_shost;
+	} else {
+		wh = (struct ieee80211_frame *)adf_nbuf_data(msdu);
+		da = wh->i_addr1;
+		sa = wh->i_addr2;
+	}
+
+	if (vos_is_macaddr_broadcast((v_MACADDR_t *)da)) {
+		vos_mem_copy(sa, chan_info->mac_address,
+			     sizeof(chan_info->mac_address));
+	}
+}
+
 /* If the vdev is in OCB mode, collect per packet tx stats. */
 static inline void
 ol_collect_per_pkt_tx_stats(ol_txrx_vdev_handle vdev,
@@ -854,12 +901,18 @@ ol_collect_per_pkt_tx_stats(ol_txrx_vdev_handle vdev,
 			       tx_ctrl->datarate, tx_ctrl->pwr);
 }
 #else
+static void dsrc_update_broadcast_frame_sa(ol_txrx_vdev_handle vdev,
+					   struct ocb_tx_ctrl_hdr_t *tx_ctrl,
+					   adf_nbuf_t msdu)
+{
+}
+
 static inline void
 ol_collect_per_pkt_tx_stats(ol_txrx_vdev_handle vdev,
 			    struct ocb_tx_ctrl_hdr_t *tx_ctrl, uint32_t msdu_id)
 {
 }
-#endif
+#endif /* WLAN_FEATURE_DSRC */
 
 static inline adf_nbuf_t
 ol_tx_hl_base(
@@ -1000,6 +1053,14 @@ ol_tx_hl_base(
             if (tx_ctrl_header_found && vdev->ocb_def_tx_param)
                 merge_ocb_tx_ctrl_hdr(&tx_ctrl, vdev->ocb_def_tx_param,
                                       vdev->ocb_channel_count);
+
+            /*
+             * Check OCB Broadcast frame Source address.
+             * Per OCB channel, it includes a default MAC address
+             * for broadcast DSRC frame in this channel.
+             */
+            if (tx_ctrl_header_found)
+                dsrc_update_broadcast_frame_sa(vdev, &tx_ctrl, msdu);
 
             /* TODO: only collect dsrc tx packet stats.*/
             if (adf_nbuf_headroom(msdu) >=

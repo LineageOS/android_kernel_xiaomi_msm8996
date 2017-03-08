@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -153,7 +153,10 @@ PREPACK struct ocb_tx_ctrl_hdr_t {
                 valid_expire_tsf:     1,
                 /* bit 5: if set, TID is valid */
                 valid_tid:            1,
-                reserved0_15_6:      10; /* bits 15:6 - unused, set to 0x0 */
+                /* bit 6: if set, tx frame with 802.3 ethernet header */
+                valid_eth_mode:       1,
+                /* bits 15:7 - unused, set to 0x0 */
+                reserved0_15_7:       9;
         };
         A_UINT16 all_flags;
     };
