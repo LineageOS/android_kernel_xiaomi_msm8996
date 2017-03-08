@@ -1059,12 +1059,10 @@ ol_tx_hl_base(
              * Per OCB channel, it includes a default MAC address
              * for broadcast DSRC frame in this channel.
              */
-            if (tx_ctrl_header_found)
+            if (tx_ctrl_header_found) {
                 dsrc_update_broadcast_frame_sa(vdev, &tx_ctrl, msdu);
 
-            /* TODO: only collect dsrc tx packet stats.*/
-            if (adf_nbuf_headroom(msdu) >=
-                sizeof(struct htt_tx_msdu_desc_ext_t)) {
+                /* only collect dsrc tx packet stats.*/
                 ol_collect_per_pkt_tx_stats(vdev, &tx_ctrl, tx_desc->id);
             }
         }
