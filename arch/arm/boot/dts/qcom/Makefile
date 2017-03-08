@@ -4,6 +4,16 @@ dtb-$(CONFIG_ARCH_MSM8996) += a1-msm8996-v2-pmi8994-mtp.dtb \
 	a1-msm8996-v3.0-pmi8994-mtp.dtb \
 	a2-msm8996-v3-pmi8994-mtp.dtb \
 	a2-msm8996-v3.0-pmi8994-mtp.dtb
+
+# HACCCKKK
+dtb-y += dtbdump_10.dtb \
+	dtbdump_15.dtb \
+	dtbdump_17.dtb \
+	dtbdump_19.dtb \
+	dtbdump_21.dtb \
+	dtbdump_2.dtb \
+	dtbdump_4.dtb \
+	dtbdump_6.dtb
 else
 dtb-$(CONFIG_ARCH_MSM8996) += msm8996-v2-pmi8994-cdp.dtb \
 	msm8996-v2-pmi8994-mtp.dtb \
