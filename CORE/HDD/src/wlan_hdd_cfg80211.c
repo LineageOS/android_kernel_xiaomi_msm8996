@@ -12681,11 +12681,11 @@ static int wlan_hdd_cfg80211_sap_configuration_set(struct wiphy *wiphy,
  * This function fill txrx rate information to aStaInfo[staid] of hostapd
  * adapter
  */
-static void hdd_get_peer_txrx_rate_cb(struct sir_peer_info_resp *peer_info,
+static void hdd_get_peer_txrx_rate_cb(struct sir_peer_info_ext_resp *peer_info,
 		void *context)
 {
 	struct statsContext *get_txrx_rate_context;
-	struct sir_peer_info *txrx_rate = NULL;
+	struct sir_peer_info_ext *txrx_rate = NULL;
 	hdd_adapter_t *adapter;
 	uint8_t staid;
 
@@ -12720,22 +12720,32 @@ static void hdd_get_peer_txrx_rate_cb(struct sir_peer_info_resp *peer_info,
 		return;
 	}
 
-	if (peer_info->count) {
-		adapter = get_txrx_rate_context->pAdapter;
-		txrx_rate = peer_info->info;
-		if (VOS_STATUS_SUCCESS != hdd_softap_GetStaId(adapter,
-					(v_MACADDR_t *)txrx_rate->peer_macaddr,
-					&staid)) {
-			spin_unlock(&hdd_context_lock);
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-					"%s: Station MAC address does not matching",
-					__func__);
-			return;
-		}
-
-		adapter->aStaInfo[staid].tx_rate = txrx_rate->tx_rate;
-		adapter->aStaInfo[staid].rx_rate = txrx_rate->rx_rate;
+	if (!peer_info->count) {
+		spin_unlock(&hdd_context_lock);
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("Fail to get remote peer info"));
+		return;
 	}
+
+	adapter = get_txrx_rate_context->pAdapter;
+	txrx_rate = peer_info->info;
+	if (VOS_STATUS_SUCCESS != hdd_softap_GetStaId(adapter,
+				(v_MACADDR_t *)txrx_rate->peer_macaddr,
+				&staid)) {
+		spin_unlock(&hdd_context_lock);
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				"%s: Station MAC address does not matching",
+				__func__);
+		return;
+	}
+
+	adapter->aStaInfo[staid].tx_rate = txrx_rate->tx_rate;
+	adapter->aStaInfo[staid].rx_rate = txrx_rate->rx_rate;
+	hddLog(VOS_TRACE_LEVEL_INFO, "%s txrate %x rxrate %x\n",
+			__func__,
+			adapter->aStaInfo[staid].tx_rate,
+			adapter->aStaInfo[staid].rx_rate);
+
 	get_txrx_rate_context->magic = 0;
 
 	/* notify the caller */
@@ -12757,7 +12767,7 @@ static void hdd_get_peer_txrx_rate_cb(struct sir_peer_info_resp *peer_info,
  * @adapter: hostapd interface
  * @macaddress: mac address of requested peer
  *
- * This function call sme_get_peer_info to get txrx rate
+ * This function call sme_get_peer_info_ext to get txrx rate
  *
  * Return: 0 on success, otherwise error value
  */
@@ -12767,7 +12777,7 @@ static int wlan_hdd_get_txrx_rate(hdd_adapter_t *adapter,
 	eHalStatus hstatus;
 	int ret;
 	struct statsContext context;
-	struct sir_peer_info_req txrx_rate_req;
+	struct sir_peer_info_ext_req txrx_rate_req;
 
 	if (NULL == adapter) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL",
@@ -12782,8 +12792,9 @@ static int wlan_hdd_get_txrx_rate(hdd_adapter_t *adapter,
 	vos_mem_copy(&(txrx_rate_req.peer_macaddr), &macaddress,
 				VOS_MAC_ADDR_SIZE);
 	txrx_rate_req.sessionid = adapter->sessionId;
-	hstatus = sme_get_peer_info(WLAN_HDD_GET_HAL_CTX(adapter),
-				txrx_rate_req,
+	txrx_rate_req.reset_after_request = 0;
+	hstatus = sme_get_peer_info_ext(WLAN_HDD_GET_HAL_CTX(adapter),
+				&txrx_rate_req,
 				&context,
 				hdd_get_peer_txrx_rate_cb);
 	if (eHAL_STATUS_SUCCESS != hstatus) {
@@ -12880,7 +12891,8 @@ static int hdd_get_station_remote(hdd_context_t *hdd_ctx,
 		(sizeof(stainfo->isQosEnabled) + NLA_HDRLEN) +
 		(sizeof(stainfo->mode) + NLA_HDRLEN);
 
-	if (wlan_hdd_get_txrx_rate(adapter, mac_addr)) {
+	if (!hdd_ctx->cfg_ini->sap_get_peer_info ||
+			wlan_hdd_get_txrx_rate(adapter, mac_addr)) {
 		hddLog(LOGE, FL("fail to get tx/rx rate"));
 		txrx_rate = false;
 	} else {
