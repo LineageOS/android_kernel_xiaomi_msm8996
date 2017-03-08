@@ -1867,6 +1867,8 @@ static void hdd_fill_station_info(hdd_station_info_t *stainfo,
 				stainfo->max_ext_idx,
 				stainfo->max_mcs_idx,
 				stainfo->rx_mcs_map);
+	/* expect max_phy_rate report in kbps */
+	stainfo->max_phy_rate *= 100;
 	hddLog(VOS_TRACE_LEVEL_INFO,
 			FL("cap %d %d %d %d %d %d %d %d %d %x %d"),
 			stainfo->ampdu,

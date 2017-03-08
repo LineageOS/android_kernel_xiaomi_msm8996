@@ -12672,6 +12672,8 @@ static int wlan_hdd_cfg80211_sap_configuration_set(struct wiphy *wiphy,
 	QCA_WLAN_VENDOR_ATTR_GET_STATION_INFO_REMOTE_RX_STBC
 #define REMOTE_CH_WIDTH\
 	QCA_WLAN_VENDOR_ATTR_GET_STATION_INFO_REMOTE_CH_WIDTH
+#define REMOTE_SGI_ENABLE\
+	QCA_WLAN_VENDOR_ATTR_GET_STATION_INFO_REMOTE_SGI_ENABLE
 
 /**
  * hdd_get_peer_txrx_rate_cb() - get station's txrx rate callback
@@ -12905,7 +12907,8 @@ static int hdd_get_station_remote(hdd_context_t *hdd_ctx,
 		nl_buf_len += (sizeof(stainfo->ampdu) + NLA_HDRLEN) +
 			(sizeof(stainfo->tx_stbc) + NLA_HDRLEN) +
 			(sizeof(stainfo->rx_stbc) + NLA_HDRLEN) +
-			(sizeof(stainfo->ch_width) + NLA_HDRLEN);
+			(sizeof(stainfo->ch_width) + NLA_HDRLEN) +
+			(sizeof(stainfo->sgi_enable) + NLA_HDRLEN);
 
 	hddLog(VOS_TRACE_LEVEL_INFO, FL("buflen %d hdrlen %d"),
 			nl_buf_len, NLMSG_HDRLEN);
@@ -12933,9 +12936,10 @@ static int hdd_get_station_remote(hdd_context_t *hdd_ctx,
 				stainfo->ampdu, stainfo->tx_stbc,
 				stainfo->rx_stbc);
 		hddLog(VOS_TRACE_LEVEL_INFO,
-				FL("wmm %d chwidth %d"),
+				FL("wmm %d chwidth %d sgi %d"),
 				stainfo->isQosEnabled,
-				stainfo->ch_width);
+				stainfo->ch_width,
+				stainfo->sgi_enable);
 	}
 
 	if (nla_put_u32(skb, REMOTE_MAX_PHY_RATE, stainfo->max_phy_rate) ||
@@ -12965,7 +12969,8 @@ static int hdd_get_station_remote(hdd_context_t *hdd_ctx,
 		if (nla_put_u8(skb, REMOTE_AMPDU, stainfo->ampdu) ||
 		    nla_put_u8(skb, REMOTE_TX_STBC, stainfo->tx_stbc) ||
 		    nla_put_u8(skb, REMOTE_RX_STBC, stainfo->rx_stbc) ||
-		    nla_put_u8(skb, REMOTE_CH_WIDTH, stainfo->ch_width)) {
+		    nla_put_u8(skb, REMOTE_CH_WIDTH, stainfo->ch_width) ||
+		    nla_put_u8(skb, REMOTE_SGI_ENABLE, stainfo->sgi_enable)) {
 			hddLog(LOGE, FL("put fail"));
 			goto fail;
 		}
@@ -13118,6 +13123,7 @@ hdd_cfg80211_get_station_cmd(struct wiphy *wiphy,
 #undef REMOTE_TX_STBC
 #undef REMOTE_RX_STBC
 #undef REMOTE_CH_WIDTH
+#undef REMOTE_SGI_ENABLE
 
 static const struct
 nla_policy qca_wlan_vendor_attr[QCA_WLAN_VENDOR_ATTR_MAX+1] = {
@@ -23842,7 +23848,9 @@ static void hdd_fill_bw_mcs(struct station_info *sinfo,
 		bool vht)
 {
 	if (vht) {
+		sinfo->txrate.nss = nss;
 		sinfo->txrate.mcs = mcsidx;
+		sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
 		if (rate_flags & eHAL_TX_RATE_VHT80)
 			sinfo->txrate.bw = RATE_INFO_BW_80;
 		else if (rate_flags & eHAL_TX_RATE_VHT40)
@@ -23877,7 +23885,9 @@ static void hdd_fill_bw_mcs(struct station_info *sinfo,
 		bool vht)
 {
 	if (vht) {
+		sinfo->txrate.nss = nss;
 		sinfo->txrate.mcs = mcsidx;
+		sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
 		if (rate_flags & eHAL_TX_RATE_VHT80)
 			sinfo->txrate.flags |= RATE_INFO_FLAGS_80_MHZ_WIDTH;
 		else if (rate_flags & eHAL_TX_RATE_VHT40)
@@ -23943,9 +23953,15 @@ static void hdd_fill_sinfo_rate_info(struct station_info *sinfo,
 		sinfo->txrate.legacy = maxrate;
 	} else {
 		/* must be MCS */
-		sinfo->txrate.nss = nss;
-		hdd_fill_bw_mcs_vht(sinfo, rate_flags, mcsidx, nss);
-		hdd_fill_bw_mcs(sinfo, rate_flags, mcsidx, nss, FALSE);
+		if (rate_flags &
+				(eHAL_TX_RATE_VHT80 |
+				 eHAL_TX_RATE_VHT40 |
+				 eHAL_TX_RATE_VHT20))
+			hdd_fill_bw_mcs_vht(sinfo, rate_flags, mcsidx, nss);
+
+		if (rate_flags & (eHAL_TX_RATE_HT20 | eHAL_TX_RATE_HT40))
+			hdd_fill_bw_mcs(sinfo, rate_flags, mcsidx, nss, FALSE);
+
 		if (rate_flags & eHAL_TX_RATE_SGI) {
 			if (!(sinfo->txrate.flags & RATE_INFO_FLAGS_VHT_MCS))
 				sinfo->txrate.flags |= RATE_INFO_FLAGS_MCS;
