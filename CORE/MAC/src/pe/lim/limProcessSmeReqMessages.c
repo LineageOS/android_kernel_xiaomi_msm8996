@@ -2342,6 +2342,20 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->maxTxPower = limGetMaxTxPower(regMax,
                    localPowerConstraint, pMac->roam.configParam.nTxPowerCap);
 
+        limLog(pMac, LOG1,
+                FL("regMax = %d, localPowerConstraint = %d,"
+                    "max tx pwr = %d, UAPSD flag for all AC - 0x%2x"),
+                regMax, localPowerConstraint,
+                psessionEntry->maxTxPower,
+                psessionEntry->gUapsdPerAcBitmask);
+
+        if (pSmeJoinReq->powerCap.maxTxPower > psessionEntry->maxTxPower)
+        {
+            pSmeJoinReq->powerCap.maxTxPower = psessionEntry->maxTxPower;
+            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+                    "Update MaxTxPower in join Req to %d",
+                    pSmeJoinReq->powerCap.maxTxPower);
+        }
         if(!pMac->psOffloadEnabled)
         {
             if (pMac->lim.gLimCurrentBssUapsd)
@@ -2364,12 +2378,6 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 psessionEntry->gUapsdPerAcTriggerEnableMask = 0;
              }
         }
-        limLog(pMac, LOG1,
-               FL("regMax = %d, localPowerConstraint = %d,"
-                  "max tx pwr = %d, UAPSD flag for all AC - 0x%2x"),
-                        regMax, localPowerConstraint,
-                        psessionEntry->maxTxPower,
-                        psessionEntry->gUapsdPerAcBitmask);
 
         psessionEntry->limRFBand = limGetRFBand(psessionEntry->currentOperChannel);
 
