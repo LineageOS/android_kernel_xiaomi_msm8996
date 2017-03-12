@@ -849,6 +849,8 @@ typedef struct wma_handle {
 	int wow_nack;
 	u_int32_t ap_client_cnt;
 	adf_os_atomic_t is_wow_bus_suspended;
+	adf_os_atomic_t dfs_wmi_event_pending;
+	adf_os_atomic_t dfs_wmi_event_dropped;
 
 	vos_timer_t wma_scan_comp_timer;
 	scan_timer_info wma_scan_timer_info;

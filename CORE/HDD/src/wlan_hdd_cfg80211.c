@@ -2137,10 +2137,6 @@ __wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 					hddLog(LOGW, FL("Ignoring excess Blacklist BSSID"));
 					break;
 				}
-				if (curr_attr == NULL) {
-					hddLog(LOGW, FL("Blacklist BSSID, curr_attr is null"));
-					continue;
-				}
 				if (nla_parse(tb2,
 					QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX,
 					nla_data(curr_attr), nla_len(curr_attr),

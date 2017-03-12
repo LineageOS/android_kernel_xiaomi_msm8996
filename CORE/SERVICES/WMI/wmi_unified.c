@@ -51,6 +51,7 @@
 #endif
 
 #define WMI_MIN_HEAD_ROOM 64
+#define RADAR_WMI_EVENT_PENDING_MAX 1000
 
 #ifdef WMI_INTERFACE_EVENT_LOGGING
 /* WMI commands */
@@ -1084,13 +1085,25 @@ void wmi_control_rx(void *ctx, HTC_PACKET *htc_packet)
 	int tlv_ok_status = 0;
 	u_int32_t id;
 	u_int8_t *data;
+	tp_wma_handle wma = wmi_handle->scn_handle;
 
 	evt_buf = (wmi_buf_t) htc_packet->pPktContext;
 	id = WMI_GET_FIELD(adf_nbuf_data(evt_buf), WMI_CMD_HDR, COMMANDID);
 	/* TX_PAUSE EVENT should be handled with tasklet context */
-	if ((WMI_TX_PAUSE_EVENTID == id) ||
+	while ((WMI_TX_PAUSE_EVENTID == id) ||
 		(WMI_WOW_WAKEUP_HOST_EVENTID == id) ||
-		(WMI_D0_WOW_DISABLE_ACK_EVENTID == id)) {
+		(WMI_D0_WOW_DISABLE_ACK_EVENTID == id) ||
+		(WMI_DFS_RADAR_EVENTID == id)) {
+		if ((WMI_DFS_RADAR_EVENTID == id) && wma) {
+			if (adf_os_atomic_inc_return(
+					&wma->dfs_wmi_event_pending) <
+					RADAR_WMI_EVENT_PENDING_MAX) {
+				break;
+			} else {
+				adf_os_atomic_inc(&wma->dfs_wmi_event_dropped);
+				adf_os_atomic_dec(&wma->dfs_wmi_event_pending);
+			}
+		}
 		if (adf_nbuf_pull_head(evt_buf, sizeof(WMI_CMD_HDR)) == NULL)
 			return;
 
@@ -1113,8 +1126,9 @@ void wmi_control_rx(void *ctx, HTC_PACKET *htc_packet)
 			adf_nbuf_free(evt_buf);
 			return;
 		}
-		wmi_handle->event_handler[idx](wmi_handle->scn_handle,
-			       wmi_cmd_struct_ptr, len);
+		if (WMI_DFS_RADAR_EVENTID != id)
+			wmi_handle->event_handler[idx](wmi_handle->scn_handle,
+					wmi_cmd_struct_ptr, len);
 		wmitlv_free_allocated_event_tlvs(id, &wmi_cmd_struct_ptr);
 		adf_nbuf_free(evt_buf);
 		return;
