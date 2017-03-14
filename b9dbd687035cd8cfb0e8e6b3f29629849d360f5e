@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba57610f_6f1d8273",
+        "filename": "arch/arm/boot/dts/qcom/dtbdump_6.dts",
+        "patchSetId": 7
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-03-14T13:09:43Z",
+      "side": 1,
+      "message": "This should be one of natrium\u0027s DTS:\n\n(bootloader) variant:B7 eMMC\n(bootloader) platform_hw:002f\n(bootloader) platform:0131\n(bootloader) product:MSM8996_B7",
+      "range": {
+        "startLine": 17,
+        "startChar": 0,
+        "endLine": 21,
+        "endChar": 44
+      },
+      "revId": "b9dbd687035cd8cfb0e8e6b3f29629849d360f5e",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
