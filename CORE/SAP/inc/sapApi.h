@@ -73,6 +73,8 @@ when           who                what, where, why
 #include "vos_packet.h"
 #include "vos_types.h"
 
+#include "wlan_defs.h"
+
 #include "p2p_Api.h"
 #include "sme_Api.h"
 /*----------------------------------------------------------------------------
@@ -612,6 +614,7 @@ typedef struct sap_Config {
     bool             dfs_beacon_tx_enhanced;
     uint16_t         reduced_beacon_interval;
     enum sub20_chan_switch_mode  sub20_switch_mode;
+    uint8_t backup_channel;
 } tsap_Config_t;
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
@@ -2489,12 +2492,20 @@ VOS_STATUS wlansap_set_invalid_session(v_PVOID_t pctx);
 VOS_STATUS
 WLANSAP_set_sub20_channelwidth_with_csa(
 	void *vos_ctx_ptr, uint32_t chan_width);
+uint8_t
+WLANSAP_get_sub20_channel_width(void *vos_ctx_ptr);
 #else
 static inline VOS_STATUS
 WLANSAP_set_sub20_channelwidth_with_csa(
 	void *vos_ctx_ptr, uint32_t chan_width)
 {
 	return VOS_STATUS_SUCCESS;
+}
+
+static inline uint8_t
+WLANSAP_get_sub20_channel_width(void *vos_ctx_ptr)
+{
+	return SUB20_MODE_NONE;
 }
 #endif
 #ifdef __cplusplus

@@ -305,6 +305,7 @@ typedef struct sSapContext {
     vos_event_t sap_session_opened_evt;
     eCsrBand	target_band;
     uint8_t     sub20_channelwidth;
+    uint32_t    backup_channel;
 } *ptSapContext;
 
 

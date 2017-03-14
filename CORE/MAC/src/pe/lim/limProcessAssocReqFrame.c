@@ -1644,7 +1644,10 @@ static void fill_mlm_assoc_ind_vht(tpSirAssocReq assocreq,
 		assocind->rx_stbc = assocreq->VHTCaps.rxSTBC;
 
 		/* ch width */
-		assocind->ch_width = stads->vhtSupportedChannelWidthSet;
+		assocind->ch_width = stads->vhtSupportedChannelWidthSet ?
+			eHT_CHANNEL_WIDTH_80MHZ :
+			stads->htSupportedChannelWidthSet ?
+			eHT_CHANNEL_WIDTH_40MHZ : eHT_CHANNEL_WIDTH_20MHZ;
 
 		/* mode */
 		assocind->mode = SIR_SME_PHY_MODE_VHT;
@@ -1950,7 +1953,8 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             pMlmAssocInd->rx_stbc = pAssocReq->HTCaps.rxSTBC;
 
             /* ch width */
-            pMlmAssocInd->ch_width = pStaDs->htSupportedChannelWidthSet;
+            pMlmAssocInd->ch_width = pStaDs->htSupportedChannelWidthSet ?
+                eHT_CHANNEL_WIDTH_40MHZ: eHT_CHANNEL_WIDTH_20MHZ;
 
             /* mode */
             pMlmAssocInd->mode = SIR_SME_PHY_MODE_HT;

@@ -1867,6 +1867,8 @@ static void hdd_fill_station_info(hdd_station_info_t *stainfo,
 				stainfo->max_ext_idx,
 				stainfo->max_mcs_idx,
 				stainfo->rx_mcs_map);
+	/* expect max_phy_rate report in kbps */
+	stainfo->max_phy_rate *= 100;
 	hddLog(VOS_TRACE_LEVEL_INFO,
 			FL("cap %d %d %d %d %d %d %d %d %d %x %d"),
 			stainfo->ampdu,
@@ -2817,8 +2819,13 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             pHddApCtx->sapConfig.acs_cfg.ch_width =
                  pSapEvent->sapevt.sapChSelected.ch_width;
             /* send vendor event to hostapd only for hostapd based acs */
-            if (!pHddCtx->cfg_ini->force_sap_acs)
-                wlan_hdd_cfg80211_acs_ch_select_evt(pHostapdAdapter);
+            if (!test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) {
+                if (!pHddCtx->cfg_ini->force_sap_acs)
+                    wlan_hdd_cfg80211_acs_ch_select_evt(pHostapdAdapter);
+            } else {
+                pHddApCtx->sapConfig.channel =
+                    pHddApCtx->sapConfig.backup_channel;
+            }
 
             return VOS_STATUS_SUCCESS;
         case eSAP_ECSA_CHANGE_CHAN_IND:
