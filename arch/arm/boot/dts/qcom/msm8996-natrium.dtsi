@@ -1,0 +1,154 @@
+/* Copyright (c) 2015, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "msm8996-xiaomi-common.dtsi"
+#include "msm8996-camera-sensor-natrium.dtsi"
+
+&mdss_dsi0 {
+	pinctrl-0 = <&mdss_dsi_active &mdss_te_active &mdss_vddr_active>;
+	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend &mdss_vddr_suspend>;
+};
+
+&mtp_batterydata {
+	#include "batterydata-b7-atl-3840mah.dtsi"
+	#include "batterydata-b7-lg-3840mah.dtsi"
+};
+
+&soc {
+	i2c@75b7000 {
+		lp5562@30 {
+			chan2 {
+				chan-name = "button-backlight2";
+				led-cur = /bits/ 8 <0x32>;
+				max-cur = /bits/ 8 <0xC8>;
+			};
+		};
+	};
+
+	i2c@75ba000 {
+		synaptics_dsi_i2c@20 {
+			compatible = "synaptics,dsx-i2c-force";
+			synaptics,power-ctrl;
+			synaptics,backup-fw = "synaptics_sharp_backup_b7.fw";
+			synaptics,chip-3330 = <0>;
+			synaptics,chip-3331 = <1>;
+			synaptics,chip-4322 = <2>;
+			synaptics,chip-4722 = <3>;
+		};
+	};
+
+	pwm_ir {
+		compatible = "pwm-ir";
+		pwms = <&pm8994_pwm_2 0 0>;
+	};
+
+	qcom,msm-ssc-sensors {
+		qcom,firmware-name = "slpi_a4";
+	};
+
+	sound-9335 {
+		qcom,wsa-max-devs = <1>;
+		qcom,wsa-devs = <&wsa881x_213>;
+		qcom,wsa-aux-dev-prefix = "SpkrLeft";
+	};
+};
+
+&pm8994_gpios {
+	gpio@c600 {
+		qcom,mode = <1>;
+		qcom,pull = <0>;
+		qcom,vin-sel = <2>;
+		qcom,src-sel = <2>;
+		qcom,out-strength = <1>;
+		qcom,master-en = <1>;
+		status = "okay";
+	};
+
+	gpio@ca00 {
+		qcom,mode = <1>;
+		qcom,pull = <5>;
+		qcom,vin-sel = <2>;
+		qcom,src-sel = <2>;
+		qcom,out-strength = <1>;
+		qcom,master-en = <1>;
+		status = "okay";
+	};
+};
+
+&slim_msm {
+	tasha_codec {
+		swr_master {
+			compatible = "qcom,swr-wcd";
+			#address-cells = <2>;
+			#size-cells = <0>;
+
+			wsa881x_213: wsa881x@21170213 {
+				compatible = "qcom,wsa881x";
+				reg = <0x00 0x21170213>;
+				qcom,spkr-sd-n-gpio = <&pmi8994_gpios 2 0>;
+			};
+		};
+	};
+};
+
+// msm-pmi8994.dtsi start
+&pmi8994_charger {
+	qcom,fastchg-current-ma = <3200>;
+	qcom,fastchg-current-comp = <1100>;
+	qcom,stage-charge-ma = <2550>;
+};
+
+&pmi8994_haptics {
+	qcom,vmax-mv = <1740>;
+	qcom,brake-pattern = <50529026>;
+	status = "okay";
+};
+// msm-pmi8994.dtsi end
+
+// msm8996-regulator.dtsi start
+&pmi8994_s2 {
+	regulator-max-microvolt = <1065000>;
+};
+
+&pm8004_s2 {
+	regulator-max-microvolt = <1065000>;
+};
+// msm8996-regulator.dtsi end
+
+// msm8996pro.dtsi start
+&qusb_phy0 {
+	qcom,qusb-phy-init-seq = <0x38 0x80
+				0x90 0x84
+				0x93 0x88
+				0xcf 0x8c
+				0x30 0x8
+				0x79 0xc
+				0x21 0x10
+				0x14 0x9c
+				0x9f 0x1c
+				0x0 0x18>;
+};
+
+&qusb_phy1 {
+	qcom,qusb-phy-init-seq = <0x38 0x80
+				0x90 0x84
+				0x93 0x88
+				0xcf 0x8c
+				0x30 0x8
+				0x79 0xc
+				0x21 0x10
+				0x14 0x9c
+				0x9f 0x1c
+				0x0 0x18>;
+};
+// msm8996pro.dtsi end
