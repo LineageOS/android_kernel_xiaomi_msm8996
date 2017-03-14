@@ -372,6 +372,7 @@ sap_process_avoid_ie(tHalHandle hal,
 		if (temp_ptr) {
 			avoid_ch_ie = (struct sAvoidChannelIE*)temp_ptr;
 			if (avoid_ch_ie->type != QCOM_VENDOR_IE_MCC_AVOID_CH) {
+				node = sme_ScanResultGetNext(hal, scan_result);
 				continue;
 			}
 			sap_ctx->sap_detected_avoid_ch_ie.present = 1;
