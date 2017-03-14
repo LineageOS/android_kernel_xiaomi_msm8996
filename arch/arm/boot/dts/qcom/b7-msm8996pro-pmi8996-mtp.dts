@@ -11,20 +11,14 @@
  * GNU General Public License for more details.
  */
 
-#include "msm8996-gemini.dtsi"
 
-&soc {
-	i2c@75ba000 {
-		synaptics_dsi_i2c@20 {
-			synaptics,config-array-size = <2>;
-			synaptics,cfg_1 {
-				synaptics,tp-id = /bits/ 8 <0x31>;
-				synaptics,fw-name = "synaptics_jdi_incell.fw";
-			};
-			synaptics,cfg_3 {
-				synaptics,tp-id = /bits/ 8 <0x32>;
-				synaptics,fw-name = "synaptics_lgd_incell.fw";
-			};
-		};
-	};
+/dts-v1/;
+
+#include "msm8996pro.dtsi"
+#include "b7-msm8996pro-mtp.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. MSM 8996pro + PMI8996 MTP";
+	compatible = "qcom,msm8996-mtp", "qcom,msm8996", "qcom,mtp";
+	qcom,board-id = <47 0>;
 };
