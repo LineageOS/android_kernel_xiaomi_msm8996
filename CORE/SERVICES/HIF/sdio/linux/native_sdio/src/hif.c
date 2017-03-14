@@ -1788,6 +1788,13 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
     if (ret == A_OK || ret == A_PENDING) {
         return 0;
     } else {
+        for (i = 0; i < MAX_HIF_DEVICES; ++i) {
+            if (hif_devices[i] == device) {
+                hif_devices[i] = NULL;
+                break;
+            }
+        }
+        sdio_set_drvdata(func, NULL);
         delHifDevice(device);
         return -1;
     }
@@ -2781,8 +2788,13 @@ static int hif_sdio_device_inserted(struct sdio_func *func, const struct sdio_de
 
 static void hif_sdio_device_removed(struct sdio_func *func)
 {
-	if (func != NULL)
-		hifDeviceRemoved(func);
+	HIF_DEVICE * device = NULL;
+
+	if (func != NULL) {
+		device = getHifDevice(func);
+		if (device != NULL)
+			hifDeviceRemoved(func);
+	}
 }
 
 static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_device_id * id)
