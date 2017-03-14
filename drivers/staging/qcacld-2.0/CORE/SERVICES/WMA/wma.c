@@ -42075,7 +42075,7 @@ int wma_dfs_indicate_radar(struct ieee80211com *ic,
 	    ( pmac->sap.SapDfsInfo.disable_dfs_ch_switch == VOS_TRUE) )
 	{
 		radar_event = (struct wma_dfs_radar_indication *)
-			vos_mem_malloc(sizeof(*radar_event));
+			vos_mem_malloc(sizeof(struct wma_dfs_radar_indication));
 		if (radar_event == NULL) {
 			WMA_LOGE(FL("Failed to allocate memory for radar_event"));
 			adf_os_spin_unlock_bh(&ic->chan_lock);
