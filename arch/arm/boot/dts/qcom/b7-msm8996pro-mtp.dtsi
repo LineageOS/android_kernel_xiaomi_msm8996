@@ -11,19 +11,31 @@
  * GNU General Public License for more details.
  */
 
-#include "msm8996-gemini.dtsi"
+#include "msm8996-natrium.dtsi"
 
 &soc {
 	i2c@75ba000 {
 		synaptics_dsi_i2c@20 {
-			synaptics,config-array-size = <2>;
+			synaptics,config-array-size = <4>;
 			synaptics,cfg_1 {
+				synaptics,chip-id = <0>;
 				synaptics,tp-id = /bits/ 8 <0x31>;
-				synaptics,fw-name = "synaptics_jdi_incell.fw";
+				synaptics,fw-name = "synaptics_jdi_3330_b7.fw";
+			};
+			synaptics,cfg_2 {
+				synaptics,chip-id = <2>;
+				synaptics,tp-id = /bits/ 8 <0x38>;
+				synaptics,fw-name = "synaptics_sharp_4322_b7.fw";
 			};
 			synaptics,cfg_3 {
-				synaptics,tp-id = /bits/ 8 <0x32>;
-				synaptics,fw-name = "synaptics_lgd_incell.fw";
+				synaptics,chip-id = <1>;
+				synaptics,tp-id = /bits/ 8 <0x31>;
+				synaptics,fw-name = "synaptics_jdi_3331_b7.fw";
+			};
+			synaptics,cfg_4 {
+				synaptics,chip-id = <3>;
+				synaptics,tp-id = /bits/ 8 <0x38>;
+				synaptics,fw-name = "synaptics_sharp_4722_b7.fw";
 			};
 		};
 	};
