@@ -469,8 +469,11 @@ drop_pkt:
        is_update_ac_stats = TRUE;
        goto drop_list;
    }
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0))
+   netif_trans_update(dev);
+#else
    dev->trans_start = jiffies;
+#endif
    return NETDEV_TX_OK;
 
 drop_list:
@@ -522,11 +525,15 @@ static void __hdd_softap_tx_timeout(struct net_device *dev)
     * case of disassociation it is ok to ignore this. But if associated, we have
     * do possible recovery here.
     */
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0))
+    VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
+        "%s: Transmission timeout occurred jiffies %lu",
+        __func__, jiffies);
+#else
     VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_ERROR,
         "%s: Transmission timeout occurred jiffies %lu trans_start %lu",
         __func__, jiffies, dev->trans_start);
-
+#endif
     for (i = 0; i < NUM_TX_QUEUES; i++) {
         txq = netdev_get_tx_queue(dev, i);
         VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA,

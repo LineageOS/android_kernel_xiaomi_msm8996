@@ -723,8 +723,11 @@ drop_pkt:
         is_update_ac_stats = TRUE;
         goto drop_list;
    }
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0))
+   netif_trans_update(dev);
+#else
    dev->trans_start = jiffies;
+#endif
    return NETDEV_TX_OK;
 
 drop_list:
@@ -865,8 +868,12 @@ static void __hdd_tx_timeout(struct net_device *dev)
    struct netdev_queue *txq;
    int i = 0;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0))
+   hddLog(LOGE, FL("Transmission timeout occurred jiffies %lu"),jiffies);
+#else
    hddLog(LOGE, FL("Transmission timeout occurred jiffies %lu trans_start %lu"),
           jiffies, dev->trans_start);
+#endif
    DPTRACE(adf_dp_trace(NULL, ADF_DP_TRACE_HDD_TX_TIMEOUT,
                         NULL, 0, ADF_TX));
    /*
