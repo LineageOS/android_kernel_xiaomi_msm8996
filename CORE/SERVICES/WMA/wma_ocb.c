@@ -33,7 +33,7 @@
 
 #include "wma_ocb.h"
 #include "wmi_unified_api.h"
-#include "vos_utils.h"
+#include "utilsApi.h"
 
 /**
  * wma_ocb_resp() - send the OCB set config response via callback
@@ -117,60 +117,6 @@ out:
 }
 
 /**
- * copy_sir_ocb_config() - deep copy of an OCB config struct
- * @src: pointer to the source struct
- *
- * Return: pointer to the copied struct
- */
-static struct sir_ocb_config *copy_sir_ocb_config(struct sir_ocb_config *src)
-{
-	struct sir_ocb_config *dst;
-	uint32_t length;
-	void *cursor;
-
-	length = sizeof(*src) +
-		src->channel_count * sizeof(*src->channels) +
-		src->schedule_size * sizeof(*src->schedule) +
-		src->dcc_ndl_chan_list_len +
-		src->dcc_ndl_active_state_list_len +
-		src->def_tx_param_size;
-
-	dst = vos_mem_malloc(length);
-	if (!dst)
-		return NULL;
-
-	*dst = *src;
-
-	cursor = dst;
-	cursor += sizeof(*dst);
-	dst->channels = cursor;
-	cursor += src->channel_count * sizeof(*dst->channels);
-	vos_mem_copy(dst->channels, src->channels,
-		     src->channel_count * sizeof(*dst->channels));
-	dst->schedule = cursor;
-	cursor += src->schedule_size * sizeof(*dst->schedule);
-	vos_mem_copy(dst->schedule, src->schedule,
-		     src->schedule_size * sizeof(*dst->schedule));
-	dst->dcc_ndl_chan_list = cursor;
-	cursor += src->dcc_ndl_chan_list_len;
-	vos_mem_copy(dst->dcc_ndl_chan_list, src->dcc_ndl_chan_list,
-		     src->dcc_ndl_chan_list_len);
-	dst->dcc_ndl_active_state_list = cursor;
-	cursor += src->dcc_ndl_active_state_list_len;
-	vos_mem_copy(dst->dcc_ndl_active_state_list,
-		     src->dcc_ndl_active_state_list,
-		     src->dcc_ndl_active_state_list_len);
-
-	if (src->def_tx_param && src->def_tx_param_size) {
-		dst->def_tx_param = cursor;
-		vos_mem_copy(dst->def_tx_param, src->def_tx_param,
-			     src->def_tx_param_size);
-	}
-
-	return dst;
-}
-
-/**
  * wma_ocb_set_config_req() - send the OCB config request
  * @wma_handle: pointer to the WMA handle
  * @config_req: the configuration to be set.
@@ -207,7 +153,7 @@ int wma_ocb_set_config_req(tp_wma_handle wma_handle,
 
 		if (wma_handle->ocb_config_req)
 			vos_mem_free(wma_handle->ocb_config_req);
-		wma_handle->ocb_config_req = copy_sir_ocb_config(config_req);
+		wma_handle->ocb_config_req = sir_copy_sir_ocb_config(config_req);
 
 		status = wma_vdev_start(wma_handle, &req, VOS_FALSE);
 		if (status != VOS_STATUS_SUCCESS) {
@@ -445,7 +391,7 @@ int wma_ocb_set_config(tp_wma_handle wma_handle, struct sir_ocb_config *config)
 	if (wma_handle->ocb_config_req != config) {
 		if (wma_handle->ocb_config_req)
 			vos_mem_free(wma_handle->ocb_config_req);
-		wma_handle->ocb_config_req = copy_sir_ocb_config(config);
+		wma_handle->ocb_config_req = sir_copy_sir_ocb_config(config);
 	}
 
 	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,

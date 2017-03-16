@@ -76,6 +76,7 @@
 #include "schApi.h"
 #include "sme_nan_datapath.h"
 #include "csrApi.h"
+#include "utilsApi.h"
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
@@ -13690,60 +13691,6 @@ void sme_set_dot11p_config(tHalHandle hal, bool enable_dot11p)
 }
 
 /**
- * copy_sir_ocb_config() - Performs deep copy of an OCB configuration
- * @src: the source configuration
- *
- * Return: pointer to the copied OCB configuration
- */
-static struct sir_ocb_config *sme_copy_sir_ocb_config(struct sir_ocb_config *src)
-{
-	struct sir_ocb_config *dst;
-	uint32_t length;
-	void *cursor;
-
-	length = sizeof(*src) +
-		src->channel_count * sizeof(*src->channels) +
-		src->schedule_size * sizeof(*src->schedule) +
-		src->dcc_ndl_chan_list_len +
-		src->dcc_ndl_active_state_list_len +
-		src->def_tx_param_size;
-
-	dst = vos_mem_malloc(length);
-	if (!dst)
-		return NULL;
-
-	*dst = *src;
-
-	cursor = dst;
-	cursor += sizeof(*dst);
-	dst->channels = cursor;
-	cursor += src->channel_count * sizeof(*src->channels);
-	vos_mem_copy(dst->channels, src->channels,
-		     src->channel_count * sizeof(*src->channels));
-	dst->schedule = cursor;
-	cursor += src->schedule_size * sizeof(*src->schedule);
-	vos_mem_copy(dst->schedule, src->schedule,
-		     src->schedule_size * sizeof(*src->schedule));
-	dst->dcc_ndl_chan_list = cursor;
-	cursor += src->dcc_ndl_chan_list_len;
-	vos_mem_copy(dst->dcc_ndl_chan_list, src->dcc_ndl_chan_list,
-		     src->dcc_ndl_chan_list_len);
-	dst->dcc_ndl_active_state_list = cursor;
-	cursor += src->dcc_ndl_active_state_list_len;
-	vos_mem_copy(dst->dcc_ndl_active_state_list,
-		     src->dcc_ndl_active_state_list,
-		     src->dcc_ndl_active_state_list_len);
-
-	if (src->def_tx_param && src->def_tx_param_size) {
-		dst->def_tx_param = cursor;
-		vos_mem_copy(dst->def_tx_param, src->def_tx_param,
-			     src->def_tx_param_size);
-	}
-
-	return dst;
-}
-
-/**
  * sme_ocb_set_config() - Set the OCB configuration
  * @hHal: reference to the HAL
  * @context: the context of the call
@@ -13773,7 +13720,7 @@ eHalStatus sme_ocb_set_config(tHalHandle hHal, void *context,
 		goto end;
 	}
 
-	msg_body = sme_copy_sir_ocb_config(config);
+	msg_body = sir_copy_sir_ocb_config(config);
 
 	if (!msg_body) {
 		status = eHAL_STATUS_FAILED_ALLOC;
