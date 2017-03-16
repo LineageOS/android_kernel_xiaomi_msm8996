@@ -13733,7 +13733,7 @@ static struct sir_ocb_config *sme_copy_sir_ocb_config(struct sir_ocb_config *src
 	vos_mem_copy(dst->dcc_ndl_active_state_list,
 		     src->dcc_ndl_active_state_list,
 		     src->dcc_ndl_active_state_list_len);
-	cursor += src->dcc_ndl_active_state_list_len;
+
 	if (src->def_tx_param && src->def_tx_param_size) {
 		dst->def_tx_param = cursor;
 		vos_mem_copy(dst->def_tx_param, src->def_tx_param,
