@@ -132,7 +132,8 @@ static struct sir_ocb_config *copy_sir_ocb_config(struct sir_ocb_config *src)
 		src->channel_count * sizeof(*src->channels) +
 		src->schedule_size * sizeof(*src->schedule) +
 		src->dcc_ndl_chan_list_len +
-		src->dcc_ndl_active_state_list_len;
+		src->dcc_ndl_active_state_list_len +
+		src->def_tx_param_size;
 
 	dst = vos_mem_malloc(length);
 	if (!dst)
@@ -159,6 +160,13 @@ static struct sir_ocb_config *copy_sir_ocb_config(struct sir_ocb_config *src)
 	vos_mem_copy(dst->dcc_ndl_active_state_list,
 		     src->dcc_ndl_active_state_list,
 		     src->dcc_ndl_active_state_list_len);
+
+	if (src->def_tx_param && src->def_tx_param_size) {
+		dst->def_tx_param = cursor;
+		vos_mem_copy(dst->def_tx_param, src->def_tx_param,
+			     src->def_tx_param_size);
+	}
+
 	return dst;
 }
 
