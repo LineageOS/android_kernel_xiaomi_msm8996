@@ -2853,80 +2853,147 @@ eHalStatus csrScanCopyResultList(tpAniSirGlobal pMac, tScanResultHandle hIn, tSc
 
 eHalStatus csrScanningStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 {
-    eHalStatus status = eHAL_STATUS_SUCCESS;
-    tSirMbMsg *pMsg = (tSirMbMsg *)pMsgBuf;
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tSirMbMsg *pMsg = (tSirMbMsg *)pMsgBuf;
+	tSirSmeDisConDoneInd *pDisConDoneInd;
+	tCsrRoamInfo roamInfo = {0};
+	tCsrRoamSession  *pSession;
 
-    if((eWNI_SME_SCAN_RSP == pMsg->type) || (eWNI_SME_GET_SCANNED_CHANNEL_RSP == pMsg->type))
-    {
-        status = csrScanSmeScanResponse( pMac, pMsgBuf );
-    }
-    else
-    {
-        if(pMsg->type == eWNI_SME_UPPER_LAYER_ASSOC_CNF)
-        {
-            tCsrRoamSession  *pSession;
-            tSirSmeAssocIndToUpperLayerCnf *pUpperLayerAssocCnf;
-            tCsrRoamInfo roamInfo;
-            tCsrRoamInfo *pRoamInfo = NULL;
-            tANI_U32 sessionId;
-            eHalStatus status;
-            smsLog( pMac, LOG1, FL("Scanning : ASSOCIATION confirmation can be given to upper layer "));
-            vos_mem_set(&roamInfo, sizeof(tCsrRoamInfo), 0);
-            pRoamInfo = &roamInfo;
-            pUpperLayerAssocCnf = (tSirSmeAssocIndToUpperLayerCnf *)pMsgBuf;
-            status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pUpperLayerAssocCnf->bssId, &sessionId );
-            pSession = CSR_GET_SESSION(pMac, sessionId);
+	if ((eWNI_SME_SCAN_RSP == pMsg->type) ||
+	    (eWNI_SME_GET_SCANNED_CHANNEL_RSP == pMsg->type)) {
+		status = csrScanSmeScanResponse( pMac, pMsgBuf );
+	} else {
+		switch (pMsg->type) {
+		case eWNI_SME_UPPER_LAYER_ASSOC_CNF:
+		{
+			tSirSmeAssocIndToUpperLayerCnf *pUpperLayerAssocCnf;
+			tCsrRoamInfo *pRoamInfo = NULL;
+			tANI_U32 sessionId;
+			eHalStatus status;
 
-            if(!pSession)
-            {
-                smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
-                return eHAL_STATUS_FAILURE;
-            }
+			smsLog(pMac, LOG1,
+			       FL("Scanning : ASSOCIATION confirmation can be given to upper layer "));
 
-            pRoamInfo->statusCode = eSIR_SME_SUCCESS; //send the status code as Success
-            pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
-            pRoamInfo->staId = (tANI_U8)pUpperLayerAssocCnf->aid;
-            pRoamInfo->rsnIELen = (tANI_U8)pUpperLayerAssocCnf->rsnIE.length;
-            pRoamInfo->prsnIE = pUpperLayerAssocCnf->rsnIE.rsnIEdata;
-            pRoamInfo->addIELen = (tANI_U8)pUpperLayerAssocCnf->addIE.length;
-            pRoamInfo->paddIE = pUpperLayerAssocCnf->addIE.addIEdata;
-            vos_mem_copy(pRoamInfo->peerMac, pUpperLayerAssocCnf->peerMacAddr, sizeof(tSirMacAddr));
-            vos_mem_copy(&pRoamInfo->bssid, pUpperLayerAssocCnf->bssId, sizeof(tCsrBssid));
-            pRoamInfo->wmmEnabledSta = pUpperLayerAssocCnf->wmmEnabledSta;
-            if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile) )
-            {
-                pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED;
-                pRoamInfo->fReassocReq = pUpperLayerAssocCnf->reassocReq;
-                status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_INFRA_ASSOCIATION_CNF);
-            }
-            if(CSR_IS_WDS_AP( pRoamInfo->u.pConnectedProfile))
-            {
-                vos_sleep( 100 );
-                pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_WDS_CONNECTED;//Sta
-                status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_WDS_IND, eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND);//Sta
-            }
+			pRoamInfo = &roamInfo;
+			pUpperLayerAssocCnf =
+				(tSirSmeAssocIndToUpperLayerCnf *)pMsgBuf;
+			status = csrRoamGetSessionIdFromBSSID( pMac,
+					(tCsrBssid *)pUpperLayerAssocCnf->bssId,
+					&sessionId );
+			pSession = CSR_GET_SESSION(pMac, sessionId);
+			if(!pSession) {
+				smsLog(pMac, LOGE,
+					FL("  session %d not found "),
+					sessionId);
+				return eHAL_STATUS_FAILURE;
+			}
+				//send the status code as Success
+			pRoamInfo->statusCode = eSIR_SME_SUCCESS;
+			pRoamInfo->u.pConnectedProfile =
+				&pSession->connectedProfile;
+			pRoamInfo->staId = (tANI_U8)pUpperLayerAssocCnf->aid;
+			pRoamInfo->rsnIELen =
+				(tANI_U8)pUpperLayerAssocCnf->rsnIE.length;
+			pRoamInfo->prsnIE =
+				pUpperLayerAssocCnf->rsnIE.rsnIEdata;
+			pRoamInfo->addIELen =
+				(tANI_U8)pUpperLayerAssocCnf->addIE.length;
+			pRoamInfo->paddIE =
+				pUpperLayerAssocCnf->addIE.addIEdata;
+			vos_mem_copy(pRoamInfo->peerMac,
+				     pUpperLayerAssocCnf->peerMacAddr,
+				     sizeof(tSirMacAddr));
+			vos_mem_copy(&pRoamInfo->bssid,
+				     pUpperLayerAssocCnf->bssId,
+				     sizeof(tCsrBssid));
+			pRoamInfo->wmmEnabledSta =
+				pUpperLayerAssocCnf->wmmEnabledSta;
+			if (CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile)) {
+				pMac->roam.roamSession[sessionId].connectState =
+					eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED;
+				pRoamInfo->fReassocReq =
+					pUpperLayerAssocCnf->reassocReq;
+				status = csrRoamCallCallback(pMac, sessionId,
+					pRoamInfo, 0,
+					eCSR_ROAM_INFRA_IND,
+					eCSR_ROAM_RESULT_INFRA_ASSOCIATION_CNF);
+			}
+			if(CSR_IS_WDS_AP( pRoamInfo->u.pConnectedProfile)) {
+				vos_sleep( 100 );
+				pMac->roam.roamSession[sessionId].connectState =
+					//Sta
+					eCSR_ASSOC_STATE_TYPE_WDS_CONNECTED;
+				status = csrRoamCallCallback(pMac,
+					sessionId, pRoamInfo, 0,
+					eCSR_ROAM_WDS_IND,
+					//Sta
+					eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND);
+			}
+			break;
+		}
+		case eWNI_SME_DISCONNECT_DONE_IND:
+			pDisConDoneInd = (tSirSmeDisConDoneInd *)(pMsg);
 
-        }
-        else
-        {
+			smsLog( pMac, LOG1,
+				FL("eWNI_SME_DISCONNECT_DONE_IND RC:%d"),
+				pDisConDoneInd->reasonCode);
+			if (CSR_IS_SESSION_VALID(pMac,
+				pDisConDoneInd->sessionId))
+			{
+				roamInfo.reasonCode =
+					pDisConDoneInd->reasonCode;
+				roamInfo.statusCode =
+					eSIR_SME_STA_DISASSOCIATED;
+				vos_mem_copy(roamInfo.peerMac,
+					pDisConDoneInd->peerMacAddr,
+					sizeof(tSirMacAddr));
+				status = csrRoamCallCallback(pMac,
+					pDisConDoneInd->sessionId,
+					&roamInfo, 0,
+					eCSR_ROAM_LOSTLINK,
+					eCSR_ROAM_RESULT_DISASSOC_IND);
 
-            if( csrIsAnySessionInConnectState( pMac ) )
-            {
-                //In case of we are connected, we need to check whether connect status changes
-                //because scan may also run while connected.
-                csrRoamCheckForLinkStatusChange( pMac, ( tSirSmeRsp * )pMsgBuf );
-            }
-            else
-            {
-                smsLog( pMac, LOGW, "Message [0x%04x] received in state, when expecting Scan Response", pMsg->type );
-            }
-        }
-    }
+				pSession = CSR_GET_SESSION(pMac,
+						pDisConDoneInd->sessionId);
 
-    return (status);
+				/*
+				 * Update the previous state if
+				 * previous to eCSR_ROAMING_STATE_IDLE
+				 * as we are disconnected and
+				 * currunt state is scanning
+				 */
+				if (pSession &&
+				   !CSR_IS_INFRA_AP(
+				   &pSession->connectedProfile))
+					pMac->roam.prev_state[
+						pDisConDoneInd->sessionId] =
+						eCSR_ROAMING_STATE_IDLE;
+			}
+			else
+			{
+				smsLog(pMac, LOGE, FL("Inactive session %d"),
+					pDisConDoneInd->sessionId);
+				status = eHAL_STATUS_FAILURE;
+			}
+			break;
+
+		default :
+			if (csrIsAnySessionInConnectState(pMac)) {
+				/* In case of we are connected, we need to check
+				 * whether connect status changes because scan
+				 * may also run while connected.
+				 */
+				csrRoamCheckForLinkStatusChange( pMac,
+							(tSirSmeRsp *)pMsgBuf );
+			} else {
+				smsLog( pMac, LOGW,
+				"Message [0x%04x] received in state, when expecting Scan Response",
+				pMsg->type );
+			}
+		}
+	}
+	return (status);
 }
-
-
 
 void csrCheckNSaveWscIe(tpAniSirGlobal pMac, tSirBssDescription *pNewBssDescr, tSirBssDescription *pOldBssDescr)
 {
@@ -2938,8 +3005,7 @@ void csrCheckNSaveWscIe(tpAniSirGlobal pMac, tSirBssDescription *pNewBssDescr, t
        (0 == pNewBssDescr->WscIeLen))
     {
         idx = 0;
-        len = pOldBssDescr->length - sizeof(tSirBssDescription) +
-                sizeof(tANI_U16) + sizeof(tANI_U32) - DOT11F_IE_WSCPROBERES_MIN_LEN - 2;
+        len = GET_IE_LEN_IN_BSS(pOldBssDescr->length) - DOT11F_IE_WSCPROBERES_MIN_LEN - 2;
         pbIe = (tANI_U8 *)pOldBssDescr->ieFields;
         //Save WPS IE if it exists
         pNewBssDescr->WscIeLen = 0;
@@ -6151,21 +6217,21 @@ eHalStatus csrProcessScanCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     {
         for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
         {
-            pCommand->u.scanCmd.lastRoamState[i] =
+            pMac->roam.prev_state[i]=
                 csrRoamStateChange( pMac, eCSR_ROAMING_STATE_SCANNING, i);
             smsLog( pMac, LOG3, "starting SCAN command from %d state...."
-                    " reason is %d", pCommand->u.scanCmd.lastRoamState[i],
+                    " reason is %d", pMac->roam.prev_state[i],
                     pCommand->u.scanCmd.reason );
         }
     }
     else
     {
-        pCommand->u.scanCmd.lastRoamState[pCommand->sessionId] =
+        pMac->roam.prev_state[pCommand->sessionId] =
             csrRoamStateChange(pMac, eCSR_ROAMING_STATE_SCANNING,
                                pCommand->sessionId);
         smsLog( pMac, LOG3,
                 "starting SCAN command from %d state.... reason is %d",
-                pCommand->u.scanCmd.lastRoamState[pCommand->sessionId],
+                pMac->roam.prev_state[pCommand->sessionId],
                 pCommand->u.scanCmd.reason );
     }
 
@@ -7379,12 +7445,13 @@ void csrReleaseScanCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatu
     {
         tANI_U32 i;
         for(i = 0; i < CSR_ROAM_SESSION_MAX; i++)
-            csrRoamStateChange(pMac, pCommand->u.scanCmd.lastRoamState[i], i);
+            csrRoamStateChange(pMac,
+              pMac->roam.prev_state[i], i);
     }
     else
     {
         csrRoamStateChange(pMac,
-                pCommand->u.scanCmd.lastRoamState[pCommand->sessionId],
+                pMac->roam.prev_state[pCommand->sessionId],
                 pCommand->sessionId);
     }
 
@@ -8602,8 +8669,8 @@ eHalStatus csrScanSavePreferredNetworkFound(tpAniSirGlobal pMac,
     * of pointer that holds the next BSS description
     */
    pBssDescr->length = (tANI_U16)(
-                     sizeof(tSirBssDescription) - sizeof(tANI_U16) -
-                     sizeof(tANI_U32) + uLen);
+        ((uintptr_t)OFFSET_OF(tSirBssDescription, ieFields))
+        - sizeof(pBssDescr->length) + uLen);
    if (pParsedFrame->dsParamsPresent)
    {
       pBssDescr->channelId = pParsedFrame->channelNumber;
