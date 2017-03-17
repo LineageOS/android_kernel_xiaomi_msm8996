@@ -7333,7 +7333,7 @@ enum dsrc_radio_chan_stats_req_type {
 struct radio_chan_stats_req {
 	uint32_t req_type;
 	uint32_t chan_freq;
-	uint32_t reset_after_req;
+	bool  reset_after_req;
 };
 
 /**
@@ -7356,13 +7356,14 @@ struct radio_chan_stats_req {
  */
 struct radio_chan_stats_info {
 	uint32_t chan_freq;
-	uint32_t measurement_period;
-	uint32_t on_chan_us;
-	uint32_t on_chan_ratio;
-	uint32_t tx_duration_us;
-	uint32_t rx_duration_us;
 	uint32_t chan_busy_ratio;
-	uint32_t tx_pkts;
+	uint64_t measurement_period;
+	uint64_t tx_duration_us;
+	uint64_t rx_duration_us;
+	uint64_t on_chan_us;
+	uint32_t on_chan_ratio;
+	uint32_t tx_mpdus;
+	uint32_t tx_msdus;
 	uint32_t rx_succ_pkts;
 	uint32_t rx_fail_pkts;
 };
@@ -7379,7 +7380,6 @@ struct radio_chan_stats_rsp {
 };
 
 #define DSRC_MAX_CHAN_STATS_CNT 2
-#define DSRC_MAX_VALUE 0xffffffff
 
 /**
  * struct dsrc_radio_chan_stats_ctxt - DSRC radio channel statistics context.
@@ -7394,7 +7394,7 @@ struct radio_chan_stats_rsp {
  */
 struct dsrc_radio_chan_stats_ctxt {
 	uint32_t magic;
-	uint32_t enable_chan_stats;
+	bool enable_chan_stats;
 	struct radio_chan_stats_req *cur_req;
 	struct completion completion_evt;
 	uint32_t config_chans_num;

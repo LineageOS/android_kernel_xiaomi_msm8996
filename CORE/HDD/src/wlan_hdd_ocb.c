@@ -520,6 +520,7 @@ static int hdd_ocb_set_config_req(hdd_adapter_t *adapter,
 {
 	int i, rc;
 	eHalStatus halStatus;
+	bool enable_chan_stats;
 	struct hdd_ocb_ctxt context = {0};
 	struct dsrc_radio_chan_stats_ctxt *ctx;
 
@@ -540,6 +541,10 @@ static int hdd_ocb_set_config_req(hdd_adapter_t *adapter,
 		vos_mem_free(ctx->cur_req);
 		ctx->cur_req = NULL;
 	}
+	/* Disable Channel Statistics */
+	enable_chan_stats = ctx->enable_chan_stats;
+	if (enable_chan_stats)
+		wlan_hdd_dsrc_config_radio_chan_stats(adapter, false);
 
 	init_completion(&context.completion_evt);
 	context.adapter = adapter;
@@ -588,6 +593,9 @@ end:
 		/* Flush already saved configured channel frequence */
 		ctx->config_chans_num = 0;
 		vos_mem_zero(ctx->config_chans_freq, 2 * sizeof(uint32_t));
+	} else {
+		if (enable_chan_stats)
+			wlan_hdd_dsrc_config_radio_chan_stats(adapter, true);
 	}
 	return rc;
 }
@@ -2235,7 +2243,7 @@ static void wlan_hdd_dsrc_update_radio_chan_stats(
 	/* Check if current event is for previous channel configuration. */
 	for (i = 0; i < resp->num_chans; i++, src++) {
 		if (!src) {
-			hddLog(LOGE, FL("Channel statistics data is null"));
+			hddLog(LOGE, FL("Channel stats data is null"));
 			return;
 		}
 
@@ -2273,67 +2281,62 @@ static void wlan_hdd_dsrc_update_radio_chan_stats(
 	/* Merge new received channel statistics data to previous entry. */
 	spin_lock(&ctx->chan_stats_lock);
 	for (i = 0; i < resp->num_chans; i++, src++) {
-		uint32_t tmp;
+		struct radio_chan_stats_info *dest_entry = NULL;
 		struct radio_chan_stats_info *empty_entry = NULL;
 
 		/* Now only two channel stats supported. */
 		dest = ctx->chan_stats;
-		for (tmp = 0; tmp < DSRC_MAX_CHAN_STATS_CNT; tmp++, dest++) {
+		for (j = 0; j < DSRC_MAX_CHAN_STATS_CNT; j++, dest++) {
 			/* Get empty entry */
 			if (dest->chan_freq == 0) {
 				empty_entry = dest;
 				continue;
 			}
-			if (src->chan_freq == dest->chan_freq)
+			if (src->chan_freq == dest->chan_freq) {
+				dest_entry = dest;
 				break;
+			}
 		}
-		if ((tmp == DSRC_MAX_CHAN_STATS_CNT) &&
-		    (empty_entry != NULL)) {
-			dest = empty_entry;
+
+		if (dest_entry) {
+			dest = dest_entry;
+		} else if (empty_entry) {
+			/* Copy new recorders to new entry*/
+			ctx->chan_stats_num++;
+			vos_mem_copy(empty_entry, src, sizeof(*src));
+			continue;
 		} else {
 			spin_unlock(&ctx->chan_stats_lock);
 			hddLog(LOGE, FL("No entry found."));
 			return;
 		}
 
-		/* Copy new recorders to new entry. */
-		if (!dest->chan_freq) {
-			ctx->chan_stats_num++;
-			vos_mem_copy(dest, src, sizeof(*src));
-			continue;
-		}
-
 		/* Ignore Invalid statistics data. */
-		if (!src->measurement_period || !src->on_chan_us) {
-			hddLog(LOGE, FL("Invalid staticts data."));
-			continue;
-		}
-
-		/* Ignore Overflow data. */
-		if (((DSRC_MAX_VALUE - dest->measurement_period) <
-			src->measurement_period) ||
-			((DSRC_MAX_VALUE / 100) <
-			(dest->on_chan_us + src->on_chan_us))) {
-			ctx->chan_stats_num--;
-			vos_mem_zero(dest, sizeof(*dest));
-			hddLog(LOGE, FL("data overflow"));
+		if (src->measurement_period == 0) {
+			hddLog(LOGE, FL("Invalid stats data."));
 			continue;
 		}
 
 		/* Merge Channel Statistics. */
 		dest->measurement_period += src->measurement_period;
-		tmp = dest->on_chan_us;
 		dest->on_chan_us += src->on_chan_us;
-		dest->on_chan_ratio = (100 * dest->on_chan_us /
-					dest->measurement_period);
+		dest->on_chan_ratio = (uint32_t)vos_do_div64(
+				dest->on_chan_us * 100,
+				dest->measurement_period);
 		dest->tx_duration_us += src->tx_duration_us;
-		dest->rx_duration_us += src->tx_duration_us;
-		tmp = tmp * dest->chan_busy_ratio;
-		tmp += src->on_chan_us * src->chan_busy_ratio;
-		dest->chan_busy_ratio = tmp / dest->on_chan_us;
-		dest->tx_pkts += src->tx_pkts;
-		dest->rx_succ_pkts += dest->rx_succ_pkts;
-		dest->rx_fail_pkts += dest->rx_fail_pkts;
+		dest->rx_duration_us += src->rx_duration_us;
+		if (dest->on_chan_us == 0) {
+			dest->chan_busy_ratio = 0;
+		} else {
+			dest->chan_busy_ratio = (uint32_t)vos_do_div64(
+				(dest->tx_duration_us +
+				 dest->rx_duration_us) * 100,
+				dest->on_chan_us);
+		}
+		dest->tx_mpdus += src->tx_mpdus;
+		dest->tx_msdus += src->tx_msdus;
+		dest->rx_succ_pkts += src->rx_succ_pkts;
+		dest->rx_fail_pkts += src->rx_fail_pkts;
 	}
 	spin_unlock(&ctx->chan_stats_lock);
 
@@ -2349,7 +2352,7 @@ static void wlan_hdd_dsrc_update_radio_chan_stats(
 static void wlan_hdd_dsrc_radio_chan_stats_event_callback(void *context_ptr,
 							  void *resp_ptr)
 {
-	int i, k;
+	int i;
 	struct radio_chan_stats_req *req;
 	struct radio_chan_stats_rsp *resp;
 	struct radio_chan_stats_info *chan_stats;
@@ -2363,7 +2366,7 @@ static void wlan_hdd_dsrc_radio_chan_stats_event_callback(void *context_ptr,
 	chan_stats = resp->chan_stats;
 
 	if (!chan_stats) {
-		hddLog(LOGE, FL("No channel statistics data"));
+		hddLog(LOGE, FL("No channel stats data"));
 		return;
 	}
 
@@ -2399,12 +2402,8 @@ static void wlan_hdd_dsrc_radio_chan_stats_event_callback(void *context_ptr,
 		}
 		/* Check response channel is configured. */
 		for (i = 0; i < resp->num_chans; i++) {
-			for (k = 0; k < resp->num_chans; k++) {
-				if (chan_stats[i].chan_freq ==
-				    ctx->config_chans_freq[k])
-					break;
-			}
-			if (k == resp->num_chans) {
+			if (chan_stats[i].chan_freq !=
+			    ctx->config_chans_freq[i]) {
 				spin_unlock(&hdd_context_lock);
 				return;
 			}
@@ -2418,7 +2417,7 @@ static void wlan_hdd_dsrc_radio_chan_stats_event_callback(void *context_ptr,
 }
 
 int wlan_hdd_dsrc_config_radio_chan_stats(hdd_adapter_t *adapter,
-					  uint32_t enable_chan_stats)
+					  bool enable_chan_stats)
 {
 	int ret = 0;
 	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
@@ -2435,8 +2434,8 @@ int wlan_hdd_dsrc_config_radio_chan_stats(hdd_adapter_t *adapter,
 
 	ctx = &adapter->dsrc_chan_stats;
 	if (ctx->enable_chan_stats == enable_chan_stats) {
-		hddLog(LOGE, FL("DSRC Chan stats already %s\n"),
-			enable_chan_stats == 1 ? "enable" : "disable");
+		hddLog(LOGE, FL("DSRC channel stats already %s\n"),
+			enable_chan_stats == true ? "enable" : "disable");
 		return ret;
 	}
 

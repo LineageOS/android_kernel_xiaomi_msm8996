@@ -19,7 +19,7 @@
 #ifndef _WLAN_HDD_DEBUGFS_OCB_H
 #define _WLAN_HDD_DEBUGFS_OCB_H
 
-#ifdef WLAN_OPEN_SOURCE
+#ifdef WLAN_FEATURE_DSRC
 int
 wlan_hdd_create_dsrc_chan_stats_file(hdd_adapter_t *adapter,
 				     hdd_context_t *hdd_ctx);
@@ -40,5 +40,5 @@ wlan_hdd_create_dsrc_tx_stats_file(hdd_adapter_t *adapter,
 {
 	return 0;
 }
-#endif /* #ifdef WLAN_OPEN_SOURCE */
+#endif /* #ifdef WLAN_FEATURE_DSRC */
 #endif /* #ifndef _WLAN_HDD_DEBUGFS_OCB_H */

@@ -296,7 +296,7 @@ int wlan_hdd_cfg80211_dcc_update_ndl(struct wiphy *wiphy,
 void wlan_hdd_dcc_register_for_dcc_stats_event(hdd_context_t *hdd_ctx);
 
 int wlan_hdd_dsrc_config_radio_chan_stats(hdd_adapter_t *adapter,
-					  uint32_t enable_chan_stats);
+					  bool enable_chan_stats);
 
 int wlan_hdd_dsrc_request_radio_chan_stats(hdd_adapter_t *adapter,
 					   struct radio_chan_stats_req *req);
@@ -386,7 +386,7 @@ static inline void wlan_hdd_dcc_register_for_dcc_stats_event(
 }
 
 static inline int wlan_hdd_dsrc_config_radio_chan_stats(hdd_adapter_t *adapter,
-		uint32_t enable_chan_stats)
+		bool enable_chan_stats)
 {
 	return 0;
 }

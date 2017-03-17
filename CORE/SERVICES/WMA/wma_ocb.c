@@ -1067,7 +1067,7 @@ int wma_process_radio_chan_stats_req(tp_wma_handle wma_handle,
 	cmd->request_type = req->req_type;
 	if (cmd->request_type == WMI_REQUEST_ONE_RADIO_CHAN_STATS)
 		cmd->chan_mhz = req->chan_freq;
-	cmd->reset_after_request = req->reset_after_req;
+	cmd->reset_after_request = (A_UINT32)req->reset_after_req;
 
 	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 				      WMI_REQUEST_RADIO_CHAN_STATS_CMDID);
@@ -1129,17 +1129,17 @@ static int wma_radio_chan_stats_event_handler(void *handle, u_int8_t *event,
 	for (i = 0; i < resp->num_chans; i++) {
 		resp->chan_stats[i].chan_freq = chan_stats[i].chan_mhz;
 		resp->chan_stats[i].measurement_period =
-					chan_stats[i].measurement_period_us;
-		resp->chan_stats[i].on_chan_us = chan_stats[i].on_chan_us;
+					(uint64_t)chan_stats[i].measurement_period_us;
+		resp->chan_stats[i].on_chan_us = (uint64_t)chan_stats[i].on_chan_us;
 		resp->chan_stats[i].on_chan_ratio = chan_stats[i].on_chan_ratio;
 		resp->chan_stats[i].tx_duration_us =
-					chan_stats[i].tx_duration_us;
+					(uint64_t)chan_stats[i].tx_duration_us;
 		resp->chan_stats[i].rx_duration_us =
-					chan_stats[i].rx_duration_us;
+					(uint64_t)chan_stats[i].rx_duration_us;
 		resp->chan_stats[i].chan_busy_ratio =
 					chan_stats[i].chan_busy_ratio;
-		resp->chan_stats[i].tx_pkts = chan_stats[i].tx_mpdus +
-					chan_stats[i].tx_msdus;
+		resp->chan_stats[i].tx_mpdus = chan_stats[i].tx_mpdus;
+		resp->chan_stats[i].tx_msdus = chan_stats[i].tx_msdus;
 		resp->chan_stats[i].rx_succ_pkts = chan_stats[i].rx_succ_mpdus;
 		resp->chan_stats[i].rx_fail_pkts = chan_stats[i].rx_fail_mpdus;
 	}

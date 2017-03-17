@@ -3181,6 +3181,24 @@ uint64_t vos_do_div(uint64_t dividend, uint32_t divisor)
 	return dividend;
 }
 
+uint64_t vos_do_div64(uint64_t dividend, uint64_t divisor)
+{
+	uint64_t n = dividend;
+	uint64_t base = divisor;
+	if ((base & 0xffffffff00000000ULL) != 0) {
+		n >>= 16;
+		base >>= 16;
+
+		if ((base & 0xffff00000000ULL) != 0) {
+			n >>= 16;
+			base >>= 16;
+		}
+		return vos_do_div(n, (uint32_t)base);
+	} else {
+		return vos_do_div(n, base);
+	}
+}
+
 /**
  * vos_force_fw_dump() - force target to dump
  *

@@ -99,14 +99,15 @@ static int __wlan_hdd_write_dsrc_chan_stats_debugfs(struct file *file,
 	switch (cmd_idx) {
 	case WLAN_DSRC_CHAN_STATS_ENABLE:
 	{
-		uint32_t enable = 0;
+		bool enable;
+		uint32_t value;
 
 		token = strsep(&sptr, " ");
 		if (!token)
 			return -EINVAL;
-		if (kstrtou32(token, 0, &enable))
+		if (kstrtou32(token, 0, &value))
 			return -EINVAL;
-		enable = !!enable;
+		enable = !!value;
 		if (wlan_hdd_dsrc_config_radio_chan_stats(adapter, enable)) {
 			VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
 				  "%s: Config DSRC channel stats %d failure.",
@@ -164,6 +165,7 @@ static int __wlan_hdd_write_dsrc_chan_stats_debugfs(struct file *file,
 		}
 		vos_mem_zero(req, sizeof(*req));
 		req->req_type = req_type;
+		req->reset_after_req = true;
 		if (req_type == WLAN_DSRC_REQUEST_ONE_RADIO_CHAN_STATS)
 			req->chan_freq = chan_freq;
 		if (ctx->cur_req)
@@ -261,8 +263,6 @@ static int __wlan_hdd_read_dsrc_chan_stats_debugfs(struct file *file,
 		vos_mem_copy(ptr, chan_stats, sizeof(*chan_stats));
 		ptr += sizeof(*chan_stats);
 		chan_cnt++;
-		vos_mem_zero(chan_stats, sizeof(*chan_stats));
-		ctx->chan_stats_num--;
 	}
 	spin_unlock(&ctx->chan_stats_lock);
 	vos_mem_copy(chan_stats_buf, &chan_cnt, sizeof(uint32_t));
