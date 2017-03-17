@@ -966,57 +966,6 @@ limGetCurrentScanChannel(tpAniSirGlobal pMac)
     return (*(pChanNum + pMac->lim.gLimCurrentScanChannelId));
 } /*** end limGetCurrentScanChannel() ***/
 
-
-
-/**
- * limGetIElenFromBssDescription()
- *
- *FUNCTION:
- * This function is called in various places to get IE length
- * from tSirBssDescription structure
- * number being scanned.
- *
- *PARAMS:
- *
- *LOGIC:
- *
- *ASSUMPTIONS:
- * NA
- *
- *NOTE:
- * NA
- *
- * @param     pBssDescr
- * @return    Total IE length
- */
-
-static inline tANI_U16
-limGetIElenFromBssDescription(tpSirBssDescription pBssDescr)
-{
-    uint16_t ielen;
-
-    if (!pBssDescr)
-        return 0;
-
-    /**
-     * Length of BSS desription is without length of
-     * length itself and length of pointer
-     * that holds ieFields
-     *
-     * <------------sizeof(tSirBssDescription)-------------------->
-     * +--------+---------------------------------+---------------+
-     * | length | other fields                    | pointer to IEs|
-     * +--------+---------------------------------+---------------+
-     *                                            ^
-     *                                            ieFields
-     */
-
-    ielen = ((tANI_U16) (pBssDescr->length + sizeof(pBssDescr->length) +
-                   sizeof(tANI_U32 *) - sizeof(tSirBssDescription)));
-
-    return ielen;
-} /*** end limGetIElenFromBssDescription() ***/
-
 /**
  * limSendBeaconInd()
  *

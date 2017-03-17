@@ -4744,10 +4744,12 @@ limHandleDelBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESe
             assocRsp = (tpSirAssocRsp)psessionEntry->limAssocResponseData;
             limUpdateAssocStaDatas(pMac, pStaDs, assocRsp,psessionEntry);
             limUpdateReAssocGlobals(pMac, assocRsp,psessionEntry);
-            limExtractApCapabilities( pMac,
-                  (tANI_U8 *) psessionEntry->pLimReAssocReq->bssDescription.ieFields,
-                  limGetIElenFromBssDescription( &psessionEntry->pLimReAssocReq->bssDescription ),
-                    pBeaconStruct );
+            limExtractApCapabilities(pMac,
+              (tANI_U8 *)
+              psessionEntry->pLimReAssocReq->bssDescription.ieFields,
+              GET_IE_LEN_IN_BSS(
+              psessionEntry->pLimReAssocReq->bssDescription.length),
+              pBeaconStruct);
             if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
                 limDecideStaProtectionOnAssoc(pMac, pBeaconStruct, psessionEntry);
                 if(pBeaconStruct->erpPresent) {
@@ -4917,10 +4919,11 @@ limHandleAddBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPES
             assocRsp = (tpSirAssocRsp)psessionEntry->limAssocResponseData;
             limUpdateAssocStaDatas(pMac, pStaDs, assocRsp, psessionEntry);
             limUpdateReAssocGlobals(pMac, assocRsp, psessionEntry);
-            limExtractApCapabilities( pMac,
-                  (tANI_U8 *) psessionEntry->pLimReAssocReq->bssDescription.ieFields,
-                  limGetIElenFromBssDescription( &psessionEntry->pLimReAssocReq->bssDescription ),
-                    pBeaconStruct );
+            limExtractApCapabilities(pMac,
+             (tANI_U8 *)psessionEntry->pLimReAssocReq->bssDescription.ieFields,
+             GET_IE_LEN_IN_BSS(
+             psessionEntry->pLimReAssocReq->bssDescription.length),
+             pBeaconStruct);
             if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
                 limDecideStaProtectionOnAssoc(pMac, pBeaconStruct, psessionEntry);
 
