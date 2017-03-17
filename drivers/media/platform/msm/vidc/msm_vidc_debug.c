@@ -17,7 +17,7 @@
 #include "msm_vidc_debug.h"
 #include "vidc_hfi_api.h"
 
-int msm_vidc_debug = VIDC_ERR | VIDC_WARN;
+int msm_vidc_debug = 0;
 int msm_vidc_debug_out = VIDC_OUT_PRINTK;
 int msm_vidc_fw_debug = 0x18;
 int msm_vidc_fw_debug_mode = 1;
