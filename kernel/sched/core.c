@@ -2132,6 +2132,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags,
 	wallclock = sched_ktime_clock();
 	update_task_ravg(rq->curr, rq, TASK_UPDATE, wallclock, 0);
 	update_task_ravg(p, rq, TASK_WAKE, wallclock, 0);
+	cpufreq_update_util(rq, 0);
 	raw_spin_unlock(&rq->lock);
 
 	rcu_read_lock();
@@ -2225,6 +2226,7 @@ static void try_to_wake_up_local(struct task_struct *p)
 
 		update_task_ravg(rq->curr, rq, TASK_UPDATE, wallclock, 0);
 		update_task_ravg(p, rq, TASK_WAKE, wallclock, 0);
+		cpufreq_update_util(rq, 0);
 		ttwu_activate(rq, p, ENQUEUE_WAKEUP);
 		note_task_waking(p, wallclock);
 	}
@@ -3196,6 +3198,8 @@ void scheduler_tick(void)
 	calc_global_load_tick(rq);
 	wallclock = sched_ktime_clock();
 	update_task_ravg(rq->curr, rq, TASK_UPDATE, wallclock, 0);
+
+	cpufreq_update_util(rq, 0);
 	early_notif = early_detection_notify(rq, wallclock);
 	raw_spin_unlock(&rq->lock);
 
@@ -3564,6 +3568,7 @@ static void __sched notrace __schedule(bool preempt)
 	if (likely(prev != next)) {
 		update_task_ravg(prev, rq, PUT_PREV_TASK, wallclock, 0);
 		update_task_ravg(next, rq, PICK_NEXT_TASK, wallclock, 0);
+		cpufreq_update_util(rq, 0);
 		if (!is_idle_task(prev) && !prev->on_rq)
 			update_avg_burst(prev);
 
@@ -3582,6 +3587,7 @@ static void __sched notrace __schedule(bool preempt)
 		cpu = cpu_of(rq);
 	} else {
 		update_task_ravg(prev, rq, TASK_UPDATE, wallclock, 0);
+		cpufreq_update_util(rq, 0);
 		lockdep_unpin_lock(&rq->lock);
 		raw_spin_unlock_irq(&rq->lock);
 	}
