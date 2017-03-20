@@ -8002,13 +8002,14 @@ static int wma_chip_power_save_failure_detected_handler(void *handle,
 	WMI_PDEV_CHIP_POWER_SAVE_FAILURE_DETECTED_EVENTID_param_tlvs *param_buf;
 	wmi_chip_power_save_failure_detected_fixed_param  *event;
 	struct chip_pwr_save_fail_detected_params  pwr_save_fail_params;
-	tpAniSirGlobal mac = (tpAniSirGlobal)vos_get_context(
-					VOS_MODULE_ID_PE, wma->vos_context);
+	tpAniSirGlobal mac;
 
 	if (NULL == wma) {
 		WMA_LOGE("%s: wma_handle is NULL", __func__);
 		return VOS_STATUS_E_INVAL;
 	}
+	mac = (tpAniSirGlobal)vos_get_context(
+					VOS_MODULE_ID_PE, wma->vos_context);
 	if (!mac) {
 		WMA_LOGE("%s: Invalid mac context", __func__);
 		return VOS_STATUS_E_INVAL;
