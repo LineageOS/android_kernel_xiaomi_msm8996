@@ -24166,7 +24166,7 @@ static void hdd_fill_rate_info(struct station_info *sinfo,
 			cfg->reportMaxLinkSpeed);
 
 	/* convert to 100kbps expected in rate table */
-	myrate = stats->last_tx_rate/100;
+	myrate = stats->tx_rate.rate/100;
 	rate_flags = stainfo->rate_flags;
 	if (!(rate_flags & eHAL_TX_RATE_LEGACY)) {
 		nss = stainfo->nss;

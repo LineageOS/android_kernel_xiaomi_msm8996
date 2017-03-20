@@ -990,8 +990,6 @@ struct hdd_rate_info {
  * @rx_bytes: bytes received from this station
  * @rx_retries: cumulative retry counts
  * @tx_failed: number of failed transmissions
- * @last_tx_rate: last used tx bitrate (kbps)
- * @last_rx_rate: last used rx bitrate (kbps)
  * @rssi: The signal strength (dbm)
  * @tx_rate: last used tx rate info
  * @rx_rate: last used rx rate info
@@ -1005,8 +1003,6 @@ struct hdd_fw_txrx_stats {
 	uint64_t rx_bytes;
 	uint32_t tx_retries;
 	uint32_t tx_failed;
-	uint32_t last_tx_rate;
-	uint32_t last_rx_rate;
 	int8_t rssi;
 	struct hdd_rate_info tx_rate;
 	struct hdd_rate_info rx_rate;
