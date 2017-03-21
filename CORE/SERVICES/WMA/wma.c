@@ -21222,24 +21222,32 @@ static void wma_enable_sta_ps_mode(tp_wma_handle wma, tpEnablePsParams ps_req)
 	}
 	ps_req->status = VOS_STATUS_SUCCESS;
 	iface->dtimPeriod = ps_req->bcnDtimPeriod;
+	iface->in_bmps = true;
 resp:
 	wma_send_msg(wma, WDA_ENTER_BMPS_RSP, ps_req, 0);
 }
 
 static void wma_disable_sta_ps_mode(tp_wma_handle wma, tpDisablePsParams ps_req)
 {
-        int32_t ret;
-        uint32_t vdev_id = ps_req->sessionid;
+	int32_t ret;
+	uint32_t vdev_id = ps_req->sessionid;
+	struct wma_txrx_node *iface = &wma->interfaces[vdev_id];
 
-        WMA_LOGD("Disable Sta Mode Ps vdevId %d", vdev_id);
+	if (!iface) {
+		WMA_LOGE("Invalid vdev id not attched to any iface %d",
+			vdev_id);
+		ps_req->status = VOS_STATUS_E_FAILURE;
+		goto resp;
+	}
 
-        /* Disable Sta Mode Power save */
-        ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, false);
-        if(ret) {
-                WMA_LOGE("Disable Sta Mode Ps Failed vdevId %d", vdev_id);
-                ps_req->status = VOS_STATUS_E_FAILURE;
-                goto resp;
-        }
+	WMA_LOGD("Disable Sta Mode Ps vdevId %d", vdev_id);
+	/* Disable Sta Mode Power save */
+	ret = wmi_unified_set_sta_ps(wma->wmi_handle, vdev_id, false);
+	if(ret) {
+	        WMA_LOGE("Disable Sta Mode Ps Failed vdevId %d", vdev_id);
+	        ps_req->status = VOS_STATUS_E_FAILURE;
+	        goto resp;
+	}
 
 	/* Disable UAPSD incase if additional Req came */
 	if (eSIR_ADDON_DISABLE_UAPSD == ps_req->psSetting) {
@@ -21256,6 +21264,7 @@ static void wma_disable_sta_ps_mode(tp_wma_handle wma, tpDisablePsParams ps_req)
 	}
 
         ps_req->status = VOS_STATUS_SUCCESS;
+	iface->in_bmps = false;
 resp:
         wma_send_msg(wma, WDA_EXIT_BMPS_RSP, ps_req, 0);
 }
@@ -25034,9 +25043,15 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 #endif
 
         wma_add_wow_wakeup_event(wma, WOW_OEM_RESPONSE_EVENT, TRUE);
-
-        wma_add_wow_wakeup_event(wma, WOW_CHIP_POWER_FAILURE_DETECT_EVENT,
-				 TRUE);
+	/*
+	 * Configure WOW for WOW_CHIP_POWER_FAILURE_DETECT_EVENT
+	 * We will only check vdev 0 to configure WOW wakeup.
+	 */
+	if (wma->interfaces[0].in_bmps == true ||
+	    wma->interfaces[0].in_imps == true)
+		wma_add_wow_wakeup_event(wma,
+					 WOW_CHIP_POWER_FAILURE_DETECT_EVENT,
+					 TRUE);
 
 	/* Enable wow wakeup events in FW */
 	ret = wma_send_wakeup_mask(wma, TRUE);
@@ -37797,7 +37812,8 @@ VOS_STATUS WDA_SetIdlePsConfig(void *wda_handle, tANI_U32 idle_ps)
 	tp_wma_handle wma = (tp_wma_handle)wda_handle;
 
 	WMA_LOGD("WMA Set Idle Ps Config [1:set 0:clear] val %d", idle_ps);
-
+	/* only use vdev 0 for imps tracking */
+	wma->interfaces[0].in_imps = idle_ps;
 	/* Set Idle Mode Power Save Config */
 	ret = wmi_unified_pdev_set_param(wma->wmi_handle,
 			WMI_PDEV_PARAM_IDLE_PS_CONFIG, idle_ps);

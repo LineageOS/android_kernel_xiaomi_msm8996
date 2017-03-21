@@ -789,6 +789,14 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_connected_nlo_bss_band_rssi_pref,
     WMITLV_TAG_STRUC_wmi_peer_oper_mode_change_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_chip_power_save_failure_detected_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_multiple_vdev_restart_request_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_csa_switch_count_status_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_update_pkt_routing_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_check_cal_version_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_check_cal_version_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_set_diversity_gain_cmd_fixed_param,
+    WMITLV_TAG_STRUC_WMI_MAC_PHY_CHAINMASK_COMBO,
+    WMITLV_TAG_STRUC_WMI_MAC_PHY_CHAINMASK_CAPABILITY,
 } WMITLV_TAG_ID;
 
 /*
@@ -1108,6 +1116,11 @@ typedef enum {
     OP(WMI_VDEV_ADD_MAC_ADDR_TO_RX_FILTER_CMDID) \
     OP(WMI_BPF_SET_VDEV_ACTIVE_MODE_CMDID) \
     OP(WMI_HW_DATA_FILTER_CMDID) \
+    OP(WMI_PDEV_MULTIPLE_VDEV_RESTART_REQUEST_CMDID) \
+    OP(WMI_LPI_OEM_REQ_CMDID) \
+    OP(WMI_PDEV_UPDATE_PKT_ROUTING_CMDID) \
+    OP(WMI_PDEV_CHECK_CAL_VERSION_CMDID) \
+    OP(WMI_PDEV_SET_DIVERSITY_GAIN_CMDID) \
     /* add new CMD_LIST elements above this line */
 
 /*
@@ -1281,6 +1294,8 @@ typedef enum {
     OP(WMI_VDEV_ADD_MAC_ADDR_TO_RX_FILTER_STATUS_EVENTID) \
     OP(WMI_PEER_OPER_MODE_CHANGE_EVENTID) \
     OP(WMI_PDEV_CHIP_POWER_SAVE_FAILURE_DETECTED_EVENTID) \
+    OP(WMI_PDEV_CSA_SWITCH_COUNT_STATUS_EVENTID) \
+    OP(WMI_PDEV_CHECK_CAL_VERSION_EVENTID) \
     /* add new EVT_LIST elements above this line */
 
 
@@ -1291,7 +1306,8 @@ typedef enum {
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_init_cmd_fixed_param, wmi_init_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)\
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_resource_config, wmi_resource_config, resource_config, WMITLV_SIZE_FIX)\
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wlan_host_memory_chunk, host_mem_chunks, WMITLV_SIZE_VAR) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_set_hw_mode_cmd_fixed_param, wmi_pdev_set_hw_mode_cmd_fixed_param, hw_mode, WMITLV_SIZE_FIX)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_set_hw_mode_cmd_fixed_param, wmi_pdev_set_hw_mode_cmd_fixed_param, hw_mode, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_pdev_band_to_mac, band_to_mac, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_INIT_CMDID);
 
@@ -1797,6 +1813,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_OEM_REQ_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_OEM_REQUEST_CMDID);
+
+/* RTT OEM req Cmd through LPASS */
+#define WMITLV_TABLE_WMI_LPI_OEM_REQ_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, data, WMITLV_SIZE_VAR)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_LPI_OEM_REQ_CMDID);
 
 /* Spectral scan configure Cmd */
 #define WMITLV_TABLE_WMI_VDEV_SPECTRAL_SCAN_CONFIGURE_CMDID(id,op,buf,len) \
@@ -3177,6 +3199,27 @@ WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_ADD_MAC_ADDR_TO_RX_FILTER_CMDID);
     WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_hw_data_filter_cmd_fixed_param, wmi_hw_data_filter_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_HW_DATA_FILTER_CMDID);
 
+/* Multiple vdev restart request cmd */
+#define WMITLV_TABLE_WMI_PDEV_MULTIPLE_VDEV_RESTART_REQUEST_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_multiple_vdev_restart_request_cmd_fixed_param, wmi_pdev_multiple_vdev_restart_request_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, vdev_ids, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_channel, wmi_channel, chan, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_MULTIPLE_VDEV_RESTART_REQUEST_CMDID);
+
+#define WMITLV_TABLE_WMI_PDEV_UPDATE_PKT_ROUTING_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_update_pkt_routing_cmd_fixed_param, wmi_pdev_update_pkt_routing_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_UPDATE_PKT_ROUTING_CMDID);
+
+/* Get cal version cmd */
+#define WMITLV_TABLE_WMI_PDEV_CHECK_CAL_VERSION_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_check_cal_version_cmd_fixed_param, wmi_pdev_check_cal_version_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_CHECK_CAL_VERSION_CMDID);
+
+#define WMITLV_TABLE_WMI_PDEV_SET_DIVERSITY_GAIN_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_set_diversity_gain_cmd_fixed_param, wmi_pdev_set_diversity_gain_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, diversity_gains, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_SET_DIVERSITY_GAIN_CMDID);
+
 /************************** TLV definitions of WMI events *******************************/
 
 /* Service Ready event */
@@ -3200,7 +3243,9 @@ WMITLV_CREATE_PARAM_STRUC(WMI_SERVICE_AVAILABLE_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WMI_HW_MODE_CAPABILITIES, hw_mode_caps, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WMI_MAC_PHY_CAPABILITIES, mac_phy_caps, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_WMI_SOC_HAL_REG_CAPABILITIES, WMI_SOC_HAL_REG_CAPABILITIES, soc_hal_reg_caps, WMITLV_SIZE_FIX) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WMI_HAL_REG_CAPABILITIES_EXT, hal_reg_caps, WMITLV_SIZE_VAR)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WMI_HAL_REG_CAPABILITIES_EXT, hal_reg_caps, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WMI_MAC_PHY_CHAINMASK_COMBO, mac_phy_chainmask_combo, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WMI_MAC_PHY_CHAINMASK_CAPABILITY, mac_phy_chainmask_caps, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_SERVICE_READY_EXT_EVENTID);
 
 /* Ready event */
@@ -4232,6 +4277,16 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PKGID_EVENTID);
 #define WMITLV_TABLE_WMI_VDEV_ADD_MAC_ADDR_TO_RX_FILTER_STATUS_EVENTID(id, op, buf, len) \
     WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_vdev_add_mac_addr_to_rx_filter_status_event_fixed_param, wmi_vdev_add_mac_addr_to_rx_filter_status_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_ADD_MAC_ADDR_TO_RX_FILTER_STATUS_EVENTID);
+
+#define WMITLV_TABLE_WMI_PDEV_CSA_SWITCH_COUNT_STATUS_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_csa_switch_count_status_event_fixed_param, wmi_pdev_csa_switch_count_status_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, vdev_ids, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_CSA_SWITCH_COUNT_STATUS_EVENTID);
+
+/* cal version response event */
+#define WMITLV_TABLE_WMI_PDEV_CHECK_CAL_VERSION_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_pdev_check_cal_version_event_fixed_param, wmi_pdev_check_cal_version_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_CHECK_CAL_VERSION_EVENTID);
 
 #ifdef __cplusplus
 }

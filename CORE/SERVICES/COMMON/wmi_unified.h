@@ -358,6 +358,14 @@ typedef enum {
     WMI_PDEV_GET_CHIP_POWER_STATS_CMDID,
     /** set stats reporting thresholds - see WMI_REPORT_STATS_EVENTID */
     WMI_PDEV_SET_STATS_THRESHOLD_CMDID,
+    /** vdev restart request for multiple vdevs */
+    WMI_PDEV_MULTIPLE_VDEV_RESTART_REQUEST_CMDID,
+    /** Pdev update packet routing command */
+    WMI_PDEV_UPDATE_PKT_ROUTING_CMDID,
+    /** Get Calibration data version details */
+    WMI_PDEV_CHECK_CAL_VERSION_CMDID,
+    /* Set Diversity Gain */
+    WMI_PDEV_SET_DIVERSITY_GAIN_CMDID,
 
     /* VDEV (virtual device) specific commands */
     /** vdev create */
@@ -909,6 +917,8 @@ typedef enum {
     /* OEM related cmd */
     WMI_OEM_REQ_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_OEM),
     WMI_OEM_REQUEST_CMDID, /* UNUSED */
+    /* OEM related cmd used for Low Power ranging */
+    WMI_LPI_OEM_REQ_CMDID,
 
     /** Nan Request */
     WMI_NAN_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_NAN),
@@ -1096,6 +1106,12 @@ typedef enum {
     WMI_PDEV_CHIP_POWER_STATS_EVENTID,
     /** Power Save Failure Detected */
     WMI_PDEV_CHIP_POWER_SAVE_FAILURE_DETECTED_EVENTID,
+
+    /* Event to report the switch count in csa of one or more VDEVs */
+    WMI_PDEV_CSA_SWITCH_COUNT_STATUS_EVENTID,
+
+    /** Report the caldata version to host */
+    WMI_PDEV_CHECK_CAL_VERSION_EVENTID,
 
     /* VDEV specific events */
     /** VDEV started event in response to VDEV_START request */
@@ -3084,6 +3100,11 @@ typedef struct {
      */
     A_UINT32 rx_tsf_u32;
 
+    /** pdev_id for identifying the MAC the rx mgmt frame was received by
+     * See macros starting with WMI_PDEV_ID_ for values.
+     */
+    A_UINT32 pdev_id;
+
     /* This TLV is followed by array of bytes:
          * // management frame buffer
          *   A_UINT8 bufp[];
@@ -3955,6 +3976,24 @@ typedef enum {
 	* 0 - Disallow mesh mcast traffic
 	*/
 	WMI_PDEV_PARAM_MESH_MCAST_ENABLE,
+	/*
+	 * Enable/Disable smart chainmask scheme
+	 * 1 - Enable smart chainmask scheme
+	 * 0 - Disable smart chainmask scheme
+	 */
+	WMI_PDEV_PARAM_SMART_CHAINMASK_SCHEME,
+	/*
+	 * Enable/Disable alternate chainmask scheme
+	 * 1 - Enable alternate chainmask scheme
+	 * 0 - Disable alternate chainmask scheme
+	 */
+	WMI_PDEV_PARAM_ALTERNATIVE_CHAINMASK_SCHEME,
+	/*
+	 * User configured parameters for antenna diversity algorithm
+	 * BIT[25..13]: Probe period (milliseconds units)
+	 * BIT[12..0]: Stay period (milliseconds units)
+	 */
+	WMI_PDEV_PARAM_ANT_DIV_USRCFG,
 
 } WMI_PDEV_PARAM;
 
@@ -4120,6 +4159,10 @@ typedef struct {
     A_UINT32    tlv_header;
     A_UINT32    desc_id; /* from tx_send_cmd */
     A_UINT32    status;  /* WMI_MGMT_TX_COMP_STATUS_TYPE */
+    /** pdev_id for identifying the MAC that transmitted the mgmt frame
+     * See macros starting with WMI_PDEV_ID_ for values.
+     */
+    A_UINT32    pdev_id;
 } wmi_mgmt_tx_compl_event_fixed_param;
 
 typedef struct {
@@ -6777,6 +6820,15 @@ typedef struct {
      A_UINT32 tim_ie_offset;
      /** beacon buffer length. data is in TLV data[] */
      A_UINT32 buf_len;
+    /** CSA IE switch count offset from the beginning of data[]
+     *  Value 0 indicates CSA IE is not present in beacon template.
+     */
+    A_UINT32 csa_switch_count_offset; /* units = bytes */
+    /** Extended CSA IE switch count offset from the beginning of data[]
+     *  Value 0 indicates CSA IE is not present in beacon template.
+     */
+    A_UINT32 ext_csa_switch_count_offset; /* units = bytes */
+
      /*
                  * The TLVs follows:
                  *    wmi_bcn_prb_info bcn_prb_info; //beacon probe capabilities and IEs
@@ -8583,7 +8635,9 @@ typedef struct {
 
 /* flags for 11i offload */
 #define WMI_ROAM_OFFLOAD_FLAG_OKC_ENABLED       0   /* okc is enabled */
-/* from bit 1 to bit 31 are reserved */
+/* pmk caching is disabled */
+#define WMI_ROAM_OFFLOAD_FLAG_PMK_CACHE_DISABLED 1
+/* from bit 2 to bit 31 are reserved */
 
 #define WMI_SET_ROAM_OFFLOAD_OKC_ENABLED(flag) do { \
         (flag) |=  (1 << WMI_ROAM_OFFLOAD_FLAG_OKC_ENABLED);      \
@@ -8595,6 +8649,19 @@ typedef struct {
 
 #define WMI_GET_ROAM_OFFLOAD_OKC_ENABLED(flag)   \
         ((flag) & (1 << WMI_ROAM_OFFLOAD_FLAG_OKC_ENABLED))
+
+#define WMI_SET_ROAM_OFFLOAD_PMK_CACHE_ENABLED(flag) \
+    do { \
+        (flag) &=  ~(1 << WMI_ROAM_OFFLOAD_FLAG_PMK_CACHE_DISABLED); \
+    } while (0)
+
+#define WMI_SET_ROAM_OFFLOAD_PMK_CACHE_DISABLED(flag) \
+    do { \
+        (flag) |=  (1 << WMI_ROAM_OFFLOAD_FLAG_PMK_CACHE_DISABLED); \
+    } while (0)
+
+#define WMI_GET_ROAM_OFFLOAD_PMK_CACHE_DISABLED(flag) \
+    ((flag) & (1 << WMI_ROAM_OFFLOAD_FLAG_PMK_CACHE_DISABLED))
 
 /* This TLV will be  filled only in case of wpa-psk/wpa2-psk */
 typedef struct {
@@ -11578,6 +11645,8 @@ typedef struct
 #define LPI_IE_BITMAP_CHRE_ESS               0x010000000    /* ESS capability info for CHRE */
 #define LPI_IE_BITMAP_CHRE_SEC_MODE          0x020000000    /* Security capability info for CHRE */
 #define LPI_IE_BITMAP_CHRE_SUPPORTED_RATE    0x040000000    /* Hightest MCS corresponding NCC for TX and RX */
+/* send country string inside Country IE to LOWI LP */
+#define LPI_IE_BITMAP_COUNTRY_STRING         0x080000000
 #define LPI_IE_BITMAP_ALL                    0xFFFFFFFF
 
 typedef struct {
@@ -12896,6 +12965,18 @@ enum {
 
 #define GET_PDEV_PARAM_TXPOWER_REASON(txpower_param)     \
     (((txpower_param) & PDEV_PARAM_TXPOWER_REASON_MASK) >> PDEV_PARAM_TXPOWER_REASON_SHIFT)
+
+#define PDEV_PARAM_SMART_CHAINMASK_SCHEME_DECISION_MASK 0x00000001
+#define PDEV_PARAM_SMART_CHAINMASK_SCHEME_DECISION_SHIFT 0
+
+#define SET_PDEV_SMART_CHAINMASK_SCHEME_DECISION(param, value) \
+    do { \
+        (param) &= ~PDEV_PARAM_SMART_CHAINMASK_SCHEME_DECISION_MASK; \
+        (param) |= (value) << PDEV_PARAM_SMART_CHAINMASK_SCHEME_DECISION_SHIFT; \
+    while (0)
+
+#define GET_PDEV_SMART_CHAINMASK_SCHEME_DECISION(param)     \
+    (((param) & PDEV_PARAM_SMART_CHAINMASK_SCHEME_DECISION_MASK) >> PDEV_PARAM_SMART_CHAINMASK_SCHEME_DECISION_SHIFT)
 
 /**
  * This command is sent from WLAN host driver to firmware to
@@ -15860,6 +15941,15 @@ typedef struct {
     * (units are seconds)
     */
     A_UINT32 per_rest_time;
+    /* This is the total time for which PER monitoring will be run.
+     * After completion of time windows, the average PER over the window
+     * will be computed.
+     * The parameter value stores specifications for both TX and RX
+     * monitor times.
+     * The two least-significant bytes (0 & 1) hold the RX monitor time;
+     * the two most-significant bytes (2 & 3) hold the TX monitor time.
+     */
+    A_UINT32 pkt_err_rate_mon_time; /* units = seconds */
 } wmi_roam_per_config_fixed_param;
 
 typedef struct {
@@ -16890,6 +16980,11 @@ typedef struct {
     A_UINT32 enable;
     /** periodic stats duration (units are milliseconds) */
     A_UINT32 stats_period;
+    /*
+     * pdev_id for identifying the MAC
+     * See macros starting with WMI_PDEV_ID_ for values.
+     */
+    A_UINT32 pdev_id;
 } wmi_set_periodic_channel_stats_config_fixed_param;
 
 typedef struct {
@@ -17176,6 +17271,8 @@ typedef struct {
     A_UINT32 he_cap_phy_info_5G[WMI_MAX_HECAP_PHY_SIZE];
     wmi_ppe_threshold he_ppet2G;
     wmi_ppe_threshold he_ppet5G;
+    /* chainmask table to be used for the MAC */
+    A_UINT32 chainmask_table_id;
 } WMI_MAC_PHY_CAPABILITIES;
 
 typedef struct {
@@ -17200,11 +17297,64 @@ typedef struct {
     A_UINT32 hw_mode_config_type;
 } WMI_HW_MODE_CAPABILITIES;
 
+/* Definition of valid chainmask and associated capabilities */
+typedef struct {
+    /* TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_MAC_PHY_CHAINMASK_CAPABILITY */
+    A_UINT32 tlv_header;
+    /* supported flags: Capabilities for this chianmask*/
+    union {
+        struct {
+            A_UINT32 supports_chan_width_20:1,
+                     supports_chan_width_40:1,
+                     supports_chan_width_80:1,
+                     supports_chan_width_160:1,
+                     supports_chan_width_80P80:1,
+                     reserved:22, /* bits 26:5 */
+                     chain_mask_2G:1,
+                     chain_mask_5G:1,
+                     chain_mask_tx:1,
+                     chain_mask_rx:1,
+                     supports_aDFS:1; /* agile DFS */
+        };
+        A_UINT32 supported_flags;
+    };
+    A_UINT32 chainmask;
+} WMI_MAC_PHY_CHAINMASK_CAPABILITY;
+
+typedef struct {
+    /* TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_MAC_PHY_CHAINMASK_COMBO */
+    A_UINT32 tlv_header;
+    A_UINT32 chainmask_table_id;
+    /* Number of vaild Chainmask in the table */
+    A_UINT32 num_valid_chainmask;
+    /*
+     * This TLV is followed by the below TLVs:
+     * WMI_MAC_PHY_CHAINMASK_CAPABILITY mac_phy_chainmask_caps[num_valid_chainmask]
+     */
+} WMI_MAC_PHY_CHAINMASK_COMBO;
+
 typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_SOC_MAC_PHY_HW_MODE_CAPS */
     /* num HW modes */
     A_UINT32 num_hw_modes;
-    /* num_hw_modes WMI_HW_MODE_CAPABILITIES TLV's */
+    /* number of unique chainmask combo tables */
+    A_UINT32 num_chainmask_tables;
+    /*
+     * This TLV is followed by the below TLVs:
+     *
+     * WMI_HW_MODE_CAPABILITIES soc_hw_mode_caps[num_hw_modes]
+     *
+     * (intervening TLVs, e.g. HW_MODE_CAPS, MAC_PHY_CAPS, HAL_REG_CAPS)
+     *
+     * WMI_MAC_PHY_CHAINMASK_COMBO mac_phy_chainmask_combo[num_chainmask_tables]
+     * // number of chainmasks specified in mac_phy_chainmask_combo[0]
+     * WMI_MAC_PHY_CHAINMASK_CAPABILITY mac_phy_chainmask_caps[num_valid_chainmask0]
+     * // number of chainmasks specified in mac_phy_chainmask_combo[1]
+     * WMI_MAC_PHY_CHAINMASK_CAPABILITY mac_phy_chainmask_caps[num_valid_chainmask1]
+     * // number of chainmasks specified in mac_phy_chainmask_combo[2]
+     * WMI_MAC_PHY_CHAINMASK_CAPABILITY mac_phy_chainmask_caps[num_valid_chainmask2]
+     * etc.
+     */
 } WMI_SOC_MAC_PHY_HW_MODE_CAPS;
 
 /*Below are Reg caps per PHY. Please note PHY ID starts with 0.*/
@@ -17861,6 +18011,11 @@ static INLINE A_UINT8 *wmi_id_to_name(A_UINT32 wmi_command)
 		WMI_RETURN_STRING(WMI_VDEV_ADD_MAC_ADDR_TO_RX_FILTER_CMDID);
 		WMI_RETURN_STRING(WMI_BPF_SET_VDEV_ACTIVE_MODE_CMDID);
 		WMI_RETURN_STRING(WMI_HW_DATA_FILTER_CMDID);
+		WMI_RETURN_STRING(WMI_PDEV_MULTIPLE_VDEV_RESTART_REQUEST_CMDID);
+		WMI_RETURN_STRING(WMI_LPI_OEM_REQ_CMDID);
+		WMI_RETURN_STRING(WMI_PDEV_UPDATE_PKT_ROUTING_CMDID);
+		WMI_RETURN_STRING(WMI_PDEV_CHECK_CAL_VERSION_CMDID);
+		WMI_RETURN_STRING(WMI_PDEV_SET_DIVERSITY_GAIN_CMDID);
 	}
 
 	return "Invalid WMI cmd";
@@ -18059,6 +18214,144 @@ typedef struct {
     A_UINT32 enable;  /* 1 . enable, 0- disable */
     A_UINT32 hw_filter_bitmap; /* see WMI_HW_DATA_FILTER_BITMAP_TYPE */
 } wmi_hw_data_filter_cmd_fixed_param;
+
+/* This command is used whenever host wants to restart multiple
+ * VDEVs using single command and the VDEV that are restarted will
+ * need to have same properties they had before restart except for the
+ * operating channel
+ */
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_multiple_vdev_restart_request_cmd_fixed_param */
+    /** pdev_id for identifying the MAC
+     * See macros starting with WMI_PDEV_ID_ for values.
+     * In non-DBDC case host should set it to 0
+     */
+    A_UINT32 pdev_id;
+    /** unique id identifying the module, generated by the caller */
+    A_UINT32 requestor_id;
+    /** Disable H/W ack.
+     * During CAC, Our HW shouldn't ack directed frames
+     */
+    A_UINT32 disable_hw_ack;
+    /* Determine the duration of CAC on the given channel 'chan' */
+    A_UINT32 cac_duration_ms;
+    A_UINT32 num_vdevs;
+
+    /* The TLVs follows this structure:
+     * A_UINT32 vdev_ids[]; <--- Array of VDEV ids.
+     * wmi_channel chan; <------ WMI channel
+     */
+} wmi_pdev_multiple_vdev_restart_request_cmd_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_csa_switch_count_status_event_fixed_param */
+    A_UINT32 tlv_header;
+    /** pdev_id for identifying the MAC
+     * See macros starting with WMI_PDEV_ID_ for values.
+     * In non-DBDC case host should set it to 0
+     */
+    A_UINT32 pdev_id;
+    /** CSA switch count value in the last transmitted beacon */
+    A_UINT32 current_switch_count;
+    A_UINT32 num_vdevs;
+
+    /* The TLVs follows this structure:
+     * A_UINT32 vdev_ids[]; <--- Array of VDEV ids.
+     */
+} wmi_pdev_csa_switch_count_status_event_fixed_param;
+
+/* Operation types for packet routing command */
+typedef enum {
+    WMI_PDEV_ADD_PKT_ROUTING,
+    WMI_PDEV_DEL_PKT_ROUTING,
+} wmi_pdev_pkt_routing_op_code;
+
+/* Packet routing types based on specific data types */
+typedef enum {
+    WMI_PDEV_ROUTING_TYPE_ARP_IPV4,
+    WMI_PDEV_ROUTING_TYPE_NS_IPV6,
+    WMI_PDEV_ROUTING_TYPE_IGMP_IPV4,
+    WMI_PDEV_ROUTING_TYPE_MLD_IPV6,
+    WMI_PDEV_ROUTING_TYPE_DHCP_IPV4,
+    WMI_PDEV_ROUTING_TYPE_DHCP_IPV6,
+} wmi_pdev_pkt_routing_type;
+
+/* This command shall be sent only when no VDEV is up.
+ * If the command is sent after any VDEV is up, target will ignore the command
+ */
+typedef struct {
+    /** TLV tag and len; tag equals
+      * WMITLV_TAG_STRUC_wmi_pdev_update_pkt_routing_cmd_fixed_param
+      */
+    A_UINT32 tlv_header;
+    /** Identifies pdev on which routing needs to be applied */
+    A_UINT32 pdev_id;
+    /** Indicates the routing operation type: add/delete */
+    A_UINT32 op_code; /* wmi_pdev_pkt_routing_op_code */
+    /** Bitmap of multiple pkt routing types for a given destination ring
+      * and meta data
+      */
+    A_UINT32 routing_type_bitmap; /* see wmi_pdev_pkt_routing_type */
+    /** 5 bits [4:0] are used to specify the destination ring where the
+      * CCE matched packet needs to be routed.
+      */
+    A_UINT32 dest_ring;
+    /** 16 bits [15:0] meta data can be passed to CCE.
+      * When the superrule matches,
+      * CCE copies this back in RX_MSDU_END_TLV.
+      */
+    A_UINT32 meta_data;
+} wmi_pdev_update_pkt_routing_cmd_fixed_param;
+
+typedef enum {
+    /* The board was calibrated with a meta which did not have this feature */
+    WMI_CALIBRATION_NO_FEATURE = 0,
+    WMI_CALIBRATION_OK,             /* The calibration status is OK */
+    WMI_CALIBRATION_NOT_OK,         /* The calibration status is NOT OK */
+} WMI_CALIBRATION_STATUS;
+
+typedef struct {
+    /* TLV tag and len; tag equals
+     * WMITLV_TAG_STRUC_wmi_pdev_check_cal_version_event_fixed_param
+     */
+    A_UINT32 tlv_header;
+    /* Current software level calibration data version */
+    A_UINT32 software_cal_version;
+    /* Calibration data version programmed on chip */
+    A_UINT32 board_cal_version;
+    /* filled with WMI_CALIBRATION_STATUS enum value */
+    A_UINT32 cal_status;
+    /** pdev_id for identifying the MAC
+     * See macros starting with WMI_PDEV_ID_ for values.
+     */
+    A_UINT32 pdev_id;
+} wmi_pdev_check_cal_version_event_fixed_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals
+      * WMITLV_TAG_STRUC_wmi_pdev_check_cal_version_cmd_fixed_param
+      */
+    A_UINT32 tlv_header;
+    /** pdev_id for identifying the MAC
+     * See macros starting with WMI_PDEV_ID_ for values.
+     */
+    A_UINT32 pdev_id;
+} wmi_pdev_check_cal_version_cmd_fixed_param;
+
+typedef struct {
+    /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_set_diversity_gain_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /* Identifies pdev on which diversity gain to be applied */
+    A_UINT32 pdev_id;
+    /* The number of spatial stream */
+    A_UINT32 nss;
+    /* The number of gains */
+    A_UINT32 num_gains;
+    /*
+     * This fixed_param TLV is followed by other TLVs:
+     *    A_UINT8 diversity_gains[num_gains]; (gain is in dB units)
+     */
+} wmi_pdev_set_diversity_gain_cmd_fixed_param;
 
 /* ADD NEW DEFS HERE */
 
