@@ -1150,8 +1150,8 @@ typedef struct sSirSmeJoinReq
     tAniBool            spectrumMgtIndicator;
     tSirMacPowerCapInfo powerCap;
     tSirSupChnl         supportedChannels;
-    tSirBssDescription  bssDescription;
     uint8_t             sub20_channelwidth;
+    tSirBssDescription  bssDescription;
 } tSirSmeJoinReq, *tpSirSmeJoinReq;
 
 /* Definition for response message to previously issued join request */
