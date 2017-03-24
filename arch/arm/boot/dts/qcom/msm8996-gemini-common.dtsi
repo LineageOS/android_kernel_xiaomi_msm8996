@@ -1194,6 +1194,10 @@
 				qcom,s2-type = <7>;
 			};
 		};
+
+		qcom,pm8994_rtc {
+			qcom,qpnp-rtc-alarm-pwrup = <1>;
+		};
 	};
 
 	qcom,pm8994@1 {
