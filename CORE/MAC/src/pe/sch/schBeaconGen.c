@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -313,6 +313,9 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
                psessionEntry->lim_non_ecsa_cap_num == 0)
                    populate_dot_11_f_ext_chann_switch_ann(
                        pMac, &pBcn2->ext_chan_switch_ann, psessionEntry);
+           else
+                   PopulateDot11fChanSwitchAnn(pMac, &pBcn2->ChanSwitchAnn,
+                                               psessionEntry);
     }
 
     populate_dot11_supp_operating_classes(pMac, &pBcn2->SuppOperatingClasses,
@@ -336,8 +339,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
           * and SAP has instructed to announce channel switch IEs
           * in beacon and probe responses
           */
-          if (!CHAN_HOP_ALL_BANDS_ENABLE ||
-              psessionEntry->lim_non_ecsa_cap_num > 0)
+          if (!CHAN_HOP_ALL_BANDS_ENABLE)
                   PopulateDot11fChanSwitchAnn(pMac, &pBcn2->ChanSwitchAnn,
                                               psessionEntry);
 
