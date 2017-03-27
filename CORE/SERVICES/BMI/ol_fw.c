@@ -1470,12 +1470,13 @@ void ol_target_failure(void *instance, A_STATUS status)
 	}
 #endif
 
+	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 		printk("%s: Loading/Unloading is in progress, ignore!\n",
 			__func__);
+		vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 		return;
 	}
-	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 
 #ifdef HIF_PCI
 	ret = hif_pci_check_fw_reg(scn->hif_sc);
