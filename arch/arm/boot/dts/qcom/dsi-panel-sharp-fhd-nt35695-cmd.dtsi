@@ -92,5 +92,18 @@
 		qcom,mdss-dsi-te-dcs-command = <1>;
 		qcom,mdss-dsi-te-check-enable;
 		qcom,mdss-dsi-te-using-te-pin;
+		cm,mdss-livedisplay-srgb-on-cmd = [
+				15 01 00 00 01 00 02 ff 22
+				15 00 00 00 01 00 02 fb 01
+				15 00 00 00 01 00 02 fa 01
+				15 01 00 00 01 00 02 ff 10
+				15 01 00 00 01 00 02 55 80
+				15 01 00 00 01 00 02 26 02];
+		cm,mdss-livedisplay-srgb-off-cmd = [
+				15 00 00 00 00 00 02 51 FF
+				15 00 00 00 00 00 02 53 24
+				15 01 00 00 00 00 02 55 00
+				05 01 00 00 78 00 02 11 00
+				05 01 00 00 14 00 02 29 00];
 	};
 };

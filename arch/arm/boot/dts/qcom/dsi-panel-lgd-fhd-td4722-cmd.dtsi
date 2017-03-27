@@ -101,5 +101,12 @@
 		qcom,mdss-dsi-te-check-enable;
 		qcom,mdss-dsi-te-using-te-pin;
 		qcom,mdss-panel-on-dimming-delay = <120>;
+		cm,mdss-livedisplay-srgb-on-cmd = <0x5010000 0x10000211 0x290100 0x2 0xb0002901 0x0 0x2840029 0x1000000 0x2c800 0x29010000 0x2cca 0x1dfcbc7d 0xd4e5d7 0xe0f5d2 0x3fffff 0xf834e700 0xec29ff00 0xeb391e 0xff00ff00 0x71f942ff 0xff00 0x35c6ff29 0x1000000 0x2b003>;
+		cm,mdss-livedisplay-srgb-off-cmd = [
+				39 00 00 00 00 00 02 84 00
+				29 00 00 00 00 00 02 C8 11
+				29 00 00 00 00 00 02 CA 1C
+				29 00 00 00 00 00 02 EA 0F
+				29 01 00 00 00 00 02 B0 03];
 	};
 };

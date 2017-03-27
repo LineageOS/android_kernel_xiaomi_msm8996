@@ -102,5 +102,12 @@
 		qcom,mdss-dsi-te-dcs-command = <1>;
 		qcom,mdss-dsi-te-check-enable;
 		qcom,mdss-dsi-te-using-te-pin;
+		cm,mdss-livedisplay-srgb-on-cmd = <0x5010000 0x5000211 0x290000 0x2 0xb0043900 0x0 0x2840029 0x0 0x2c800 0x29000000 0x2cca 0x1dfce292 0xedf1db 0xd6011f 0x7400ec 0xec0ff7fd 0x1aff00 0xf72e1d 0xff00ff00 0x7df62dff 0xff34 0xffff29 0x1000000 0x2b003>;
+		cm,mdss-livedisplay-srgb-off-cmd = [
+				29 00 00 00 00 00 02 B0 04
+				39 00 00 00 00 00 02 84 00
+				29 00 00 00 00 00 02 C8 11
+				29 00 00 00 00 00 02 CA 1C
+				29 01 00 00 00 00 02 B0 03];
 	};
 };
