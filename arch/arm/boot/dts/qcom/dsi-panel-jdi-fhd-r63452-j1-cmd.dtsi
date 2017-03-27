@@ -107,5 +107,11 @@
 		cm,mdss-livedisplay-command-state = "dsi_lp_mode";
 		cm,mdss-livedisplay-post-cmd = [
 				29 01 00 00 00 00 02 B0 03];
+		cm,mdss-livedisplay-srgb-on-cmd = <0x5010000 0x10000211 0x290100 0x2 0xb0002901 0x0 0x2840029 0x1000000 0x32c800 0xfdfefc 0xd80000fc 0xfefbdc00 0x1f3f0 0xfc0000fe 0xfdf99900 0xfefcfbc8 0xfff4eb 0xfc00fefa 0xfdfc00fe 0xfbfae500 0xfff6f2d3 0x29010000 0x2cca 0x1dfccada 0xd2e2dd 0xd3f0cd 0x39f600 0xf72ef700 0xee36ff00 0xe63d1e 0xff00ff00 0x66fb4dff 0xff00 0x30cfff>;
+		cm,mdss-livedisplay-srgb-off-cmd = [
+				05 01 00 00 78 00 02 11 00
+				29 00 00 00 00 00 02 B0 04
+				39 00 00 00 00 00 02 84 00
+				29 00 00 00 00 00 02 C8 11];
 	};
 };

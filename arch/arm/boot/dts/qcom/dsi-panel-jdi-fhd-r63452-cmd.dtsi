@@ -107,5 +107,17 @@
 		cm,mdss-livedisplay-command-state = "dsi_lp_mode";
 		cm,mdss-livedisplay-post-cmd = [
 				29 01 00 00 00 00 02 B0 03];
+		cm,mdss-livedisplay-srgb-on-cmd = [
+				05 01 00 00 05 00 02 11 00
+				29 01 00 00 00 00 02 b0 00
+				29 01 00 00 00 00 02 84 00
+				29 01 00 00 00 00 14 c8 01 00 fb 05 fd fc e0 00 fa 02 f6 fc f0 00 f8 ff ed fc 01
+				29 01 00 00 00 00 2c ca 1d fc f6 c2 00 d6 e5 d3 00 d3 b2 f5 00 3f f8 fe fa 18 ed 00 f7 30 ff 00 00 e7
+				39 1d ff 00 ff 00 5b f4 40 ff 00 00 ff 00 30 c4 ff];
+		cm,mdss-livedisplay-srgb-off-cmd = [
+				05 01 00 00 78 00 02 11 00
+				29 00 00 00 00 00 02 B0 04
+				39 00 00 00 00 00 02 84 00
+				29 00 00 00 00 00 02 C8 11];
 	};
 };
