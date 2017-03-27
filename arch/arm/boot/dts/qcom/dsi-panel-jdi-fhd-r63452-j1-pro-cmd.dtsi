@@ -102,5 +102,25 @@
 		qcom,mdss-dsi-te-using-te-pin;
 		qcom,mdss-dsi-tx-eot-append;
 		qcom,esd-err-irq-gpio = <&tlmm 14 0x2001>;
+		cm,mdss-livedisplay-srgb-on-cmd = [
+			50 10 00 00 10 00 02 11 29 01
+			00 20 b0 00 29 01 00 28 40 02
+			90 10 00 00 00 32 c8 00 fd fe
+			fc d8 00 00 fc fe fb dc 00 1f
+			3f 00 fc 00 00 fe fd f9 99 00
+			fe fc fb c8 ff f4 eb fc 00 fe
+			fa fd fc 00 fe fb fa e5 00 ff
+			f6 f2 d3 29 01 00 00 2c ca 1d
+			fc ca da d2 e2 dd d3 f0 cd 39
+			f6 00 f7 2e f7 00 ee 36 ff 00
+			e6 3d 1e ff 00 ff 00 66 fb 4d
+			ff ff 00 30 cf ff 29 10 00 00
+			00];
+		cm,mdss-livedisplay-srgb-off-cmd = [
+				05 01 00 00 78 00 02 11 00
+				29 00 00 00 00 00 02 B0 04
+				39 00 00 00 00 00 02 84 00
+				29 00 00 00 00 00 02 C8 11
+				29 01 00 00 00 00 02 B0 03];
 	};
 };
