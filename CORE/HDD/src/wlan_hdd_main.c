@@ -7278,9 +7278,10 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                ret = -EFAULT;
                goto exit;
             }
-            priv_data.buf[numOfBytestoPrint] = '\0';
+            /* This overwrites the last space, which we already copied */
+            extra[numOfBytestoPrint - 1] = '\0';
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                      "%s", priv_data.buf);
+                      "%s", extra);
 
             if (length > numOfBytestoPrint)
             {
@@ -7294,7 +7295,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                     goto exit;
                 }
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                          "%s", &priv_data.buf[numOfBytestoPrint]);
+                          "%s", &extra[numOfBytestoPrint]);
             }
 
             /* Free temporary buffer */
