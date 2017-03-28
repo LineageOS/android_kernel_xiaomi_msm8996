@@ -2420,6 +2420,7 @@ static int ol_ath_get_reg_table(uint32_t target_version,
 	switch (target_version) {
 	case AR6320_REV3_VERSION:
 	case AR6320_REV3_2_VERSION:
+	case QCA9377_REV1_1_VERSION:
 		reg_table->section = (tgt_reg_section *)&ar6320v3_reg_table[0];
 		reg_table->section_size = sizeof(ar6320v3_reg_table)/
 			sizeof(ar6320v3_reg_table[0]);
