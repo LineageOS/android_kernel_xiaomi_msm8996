@@ -3115,3 +3115,28 @@ uint64_t vos_do_div(uint64_t dividend, uint32_t divisor)
 	/*do_div macro updates dividend with Quotient of dividend/divisor */
 	return dividend;
 }
+
+/**
+ * vos_force_fw_dump() - force target to dump
+ *
+ *return
+ * VOS_STATUS_SUCCESS   - Operation completed successfully.
+ * VOS_STATUS_E_FAILURE - Operation failed.
+ */
+VOS_STATUS vos_force_fw_dump(void)
+{
+	struct ol_softc *scn;
+
+	scn = vos_get_context(VOS_MODULE_ID_HIF, gpVosContext);
+	if (!scn) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+			  "%s: scn is null!", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+		  "%s:enter!", __func__);
+
+	ol_target_failure(scn, A_ERROR);
+
+	return VOS_STATUS_SUCCESS;
+}
