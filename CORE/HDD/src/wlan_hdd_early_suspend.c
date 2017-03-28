@@ -115,7 +115,7 @@ static eHalStatus g_full_pwr_status;
 static eHalStatus g_standby_status;
 
 extern VOS_STATUS hdd_post_voss_start_config(hdd_context_t* pHddCtx);
-extern void hdd_wlan_initial_scan(hdd_context_t *pHddCtx);
+extern void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter);
 
 extern struct notifier_block hdd_netdev_notifier;
 extern tVOS_CON_MODE hdd_get_conparam ( void );
@@ -485,7 +485,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter)
    pHddCtx->hdd_ps_state = eHDD_SUSPEND_NONE;
 
    //Trigger the initial scan
-   hdd_wlan_initial_scan(pHddCtx);
+   hdd_wlan_initial_scan(pAdapter);
 
    return VOS_STATUS_SUCCESS;
 
