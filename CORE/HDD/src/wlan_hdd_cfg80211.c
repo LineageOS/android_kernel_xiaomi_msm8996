@@ -5476,9 +5476,16 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_LEAKY_AP_GUARD_TIME,
                     pWifiIfaceStat->rx_leak_window) ||
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+        nla_put_u64_64bit(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_AVERAGE_TSF_OFFSET,
+                    average_tsf_offset,
+                   QCA_WLAN_VENDOR_ATTR_LL_STATS_PAD) ||
+#else
         nla_put_u64(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_AVERAGE_TSF_OFFSET,
                     average_tsf_offset) ||
+#endif
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RTS_SUCC_CNT,
                     pWifiIfaceStat->rts_succ_cnt) ||
@@ -12783,7 +12790,10 @@ static int wlan_hdd_cfg80211_sap_configuration_set(struct wiphy *wiphy,
 	QCA_WLAN_VENDOR_ATTR_GET_STATION_INFO_REMOTE_CH_WIDTH
 #define REMOTE_SGI_ENABLE\
 	QCA_WLAN_VENDOR_ATTR_GET_STATION_INFO_REMOTE_SGI_ENABLE
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+#define REMOTE_PAD\
+       QCA_WLAN_VENDOR_ATTR_GET_STATION_INFO_PAD
+#endif
 /**
  * hdd_get_peer_txrx_rate_cb() - get station's txrx rate callback
  * @peer_info: pointer of peer information
@@ -13053,9 +13063,19 @@ static int hdd_get_station_remote(hdd_context_t *hdd_ctx,
 
 	if (nla_put_u32(skb, REMOTE_MAX_PHY_RATE, stainfo->max_phy_rate) ||
 	    nla_put_u32(skb, REMOTE_TX_PACKETS, stainfo->tx_packets) ||
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+           nla_put_u64_64bit(skb, REMOTE_TX_BYTES, stainfo->tx_bytes,
+                                                       REMOTE_PAD) ||
+#else
 	    nla_put_u64(skb, REMOTE_TX_BYTES, stainfo->tx_bytes) ||
+#endif
 	    nla_put_u32(skb, REMOTE_RX_PACKETS, stainfo->rx_packets) ||
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+           nla_put_u64_64bit(skb, REMOTE_RX_BYTES, stainfo->rx_bytes,
+                                                       REMOTE_PAD) ||
+#else
 	    nla_put_u64(skb, REMOTE_RX_BYTES, stainfo->rx_bytes) ||
+#endif
 	    nla_put_u8(skb, REMOTE_WMM, stainfo->isQosEnabled) ||
 	    nla_put_u8(skb, REMOTE_SUPPORTED_MODE, stainfo->mode)) {
 		hddLog(LOGE, FL("put fail"));
@@ -13233,7 +13253,9 @@ hdd_cfg80211_get_station_cmd(struct wiphy *wiphy,
 #undef REMOTE_RX_STBC
 #undef REMOTE_CH_WIDTH
 #undef REMOTE_SGI_ENABLE
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+#undef REMOTE_PAD
+#endif
 static const struct
 nla_policy qca_wlan_vendor_attr[QCA_WLAN_VENDOR_ATTR_MAX+1] = {
 	[QCA_WLAN_VENDOR_ATTR_ROAMING_POLICY] = {.type = NLA_U32},
@@ -20015,7 +20037,17 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
     if (!iface_down)
 #endif
+    {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+        struct cfg80211_scan_info info = {
+                        .aborted = aborted,
+        };
+
+        cfg80211_scan_done(req, &info);
+#else
         cfg80211_scan_done(req, aborted);
+#endif
+    }
 
     complete(&pScanInfo->abortscan_event_var);
 
@@ -20281,7 +20313,17 @@ static void wlan_hdd_cfg80211_scan_block_cb(struct work_struct *work)
         hddLog(LOGE,
                 "%s:##In DFS Master mode. Scan aborted. Null result sent",
                  __func__);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+       {
+            struct cfg80211_scan_info info = {
+                            .aborted = true,
+            };
+
+            cfg80211_scan_done(request, &info);
+       }
+#else
         cfg80211_scan_done(request, true);
+#endif
         adapter->request = NULL;
     }
 }
@@ -28732,6 +28774,10 @@ wlan_hdd_cfg80211_extscan_get_capabilities_rsp(void *ctx,
 	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_IE_LENGTH
 #define PARAM_IE_DATA \
 	QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_IE_DATA
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+#define PARAM_PAD \
+       QCA_WLAN_VENDOR_ATTR_EXTSCAN_PAD
+#endif
 
 /** hdd_extscan_nl_fill_bss() - extscan nl fill bss
  * @skb: socket buffer
@@ -28749,7 +28795,12 @@ static int hdd_extscan_nl_fill_bss(struct sk_buff *skb, tSirWifiScanResult *ap,
 	if (!nla_ap)
 		return -EINVAL;
 
-	if (nla_put_u64(skb, PARAM_TIME_STAMP, ap->ts) ||
+	if (
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+        nla_put_u64_64bit(skb, PARAM_TIME_STAMP, ap->ts, PARAM_PAD) ||
+#else
+	nla_put_u64(skb, PARAM_TIME_STAMP, ap->ts) ||
+#endif
 	    nla_put(skb, PARAM_SSID, sizeof(ap->ssid), ap->ssid) ||
 	    nla_put(skb, PARAM_BSSID, sizeof(ap->bssid), ap->bssid) ||
 	    nla_put_u32(skb, PARAM_CHANNEL, ap->channel) ||
@@ -28788,7 +28839,9 @@ static int hdd_extscan_nl_fill_bss(struct sk_buff *skb, tSirWifiScanResult *ap,
 #undef PARAM_CAPABILITY
 #undef PARAM_IE_LENGTH
 #undef PARAM_IE_DATA
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+#undef PARAM_PAD
+#endif
 
 /** wlan_hdd_cfg80211_extscan_cached_results_ind() - get cached results
  * @ctx: hdd global context
@@ -29113,9 +29166,17 @@ wlan_hdd_cfg80211_extscan_hotlist_match_ind(void *ctx,
 			if (!ap)
 				goto fail;
 
-			if (nla_put_u64(skb,
+			if (
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+                           nla_put_u64_64bit(skb,
+                               QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_TIME_STAMP,
+                               data->ap[i].ts,
+                               QCA_WLAN_VENDOR_ATTR_EXTSCAN_PAD) ||
+#else
+				nla_put_u64(skb,
 				QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_TIME_STAMP,
 				data->ap[i].ts) ||
+#endif
 			    nla_put(skb,
 				QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_SSID,
 				sizeof(data->ap[i].ssid),
@@ -29402,9 +29463,16 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 
 	if (nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_REQUEST_ID,
 		pData->requestId) ||
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+           nla_put_u64_64bit(skb,
+               QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_TIME_STAMP,
+               pData->ap.ts,
+               QCA_WLAN_VENDOR_ATTR_EXTSCAN_PAD) ||
+#else
 	    nla_put_u64(skb,
 		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_TIME_STAMP,
 		pData->ap.ts) ||
+#endif
 	    nla_put(skb, QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_SCAN_RESULT_SSID,
 		sizeof(pData->ap.ssid),
 		pData->ap.ssid) ||

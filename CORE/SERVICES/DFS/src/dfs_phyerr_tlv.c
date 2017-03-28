@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -584,7 +584,19 @@ tlv_calc_event_freq_chirp(struct ath_dfs *dfs, struct rx_radar_status *rs,
 
    total_bw = delta_peak * (bin_resolution / radar_fft_long_period) *
        pulse_duration;
-
+#if(LINUX_VERSION_CODE >= KERNEL_VERSION(4,5,0))
+   DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR | ATH_DEBUG_DFS_PHYERR_SUM,
+       "%s: delta_peak=%d, pulse_duration=%d, bin_resolution=%d.%dKHz, "
+           "radar_fft_long_period=%d, total_bw=%d.%dKHz",
+       __func__,
+       delta_peak,
+       pulse_duration,
+       bin_resolution / 1000,
+       bin_resolution % 1000,
+       radar_fft_long_period,
+       total_bw / 100,
+       abs(total_bw % 100));
+#else
    DFS_DPRINTK(dfs, ATH_DEBUG_DFS_PHYERR | ATH_DEBUG_DFS_PHYERR_SUM,
        "%s: delta_peak=%d, pulse_duration=%d, bin_resolution=%d.%dKHz, "
            "radar_fft_long_period=%d, total_bw=%d.%ldKHz",
@@ -596,7 +608,7 @@ tlv_calc_event_freq_chirp(struct ath_dfs *dfs, struct rx_radar_status *rs,
        radar_fft_long_period,
        total_bw / 100,
        abs(total_bw % 100));
-
+#endif
        total_bw /= 100; /* back to KHz */
 
    /* Grab the channel centre frequency in MHz */

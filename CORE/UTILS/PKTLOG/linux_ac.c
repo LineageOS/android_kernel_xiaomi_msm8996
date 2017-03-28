@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -927,7 +927,11 @@ int pktlog_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 
 	get_page(virt_to_page((void *)address));
 	vmf->page = virt_to_page((void *)address);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,6,0)
+	return 0;
+#else
 	return VM_FAULT_MINOR;
+#endif
 }
 #else
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
@@ -959,7 +963,11 @@ struct page *pktlog_vmmap(struct vm_area_struct *vma, unsigned long addr,
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
 	if (type)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,6,0)
+		*type = 0;
+#else
 		*type = VM_FAULT_MINOR;
+#endif
 #endif
 
 	return virt_to_page((void *)vaddr);

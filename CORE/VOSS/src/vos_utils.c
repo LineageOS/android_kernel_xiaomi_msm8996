@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -62,7 +62,11 @@
 
 #include <linux/err.h>
 #include <linux/random.h>
+#if(LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+#include <crypto/skcipher.h>
+#else
 #include <linux/crypto.h>
+#endif
 #include <linux/scatterlist.h>
 #include <linux/completion.h>
 #include <linux/ieee80211.h>
@@ -976,7 +980,7 @@ static void ecb_aes_complete(struct crypto_async_request *req, int err)
     complete(&r->completion);
 }
 
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
 /*--------------------------------------------------------------------------
 
   \brief vos_encrypt_AES() - Generate AES Encrypted byte stream
@@ -1003,7 +1007,90 @@ static void ecb_aes_complete(struct crypto_async_request *req, int err)
 
     ( *** return value not considered yet )
   --------------------------------------------------------------------------*/
+VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
+                           v_U8_t *pPlainText, /* pointer to data stream */
+                           v_U8_t *pCiphertext,
+                           v_U8_t *pKey) /* pointer to authentication key */
+{
+    struct ecb_aes_result result;
+    struct crypto_skcipher *tfm;
+    struct skcipher_request *req;
+    int ret = 0;
+    char iv[IV_SIZE_AES_128];
+    struct scatterlist sg_in;
+    struct scatterlist sg_out;
 
+    init_completion(&result.completion);
+
+#if  !defined(CONFIG_CNSS) && (defined(HIF_USB) || defined(HIF_SDIO))
+    tfm =  crypto_alloc_skcipher( "cbc(aes)", 0, 0);
+#else
+    tfm =  wcnss_wlan_crypto_alloc_ablkcipher( "cbc(aes)", 0, 0);
+#endif
+    if (IS_ERR(tfm)) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_skcipher failed");
+        ret = PTR_ERR(tfm);
+        goto err_tfm;
+    }
+
+    req = skcipher_request_alloc(tfm, GFP_KERNEL);
+    if (!req) {
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "Failed to allocate request for cbc(aes)");
+        ret = -ENOMEM;
+        goto err_req;
+    }
+
+    skcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,
+                                    ecb_aes_complete, &result);
+
+
+    crypto_skcipher_clear_flags(tfm, ~0);
+
+    ret = crypto_skcipher_setkey(tfm, pKey, AES_KEYSIZE_128);
+    if (ret) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_skcipher_setkey failed");
+        goto err_setkey;
+    }
+
+    memset(iv, 0, IV_SIZE_AES_128);
+
+    sg_init_one(&sg_in, pPlainText, AES_BLOCK_SIZE);
+
+    sg_init_one(&sg_out, pCiphertext, AES_BLOCK_SIZE);
+
+    skcipher_request_set_crypt(req, &sg_in, &sg_out, AES_BLOCK_SIZE, iv);
+
+    ret = crypto_skcipher_encrypt(req);
+    if (ret == -EINPROGRESS || ret == -EBUSY) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_skcipher_encrypt failed ret %d", ret);
+        wait_for_completion(&result.completion);
+        ret = result.err;
+    }
+
+
+// -------------------------------------
+err_setkey:
+#if  !defined(CONFIG_CNSS) && (defined(HIF_USB) || defined(HIF_SDIO))
+    skcipher_request_free(req);
+#else
+    wcnss_wlan_ablkcipher_request_free(req);
+#endif
+err_req:
+#if  !defined(CONFIG_CNSS) && (defined(HIF_USB) || defined(HIF_SDIO))
+    crypto_free_skcipher(tfm);
+#else
+    wcnss_wlan_crypto_free_ablkcipher(tfm);
+#endif
+err_tfm:
+    //return ret;
+    if (ret != 0) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"%s() call failed", __func__);
+        return VOS_STATUS_E_FAULT;
+   }
+
+    return VOS_STATUS_SUCCESS;
+}
+#else //(LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
 VOS_STATUS vos_encrypt_AES(v_U32_t cryptHandle, /* Handle */
                            v_U8_t *pPlainText, /* pointer to data stream */
                            v_U8_t *pCiphertext,
@@ -1083,7 +1170,9 @@ err_tfm:
 
     return VOS_STATUS_SUCCESS;
 }
+#endif //(LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
 /*--------------------------------------------------------------------------
 
   \brief vos_decrypt_AES() - Decrypts an AES Encrypted byte stream
@@ -1110,7 +1199,90 @@ err_tfm:
 
     ( *** return value not considered yet )
   --------------------------------------------------------------------------*/
+VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
+                           v_U8_t *pText, /* pointer to data stream */
+                           v_U8_t *pDecrypted,
+                           v_U8_t *pKey) /* pointer to authentication key */
+{
+//    VOS_STATUS uResult = VOS_STATUS_E_FAILURE;
+    struct ecb_aes_result result;
+    struct skcipher_request *req;
+    struct crypto_skcipher *tfm;
+    int ret = 0;
+    char iv[IV_SIZE_AES_128];
+    struct scatterlist sg_in;
+    struct scatterlist sg_out;
 
+    init_completion(&result.completion);
+
+#if  !defined(CONFIG_CNSS) && (defined(HIF_USB) || defined(HIF_SDIO))
+    tfm =  crypto_alloc_skcipher( "cbc(aes)", 0, 0);
+#else
+    tfm =  wcnss_wlan_crypto_alloc_ablkcipher( "cbc(aes)", 0, 0);
+#endif
+    if (IS_ERR(tfm)) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_alloc_skcipher failed");
+        ret = PTR_ERR(tfm);
+        goto err_tfm;
+    }
+
+    req = skcipher_request_alloc(tfm, GFP_KERNEL);
+    if (!req) {
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "Failed to allocate request for cbc(aes)");
+        ret = -ENOMEM;
+        goto err_req;
+    }
+
+    skcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG,
+                                    ecb_aes_complete, &result);
+
+
+    crypto_skcipher_clear_flags(tfm, ~0);
+
+    ret = crypto_skcipher_setkey(tfm, pKey, AES_KEYSIZE_128);
+    if (ret) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "crypto_cipher_setkey failed");
+        goto err_setkey;
+       }
+
+    memset(iv, 0, IV_SIZE_AES_128);
+
+    sg_init_one(&sg_in, pText, AES_BLOCK_SIZE);
+
+    sg_init_one(&sg_out, pDecrypted, AES_BLOCK_SIZE);
+
+    skcipher_request_set_crypt(req, &sg_in, &sg_out, AES_BLOCK_SIZE, iv);
+
+    ret = crypto_skcipher_decrypt(req);
+    skcipher_request_zero(req);
+    if (ret) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"AES: failed to decrypt received packet");
+    }
+
+
+// -------------------------------------
+err_setkey:
+#if  !defined(CONFIG_CNSS) && (defined(HIF_USB) || defined(HIF_SDIO))
+    skcipher_request_free(req);
+#else
+    wcnss_wlan_ablkcipher_request_free(req);
+#endif
+err_req:
+#if  !defined(CONFIG_CNSS) && (defined(HIF_USB) || defined(HIF_SDIO))
+    crypto_free_skcipher(tfm);
+#else
+    wcnss_wlan_crypto_free_ablkcipher(tfm);
+#endif
+err_tfm:
+    //return ret;
+    if (ret != 0) {
+        VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR,"%s() call failed", __func__);
+        return VOS_STATUS_E_FAULT;
+      }
+
+    return VOS_STATUS_SUCCESS;
+}
+#else //LINUX_VERSION_CODE < KERNEL_VERSION(4,8,0)
 VOS_STATUS vos_decrypt_AES(v_U32_t cryptHandle, /* Handle */
                            v_U8_t *pText, /* pointer to data stream */
                            v_U8_t *pDecrypted,
@@ -1191,6 +1363,7 @@ err_tfm:
 
     return VOS_STATUS_SUCCESS;
 }
+#endif //(LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
 
 v_U32_t vos_chan_to_freq(v_U8_t chan)
 {
