@@ -44,7 +44,7 @@ ifeq ($(KERNEL_BUILD), 0)
 	CONFIG_QCOM_LTE_COEX := y
 	endif
 
-	ifeq ($(CONFIG_ARCH_SDXHEDGEHOG), y)
+	ifeq ($(CONFIG_ARCH_SDX20), y)
 	CONFIG_MOBILE_ROUTER := y
 	endif
 
@@ -1069,7 +1069,7 @@ endif
 endif
 endif
 
-ifeq ($(CONFIG_ARCH_SDXHEDGEHOG), y)
+ifeq ($(CONFIG_ARCH_SDX20), y)
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 ifeq ($(CONFIG_WCNSS_SKB_PRE_ALLOC), y)
 CDEFINES += -DFEATURE_SKB_PRE_ALLOC
@@ -1405,7 +1405,7 @@ ifeq ($(CONFIG_ARCH_MDM9650), y)
 CDEFINES += -DSYNC_IPA_READY
 endif
 
-ifeq ($(CONFIG_ARCH_SDXHEDGEHOG), y)
+ifeq ($(CONFIG_ARCH_SDX20), y)
 CDEFINES += -DSYNC_IPA_READY
 endif
 

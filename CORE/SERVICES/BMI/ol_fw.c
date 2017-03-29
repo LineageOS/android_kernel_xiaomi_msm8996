@@ -680,9 +680,10 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 		break;
 	}
 
-	if (request_firmware(&fw_entry, filename, scn->sc_osdev->device) != 0)
+       status = request_firmware(&fw_entry, filename, scn->sc_osdev->device);
+	if (status)
 	{
-		pr_err("%s: Failed to get %s\n", __func__, filename);
+		pr_err("%s: Failed to get %s:%d\n", __func__, filename, status);
 
 		if (file == ATH_OTP_FILE)
 			return -ENOENT;
@@ -700,10 +701,11 @@ static int __ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 			pr_info("%s: Trying to load default %s\n",
 							__func__, filename);
 
-			if (request_firmware(&fw_entry, filename,
-					scn->sc_osdev->device) != 0) {
-				pr_err("%s: Failed to get %s\n",
-							__func__, filename);
+			status = request_firmware(&fw_entry, filename,
+					scn->sc_osdev->device);
+			if (status) {
+				pr_err("%s: Failed to get %s:%d\n",
+						__func__, filename, status);
 				kfree(bd_id_filename);
 				return -1;
 			}
@@ -2150,7 +2152,7 @@ int ol_download_firmware(struct ol_softc *scn)
 				bdf_ret = param & 0xff;
 				if (!bdf_ret)
 					scn->board_id = (param >> 8) & 0xffff;
-				pr_debug("%s: chip_id:0x%0x board_id:0x%0x\n",
+				pr_err("%s: chip_id:0x%0x board_id:0x%0x\n",
 						__func__, scn->target_version,
 							scn->board_id);
 			} else if (status < 0) {
@@ -2418,6 +2420,7 @@ static int ol_ath_get_reg_table(uint32_t target_version,
 	switch (target_version) {
 	case AR6320_REV3_VERSION:
 	case AR6320_REV3_2_VERSION:
+	case QCA9377_REV1_1_VERSION:
 		reg_table->section = (tgt_reg_section *)&ar6320v3_reg_table[0];
 		reg_table->section_size = sizeof(ar6320v3_reg_table)/
 			sizeof(ar6320v3_reg_table[0]);

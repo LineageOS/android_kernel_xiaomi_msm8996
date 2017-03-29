@@ -2032,12 +2032,19 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
         pScanResultListSaved = pScanResultList;
         while (NULL != (pScanResult = csrScanResultGetNext(pMac,
                                                       *pScanResultList))) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0))
+            VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+                FL("Scan result: BSSID "MAC_ADDRESS_STR" (Rssi %d, Ch:%d)"),
+                MAC_ADDR_ARRAY(pScanResult->BssDescriptor.bssId),
+                abs(pScanResult->BssDescriptor.rssi),
+                pScanResult->BssDescriptor.channelId);
+#else
             VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                 FL("Scan result: BSSID "MAC_ADDRESS_STR" (Rssi %ld, Ch:%d)"),
                 MAC_ADDR_ARRAY(pScanResult->BssDescriptor.bssId),
                 abs(pScanResult->BssDescriptor.rssi),
                 pScanResult->BssDescriptor.channelId);
-
+#endif
             if ((VOS_TRUE == vos_mem_compare(pScanResult->BssDescriptor.bssId,
                 pNeighborRoamInfo->currAPbssid, sizeof(tSirMacAddr))) ||
                 ((eSME_ROAM_TRIGGER_SCAN == pNeighborRoamInfo->cfgRoamEn) &&
@@ -2293,6 +2300,16 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
                 && !csrRoamIsRoamOffloadScanEnabled(pMac)
 #endif
             ) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0))
+                VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                           "%s: [INFOLOG] potential candidate to roam "
+                           "immediately (diff=%d, expected=%d)",
+                           __func__,
+                           abs(abs(CurrAPRssi) -
+                                abs(pScanResult->BssDescriptor.rssi)),
+                           immediateRoamRssiDiff);
+                roamNow = eANI_BOOLEAN_TRUE;
+#else
                 VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                            "%s: [INFOLOG] potential candidate to roam "
                            "immediately (diff=%ld, expected=%d)",
@@ -2301,6 +2318,7 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
                                 abs(pScanResult->BssDescriptor.rssi)),
                            immediateRoamRssiDiff);
                 roamNow = eANI_BOOLEAN_TRUE;
+#endif
             }
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
             /*
