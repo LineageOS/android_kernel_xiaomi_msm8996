@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -755,6 +755,9 @@ static const struct nla_policy qca_wlan_vendor_ocb_set_config_policy[
 	[QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_DEF_TX_PARAM] = {
 		.type = NLA_BINARY
 	},
+	[QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_TA_MAX_DURATION] = {
+		.type = NLA_U32
+	},
 };
 
 static const struct nla_policy qca_wlan_vendor_ocb_set_utc_time_policy[
@@ -901,6 +904,7 @@ static int __wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 	struct nlattr *ndl_active_state_list;
 	uint32_t ndl_active_state_list_len;
 	uint32_t flags = 0;
+	uint32_t ta_max_duration = 0;
 	void *def_tx_param = NULL;
 	uint32_t def_tx_param_size = 0;
 	int i;
@@ -971,6 +975,11 @@ static int __wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 			QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_DEF_TX_PARAM]);
 	}
 
+	/* Get the ta max duration. This parameter is optional. */
+	if (tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_TA_MAX_DURATION])
+		ta_max_duration = nla_get_u32(tb[
+			QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_TA_MAX_DURATION]);
+
 	config = hdd_ocb_config_new(channel_count, schedule_size,
 				    ndl_chan_list_len,
 				    ndl_active_state_list_len);
@@ -982,6 +991,14 @@ static int __wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 	config->channel_count = channel_count;
 	config->schedule_size = schedule_size;
 	config->flags = flags;
+	/*
+	 * Set max duration after the last TA received that the local time set
+	 * by TA is synchronous to other communicating OCB STAs. If it expires,
+	 * the OCB STA itself without UTC time source like GPS thinks that the
+	 * local time of itself is not sync to other STAs and stop scheduling
+	 * DSRC channel switch.
+	 */
+	config->ta_max_duration = ta_max_duration;
 	config->def_tx_param = def_tx_param;
 	config->def_tx_param_size = def_tx_param_size;
 

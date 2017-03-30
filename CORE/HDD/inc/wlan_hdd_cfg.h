@@ -617,16 +617,6 @@ enum
 #define CFG_IDLE_TIME_MIN                           ( 0 )
 #define CFG_IDLE_TIME_MAX                           ( 25 )
 #define CFG_IDLE_TIME_DEFAULT                       ( 25 )
-
-#define CFG_NUM_STA_CHAN_COMBINED_CONC_NAME             "gNumStaChanCombinedConc"
-#define CFG_NUM_STA_CHAN_COMBINED_CONC_MIN              ( 1 )
-#define CFG_NUM_STA_CHAN_COMBINED_CONC_MAX              ( 255 )
-#define CFG_NUM_STA_CHAN_COMBINED_CONC_DEFAULT          ( 3 )
-
-#define CFG_NUM_P2P_CHAN_COMBINED_CONC_NAME             "gNumP2PChanCombinedConc"
-#define CFG_NUM_P2P_CHAN_COMBINED_CONC_MIN              ( 1 )
-#define CFG_NUM_P2P_CHAN_COMBINED_CONC_MAX              ( 255 )
-#define CFG_NUM_P2P_CHAN_COMBINED_CONC_DEFAULT          ( 1 )
 #endif
 
 #define CFG_MAX_PS_POLL_NAME                   "gMaxPsPoll"
@@ -4712,10 +4702,6 @@ struct hdd_config {
    /* In units of milliseconds */
    uint32_t       idle_time_conc;
 
-   v_U8_t         nNumStaChanCombinedConc;   //number of channels combined for
-                                             //STA in each split scan operation
-   v_U8_t         nNumP2PChanCombinedConc;   //number of channels combined for
-                                             //P2P in each split scan operation
 #endif
 
    v_U8_t         nMaxPsPoll;

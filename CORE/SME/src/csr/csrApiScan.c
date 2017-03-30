@@ -93,9 +93,6 @@ void csrScanGetResultTimerHandler(void *);
 static void csrPurgeScanResultByAge(void *pv);
 void csrScanIdleScanTimerHandler(void *);
 static void csrSetDefaultScanTiming( tpAniSirGlobal pMac, tSirScanType scanType, tCsrScanRequest *pScanRequest);
-#ifdef WLAN_AP_STA_CONCURRENCY
-static void csrStaApConcTimerHandler(void *);
-#endif
 tANI_BOOLEAN csrIsSupportedChannel(tpAniSirGlobal pMac, tANI_U8 channelId);
 eHalStatus csrScanChannels( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 void csrSetCfgValidChannelList( tpAniSirGlobal pMac, tANI_U8 *pChannelList, tANI_U8 NumChannels );
@@ -188,14 +185,6 @@ eHalStatus csrScanOpen( tpAniSirGlobal pMac )
             smsLog(pMac, LOGE, FL("cannot allocate memory for getResult timer"));
             break;
         }
-#ifdef WLAN_AP_STA_CONCURRENCY
-        status = vos_timer_init(&pMac->scan.hTimerStaApConcTimer, VOS_TIMER_TYPE_SW, csrStaApConcTimerHandler, pMac);
-        if (!HAL_STATUS_SUCCESS(status))
-        {
-            smsLog(pMac, LOGE, FL("cannot allocate memory for hTimerStaApConcTimer timer"));
-            break;
-        }
-#endif
         status = vos_timer_init(&pMac->scan.hTimerIdleScan, VOS_TIMER_TYPE_SW, csrScanIdleScanTimerHandler, pMac);
         if (!HAL_STATUS_SUCCESS(status))
         {
@@ -226,9 +215,6 @@ eHalStatus csrScanClose( tpAniSirGlobal pMac )
     csrLLClose(&pMac->scan.channelPowerInfoList5G);
     csrScanDisable(pMac);
     vos_timer_destroy(&pMac->scan.hTimerGetResult);
-#ifdef WLAN_AP_STA_CONCURRENCY
-    vos_timer_destroy(&pMac->scan.hTimerStaApConcTimer);
-#endif
     vos_timer_destroy(&pMac->scan.hTimerIdleScan);
     return eHAL_STATUS_SUCCESS;
 }
@@ -322,31 +308,12 @@ eHalStatus csrQueueScanRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
     tANI_BOOLEAN fNoCmdPending;
     tSmeCmd *pQueueScanCmd=NULL;
     tSmeCmd *pSendScanCmd=NULL;
-    tANI_U8  nNumChanCombinedConc = 0;
     if (NULL == pScanCmd)
     {
         smsLog (pMac, LOGE, FL("Scan Req cmd is NULL"));
         return eHAL_STATUS_FAILURE;
     }
-    /* split scan if any one of the following:
-     * - STA session is connected and the scan is not a P2P search
-     * - any P2P session is connected
-     * Do not split scans if no concurrent infra connections are
-     * active and if the scan is a BG scan triggered by LFR (OR)
-     * any scan if LFR is in the middle of a BG scan. Splitting
-     * the scan is delaying the time it takes for LFR to find
-     * candidates and resulting in disconnects.
-     */
 
-    if(csrIsStaSessionConnected(pMac) &&
-       !csrIsP2pOrSapSessionConnected(pMac))
-    {
-      nNumChanCombinedConc = pMac->roam.configParam.nNumStaChanCombinedConc;
-    }
-    else if(csrIsP2pOrSapSessionConnected(pMac))
-    {
-      nNumChanCombinedConc = pMac->roam.configParam.nNumP2PChanCombinedConc;
-    }
     if ( (csrIsStaSessionConnected(pMac) &&
 #ifdef FEATURE_WLAN_LFR
          (csrIsConcurrentInfraConnected(pMac) ||
@@ -357,10 +324,7 @@ eHalStatus csrQueueScanRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
          (pScanCmd->u.scanCmd.u.scanRequest.p2pSearch != 1)) ||
             (csrIsP2pOrSapSessionConnected(pMac)))
     {
-        tCsrScanRequest scanReq;
         tANI_U8 numChn = pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels;
-        tCsrChannelInfo *pChnInfo = &scanReq.ChannelInfo;
-        tANI_U8    channelToScan[WNI_CFG_VALID_CHANNEL_LIST_LEN];
         tANI_BOOLEAN bMemAlloc = eANI_BOOLEAN_FALSE;
 
         if (numChn == 0)
@@ -388,98 +352,11 @@ eHalStatus csrQueueScanRequest(tpAniSirGlobal pMac, tANI_U8 sessionId,
             pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels = numChn;
         }
 
-        //Whenever we get a scan request with multiple channels we break it up into 2 requests
-        //First request  for first channel to scan and second request to scan remaining channels
-        if ( numChn > nNumChanCombinedConc)
-        {
-            vos_mem_set(&scanReq, sizeof(tCsrScanRequest), 0);
-
-            pQueueScanCmd = csrGetCommandBuffer(pMac); //optimize this to use 2 command buffer only
-            if (!pQueueScanCmd)
-            {
-                if (bMemAlloc)
-                {
-                    vos_mem_free(pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList);
-                    pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList = NULL;
-
-                }
-                smsLog( pMac, LOGE, FL(" Failed to get Queue command buffer") );
-                return eHAL_STATUS_FAILURE;
-            }
-            pQueueScanCmd->command = pScanCmd->command;
-            pQueueScanCmd->sessionId = pScanCmd->sessionId;
-            pQueueScanCmd->u.scanCmd.callback = pScanCmd->u.scanCmd.callback;
-            pQueueScanCmd->u.scanCmd.pContext = pScanCmd->u.scanCmd.pContext;
-            pQueueScanCmd->u.scanCmd.reason = pScanCmd->u.scanCmd.reason;
-            pQueueScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++; //let it wrap around
-
-            /* First copy all the parameters to local variable of scan request */
-            csrScanCopyRequest(pMac, &scanReq, &pScanCmd->u.scanCmd.u.scanRequest);
-
-            /* Now modify the elements of local var scan request required to be modified for split scan */
-            if(scanReq.ChannelInfo.ChannelList != NULL)
-            {
-                vos_mem_free(scanReq.ChannelInfo.ChannelList);
-                scanReq.ChannelInfo.ChannelList = NULL;
-            }
-
-            pChnInfo->numOfChannels = pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels - nNumChanCombinedConc;
-
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_WARN,
-                    FL(" &channelToScan %p pScanCmd(%p) pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList(%p)numChn(%d)"),
-                    &channelToScan[0], pScanCmd,
-                    pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList, numChn);
-
-            vos_mem_copy(&channelToScan[0],
-                     &pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList[
-                     nNumChanCombinedConc],
-                     pChnInfo->numOfChannels * sizeof(tANI_U8));
-
-            pChnInfo->ChannelList = &channelToScan[0];
-
-            scanReq.BSSType = eCSR_BSS_TYPE_ANY;
-            //Use concurrency values for min/maxChnTime.
-            //We know csrIsAnySessionConnected(pMac) returns TRUE here
-            csrSetDefaultScanTiming(pMac, scanReq.scanType, &scanReq);
-
-            status = csrScanCopyRequest(pMac, &pQueueScanCmd->u.scanCmd.u.scanRequest, &scanReq);
-
-            if(!HAL_STATUS_SUCCESS(status))
-            {
-                if (bMemAlloc)
-                {
-                    vos_mem_free(pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList);
-                    pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList = NULL;
-
-                }
-                if( scanReq.pIEField != NULL)
-                {
-                    vos_mem_free(scanReq.pIEField);
-                    scanReq.pIEField = NULL;
-                }
-                smsLog( pMac, LOGE, FL(" Failed to get copy csrScanRequest = %d"), status );
-                return eHAL_STATUS_FAILURE;
-            }
-            /* Clean the local scan variable */
-            scanReq.ChannelInfo.ChannelList = NULL;
-            scanReq.ChannelInfo.numOfChannels = 0;
-            csrScanFreeRequest(pMac, &scanReq);
-
-            /* setup the command to scan 2 channels */
-            pSendScanCmd = pScanCmd;
-            pSendScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels = nNumChanCombinedConc;
-            pSendScanCmd->u.scanCmd.u.scanRequest.BSSType = eCSR_BSS_TYPE_ANY;
-            //Use concurrency values for min/maxChnTime.
-            //We know csrIsAnySessionConnected(pMac) returns TRUE here
-            csrSetDefaultScanTiming(pMac, pSendScanCmd->u.scanCmd.u.scanRequest.scanType, &pSendScanCmd->u.scanCmd.u.scanRequest);
-            pSendScanCmd->u.scanCmd.callback = NULL;
-        } else {
-            pSendScanCmd = pScanCmd;
-            pSendScanCmd->u.scanCmd.u.scanRequest.BSSType = eCSR_BSS_TYPE_ANY;
-            //Use concurrency values for min/maxChnTime.
-            //We know csrIsAnySessionConnected(pMac) returns TRUE here
-            csrSetDefaultScanTiming(pMac, pSendScanCmd->u.scanCmd.u.scanRequest.scanType, &pSendScanCmd->u.scanCmd.u.scanRequest);
-        }
+        pSendScanCmd = pScanCmd;
+        pSendScanCmd->u.scanCmd.u.scanRequest.BSSType = eCSR_BSS_TYPE_ANY;
+        //Use concurrency values for min/maxChnTime.
+        //We know csrIsAnySessionConnected(pMac) returns TRUE here
+        csrSetDefaultScanTiming(pMac, pSendScanCmd->u.scanCmd.u.scanRequest.scanType, &pSendScanCmd->u.scanCmd.u.scanRequest);
 
         fNoCmdPending = csrLLIsListEmpty( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK );
 
@@ -5219,9 +5096,6 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
     eHalStatus status;
     tANI_U32 cbScanResult = GET_FIELD_OFFSET( tSirSmeScanRsp, bssDescription )
                             + sizeof(tSirBssDescription);    //We need at least one CB
-    tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
-                              &pMac->roam.neighborRoamInfo[pScanRsp->sessionId];
-
     /*
      * Don't consider the scan rsp to be valid if the status code is Scan
      * Failure.  Scan Failure is returned when the scan could not find anything.
@@ -5379,46 +5253,6 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
         pMac->scan.defer_update_channel_list = false;
     }
 
-#ifdef WLAN_AP_STA_CONCURRENCY
-    if (pMac->fScanOffload)
-        return fRet;
-
-    if (!csrLLIsListEmpty( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK ))
-    {
-        /* Pending scan commands in the list because the previous scan command
-         * was split into a scan command on one channel + a scan command for all
-         * remaining channels.
-         *
-         * Start timer to trigger processing of the next scan command.
-         * NOTE for LFR:
-         * Do not split scans if no concurrent infra connections are
-         * active and if the scan is a BG scan triggered by LFR (OR)
-         * any scan if LFR is in the middle of a BG scan. Splitting
-         * the scan is delaying the time it takes for LFR to find
-         * candidates and resulting in disconnects.
-         */
-        if ((csrIsStaSessionConnected(pMac) &&
-#ifdef FEATURE_WLAN_LFR
-            (csrIsConcurrentInfraConnected(pMac) ||
-            ((pCommand->u.scanCmd.reason != eCsrScanBgScan) &&
-            (pNeighborRoamInfo->neighborRoamState !=
-                       eCSR_NEIGHBOR_ROAM_STATE_CFG_CHAN_LIST_SCAN))) &&
-#endif
-            (pCommand->u.scanCmd.u.scanRequest.p2pSearch != 1)) ||
-            (csrIsP2pOrSapSessionConnected(pMac)))
-        {
-            /* if active connected sessions present then continue to split scan
-             * with specified interval between consecutive scans */
-            csrSetDefaultScanTiming(pMac, pCommand->u.scanCmd.u.scanRequest.scanType, &(pCommand->u.scanCmd.u.scanRequest));
-            vos_timer_start(&pMac->scan.hTimerStaApConcTimer,
-                pCommand->u.scanCmd.u.scanRequest.restTime);
-        } else {
-            /* if no connected sessions present then initiate next scan command immediately */
-            /* minimum timer granularity is 10ms */
-            vos_timer_start(&pMac->scan.hTimerStaApConcTimer, 10);
-        }
-    }
-#endif
     return (fRet);
 }
 
@@ -6898,145 +6732,6 @@ void csrScanGetResultTimerHandler(void *pv)
 
     vos_timer_start(&pMac->scan.hTimerGetResult, CSR_SCAN_GET_RESULT_INTERVAL/VOS_TIMER_TO_MS_UNIT);
 }
-
-#ifdef WLAN_AP_STA_CONCURRENCY
-static void csrStaApConcTimerHandler(void *pv)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT( pv );
-    tListElem *pEntry;
-    tSmeCmd *pScanCmd;
-    tANI_U32 sessionId = CSR_SESSION_ID_INVALID;
-
-    csrLLLock(&pMac->scan.scanCmdPendingList);
-
-    if ( NULL != ( pEntry = csrLLPeekHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_NOLOCK) ) )
-    {
-        tCsrScanRequest scanReq;
-        tSmeCmd *pSendScanCmd = NULL;
-        tANI_U8 numChn = 0;
-        tANI_U8 nNumChanCombinedConc = 0;
-        tANI_U8 i, j;
-        tCsrChannelInfo *pChnInfo = &scanReq.ChannelInfo;
-        tANI_U8    channelToScan[WNI_CFG_VALID_CHANNEL_LIST_LEN];
-        eHalStatus status;
-
-        pScanCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
-        numChn = pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels;
-        sessionId = pScanCmd->sessionId;
-
-        /* if any session is connected and the number of channels to scan is
-         * greater than 1 then split the scan into multiple scan operations
-         * on each individual channel else continue to perform scan on all
-         * specified channels */
-
-        /* split scan if number of channels to scan is greater than 1 and
-         * any one of the following:
-         * - STA session is connected and the scan is not a P2P search
-         * - any P2P session is connected
-         * Do not split scans if no concurrent infra connections are
-         * active and if the scan is a BG scan triggered by LFR (OR)
-         * any scan if LFR is in the middle of a BG scan. Splitting
-         * the scan is delaying the time it takes for LFR to find
-         * candidates and resulting in disconnects.
-         */
-
-        if((csrIsStaSessionConnected(pMac) &&
-           !csrIsP2pOrSapSessionConnected(pMac)))
-        {
-           nNumChanCombinedConc = pMac->roam.configParam.nNumStaChanCombinedConc;
-        }
-        else if(csrIsP2pOrSapSessionConnected(pMac))
-        {
-           nNumChanCombinedConc = pMac->roam.configParam.nNumP2PChanCombinedConc;
-        }
-
-        if ( (numChn > nNumChanCombinedConc) &&
-                ((csrIsStaSessionConnected(pMac) &&
-#ifdef FEATURE_WLAN_LFR
-                  (csrIsConcurrentInfraConnected(pMac) ||
-                   ((pScanCmd->u.scanCmd.reason != eCsrScanBgScan) &&
-                    (pMac->roam.neighborRoamInfo[sessionId].neighborRoamState !=
-                     eCSR_NEIGHBOR_ROAM_STATE_CFG_CHAN_LIST_SCAN))) &&
-#endif
-                  (pScanCmd->u.scanCmd.u.scanRequest.p2pSearch != 1)) ||
-              (csrIsP2pOrSapSessionConnected(pMac))))
-        {
-             vos_mem_set(&scanReq, sizeof(tCsrScanRequest), 0);
-
-             pSendScanCmd = csrGetCommandBuffer(pMac); //optimize this to use 2 command buffer only
-             if (!pSendScanCmd)
-             {
-                 smsLog( pMac, LOGE, FL(" Failed to get Queue command buffer") );
-                 csrLLUnlock(&pMac->scan.scanCmdPendingList);
-                 return;
-             }
-             pSendScanCmd->command = pScanCmd->command;
-             pSendScanCmd->sessionId = pScanCmd->sessionId;
-             pSendScanCmd->u.scanCmd.callback = NULL;
-             pSendScanCmd->u.scanCmd.pContext = pScanCmd->u.scanCmd.pContext;
-             pSendScanCmd->u.scanCmd.reason = pScanCmd->u.scanCmd.reason;
-             pSendScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++; //let it wrap around
-
-             /* First copy all the parameters to local variable of scan request */
-             csrScanCopyRequest(pMac, &scanReq, &pScanCmd->u.scanCmd.u.scanRequest);
-
-             /* Now modify the elements of local var scan request required to be modified for split scan */
-             if(scanReq.ChannelInfo.ChannelList != NULL)
-             {
-                 vos_mem_free(scanReq.ChannelInfo.ChannelList);
-                 scanReq.ChannelInfo.ChannelList = NULL;
-             }
-
-             pChnInfo->numOfChannels = nNumChanCombinedConc;
-             vos_mem_copy(&channelToScan[0],
-                          &pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList[0],
-                          pChnInfo->numOfChannels * sizeof(tANI_U8));//just send one channel
-             pChnInfo->ChannelList = &channelToScan[0];
-
-             for (i = 0, j = nNumChanCombinedConc; i < (numChn-nNumChanCombinedConc); i++, j++)
-             {
-                 pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList[i] =
-                 pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList[j]; //Move all the channels one step
-             }
-
-             pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels = numChn - nNumChanCombinedConc; //reduce outstanding # of channels to be scanned
-
-             scanReq.BSSType = eCSR_BSS_TYPE_ANY;
-             //Use concurrency values for min/maxChnTime.
-             csrSetDefaultScanTiming(pMac, scanReq.scanType, &scanReq);
-
-             status = csrScanCopyRequest(pMac, &pSendScanCmd->u.scanCmd.u.scanRequest, &scanReq);
-             if(!HAL_STATUS_SUCCESS(status))
-             {
-                 smsLog( pMac, LOGE, FL(" Failed to get copy csrScanRequest = %d"), status );
-                 csrLLUnlock(&pMac->scan.scanCmdPendingList);
-                 return;
-             }
-             /* Clean the local scan variable */
-             scanReq.ChannelInfo.ChannelList = NULL;
-             scanReq.ChannelInfo.numOfChannels = 0;
-             csrScanFreeRequest(pMac, &scanReq);
-        }
-        else
-        {
-             /* no active connected session present or numChn == 1
-              * scan all remaining channels */
-             pSendScanCmd = pScanCmd;
-             //remove this command from pending list
-             if (csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_NOLOCK) == NULL)
-             { //In case between PeekHead and here, the entry got removed by another thread.
-                 smsLog( pMac, LOGE, FL(" Failed to remove entry from scanCmdPendingList"));
-             }
-
-        }
-        csrQueueSmeCommand(pMac, pSendScanCmd, eANI_BOOLEAN_FALSE);
-
-    }
-
-    csrLLUnlock(&pMac->scan.scanCmdPendingList);
-
-}
-#endif
 
 static void csrPurgeScanResultByAge(void *pv)
 {

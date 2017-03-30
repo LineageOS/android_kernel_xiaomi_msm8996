@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -612,10 +612,6 @@ typedef struct tagCsrConfig
     /* In units of milliseconds */
     tANI_U32  idle_time_conc;
 
-    tANI_U8   nNumStaChanCombinedConc;   //number of channels combined for
-                                         //Sta in each split scan operation
-    tANI_U8   nNumP2PChanCombinedConc;   //number of channels combined for
-                                         //P2P in each split scan operation
 #endif
 
     tANI_BOOLEAN IsIdleScanEnabled;
@@ -770,9 +766,6 @@ typedef struct tagCsrScanStruct
     tANI_BOOLEAN fScanEnable;
     tANI_BOOLEAN fFullScanIssued;
     vos_timer_t hTimerGetResult;
-#ifdef WLAN_AP_STA_CONCURRENCY
-    vos_timer_t hTimerStaApConcTimer;
-#endif
     vos_timer_t hTimerIdleScan;
     //changes on every scan, it is used as a flag for whether 11d info is found on every scan
     tANI_U8 channelOf11dInfo;
