@@ -7104,6 +7104,7 @@ struct sir_ocb_config_sched {
  * @channel_count: number of channels
  * @schedule_size: size of the channel schedule
  * @flags: reserved
+ * @ta_max_duration: ta max duration after last ta received
  * @channels: array of OCB channels
  * @schedule: array of OCB schedule elements
  * @dcc_ndl_chan_list_len: size of the ndl_chan array
@@ -7118,6 +7119,7 @@ struct sir_ocb_config {
 	uint32_t channel_count;
 	uint32_t schedule_size;
 	uint32_t flags;
+	uint32_t ta_max_duration;
 	struct sir_ocb_config_channel *channels;
 	struct sir_ocb_config_sched *schedule;
 	uint32_t dcc_ndl_chan_list_len;
