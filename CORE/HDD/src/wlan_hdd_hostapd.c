@@ -7804,4 +7804,9 @@ void hdd_sap_destroy_events(hdd_adapter_t *adapter)
 		&sap_ctx->sap_session_opened_evt)))
 		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
 		FL("failed to destroy session open event"));
+        if (!VOS_IS_STATUS_SUCCESS(vos_event_destroy(
+               &sap_ctx->sap_session_closed_evt)))
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+               FL("failed to destroy session close event"));
+
 }

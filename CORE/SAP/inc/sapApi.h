@@ -2510,6 +2510,7 @@ WLANSAP_get_sub20_channelwidth(void *vos_ctx_ptr, uint32_t *chan_width)
 	return VOS_STATUS_SUCCESS;
 }
 #endif
+eHalStatus sapRoamSessionCloseCallback(void *pContext);
 #ifdef __cplusplus
  }
 #endif
