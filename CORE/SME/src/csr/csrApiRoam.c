@@ -1280,8 +1280,6 @@ static void initConfigParam(tpAniSirGlobal pMac)
     pMac->roam.configParam.nRestTimeConc = CSR_REST_TIME_CONC;
     pMac->roam.configParam.min_rest_time_conc =  CSR_MIN_REST_TIME_CONC;
     pMac->roam.configParam.idle_time_conc = CSR_IDLE_TIME_CONC;
-    pMac->roam.configParam.nNumStaChanCombinedConc = CSR_NUM_STA_CHAN_COMBINED_CONC;
-    pMac->roam.configParam.nNumP2PChanCombinedConc = CSR_NUM_P2P_CHAN_COMBINED_CONC;
 #endif
     pMac->roam.configParam.IsIdleScanEnabled = TRUE; //enable the idle scan by default
     pMac->roam.configParam.nTxPowerCap = CSR_MAX_TX_POWER;
@@ -1895,14 +1893,6 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.nRestTimeConc = pParam->nRestTimeConc;
         pMac->roam.configParam.min_rest_time_conc = pParam->min_rest_time_conc;
         pMac->roam.configParam.idle_time_conc = pParam->idle_time_conc;
-        if (pParam->nNumStaChanCombinedConc)
-        {
-            pMac->roam.configParam.nNumStaChanCombinedConc = pParam->nNumStaChanCombinedConc;
-        }
-        if (pParam->nNumP2PChanCombinedConc)
-        {
-            pMac->roam.configParam.nNumP2PChanCombinedConc = pParam->nNumP2PChanCombinedConc;
-        }
 #endif
         //if upper layer wants to disable idle scan altogether set it to 0
         if (pParam->impsSleepTime)
@@ -2175,9 +2165,6 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->nRestTimeConc = pMac->roam.configParam.nRestTimeConc;
         pParam->min_rest_time_conc = pMac->roam.configParam.min_rest_time_conc;
         pParam->idle_time_conc = pMac->roam.configParam.idle_time_conc;
-
-        pParam->nNumStaChanCombinedConc = pMac->roam.configParam.nNumStaChanCombinedConc;
-        pParam->nNumP2PChanCombinedConc = pMac->roam.configParam.nNumP2PChanCombinedConc;
 #endif
         //Change the unit from microsecond to second
         pParam->impsSleepTime =

@@ -3604,16 +3604,6 @@ eHalStatus sme_AddPeriodicTxPtrn(tHalHandle hHal, tSirAddPeriodicTxPtrn
   ---------------------------------------------------------------------------*/
 eHalStatus sme_DelPeriodicTxPtrn(tHalHandle hHal, tSirDelPeriodicTxPtrn
                                  *delPeriodicTxPtrnParams);
-/*--------------------------------------------------------------------------
-  \brief sme_enable_disable_split_scan() - a wrapper function to set the split
-                                          scan parameter.
-  This is a synchronous call
-  \param hHal - The handle returned by macOpen
-  \return None.
-  \sa
-  --------------------------------------------------------------------------*/
-void sme_enable_disable_split_scan (tHalHandle hHal, tANI_U8 nNumStaChan,
-                                    tANI_U8 nNumP2PChan);
 
 /**
  * sme_enable_rmc() - enable RMC
