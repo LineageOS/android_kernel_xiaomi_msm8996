@@ -2272,6 +2272,8 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       goto err_vosclose;
    }
 
+   hdd_set_dfs_regdomain(pHddCtx,true);
+
    vosStatus = hdd_set_sme_chan_list(pHddCtx);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
       hddLog(VOS_TRACE_LEVEL_FATAL,

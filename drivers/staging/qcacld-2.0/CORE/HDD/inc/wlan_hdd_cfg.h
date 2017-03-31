@@ -4953,4 +4953,14 @@ void print_hdd_cfg(hdd_context_t *pHddCtx);
 void hdd_set_btc_bt_wlan_interval(hdd_context_t *pHddCtx);
 
 VOS_STATUS hdd_update_nss(hdd_context_t *hdd_ctx, uint8_t nss);
+
+/**
+ * hdd_set_dfs_regdomain() - During SSR, restore DFS regulatory domain
+ * with valid value
+ * @phddctx: context for hdd
+ * @restore: valure to verify the state
+ *
+ * Return: None
+ */
+void hdd_set_dfs_regdomain(hdd_context_t *phddctx, bool restore);
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2274,6 +2274,8 @@ int __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
         vos_nv_set_dfs_region(request->dfs_region);
 
         regdmn_set_dfs_region(&pHddCtx->reg);
+
+        hdd_set_dfs_regdomain(pHddCtx,false);
 
     default:
         break;
