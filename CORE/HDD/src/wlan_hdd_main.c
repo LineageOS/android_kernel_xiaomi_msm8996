@@ -16626,6 +16626,12 @@ static void hdd_driver_exit(void)
 
       pHddCtx->driver_being_stopped = false;
 
+      rtnl_lock();
+      pHddCtx->isUnloadInProgress = TRUE;
+      vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+      vos_set_unload_in_progress(TRUE);
+      rtnl_unlock();
+
       while(pHddCtx->isLogpInProgress ||
             vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
@@ -16638,12 +16644,6 @@ static void hdd_driver_exit(void)
             VOS_BUG(0);
          }
       }
-
-      rtnl_lock();
-      pHddCtx->isUnloadInProgress = TRUE;
-      vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-      vos_set_unload_in_progress(TRUE);
-      rtnl_unlock();
    }
 
    vos_wait_for_work_thread_completion(__func__);
