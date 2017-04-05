@@ -12177,7 +12177,7 @@ static void hdd_connect_bss(struct net_device *dev, const u8 *bssid,
 			size_t resp_ie_len, int status, gfp_t gfp,
 			bool connect_timeout, tSirResultCodes timeout_reason)
 {
-	cfg80211_connect_bss(dev, bssid, bss, req_ie, req_ie_len,
+	__hdd_connect_bss(dev, bssid, bss, req_ie, req_ie_len,
 		resp_ie, resp_ie_len, status, gfp, timeout_reason);
 }
 #endif
