@@ -43,6 +43,8 @@
 #include <wlan_hdd_tx_rx.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #include <wlan_hdd_dp_utils.h>
+#include <wlan_hdd_tsf.h>
+
 #include <wlan_qct_tl.h>
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
@@ -1433,6 +1435,8 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
          else
             wake_lock = true;
       }
+
+      hdd_rx_timestamp(skb, ktime_to_us(skb->tstamp));
 
       /*
        * If this is not a last packet on the chain

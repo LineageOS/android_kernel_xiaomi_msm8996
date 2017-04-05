@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -694,7 +694,7 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
                 }
             }
             ol_tx_completion_handler(
-                pdev->txrx_pdev, num_msdus, status, msg_word + 1);
+                pdev->txrx_pdev, num_msdus, status, msg_word);
             HTT_TX_SCHED(pdev);
             break;
         }
