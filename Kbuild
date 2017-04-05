@@ -48,6 +48,12 @@ ifeq ($(KERNEL_BUILD), 0)
 	CONFIG_MOBILE_ROUTER := y
 	endif
 
+	ifeq ($(CONFIG_ARCH_MSM8917), y)
+		ifeq ($(CONFIG_ROME_IF), sdio)
+			CONFIG_WLAN_SYNC_TSF_PLUS := y
+		endif
+	endif
+
 	# As per target team, build is done as follows:
 	# Defconfig : build with default flags
 	# Slub      : defconfig  + CONFIG_SLUB_DEBUG=y +
@@ -447,6 +453,10 @@ endif
 
 ifeq ($(CONFIG_QCOM_TDLS),y)
 HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_tdls.o
+endif
+
+ifeq ($(CONFIG_WLAN_SYNC_TSF_PLUS), y)
+CONFIG_WLAN_SYNC_TSF := y
 endif
 
 ifeq ($(CONFIG_WLAN_SYNC_TSF),y)
@@ -1551,6 +1561,10 @@ endif
 # Enable featue sync tsf between multi devices
 ifeq ($(CONFIG_WLAN_SYNC_TSF),y)
 CDEFINES += -DWLAN_FEATURE_TSF
+endif
+
+ifeq ($(CONFIG_WLAN_SYNC_TSF_PLUS), y)
+CDEFINES += -DWLAN_FEATURE_TSF_PLUS
 endif
 
 # Enable target dump for non-qualcomm platform
