@@ -2813,12 +2813,6 @@ void limSwitchPrimaryChannel(tpAniSirGlobal pMac, tANI_U8 newChannel,tpPESession
     pMac->lim.gpchangeChannelCallback = limSwitchChannelCback;
     pMac->lim.gpchangeChannelData = NULL;
 
-    pMac->sub20_channelwidth =
-         psessionEntry->lim_sub20_channel_switch_bandwidth;
-
-    pMac->sta_sub20_current_channelwidth =
-         psessionEntry->lim_sub20_channel_switch_bandwidth;
-
     psessionEntry->sub20_channelwidth =
          psessionEntry->lim_sub20_channel_switch_bandwidth;
 
@@ -2881,12 +2875,6 @@ void limSwitchPrimarySecondaryChannel(tpAniSirGlobal pMac, tpPESession psessionE
 
     pMac->lim.gpchangeChannelCallback = limSwitchChannelCback;
     pMac->lim.gpchangeChannelData = NULL;
-
-    pMac->sub20_channelwidth =
-         psessionEntry->lim_sub20_channel_switch_bandwidth;
-
-    pMac->sta_sub20_current_channelwidth =
-         psessionEntry->lim_sub20_channel_switch_bandwidth;
 
     psessionEntry->sub20_channelwidth =
          psessionEntry->lim_sub20_channel_switch_bandwidth;
