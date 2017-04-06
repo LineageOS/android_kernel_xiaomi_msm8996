@@ -1595,7 +1595,7 @@ enum qca_wlan_vendor_acs_hw_mode {
 #define CFG_AGG_RETRY_MAX                      (31)
 #define CFG_MGMT_RETRY_MAX                     (31)
 #define CFG_CTRL_RETRY_MAX                     (31)
-#define CFG_PROPAGATION_DELAY_MAX              (16383)
+#define CFG_PROPAGATION_DELAY_MAX              (63)
 #define CFG_AGG_RETRY_MIN                      (5)
 
 /**
