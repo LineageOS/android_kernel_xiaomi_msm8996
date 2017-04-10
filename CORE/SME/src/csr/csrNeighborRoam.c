@@ -2042,7 +2042,7 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
             VOS_TRACE (VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                 FL("Scan result: BSSID "MAC_ADDRESS_STR" (Rssi %ld, Ch:%d)"),
                 MAC_ADDR_ARRAY(pScanResult->BssDescriptor.bssId),
-                abs(pScanResult->BssDescriptor.rssi),
+                (long int)abs(pScanResult->BssDescriptor.rssi),
                 pScanResult->BssDescriptor.channelId);
 #endif
             if ((VOS_TRUE == vos_mem_compare(pScanResult->BssDescriptor.bssId,
