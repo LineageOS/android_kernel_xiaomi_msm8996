@@ -9564,7 +9564,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_AGG_RETRY] = {.type = NLA_U8},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_MGMT_RETRY] = {.type = NLA_U8},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_CTRL_RETRY] = {.type = NLA_U8},
-	[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY] = {.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY] = {.type = NLA_U8},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_ANT_DIV_ENA] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_ANT_DIV_CHAIN] = {.type = NLA_U32 },
@@ -9714,8 +9714,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	int ret_val = 0;
 	u32 modulated_dtim;
 	uint16_t stats_avg_factor, tx_rate;
-	uint8_t set_value, retry, qpower;
-	uint32_t delay;
+	uint8_t set_value, retry, delay, qpower;
 	u32 guard_time;
 	u32 ftm_capab;
 	eHalStatus status;
@@ -9938,7 +9937,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	}
 
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY]) {
-		delay = nla_get_u32(
+		delay = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY]);
 		delay = delay > CFG_PROPAGATION_DELAY_MAX ?
 				CFG_PROPAGATION_DELAY_MAX : delay;
@@ -17964,6 +17963,15 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
        case NL80211_IFTYPE_STATION:
        case NL80211_IFTYPE_P2P_CLIENT:
        case NL80211_IFTYPE_ADHOC:
+
+          if (WLAN_HDD_VDEV_STA_MAX ==
+              hdd_get_current_vdev_sta_count(pHddCtx)) {
+              hddLog(VOS_TRACE_LEVEL_DEBUG,
+                  FL("Unable to change as sta interface: max sta cnt is %d"),
+                  WLAN_HDD_VDEV_STA_MAX);
+              return -EINVAL;
+          }
+
           status = wlan_hdd_change_client_iface_to_new_mode(ndev, type);
           if (status != 0)
               return status;
