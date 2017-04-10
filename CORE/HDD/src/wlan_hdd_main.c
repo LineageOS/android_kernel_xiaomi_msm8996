@@ -11046,6 +11046,30 @@ VOS_STATUS hdd_check_for_existing_macaddr( hdd_context_t *pHddCtx,
     return VOS_STATUS_SUCCESS;
 }
 
+uint32_t hdd_get_current_vdev_sta_count(hdd_context_t *hdd_ctx)
+{
+	hdd_adapter_t *adapter;
+	hdd_adapter_list_node_t *hdd_adapter_node, *next;
+	VOS_STATUS status;
+	uint32_t vdev_sta_cnt = 0;
+
+	status = hdd_get_front_adapter(hdd_ctx, &hdd_adapter_node);
+
+	while (NULL != hdd_adapter_node && VOS_STATUS_SUCCESS == status) {
+		adapter = hdd_adapter_node->pAdapter;
+		if ((NULL != adapter) &&
+		    ((WLAN_HDD_INFRA_STATION == adapter->device_mode) ||
+		     (WLAN_HDD_P2P_CLIENT == adapter->device_mode) ||
+		     (WLAN_HDD_IBSS == adapter->device_mode)))
+			vdev_sta_cnt++;
+
+		status = hdd_get_next_adapter(hdd_ctx, hdd_adapter_node, &next);
+		hdd_adapter_node = next;
+	}
+
+	return vdev_sta_cnt;
+}
+
 hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                                  const char *iface_name, tSirMacAddr macAddr,
                                  unsigned char name_assign_type,
@@ -11068,6 +11092,16 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                  "%s: Unable to add virtual intf: currentVdevCnt=%d,hostConfiguredVdevCnt=%d",
                  __func__,pHddCtx->current_intf_count, pHddCtx->max_intf_count);
+        return NULL;
+   }
+
+   if (((WLAN_HDD_INFRA_STATION == session_type) ||
+        (WLAN_HDD_P2P_CLIENT == session_type) ||
+        (WLAN_HDD_IBSS == session_type)) &&
+       (WLAN_HDD_VDEV_STA_MAX == hdd_get_current_vdev_sta_count(pHddCtx))) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Unable to add sta interface: max sta cnt is %d",
+                  __func__, WLAN_HDD_VDEV_STA_MAX);
         return NULL;
    }
 
