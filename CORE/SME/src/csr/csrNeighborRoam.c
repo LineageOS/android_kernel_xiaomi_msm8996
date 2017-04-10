@@ -2314,8 +2314,8 @@ csrNeighborRoamProcessScanResults(tpAniSirGlobal pMac,
                            "%s: [INFOLOG] potential candidate to roam "
                            "immediately (diff=%ld, expected=%d)",
                            __func__,
-                           abs(abs(CurrAPRssi) -
-                                abs(pScanResult->BssDescriptor.rssi)),
+                           (long int)abs(abs(CurrAPRssi) -
+                                         abs(pScanResult->BssDescriptor.rssi)),
                            immediateRoamRssiDiff);
                 roamNow = eANI_BOOLEAN_TRUE;
 #endif
