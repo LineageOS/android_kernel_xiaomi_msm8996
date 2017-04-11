@@ -190,8 +190,18 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                        pMac->sys.gSysFrameCount[type][subType]);
             }
 
-            //Post the message to PE Queue
-            ret = (tSirRetStatus) limPostMsgApi(pMac, pMsg);
+            /*
+             * Post the message to PE Queue. Prioritize the
+             * Auth and assoc frames.
+             */
+            if ((subType == SIR_MAC_MGMT_AUTH) ||
+               (subType == SIR_MAC_MGMT_ASSOC_RSP) ||
+               (subType == SIR_MAC_MGMT_REASSOC_RSP) ||
+               (subType == SIR_MAC_MGMT_ASSOC_REQ) ||
+               (subType == SIR_MAC_MGMT_REASSOC_REQ))
+                ret = (tSirRetStatus) lim_post_msg_high_pri(pMac, pMsg);
+            else
+                ret = (tSirRetStatus) limPostMsgApi(pMac, pMsg);
             if (ret != eSIR_SUCCESS)
             {
                 /* Print only one debug failure out of 512 failure messages */
