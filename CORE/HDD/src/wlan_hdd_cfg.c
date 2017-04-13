@@ -2414,6 +2414,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_RATE_FOR_TX_MGMT_MIN,
                  CFG_RATE_FOR_TX_MGMT_MAX),
 
+   REG_VARIABLE(CFG_RATE_FOR_TX_MGMT_2G, WLAN_PARAM_HexInteger,
+                hdd_config_t, rate_for_tx_mgmt_2g,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_RATE_FOR_TX_MGMT_2G_DEFAULT,
+                CFG_RATE_FOR_TX_MGMT_2G_MIN,
+                CFG_RATE_FOR_TX_MGMT_2G_MAX),
+
+   REG_VARIABLE(CFG_RATE_FOR_TX_MGMT_5G, WLAN_PARAM_HexInteger,
+                hdd_config_t, rate_for_tx_mgmt_5g,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_RATE_FOR_TX_MGMT_5G_DEFAULT,
+                CFG_RATE_FOR_TX_MGMT_5G_MIN,
+                CFG_RATE_FOR_TX_MGMT_5G_MAX),
+
    REG_VARIABLE( CFG_ENABLE_FIRST_SCAN_2G_ONLY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFirstScan2GOnly,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -7565,6 +7579,21 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
        fStatus = FALSE;
        hddLog(LOGE, "Could not pass on WNI_CFG_RATE_FOR_TX_MGMT to CCM");
    }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RATE_FOR_TX_MGMT_2G,
+                    pConfig->rate_for_tx_mgmt_2g, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_RATE_FOR_TX_MGMT_2G to CCM");
+   }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RATE_FOR_TX_MGMT_5G,
+                    pConfig->rate_for_tx_mgmt_5g, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_RATE_FOR_TX_MGMT_5G to CCM");
+   }
+
    return fStatus;
 }
 

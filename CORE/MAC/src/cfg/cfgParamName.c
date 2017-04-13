@@ -339,4 +339,6 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"MAX_HT_MCS_TX_DATA",
     (unsigned char *)"DISABLE_ABG_RATE_TX_DATA",
     (unsigned char *)"RATE_FOR_TX_MGMT",
+    (unsigned char *)"RATE_FOR_TX_MGMT_2G",
+    (unsigned char *)"RATE_FOR_TX_MGMT_5G",
 };
