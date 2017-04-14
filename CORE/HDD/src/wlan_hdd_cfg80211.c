@@ -9176,9 +9176,11 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	}
 
 	if (test_bit(SOFTAP_BSS_STARTED, &adapter->event_flags)) {
-		if (WLANSAP_get_sub20_channel_width(
-			    WLAN_HDD_GET_SAP_CTX_PTR(adapter))
-			== SUB20_MODE_NONE) {
+		uint32_t sap_sub20_channelwidth;
+		WLANSAP_get_sub20_channelwidth(WLAN_HDD_GET_SAP_CTX_PTR(
+						adapter),
+					       &sap_sub20_channelwidth);
+		if (sap_sub20_channelwidth == SUB20_MODE_NONE) {
 			hddLog(LOGE, FL("Bss started, relaunch ACS"));
 			status = wlan_hdd_cfg80211_relaunch_acs(adapter);
 		} else {
@@ -9582,6 +9584,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 							.type = NLA_UNSPEC},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_WINLIMIT] = {
 							.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_SUB20_CHAN_WIDTH] = {.type = NLA_U32},
 };
 
 /**
@@ -9687,6 +9690,82 @@ static int hdd_set_qpower_config(hdd_context_t *hddctx, hdd_adapter_t *adapter,
 		return -EINVAL;
 	}
 	return 0;
+}
+
+/**
+ * hdd_sta_set_sub20_channelwidth() -
+ * This api function does a sub20 channel width change
+ * for STA while STA in disconnect state
+ * @adapter: HDD adapter
+ * @chan_width:  New channel width change to
+ *
+ * Return: The VOS_STATUS code associated with performing
+ * the operation
+ */
+static VOS_STATUS
+hdd_sta_set_sub20_channelwidth(hdd_adapter_t *adapter, uint32_t chan_width)
+{
+	tHalHandle hal_ptr;
+
+	hddLog(LOGE, FL("chanwidth: %d"), chan_width);
+
+	if (WLAN_HDD_ADAPTER_MAGIC != adapter->magic) {
+		hddLog(LOGE, FL("hdd adapter cookie is invalid"));
+		return -EINVAL;
+	}
+
+	if (WLAN_HDD_INFRA_STATION != adapter->device_mode) {
+		hddLog(LOGE, FL("Only Sta Mode supported!"));
+		return -ENOTSUPP;
+	}
+
+	hal_ptr = WLAN_HDD_GET_HAL_CTX(adapter);
+	if (hal_ptr == NULL) {
+		hddLog(LOGE, FL("hdd hal is null"));
+		return -EINVAL;
+	}
+
+	sme_set_sta_chanlist_with_sub20(hal_ptr, chan_width);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * hdd_get_sub20_channelwidth() -
+ * This api function get sub20 channel width
+ * @adapter: HDD adapter
+ * @sub20_channelwidth:  restore sub20 channel width
+ *
+ * Return: The VOS_STATUS code associated with performing
+ * the operation
+ */
+static VOS_STATUS
+hdd_get_sub20_channelwidth(hdd_adapter_t *adapter, uint32_t *sub20_channelwidth)
+{
+	tHalHandle hal_ptr = WLAN_HDD_GET_HAL_CTX(adapter);
+	tpAniSirGlobal mac_ptr = PMAC_STRUCT(hal_ptr);
+	v_CONTEXT_t vos_ctx_ptr = WLAN_HDD_GET_SAP_CTX_PTR(adapter);
+	uint32_t sap_sub20_channelwidth;
+
+	if (WLAN_HDD_ADAPTER_MAGIC != adapter->magic) {
+		hddLog(LOGE, FL("hdd adapter cookie is invalid"));
+		return -EINVAL;
+	}
+
+	if (WLAN_HDD_INFRA_STATION == adapter->device_mode) {
+		*sub20_channelwidth = mac_ptr->sta_sub20_current_channelwidth ?
+			mac_ptr->sta_sub20_current_channelwidth :
+			mac_ptr->sub20_channelwidth;
+	} else if (WLAN_HDD_SOFTAP == adapter->device_mode) {
+		WLANSAP_get_sub20_channelwidth(vos_ctx_ptr,
+					       &sap_sub20_channelwidth);
+		*sub20_channelwidth = sap_sub20_channelwidth;
+	} else {
+		hddLog(LOGE, FL("error dev mode!"));
+		return -EINVAL;
+	}
+
+	return VOS_STATUS_SUCCESS;
 }
 
 /**
@@ -10156,6 +10235,38 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		}
 	}
 
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_SUB20_CHAN_WIDTH]) {
+		bool manual_set_sub20;
+		uint32_t sub20_chan_width;
+
+		sub20_chan_width = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_SUB20_CHAN_WIDTH]);
+		hddLog(LOGE, FL("SUB20 %d"), sub20_chan_width);
+
+		switch (sub20_chan_width) {
+		case NL80211_CHAN_WIDTH_5:
+			sub20_chan_width = SUB20_MODE_5MHZ;
+			break;
+		case NL80211_CHAN_WIDTH_10:
+			sub20_chan_width = SUB20_MODE_10MHZ;
+			break;
+		case NL80211_CHAN_WIDTH_20_NOHT:
+			sub20_chan_width = SUB20_MODE_NONE;
+			break;
+		default:
+			hddLog(LOGE, FL("invalid param %d"), sub20_chan_width);
+			return -EINVAL;
+		}
+		manual_set_sub20 =
+			hdd_sub20_channelwidth_can_set(pAdapter,
+						       sub20_chan_width);
+		if (!manual_set_sub20) {
+			hddLog(LOGE, FL("STA can't set sub20 chanwidth"));
+			return -EINVAL;
+		}
+		hdd_sta_set_sub20_channelwidth(pAdapter, sub20_chan_width);
+	}
+
 	return ret_val;
 }
 
@@ -10181,6 +10292,124 @@ static int wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 
 	vos_ssr_protect(__func__);
 	ret = __wlan_hdd_cfg80211_wifi_configuration_set(wiphy, wdev,
+							 data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
+/**
+ * __wlan_hdd_cfg80211_wifi_configuration_get() -
+ * Get the wifi configuration info
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int
+__wlan_hdd_cfg80211_wifi_configuration_get(struct wiphy *wiphy,
+					   struct wireless_dev *wdev,
+					   const void *data, int data_len)
+{
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct nlattr *tb_vendor[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX + 1];
+	uint32_t sub20_chan_width = 0;
+	int status;
+	struct sk_buff *reply_skb;
+	uint32_t skb_len = 0, count = 0;
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+
+	ENTER();
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
+	status = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != status)
+		return -EINVAL;
+
+	if (nla_parse(tb_vendor, QCA_WLAN_VENDOR_ATTR_CONFIG_MAX, data,
+		      data_len, wlan_hdd_wifi_config_policy)) {
+		hddLog(LOGE, FL("WIFI_CFG_GET NL CMD parsing failed"));
+		return -EINVAL;
+	}
+
+	if (tb_vendor[QCA_WLAN_VENDOR_ATTR_CONFIG_SUB20_CHAN_WIDTH]) {
+		hdd_get_sub20_channelwidth(adapter, &sub20_chan_width);
+
+		switch (sub20_chan_width) {
+		case SUB20_MODE_5MHZ:
+			sub20_chan_width = NL80211_CHAN_WIDTH_5;
+			break;
+		case SUB20_MODE_10MHZ:
+			sub20_chan_width = NL80211_CHAN_WIDTH_10;
+			break;
+		case SUB20_MODE_NONE:
+			sub20_chan_width = NL80211_CHAN_WIDTH_20_NOHT;
+			break;
+		default:
+			hddLog(LOGE, FL("invalid val %d"), sub20_chan_width);
+			return -EINVAL;
+		}
+		hddLog(LOGE, FL("SUB20 chanwidth %d"), sub20_chan_width);
+
+		skb_len += sizeof(sub20_chan_width);
+		count++;
+	}
+
+	if (count == 0) {
+		hddLog(LOGE, FL("unknown attribute in get_wifi_cfg request"));
+		return -EINVAL;
+	}
+
+	skb_len += NLMSG_HDRLEN;
+	reply_skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, skb_len);
+
+	if (!reply_skb)
+		goto error_skb_fail;
+
+	if (tb_vendor[QCA_WLAN_VENDOR_ATTR_CONFIG_SUB20_CHAN_WIDTH]) {
+		if (nla_put_u32(reply_skb,
+				QCA_WLAN_VENDOR_ATTR_CONFIG_SUB20_CHAN_WIDTH,
+				sub20_chan_width))
+		goto error_nla_fail;
+	}
+
+	return cfg80211_vendor_cmd_reply(reply_skb);
+
+error_skb_fail:
+	hddLog(LOGE, FL("cfg80211_vendor_cmd_alloc_reply_skb failed"));
+	return -ENOMEM;
+
+error_nla_fail:
+	hddLog(LOGE, FL("nla put fail"));
+	kfree_skb(reply_skb);
+	return -EINVAL;
+}
+
+/**
+ * wlan_hdd_cfg80211_wifi_configuration_get() - Get the wifi configuration info
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the data to be passed via vendor interface
+ * @data_len:Length of the data to be passed
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int
+wlan_hdd_cfg80211_wifi_configuration_get(struct wiphy *wiphy,
+					 struct wireless_dev *wdev,
+					 const void *data, int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_wifi_configuration_get(wiphy, wdev,
 							 data, data_len);
 	vos_ssr_unprotect(__func__);
 
@@ -13899,6 +14128,14 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                  WIPHY_VENDOR_CMD_NEED_NETDEV |
                  WIPHY_VENDOR_CMD_NEED_RUNNING,
         .doit = wlan_hdd_cfg80211_wifi_configuration_set
+    },
+    {
+        .info.vendor_id = QCA_NL80211_VENDOR_ID,
+        .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_GET_WIFI_CONFIGURATION,
+        .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                 WIPHY_VENDOR_CMD_NEED_NETDEV |
+                 WIPHY_VENDOR_CMD_NEED_RUNNING,
+        .doit = wlan_hdd_cfg80211_wifi_configuration_get
     },
     {
         .info.vendor_id = QCA_NL80211_VENDOR_ID,

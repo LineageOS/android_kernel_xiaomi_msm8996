@@ -833,9 +833,8 @@ WLANSAP_StartBss
         pmac->sap.SapDfsInfo.reduced_beacon_interval =
             pConfig->reduced_beacon_interval;
         pmac->sap.SapDfsInfo.sub20_switch_mode = pConfig->sub20_switch_mode;
-        if (pConfig->sub20_switch_mode == SUB20_STATIC)
-                pmac->sap.SapDfsInfo.new_sub20_channelwidth =
-                                            pmac->sub20_channelwidth;
+        pmac->sap.SapDfsInfo.new_sub20_channelwidth =
+            pmac->sub20_channelwidth;
 
         // Copy MAC filtering settings to sap context
         pSapCtx->eSapMacAddrAclMode = pConfig->SapMacaddr_acl;
@@ -854,6 +853,7 @@ WLANSAP_StartBss
 
         /* Store the HDD callback in SAP context */
         pSapCtx->pfnSapEventCallback = pSapEventCallback;
+        pSapCtx->sub20_channelwidth = pmac->sub20_channelwidth;
 
         /* Handle event*/
         vosStatus = sapFsm(pSapCtx, &sapEvent);
@@ -1827,6 +1827,7 @@ WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width)
 				sap_context_ptr->ch_width_orig;
 			mac_ptr->sap.SapDfsInfo.new_sub20_channelwidth =
 				 chan_width;
+			mac_ptr->sub20_channelwidth = chan_width;
 			mac_ptr->sap.SapDfsInfo.csaIERequired =
 				 VOS_TRUE;
 
@@ -1869,8 +1870,9 @@ WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width)
 	} else {
 		VOS_TRACE(VOS_MODULE_ID_SAP,
 			  VOS_TRACE_LEVEL_ERROR,
-			  "%s: ChannelWidth = %d is not valid",
-			  __func__, chan_width);
+			  "%s: curr ChWidth = %d, %d is invalid",
+			  __func__, sap_context_ptr->sub20_channelwidth,
+			  chan_width);
 
 		return VOS_STATUS_E_FAULT;
 	}
@@ -1882,13 +1884,45 @@ WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width)
 	return VOS_STATUS_SUCCESS;
 }
 
-uint8_t
-WLANSAP_get_sub20_channel_width(void *vos_ctx_ptr)
+/**
+ * WLANSAP_get_sub20_channelwidth() -
+ * This api function get sub20 channel width
+ * @vos_ctx_ptr: Pointer to vos global context structure
+ * @chan_width:  restore sub20 channel width
+ *
+ * Return: The VOS_STATUS code associated with performing
+ *	the operation
+ */
+VOS_STATUS
+WLANSAP_get_sub20_channelwidth(void *vos_ctx_ptr, uint32_t *chan_width)
 {
-	ptSapContext sap_context_ptr =
-	    VOS_GET_SAP_CB(vos_ctx_ptr);
+	ptSapContext sap_context_ptr = NULL;
+	void *hal_ptr = NULL;
+	tpAniSirGlobal mac_ptr = NULL;
 
-	return sap_context_ptr->sub20_channelwidth;
+	sap_context_ptr = VOS_GET_SAP_CB(vos_ctx_ptr);
+	if (NULL == sap_context_ptr) {
+		VOS_TRACE(VOS_MODULE_ID_SAP,
+			  VOS_TRACE_LEVEL_ERROR,
+			  "%s: Invalid SAP pointer from pvosGCtx", __func__);
+
+		return VOS_STATUS_E_FAULT;
+	}
+
+	hal_ptr = VOS_GET_HAL_CB(sap_context_ptr->pvosGCtx);
+	if (NULL == hal_ptr) {
+		VOS_TRACE(VOS_MODULE_ID_SAP,
+			  VOS_TRACE_LEVEL_ERROR,
+			  "%s: Invalid HAL pointer from pvosGCtx", __func__);
+		return VOS_STATUS_E_FAULT;
+	}
+	mac_ptr = PMAC_STRUCT(hal_ptr);
+
+	*chan_width = sap_context_ptr->sub20_channelwidth ?
+		 sap_context_ptr->sub20_channelwidth :
+		  mac_ptr->sub20_channelwidth;
+
+	return VOS_STATUS_SUCCESS;
 }
 #endif
 

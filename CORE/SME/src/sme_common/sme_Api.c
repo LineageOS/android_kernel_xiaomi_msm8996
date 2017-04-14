@@ -18144,6 +18144,33 @@ eHalStatus sme_handle_set_fcc_channel(tHalHandle hal, bool fcc_constraint,
 
 	return status;
 }
+
+/**
+ * sme_set_sta_chanlist_with_sub20()- update channel list with 5/10M
+ * info
+ * @hal_ptr: Hal context pointor
+ * @chan_width: 5/10M channel width info
+ *
+ * Return: eHalStatus
+ */
+eHalStatus
+sme_set_sta_chanlist_with_sub20(tHalHandle hal_ptr, uint8_t chan_width)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal mac_ptr  = PMAC_STRUCT(hal_ptr);
+
+	status = sme_AcquireGlobalLock(&mac_ptr->sme);
+
+	if (eHAL_STATUS_SUCCESS == status) {
+		mac_ptr->sub20_channelwidth = chan_width;
+		mac_ptr->sta_sub20_current_channelwidth = chan_width;
+		status = csrUpdateChannelList(mac_ptr);
+	}
+	sme_ReleaseGlobalLock(&mac_ptr->sme);
+
+	return status;
+}
+
 /**
  * sme_enable_phy_error_logs() - Enable DFS phy error logs
  * @hal:        global hal handle

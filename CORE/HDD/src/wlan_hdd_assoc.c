@@ -1217,13 +1217,6 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
        hdd_decide_dynamic_chain_mask(pHddCtx,
                           HDD_ANTENNA_MODE_INVALID);
 
-    if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) {
-            sme_update_sub20_channel_width(
-                WLAN_HDD_GET_HAL_CTX(pAdapter),
-                 pAdapter->sessionId,
-                 SUB20_MODE_NONE);
-    }
-
     //Unblock anyone waiting for disconnect to complete
     complete(&pAdapter->disconnect_comp_var);
     return( status );
