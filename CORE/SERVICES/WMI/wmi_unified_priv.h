@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -98,4 +98,18 @@ struct wmi_unified {
 	A_BOOL tag_crash_inject;
 	void (*wma_wow_tx_complete_cbk)(ol_scn_t scn_handle);
 };
+
+#define ANT_DIV_SET_PERIOD(probe_period, stay_period) \
+	((1<<26)|((probe_period&0x1fff)<<13)|(stay_period&0x1fff))
+
+#define ANT_DIV_SET_SNR_DIFF(snr_diff) \
+	((1<<27)|(snr_diff&0x1fff))
+
+#define ANT_DIV_SET_PROBE_DWELL_TIME(probe_dwell_time) \
+	((1<<28)|(probe_dwell_time&0x1fff))
+
+#define ANT_DIV_SET_WEIGHT(mgmt_snr_weight, data_snr_weight, ack_snr_weight) \
+	((1<<29)|((mgmt_snr_weight&0xff)<<16)|((data_snr_weight&0xff)<<8)| \
+	(ack_snr_weight&0xff))
+
 #endif
