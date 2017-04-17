@@ -52,6 +52,7 @@
 #include <net/cfg80211.h>
 #include "regdomain.h"
 #include "regdomain_common.h"
+#include "vos_cnss.h"
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)) && !defined(WITH_BACKPORTS)
 #define IEEE80211_CHAN_NO_80MHZ		1<<7
@@ -1611,6 +1612,11 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
         }
 
     } else if (COUNTRY_IE == source || COUNTRY_USER == source) {
+        if (COUNTRY_USER == source)
+            vos_set_cc_source(CNSS_SOURCE_USER);
+        else
+            vos_set_cc_source(CNSS_SOURCE_11D);
+
         INIT_COMPLETION(pHddCtx->reg_init);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
         regulatory_hint_user(country_code, NL80211_USER_REG_HINT_USER);
@@ -1632,7 +1638,6 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
                         country_code[0], country_code[1]);
            *pRegDomain = temp_reg_domain;
         }
-
         else
         {
             VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
@@ -2317,6 +2322,7 @@ int __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
         }
         if (NL80211_REGDOM_SET_BY_CORE == request->initiator) {
             pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_CORE;
+            vos_set_cc_source(CNSS_SOURCE_CORE);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
             if (wiphy->regulatory_flags & REGULATORY_CUSTOM_REG)
 #else
@@ -2326,7 +2332,10 @@ int __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
         } else if (NL80211_REGDOM_SET_BY_DRIVER == request->initiator) {
             pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_DRIVER;
         } else {
-            pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_USER;
+            if (vos_get_cc_source() == CNSS_SOURCE_11D)
+                pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_11D;
+            else
+                pHddCtx->reg.cc_src = COUNTRY_CODE_SET_BY_USER;
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,14,0)) && !defined(WITH_BACKPORTS)
             if ((request->alpha2[0] == '0') &&
                 (request->alpha2[1] == '0') &&
