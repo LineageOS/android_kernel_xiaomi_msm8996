@@ -288,7 +288,7 @@ chan_to_ht_40_index_map chan_to_ht_40_index[NUM_20MHZ_RF_CHANNELS] =
 static CountryInfoTable_t countryInfoTable =
 {
     /* the first entry in the table is always the world domain */
-    138,
+    140,
     {
       {REGDOMAIN_WORLD, {'0', '0'}}, // WORLD DOMAIN
       {REGDOMAIN_FCC, {'A', 'D'}}, // ANDORRA
@@ -327,6 +327,7 @@ static CountryInfoTable_t countryInfoTable =
       {REGDOMAIN_ETSI, {'C', 'Z'}}, //CZECH REPUBLIC
       {REGDOMAIN_ETSI, {'D', 'E'}}, //GERMANY
       {REGDOMAIN_ETSI, {'D', 'K'}}, //DENMARK
+      {REGDOMAIN_FCC, {'D', 'M'}}, //DOMINICA
       {REGDOMAIN_FCC, {'D', 'O'}}, //DOMINICAN REPUBLIC
       {REGDOMAIN_ETSI, {'D', 'Z'}}, //ALGERIA
       {REGDOMAIN_ETSI, {'E', 'C'}}, //ECUADOR
