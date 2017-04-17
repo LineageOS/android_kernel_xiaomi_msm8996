@@ -2904,7 +2904,6 @@ sapGotoChannelSel
                        __func__, sapContext->channel);
 
             sapContext->acs_cfg->pri_ch = sapContext->channel;
-            sapContext->acs_cfg->ch_width = sapContext->ch_width_orig;
             sap_config_acs_result(hHal, sapContext, 0);
             return VOS_STATUS_E_CANCELED;
         }
