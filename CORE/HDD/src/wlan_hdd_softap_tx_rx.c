@@ -830,7 +830,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
    struct sk_buff *skb = NULL;
    hdd_context_t *pHddCtx = NULL;
 #ifdef QCA_PKT_PROTO_TRACE
-   v_U8_t proto_type;
+   v_U8_t proto_type = 0;
 #endif /* QCA_PKT_PROTO_TRACE */
    struct sk_buff *skb_next;
    unsigned int cpu_index;

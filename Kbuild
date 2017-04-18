@@ -76,11 +76,6 @@ ifeq ($(KERNEL_BUILD), 0)
 	#Flag to enable Legacy Fast Roaming3(LFR3)
 	CONFIG_QCACLD_WLAN_LFR3 := y
 
-	#Enable Power debugfs feature only if debug_fs is enabled
-	ifeq ($(CONFIG_DEBUG_FS), y)
-	CONFIG_WLAN_POWER_DEBUGFS := y
-	endif
-
 	#JB kernel has PMKSA patches, hence enabling this flag
 	CONFIG_PRIMA_WLAN_OKC := y
 
@@ -156,6 +151,11 @@ ifeq ($(KERNEL_BUILD), 0)
 	CONFIG_WLAN_FEATURE_DSRC := y
 	endif
 
+endif
+
+#Enable Power debugfs feature only if debug_fs is enabled
+ifeq ($(CONFIG_DEBUG_FS), y)
+CONFIG_WLAN_POWER_DEBUGFS := y
 endif
 
 ifdef CPTCFG_QCA_CLD_WLAN

@@ -16544,6 +16544,7 @@ static int hdd_driver_init( void)
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to preOpen VOSS", __func__);
+         vos_remove_pm_qos();
          ret_status = -1;
          break;
    }
