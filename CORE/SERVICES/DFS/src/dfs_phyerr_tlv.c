@@ -607,7 +607,7 @@ tlv_calc_event_freq_chirp(struct ath_dfs *dfs, struct rx_radar_status *rs,
        bin_resolution % 1000,
        radar_fft_long_period,
        total_bw / 100,
-       abs(total_bw % 100));
+       (long int)abs(total_bw % 100));
 #endif
        total_bw /= 100; /* back to KHz */
 
