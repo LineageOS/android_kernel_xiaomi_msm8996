@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -133,7 +133,15 @@ ol_tx_desc_find_check(struct ol_txrx_pdev_t *pdev, u_int16_t tx_desc_id)
 static inline struct ol_tx_desc_t *
 ol_tx_desc_find_check(struct ol_txrx_pdev_t *pdev, u_int16_t tx_desc_id)
 {
-    return ol_tx_desc_find(pdev, tx_desc_id);
+    struct ol_tx_desc_t *tx_desc;
+
+    tx_desc = ol_tx_desc_find(pdev, tx_desc_id);
+
+    /* check against invalid tx_desc_id */
+    if (ol_cfg_is_high_latency(pdev->ctrl_pdev) && !tx_desc->vdev)
+        return NULL;
+
+    return tx_desc;
 }
 #endif
 

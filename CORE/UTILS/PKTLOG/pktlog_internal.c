@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -395,8 +395,14 @@ process_tx_info(struct ol_txrx_pdev_t *txrx_pdev,
 						__func__, tx_desc_id);
 				return A_ERROR;
 			}
-			tx_desc = ol_tx_desc_find(txrx_pdev, tx_desc_id);
-			adf_os_assert(tx_desc);
+
+			tx_desc = ol_tx_desc_find_check(txrx_pdev, tx_desc_id);
+			if (!tx_desc) {
+				adf_os_print("%s: ignore invalid desc_id(%u)\n",
+						__func__, tx_desc_id);
+				return A_ERROR;
+			}
+
 			netbuf = tx_desc->netbuf;
 			htt_tx_desc = (uint32_t *) tx_desc->htt_tx_desc;
 			adf_os_assert(htt_tx_desc);
