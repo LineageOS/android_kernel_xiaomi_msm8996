@@ -1153,6 +1153,7 @@ static int __hdd_netdev_notifier_call(struct notifier_block * nb,
         }
         else
         {
+           vos_flush_work(&pAdapter->scan_block_work);
            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                "%s: Scan is not Pending from user" , __func__);
         }
@@ -11318,6 +11319,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
          return NULL;
       }
    }
+
+    vos_init_work(&pAdapter->scan_block_work, wlan_hdd_cfg80211_scan_block_cb);
 
     cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     mutex_init(&cfgState->remain_on_chan_ctx_lock);
