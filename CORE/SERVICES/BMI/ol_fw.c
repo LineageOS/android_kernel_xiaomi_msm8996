@@ -2818,6 +2818,10 @@ ol_sdio_extra_initialization(struct ol_softc *scn)
                   HI_ACS_FLAGS_SDIO_REDUCE_TX_COMPL_SET|
                   HI_ACS_FLAGS_ALT_DATA_CREDIT_SIZE);
 
+		/* enable TX completion to collect tx_desc for pktlog */
+		if (vos_is_packet_log_enabled())
+			param &= ~HI_ACS_FLAGS_SDIO_REDUCE_TX_COMPL_SET;
+
 		BMIWriteMemory(scn->hif_hdl,
 				host_interest_item_address(scn->target_type,
 				offsetof(struct host_interest_s,
