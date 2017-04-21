@@ -26,6 +26,7 @@
  */
 
 #include <linux/firmware.h>
+#include <linux/pm_qos.h>
 #include "ol_if_athvar.h"
 #include "ol_fw.h"
 #include "targaddrs.h"
