@@ -849,6 +849,12 @@ WLANSAP_StartBss
         pmac->sap.SapDfsInfo.new_sub20_channelwidth =
             pmac->sub20_channelwidth;
 
+        pmac->sap.sapCtxList[pSapCtx->sessionId].pSapContext = pSapCtx;
+        pmac->sap.sapCtxList[pSapCtx->sessionId].sapPersona =
+            pSapCtx->csrRoamProfile.csrPersona;
+        pmac->sap.sapCtxList[pSapCtx->sessionId].sessionID =
+            pSapCtx->sessionId;
+
         // Copy MAC filtering settings to sap context
         pSapCtx->eSapMacAddrAclMode = pConfig->SapMacaddr_acl;
         vos_mem_copy(pSapCtx->acceptMacList, pConfig->accept_mac, sizeof(pConfig->accept_mac));
