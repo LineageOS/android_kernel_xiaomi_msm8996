@@ -81,6 +81,7 @@
  * -------------------------------------------------------------------------*/
 #define SAP_DEBUG
 
+#define SAP_CLOSE_SESSION_TIMEOUT 500
 /*----------------------------------------------------------------------------
  * Type Declarations
  * -------------------------------------------------------------------------*/
@@ -215,6 +216,7 @@ WLANSAP_Start
     pSapCtx->csrRoamProfile.csrPersona = mode;
     vos_mem_copy(pSapCtx->self_mac_addr, addr, VOS_MAC_ADDR_SIZE);
     vos_event_init(&pSapCtx->sap_session_opened_evt);
+    vos_event_init(&pSapCtx->sap_session_closed_evt);
 
     // Now configure the auth type in the roaming profile. To open.
     pSapCtx->csrRoamProfile.negotiatedAuthType = eCSR_AUTH_TYPE_OPEN_SYSTEM; // open is the default
@@ -394,6 +396,7 @@ WLANSAP_CleanCB
 )
 {
     tHalHandle hal;
+    VOS_STATUS status = VOS_STATUS_E_FAILURE;
     /*------------------------------------------------------------------------
         Sanity check SAP control block
     ------------------------------------------------------------------------*/
@@ -414,7 +417,17 @@ WLANSAP_CleanCB
     if (eSAP_TRUE == pSapCtx->isSapSessionOpen && hal) {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO,
                 "close existing SAP session");
-        sap_CloseSession(hal, pSapCtx, NULL, false);
+        vos_event_reset(&pSapCtx->sap_session_closed_evt);
+        sap_CloseSession(hal, pSapCtx, sapRoamSessionCloseCallback, true);
+        status = vos_wait_single_event(
+            &pSapCtx->sap_session_closed_evt,
+            SAP_CLOSE_SESSION_TIMEOUT);
+        if (!VOS_IS_STATUS_SUCCESS(status)) {
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                      "wait for sap open session event timed out");
+            return VOS_STATUS_E_FAILURE;
+        }
+
     }
 
     vos_mem_zero( pSapCtx, sizeof(tSapContext));
@@ -835,6 +848,12 @@ WLANSAP_StartBss
         pmac->sap.SapDfsInfo.sub20_switch_mode = pConfig->sub20_switch_mode;
         pmac->sap.SapDfsInfo.new_sub20_channelwidth =
             pmac->sub20_channelwidth;
+
+        pmac->sap.sapCtxList[pSapCtx->sessionId].pSapContext = pSapCtx;
+        pmac->sap.sapCtxList[pSapCtx->sessionId].sapPersona =
+            pSapCtx->csrRoamProfile.csrPersona;
+        pmac->sap.sapCtxList[pSapCtx->sessionId].sessionID =
+            pSapCtx->sessionId;
 
         // Copy MAC filtering settings to sap context
         pSapCtx->eSapMacAddrAclMode = pConfig->SapMacaddr_acl;

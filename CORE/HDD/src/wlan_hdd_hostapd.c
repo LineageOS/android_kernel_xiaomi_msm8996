@@ -7530,6 +7530,8 @@ VOS_STATUS hdd_init_ap_mode(hdd_adapter_t *pAdapter, bool reinit)
        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_softap_init_tx_rx failed", __func__);
     }
 
+    set_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags);
+
     status = hdd_wmm_adapter_init( pAdapter );
     if (!VOS_IS_STATUS_SUCCESS(status))
     {
@@ -7562,6 +7564,7 @@ VOS_STATUS hdd_init_ap_mode(hdd_adapter_t *pAdapter, bool reinit)
 
 error_wmm_init:
     hdd_softap_deinit_tx_rx( pAdapter );
+    clear_bit(INIT_TX_RX_SUCCESS, &pAdapter->event_flags);
 #ifdef WLAN_FEATURE_MBSSID
     WLANSAP_Close(sapContext);
     pAdapter->sessionCtx.ap.sapContext = NULL;
@@ -7696,8 +7699,6 @@ VOS_STATUS hdd_unregister_hostapd(hdd_adapter_t *pAdapter, bool rtnl_held)
 
    ENTER();
 
-   hdd_softap_deinit_tx_rx(pAdapter);
-
    /* if we are being called during driver unload, then the dev has already
       been invalidated.  if we are being called at other times, then we can
       detach the wireless device handlers */
@@ -7804,4 +7805,9 @@ void hdd_sap_destroy_events(hdd_adapter_t *adapter)
 		&sap_ctx->sap_session_opened_evt)))
 		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
 		FL("failed to destroy session open event"));
+        if (!VOS_IS_STATUS_SUCCESS(vos_event_destroy(
+               &sap_ctx->sap_session_closed_evt)))
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+               FL("failed to destroy session close event"));
+
 }

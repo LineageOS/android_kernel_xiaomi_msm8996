@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -167,16 +167,14 @@ enum htt_tx_status {
  * @param num_msdus - how many MSDUs are referenced by the tx completion
  *      message
  * @param status - whether transmission was successful
- * @param tx_msdu_id_iterator - abstract method of finding the IDs for the
- *      individual MSDUs referenced by the tx completion message, via the
- *      htt_tx_compl_desc_id API function
+ * @param msg_word -  the tx completion message
  */
 void
 ol_tx_completion_handler(
     ol_txrx_pdev_handle pdev,
     int num_msdus,
     enum htt_tx_status status,
-    void *tx_msdu_id_iterator);
+    void *msg_word);
 
 void
 ol_tx_credit_completion_handler(ol_txrx_pdev_handle pdev, int credits);

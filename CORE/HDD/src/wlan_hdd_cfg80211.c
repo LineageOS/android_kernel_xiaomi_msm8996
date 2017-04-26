@@ -9587,6 +9587,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_RX_BLOCKSIZE_WINLIMIT] = {
 							.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_SUB20_CHAN_WIDTH] = {.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_ABS_DELAY] = {.type = NLA_U32},
 };
 
 /**
@@ -9795,7 +9796,8 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	int ret_val = 0;
 	u32 modulated_dtim;
 	uint16_t stats_avg_factor, tx_rate;
-	uint8_t set_value, retry, delay, qpower;
+	uint8_t set_value, retry, qpower, delay;
+	uint32_t abs_delay;
 	u32 guard_time;
 	u32 ftm_capab;
 	eHalStatus status;
@@ -10023,9 +10025,18 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_DELAY]);
 		delay = delay > CFG_PROPAGATION_DELAY_MAX ?
 				CFG_PROPAGATION_DELAY_MAX : delay;
+		abs_delay = delay + CFG_PROPAGATION_DELAY_BASE;
 		ret_val = process_wma_set_command((int)pAdapter->sessionId,
 				(int)WMI_PDEV_PARAM_PROPAGATION_DELAY,
-				delay, PDEV_CMD);
+				abs_delay, PDEV_CMD);
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_ABS_DELAY]) {
+		abs_delay = nla_get_u32(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_ABS_DELAY]);
+		ret_val = process_wma_set_command((int)pAdapter->sessionId,
+				(int)WMI_PDEV_PARAM_PROPAGATION_DELAY,
+				abs_delay, PDEV_CMD);
 	}
 
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_FAIL_COUNT]) {
@@ -21922,8 +21933,12 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 
     /* Should be in ieee802_11_defs.h */
+#ifndef WLAN_AKM_SUITE_8021X_SHA256
 #define WLAN_AKM_SUITE_8021X_SHA256 0x000FAC05
+#endif
+#ifndef WLAN_AKM_SUITE_PSK_SHA256
 #define WLAN_AKM_SUITE_PSK_SHA256   0x000FAC06
+#endif
     /*set key mgmt type*/
     switch(key_mgmt)
     {
