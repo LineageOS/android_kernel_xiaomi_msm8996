@@ -13410,6 +13410,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hddLog(LOGE, FL("Unregister IPv4 notifier"));
    unregister_inetaddr_notifier(&pHddCtx->ipv4_notifier);
 
+   wlan_hdd_tsf_deinit(pHddCtx);
+
    if (VOS_FTM_MODE != hdd_get_conparam())
    {
       // Unloading, restart logic is no more required.
@@ -14887,36 +14889,6 @@ static int wlan_hdd_set_wakeup_gpio(hdd_context_t *hddctx)
 }
 
 /**
- * hdd_tsf_init() - Initialize the TSF synchronization interface
- * @hdd_ctx: HDD global context
- *
- * When TSF synchronization via GPIO is supported by the driver and
- * has been enabled in the configuration file, this function plumbs
- * the GPIO value down to firmware via SME.
- *
- * Return: None
- */
-#ifdef WLAN_FEATURE_TSF
-static void hdd_tsf_init(hdd_context_t *hdd_ctx)
-{
-	eHalStatus hal_status;
-
-	if (hdd_ctx->cfg_ini->tsf_gpio_pin == TSF_GPIO_PIN_INVALID)
-		return;
-
-	hal_status = sme_set_tsf_gpio(hdd_ctx->hHal,
-				      hdd_ctx->cfg_ini->tsf_gpio_pin);
-	if (eHAL_STATUS_SUCCESS != hal_status)
-		hddLog(LOGE, FL("set tsf GPIO failed, status: %d"),
-		       hal_status);
-}
-#else
-static void hdd_tsf_init(hdd_context_t *hdd_ctx)
-{
-}
-#endif
-
-/**
  * hdd_state_info_dump() - prints state information of hdd layer
  * @buf: buffer pointer
  * @size: size of buffer to be filled
@@ -16110,7 +16082,6 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                "%s: Error setting txlimit in sme", __func__);
    }
 
-   hdd_tsf_init(pHddCtx);
    vos_timer_init(&pHddCtx->tdls_source_timer, VOS_TIMER_TYPE_SW,
                   wlan_hdd_change_tdls_mode, (void *)pHddCtx);
 
@@ -16133,8 +16104,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                                 wlan_hdd_cfg80211_chainrssi_callback);
     sme_set_rssi_threshold_breached_cb(pHddCtx->hHal, hdd_rssi_threshold_breached);
     wlan_hdd_cfg80211_link_layer_stats_init(pHddCtx);
-
-   wlan_hdd_tsf_init(pHddCtx);
+    wlan_hdd_tsf_init(pHddCtx);
 
 #ifdef WLAN_FEATURE_LPSS
    wlan_hdd_send_all_scan_intf_info(pHddCtx);

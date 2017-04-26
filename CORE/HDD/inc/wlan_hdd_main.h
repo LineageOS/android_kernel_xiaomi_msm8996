@@ -1337,10 +1337,7 @@ struct hdd_adapter_s
 
 #ifdef WLAN_FEATURE_TSF
    /* tsf value get from firmware */
-   uint32_t tsf_low;
-   uint32_t tsf_high;
-   /* current in capture tsf state or not */
-   enum hdd_tsf_capture_state tsf_state;
+   uint64_t cur_target_time;
 #endif
 
    hdd_cfg80211_state_t cfg80211State;
@@ -2099,6 +2096,14 @@ struct hdd_context_s
     scan_reject_states last_scan_reject_reason;
     v_TIME_t last_scan_reject_timestamp;
     uint8_t hdd_dfs_regdomain;
+#ifdef WLAN_FEATURE_TSF
+    /* indicate whether tsf has been initialized */
+    adf_os_atomic_t tsf_ready_flag;
+    /* indicate whether it's now capturing tsf(updating tstamp-pair) */
+    adf_os_atomic_t cap_tsf_flag;
+    /* the context that is capturing tsf */
+    hdd_adapter_t *cap_tsf_context;
+#endif
 };
 
 /*---------------------------------------------------------------------------
