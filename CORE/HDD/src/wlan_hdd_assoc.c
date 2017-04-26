@@ -71,6 +71,8 @@
 #include <wlan_logging_sock_svc.h>
 #include "tl_shim.h"
 #include "wlan_hdd_oemdata.h"
+#include "wlan_hdd_tsf.h"
+
 #include "adf_trace.h"
 
 struct ether_addr
@@ -156,6 +158,9 @@ v_VOID_t hdd_connSetConnectionState( hdd_adapter_t *pAdapter,
    hddLog(LOG1, FL("%pS Changed connectionState from oldState:%d to State:%d"),
                     (void *)_RET_IP_,
                     pHddStaCtx->conn_info.connState, connState);
+
+   hdd_tsf_notify_wlan_state_change(pAdapter,
+		   pHddStaCtx->conn_info.connState, connState);
    pHddStaCtx->conn_info.connState = connState;
 
    /* Check is pending ROC request or not when connection state changed */

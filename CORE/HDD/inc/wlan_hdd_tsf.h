@@ -69,7 +69,6 @@ void wlan_hdd_tsf_deinit(hdd_context_t *hdd_ctx);
 
 /**
  * hdd_capture_tsf() - capture tsf
- *
  * @adapter: pointer to adapter
  * @buf: pointer to uplayer buf
  * @len : the length of buf
@@ -82,7 +81,6 @@ int hdd_capture_tsf(hdd_adapter_t *adapter, uint32_t *buf, int len);
 
 /**
  * hdd_indicate_tsf() - return tsf to uplayer
- *
  * @adapter: pointer to adapter
  * @buf: pointer to uplayer buf
  * @len : the length of buf
@@ -112,6 +110,63 @@ static inline int
 hdd_capture_tsf(hdd_adapter_t *adapter, uint32_t *buf, int len)
 {
 	return -ENOTSUPP;
+}
+#endif
+
+#if defined(WLAN_FEATURE_TSF_PLUS) && defined(WLAN_FEATURE_TSF)
+
+/**
+ * hdd_start_tsf_sync() - start tsf sync
+ * @adapter: pointer to adapter
+ *
+ * This function initialize and start TSF synchronization
+ *
+ * Return: Describe the execute result of this routine
+ */
+int hdd_start_tsf_sync(hdd_adapter_t *adapter);
+
+/**
+ * hdd_stop_tsf_sync() - stop tsf sync
+ * @adapter: pointer to adapter
+ *
+ * This function stop and de-initialize TSF synchronization
+ *
+ * Return: Describe the execute result of this routine
+ */
+int hdd_stop_tsf_sync(hdd_adapter_t *adapter);
+
+/**
+ * hdd_tsf_notify_wlan_state_change() -
+ *     notify tsf module of wlan connection state
+ * @old_state: old wlan state
+ * @new_state: new wlan state
+ *
+ * This function check the old and new connection state, determine whether
+ * to start or stop tsf sync
+ *
+ * Return: nothing
+ */
+void hdd_tsf_notify_wlan_state_change(hdd_adapter_t *adapter,
+	eConnectionState old_state,
+	eConnectionState new_state);
+
+#else
+static inline int hdd_start_tsf_sync(hdd_adapter_t *adapter)
+{
+	return -ENOTSUPP;
+}
+
+static inline int hdd_stop_tsf_sync(hdd_adapter_t *adapter)
+{
+	return -ENOTSUPP;
+}
+
+static inline
+void hdd_tsf_notify_wlan_state_change(hdd_adapter_t *adapter,
+	eConnectionState old_state,
+	eConnectionState new_state)
+
+{
 }
 #endif
 
