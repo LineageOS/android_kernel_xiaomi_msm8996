@@ -108,7 +108,7 @@
 /* Convert from vout ctl to micbias voltage in mV */
 #define WCD_VOUT_CTL_TO_MICB(v) (1000 + v * 50)
 
-#define TASHA_ZDET_NUM_MEASUREMENTS 150
+#define TASHA_ZDET_NUM_MEASUREMENTS 85
 #define TASHA_MBHC_GET_C1(c)  ((c & 0xC000) >> 14)
 #define TASHA_MBHC_GET_X1(x)  (x & 0x3FFF)
 /* z value compared in milliOhm */
@@ -3488,8 +3488,12 @@ static int tasha_set_compander(struct snd_kcontrol *kcontrol,
 				(value ? 0x00:0x20));
 		break;
 	case COMPANDER_3:
+		snd_soc_update_bits(codec, WCD9335_DIFF_LO_LO1_COMPANDER,
+				0x04, (value ? 0x00:0x04));
 		break;
 	case COMPANDER_4:
+		snd_soc_update_bits(codec, WCD9335_DIFF_LO_LO2_COMPANDER,
+				0x04, (value ? 0x00:0x04));
 		break;
 	case COMPANDER_5:
 		snd_soc_update_bits(codec, WCD9335_SE_LO_LO3_GAIN, 0x20,
@@ -5870,11 +5874,12 @@ static int tasha_codec_enable_dec(struct snd_soc_dapm_widget *w,
 
 	tx_vol_ctl_reg = WCD9335_CDC_TX0_TX_PATH_CTL + 16 * decimator;
 	hpf_gate_reg = WCD9335_CDC_TX0_TX_PATH_SEC2 + 16 * decimator;
-	dec_cfg_reg = WCD9335_CDC_TX0_TX_PATH_CFG0 + 16 * decimator;
 	tx_gain_ctl_reg = WCD9335_CDC_TX0_TX_VOL_CTL + 16 * decimator;
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
+		dec_cfg_reg = WCD9335_CDC_TX0_TX_PATH_CFG0 + 16 * decimator;
+
 		amic_n = tasha_codec_find_amic_input(codec, decimator);
 		if (amic_n)
 			pwr_level_reg = tasha_codec_get_amic_pwlvl_reg(codec,
@@ -5942,6 +5947,10 @@ static int tasha_codec_enable_dec(struct snd_soc_dapm_widget *w,
 	case SND_SOC_DAPM_PRE_PMD:
 		hpf_cut_off_freq =
 			tasha->tx_hpf_work[decimator].hpf_cut_off_freq;
+		snd_soc_write(codec, WCD9335_MBHC_ZDET_RAMP_CTL, 0x83);
+		snd_soc_write(codec, WCD9335_MBHC_ZDET_RAMP_CTL, 0xA3);
+		snd_soc_write(codec, WCD9335_MBHC_ZDET_RAMP_CTL, 0x83);
+		snd_soc_write(codec, WCD9335_MBHC_ZDET_RAMP_CTL, 0x03);
 		snd_soc_update_bits(codec, tx_vol_ctl_reg, 0x10, 0x10);
 		if (cancel_delayed_work_sync(
 		    &tasha->tx_hpf_work[decimator].dwork)) {
@@ -12059,7 +12068,7 @@ static struct snd_soc_dai_driver tasha_dai[] = {
 			.stream_name = "AIF3 Capture",
 			.rates = WCD9335_RATES_MASK,
 			.formats = TASHA_FORMATS_S16_S24_LE,
-			.rate_max = 48000,
+			.rate_max = 192000,
 			.rate_min = 8000,
 			.channels_min = 1,
 			.channels_max = 8,
