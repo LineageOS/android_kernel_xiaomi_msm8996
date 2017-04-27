@@ -146,6 +146,8 @@ endif
 snd-soc-wcd-cpe-objs := wcd_cpe_services.o wcd_cpe_core.o
 snd-soc-wsa881x-objs := wsa881x.o wsa881x-tables.o wsa881x-regmap.o wsa881x-temp-sensor.o
 snd-soc-wcd-mbhc-objs := wcd-mbhc-v2.o
+snd-soc-msm8952-wcd-objs := msm8x16-wcd.o msm8x16-wcd-tables.o
+snd-soc-msm8909-cdc-objs := msm-digital-cdc.o msm-digital-cdc-regmap.o
 snd-soc-wsa881x-analog-objs := wsa881x-analog.o wsa881x-tables-analog.o
 snd-soc-wsa881x-analog-objs += wsa881x-regmap-analog.o wsa881x-irq.o
 snd-soc-wcd-dsp-utils-objs := wcd-dsp-utils.o
@@ -214,6 +216,9 @@ obj-$(CONFIG_SND_SOC_MSM_HDMI_CODEC_RX) := msm_hdmi_codec_rx.o
 snd-soc-max9877-objs := max9877.o
 snd-soc-tpa6130a2-objs := tpa6130a2.o
 snd-soc-tas2552-objs := tas2552.o
+snd-soc-tas2555-objs := tas2555-codec.o tas2555-core.o tas2555-regmap.o tas2555-misc.o tiload.o
+snd-soc-opa1622-objs := opa1622.o
+snd-soc-lm48560-objs := lm48560.o
 
 obj-$(CONFIG_SND_SOC_88PM860X)	+= snd-soc-88pm860x.o
 obj-$(CONFIG_SND_SOC_AB8500_CODEC)	+= snd-soc-ab8500-codec.o
@@ -330,6 +335,8 @@ obj-$(CONFIG_SND_SOC_STA529)   += snd-soc-sta529.o
 obj-$(CONFIG_SND_SOC_STAC9766)	+= snd-soc-stac9766.o
 obj-$(CONFIG_SND_SOC_STI_SAS)	+= snd-soc-sti-sas.o
 obj-$(CONFIG_SND_SOC_TAS2552)	+= snd-soc-tas2552.o
+obj-$(CONFIG_SND_SOC_TAS2555)	+= snd-soc-tas2555.o
+obj-$(CONFIG_SND_SOC_BG_CODEC)	+= bg-codec.o
 obj-$(CONFIG_SND_SOC_TAS5086)	+= snd-soc-tas5086.o
 obj-$(CONFIG_SND_SOC_TAS571X)	+= snd-soc-tas571x.o
 obj-$(CONFIG_SND_SOC_TFA9879)	+= snd-soc-tfa9879.o
@@ -425,6 +432,8 @@ obj-$(CONFIG_SND_SOC_MSM_STUB)  += snd-soc-msm-stub.o
 # Amp
 obj-$(CONFIG_SND_SOC_MAX9877)	+= snd-soc-max9877.o
 obj-$(CONFIG_SND_SOC_TPA6130A2)	+= snd-soc-tpa6130a2.o
+obj-$(CONFIG_SND_SOC_OPA1622)	+= snd-soc-opa1622.o
+obj-$(CONFIG_SND_SOC_LM48560)	+= snd-soc-lm48560.o
 obj-y += sdm660_cdc/
 obj-y += msm_sdw/
 obj-y	+= tfa98xx/

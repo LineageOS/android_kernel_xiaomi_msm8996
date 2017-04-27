@@ -111,6 +111,9 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_STAC9766 if SND_SOC_AC97_BUS
 	select SND_SOC_STI_SAS
 	select SND_SOC_TAS2552 if I2C
+	select SND_SOC_TAS2555 if I2C
+	select SND_SOC_OPA1622
+	select SND_SOC_LM48560 if I2C
 	select SND_SOC_TAS5086 if I2C
 	select SND_SOC_TAS571X if I2C
 	select SND_SOC_TFA9879 if I2C
@@ -650,6 +653,17 @@ config SND_SOC_STI_SAS
 
 config SND_SOC_TAS2552
 	tristate "Texas Instruments TAS2552 Mono Audio amplifier"
+	depends on I2C
+
+config SND_SOC_TAS2555
+	tristate "Texas Instruments TAS2555 Mono Audio Amplifier with DSP"
+	depends on I2C
+
+config SND_SOC_OPA1622
+	tristate
+
+config SND_SOC_LM48560
+	tristate "Texas Instruments LM48560 ceramic speaker amplifier"
 	depends on I2C
 
 config SND_SOC_TAS5086
