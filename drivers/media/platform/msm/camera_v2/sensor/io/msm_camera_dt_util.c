@@ -1,4 +1,5 @@
 /* Copyright (c) 2013-2017, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -117,6 +118,27 @@ int msm_camera_fill_vreg_params(struct camera_vreg_t *cam_vreg,
 			for (j = 0; j < num_vreg; j++) {
 				if (!strcmp(cam_vreg[j].reg_name, "cam_vaf")) {
 					CDBG("%s:%d i %d j %d cam_vaf\n",
+						__func__, __LINE__, i, j);
+					power_setting[i].seq_val = j;
+					if (VALIDATE_VOLTAGE(
+						cam_vreg[j].min_voltage,
+						cam_vreg[j].max_voltage,
+						power_setting[i].config_val)) {
+						cam_vreg[j].min_voltage =
+						cam_vreg[j].max_voltage =
+						power_setting[i].config_val;
+					}
+					break;
+				}
+			}
+			if (j == num_vreg)
+				power_setting[i].seq_val = INVALID_VREG;
+			break;
+
+		case CAM_VMIPI:
+			for (j = 0; j < num_vreg; j++) {
+				if (!strcmp(cam_vreg[j].reg_name, "cam_vmipi")) {
+					CDBG("%s:%d i %d j %d cam_vmipi\n",
 						__func__, __LINE__, i, j);
 					power_setting[i].seq_val = j;
 					if (VALIDATE_VOLTAGE(
@@ -675,6 +697,9 @@ int msm_camera_get_dt_power_setting_data(struct device_node *of_node,
 		ps, sizeof(*ps) * size);
 
 	power_info->power_down_setting_size = size;
+
+	for (i = 0; i < size; i++)
+		power_info->power_down_setting[i].config_val = 0;
 
 	if (need_reverse) {
 		int c, end = size - 1;
@@ -1577,9 +1602,9 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 			if (!ctrl->gpio_conf->gpio_num_info->valid
 				[power_setting->seq_val])
 				continue;
-			CDBG("%s:%d gpio set val %d\n", __func__, __LINE__,
+			CDBG("%s:%d gpio set %d val %d\n", __func__, __LINE__,
 				ctrl->gpio_conf->gpio_num_info->gpio_num
-				[power_setting->seq_val]);
+				[power_setting->seq_val], (int) power_setting->config_val);
 			gpio_set_value_cansleep(
 				ctrl->gpio_conf->gpio_num_info->gpio_num
 				[power_setting->seq_val],
