@@ -100,6 +100,7 @@ static int speaker_id_gpio = -1;
 static bool codec_reg_done;
 
 static const char *const speaker_id_text[] = {"None", "AAC", "Knowles", "Goer"};
+static const char *const ultrasound_power_text[] = {"Off", "On"};
 static const char *const hifi_function[] = {"Off", "On"};
 static const char *const pin_states[] = {"Disable", "active"};
 static const char *const spk_function[] = {"Off", "On"};
@@ -298,6 +299,8 @@ struct msm8996_asoc_mach_data {
 	int us_euro_gpio;
 	int hph_en1_gpio;
 	int hph_en0_gpio;
+	struct regulator *us_p_power;
+	struct regulator *us_n_power;
 	struct snd_info_entry *codec_root;
 };
 
@@ -2675,6 +2678,42 @@ static const struct soc_enum msm_snd_enum[] = {
 
 static const struct soc_enum speaker_id_enum =
 				SOC_ENUM_SINGLE_EXT(4, speaker_id_text);
+static const struct soc_enum ultrasound_power_enum =
+				SOC_ENUM_SINGLE_EXT(2, ultrasound_power_text);
+
+static int ultrasound_power;
+static int msm_ultrasound_power_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = ultrasound_power;
+	return 0;
+}
+
+static int msm_ultrasound_power_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct snd_soc_card *card = codec->component.card;
+	struct msm8996_asoc_mach_data *pdata = snd_soc_card_get_drvdata(card);
+	int ret;
+
+	ultrasound_power = ucontrol->value.integer.value[0];
+	pr_debug("%s: ultrasound power %d\n", __func__, ultrasound_power);
+
+	if (ultrasound_power == 1) {
+		if (pdata->us_p_power)
+			ret = regulator_enable(pdata->us_p_power);
+		if (pdata->us_n_power)
+			ret = regulator_enable(pdata->us_n_power);
+	} else {
+		if (pdata->us_p_power)
+			ret = regulator_disable(pdata->us_p_power);
+		if (pdata->us_n_power)
+			ret = regulator_disable(pdata->us_n_power);
+	}
+
+	return 0;
+}
 
 static int msm_speaker_id_get(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
@@ -2769,6 +2808,8 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 			msm_quat_mi2s_rx_ch_get, msm_quat_mi2s_rx_ch_put),
 	SOC_ENUM_EXT("QUAT_MI2S_TX Channels", msm8996_mi2s_snd_enum[9],
 			msm_quat_mi2s_tx_ch_get, msm_quat_mi2s_tx_ch_put),
+	SOC_ENUM_EXT("Ultrasound Power", ultrasound_power_enum,
+			msm_ultrasound_power_get, msm_ultrasound_power_put),
 	SOC_ENUM_EXT("Speaker ID", speaker_id_enum, msm_speaker_id_get, NULL),
 	SOC_SINGLE_EXT("Version", 0, 0, UINT_MAX, 0, msm_version_get, NULL),
 };
@@ -5539,6 +5580,23 @@ static int msm8996_asoc_machine_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "msm8996_prepare_us_euro failed (%d)\n",
 			ret);
 
+	pdata->us_p_power = regulator_get(&pdev->dev, "vreg_pa_p_5p0");
+	if (IS_ERR(pdata->us_p_power)) {
+		dev_info(&pdev->dev, "ultrasound p power can't be found\n");
+		pdata->us_p_power = NULL;
+	}
+
+	if ((get_hw_version_devid() == 8) &&
+		(get_hw_version() & (HW_MAJOR_VERSION_MASK | HW_MINOR_VERSION_MASK)) < 0x30) {
+		pdata->us_n_power = regulator_get(&pdev->dev, "vreg_pa_n_5p0");
+		if (IS_ERR(pdata->us_n_power)) {
+			dev_info(&pdev->dev, "ultrasound n power can't be found\n");
+			pdata->us_n_power = NULL;
+		}
+	} else {
+		pdata->us_n_power = NULL;
+	}
+
 	speaker_id_gpio = of_get_named_gpio(pdev->dev.of_node, "spkr-id-gpio", 0);
 	if (!gpio_is_valid(speaker_id_gpio)) {
 		dev_info(&pdev->dev, "property %s not detected in node %s",
@@ -5574,6 +5632,11 @@ static int msm8996_asoc_machine_remove(struct platform_device *pdev)
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 	struct msm8996_asoc_mach_data *pdata =
 				snd_soc_card_get_drvdata(card);
+
+	if (pdata->us_p_power)
+		regulator_put(pdata->us_p_power);
+	if (pdata->us_n_power)
+		regulator_put(pdata->us_n_power);
 
 	if (gpio_is_valid(ext_us_amp_gpio))
 		gpio_free(ext_us_amp_gpio);
