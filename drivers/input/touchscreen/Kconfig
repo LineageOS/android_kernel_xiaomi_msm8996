@@ -211,6 +211,17 @@ config TOUCHSCREEN_CYTTSP_SPI
 	  To compile this driver as a module, choose M here: the
 	  module will be called cyttsp_spi.
 
+config TOUCHSCREEN_CYTTSP_BUTTON
+	tristate "Cypress I2C button"
+	depends on I2C
+	help
+	  Say Y here if you have Cypressseries I2C button,
+	  such as 3155 or 3175, connected to your system.
+
+	  If unsure, say N.
+	  To compile this driver as a module, choose M here: the
+	  module will be called CYTTSP BUTTON.
+
 config TOUCHSCREEN_CYTTSP4_CORE
 	tristate "Cypress TrueTouch Gen4 Touchscreen Driver"
 	help
