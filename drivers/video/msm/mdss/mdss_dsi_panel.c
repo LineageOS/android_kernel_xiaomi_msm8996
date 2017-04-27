@@ -1,4 +1,5 @@
 /* Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -22,6 +23,10 @@
 #include <linux/qpnp/pwm.h>
 #include <linux/err.h>
 #include <linux/string.h>
+#include <linux/fs.h>
+#include <asm/fcntl.h>
+#include <asm/uaccess.h>
+#include <linux/mdss_io_util.h>
 
 #include "mdss_dsi.h"
 #include "mdss_dba_utils.h"
@@ -33,6 +38,34 @@
 #define VSYNC_DELAY msecs_to_jiffies(17)
 
 DEFINE_LED_TRIGGER(bl_led_trigger);
+
+static bool mdss_panel_reset_skip;
+static struct mdss_panel_info *mdss_pinfo;
+
+bool mdss_prim_panel_is_dead(void)
+{
+	if (mdss_pinfo)
+		return mdss_pinfo->panel_dead;
+	return false;
+}
+void mdss_panel_reset_skip_enable(bool enable)
+{
+	mdss_panel_reset_skip = enable;
+}
+EXPORT_SYMBOL(mdss_panel_reset_skip_enable);
+void mdss_dsi_ulps_enable(bool enable)
+{
+	if (mdss_pinfo)
+		mdss_pinfo->ulps_feature_enabled = enable;
+}
+EXPORT_SYMBOL(mdss_dsi_ulps_enable);
+
+void mdss_dsi_ulps_suspend_enable(bool enable)
+{
+	if (mdss_pinfo)
+		mdss_pinfo->ulps_suspend_enabled = enable;
+}
+EXPORT_SYMBOL(mdss_dsi_ulps_suspend_enable);
 
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
 {
@@ -285,6 +318,11 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 				panel_data);
 
 	pinfo = &(ctrl_pdata->panel_data.panel_info);
+	if (mdss_panel_reset_skip && !pinfo->panel_dead) {
+		pr_info("%s: panel reset skip\n", __func__);
+		return rc;
+	}
+
 	if ((mdss_dsi_is_right_ctrl(ctrl_pdata) &&
 		mdss_dsi_is_hw_config_split(ctrl_pdata->shared_data)) ||
 			pinfo->is_dba_panel) {
@@ -2558,6 +2596,11 @@ static int mdss_panel_parse_dt(struct device_node *np,
 
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->off_cmds,
 		"qcom,mdss-dsi-off-command", "qcom,mdss-dsi-off-command-state");
+
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->mcap_on_cmds,
+		"qcom,mdss-dsi-panel-mcap-on-cmds", "qcom,mdss-dsi-panel-mcap-on-cmds-state");
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->mcap_off_cmds,
+		"qcom,mdss-dsi-panel-mcap-off-cmds", "qcom,mdss-dsi-panel-mcap-off-cmds-state");
 
 	rc = of_property_read_u32(np, "qcom,adjust-timer-wakeup-ms", &tmp);
 	pinfo->adjust_timer_delay_ms = (!rc ? tmp : 0);
