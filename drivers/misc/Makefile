@@ -67,3 +67,4 @@ obj-y				+= qcom/
 obj-$(CONFIG_TYPEC_DRIVER)		+= type-c/
 obj-$(CONFIG_QPNP_MISC) 	+= qpnp-misc.o
 obj-$(CONFIG_MEMORY_STATE_TIME) += memory_state_time.o
+obj-$(CONFIG_TSPDRV)		+= drv2604.o
