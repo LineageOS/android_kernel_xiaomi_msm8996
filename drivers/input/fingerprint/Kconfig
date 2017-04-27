@@ -1,0 +1,20 @@
+#
+# Fingerprint driver configuration
+#
+menuconfig INPUT_FINGERPRINT
+	bool "Fingerprints"
+	help
+	  Say Y here, and a list of supported fingerprints will be displayed.
+	  This option doesn't affect the kernel.
+
+	  If unsure, say Y.
+
+config FINGERPRINT_FPC1020_TA
+	tristate "Finger print card FPC"
+	depends on INPUT_FINGERPRINT && SPI_MASTER
+	help
+	  Say Y here to enable fingerprint sensor support.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here.
