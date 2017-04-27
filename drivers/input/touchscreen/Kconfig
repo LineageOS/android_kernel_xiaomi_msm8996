@@ -104,6 +104,17 @@ config TOUCHSCREEN_AR1021_I2C
 	  To compile this driver as a module, choose M here: the
 	  module will be called ar1021_i2c.
 
+config TOUCHSCREEN_ST_FTS
+	tristate "ST FTS I2C Touchscreen"
+	depends on I2C
+	help
+	  Say Y here if you have ST FTS series I2C touchscreen.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ST FTS.
+
 config TOUCHSCREEN_ATMEL_MXT
 	tristate "Atmel mXT I2C Touchscreen"
 	depends on I2C
