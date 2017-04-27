@@ -832,9 +832,10 @@ struct mdss_overlay_private {
 	u32 ad_events;
 	u32 ad_bl_events;
 
-	bool allow_kickoff;
-
 	u8 sd_transition_state;
+
+	/* video frame info used by deterministic frame rate control */
+	struct mdss_mdp_frc_fsm *frc_fsm;
 };
 
 struct mdss_mdp_set_ot_params {
