@@ -1,4 +1,5 @@
 /* Copyright (c) 2013-2017, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2317,12 +2318,6 @@ static int msm_cpp_cfg_frame(struct cpp_device *cpp_dev,
 	if (cpp_frame_msg == NULL ||
 		(new_frame->msg_len < MSM_CPP_MIN_FRAME_LENGTH)) {
 		pr_err("Length is not correct or frame message is missing\n");
-		return -EINVAL;
-	}
-
-	if (cpp_frame_msg[new_frame->msg_len - 1] !=
-		MSM_CPP_MSG_ID_TRAILER) {
-		pr_err("Invalid frame message\n");
 		return -EINVAL;
 	}
 
