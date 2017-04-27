@@ -1002,4 +1002,9 @@ config MFSE_QMI
 	help
 	 This option enables the QMI client driver for MFSE service.
 
+config SERIAL_NUM
+	bool "Enable Serial Number Proc Interface"
+	help
+	  Provide a interface for reading CPU serial number
+
 source "drivers/soc/qcom/memshare/Kconfig"
