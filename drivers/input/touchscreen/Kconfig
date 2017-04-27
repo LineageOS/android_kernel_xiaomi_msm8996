@@ -12,6 +12,7 @@ menuconfig INPUT_TOUCHSCREEN
 if INPUT_TOUCHSCREEN
 
 source "drivers/input/touchscreen/synaptics_dsx/Kconfig"
+source "drivers/input/touchscreen/synaptics_dsx_force/Kconfig"
 
 config OF_TOUCHSCREEN
 	def_tristate INPUT
@@ -1149,16 +1150,6 @@ config TOUCHSCREEN_FT5X06_GESTURE
 
          If unsure, say N.
 
-config TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE_EXTRA_SYSFS
-	bool "Synaptics DSX firmware update extra sysfs attributes"
-	depends on TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE
-	help
-	  Say Y here to enable support for extra sysfs attributes
-	  supporting firmware update in a development environment.
-	  This does not affect the core or other subsystem attributes.
-
-	  If unsure, say N.
-
 config TOUCHSCREEN_ROHM_BU21023
 	tristate "ROHM BU21023/24 Dual touch support resistive touchscreens"
 	depends on I2C
@@ -1185,7 +1176,7 @@ config TOUCHSCREEN_MAXIM_STI
 config SECURE_TOUCH
 	bool "Secure Touch"
 	depends on (TOUCHSCREEN_SYNAPTICS_I2C_RMI4 || \
-	  TOUCHSCREEN_SYNAPTICS_DSX_I2C_v21)
+	  TOUCHSCREEN_SYNAPTICS_DSX_I2C)
 	help
 	  Say Y here to enable Secure Touch in supported drivers.
 
