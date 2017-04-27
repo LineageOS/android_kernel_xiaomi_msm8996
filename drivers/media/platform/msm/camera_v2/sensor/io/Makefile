@@ -1,3 +1,6 @@
+ifeq ($(CONFIG_CAMERA_ALS_ENABLE),y)
+	EXTRA_CFLAGS += -DCAMERA_ALS_ENABLE
+endif
 ccflags-y += -Idrivers/media/platform/msm/camera_v2/
 ccflags-y += -Idrivers/media/platform/msm/camera_v2/common
 ccflags-y += -Idrivers/media/platform/msm/camera_v2/sensor
