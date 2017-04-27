@@ -1,4 +1,5 @@
 /* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -31,6 +32,7 @@
 #include <linux/qpnp/power-on.h>
 #include <linux/qpnp/qpnp-pbs.h>
 #include <linux/qpnp-misc.h>
+#include <linux/wakelock.h>
 
 #define CREATE_MASK(NUM_BITS, POS) \
 	((unsigned char) (((1 << (NUM_BITS)) - 1) << (POS)))
@@ -70,6 +72,7 @@
 	((pon)->base + PON_OFFSET((pon)->subtype, 0xA, 0xC2))
 #define QPNP_POFF_REASON1(pon) \
 	((pon)->base + PON_OFFSET((pon)->subtype, 0xC, 0xC5))
+#define QPNP_POFF_REASON2(pon)                 ((pon)->base + 0xD)
 #define QPNP_PON_WARM_RESET_REASON2(pon)	((pon)->base + 0xB)
 #define QPNP_PON_OFF_REASON(pon)		((pon)->base + 0xC7)
 #define QPNP_FAULT_REASON1(pon)			((pon)->base + 0xC8)
@@ -232,8 +235,11 @@ struct qpnp_pon {
 	bool			support_twm_config;
 	ktime_t			kpdpwr_last_release_time;
 	struct notifier_block	pon_nb;
+	bool			is_keycomb_pressed;
 };
 
+static struct wake_lock volume_down_wl;
+static const char *wake_lock_name = "volume_down_locker";
 static struct qpnp_pon *sys_reset_dev;
 static DEFINE_SPINLOCK(spon_list_slock);
 static LIST_HEAD(spon_dev_list);
@@ -676,6 +682,74 @@ int qpnp_pon_is_warm_reset(void)
 }
 EXPORT_SYMBOL(qpnp_pon_is_warm_reset);
 
+int qpnp_pon_is_ps_hold_reset(void)
+{
+	struct qpnp_pon *pon = sys_reset_dev;
+	int rc;
+	u8 reg = 0;
+
+	if (!pon)
+		return 0;
+
+	rc = spmi_ext_register_readl(pon->spmi->ctrl, pon->spmi->sid,
+		QPNP_POFF_REASON1(pon), &reg, 1);
+	if (rc) {
+		dev_err(&pon->spmi->dev,
+			"Unable to read addr=%x, rc(%d)\n",
+			QPNP_POFF_REASON1(pon), rc);
+		return 0;
+	}
+
+	/* The bit 1 is 1, means by PS_HOLD/MSM controlled shutdown */
+	if (reg & 0x2)
+		return 1;
+
+	dev_info(&pon->spmi->dev,
+		"hw_reset reason1 is 0x%x\n", reg);
+
+	rc = spmi_ext_register_readl(pon->spmi->ctrl, pon->spmi->sid,
+		QPNP_POFF_REASON2(pon), &reg, 1);
+
+	dev_info(&pon->spmi->dev,
+		"hw_reset reason2 is 0x%x\n", reg);
+	return 0;
+}
+EXPORT_SYMBOL(qpnp_pon_is_ps_hold_reset);
+
+int qpnp_pon_is_lpk(void)
+{
+	struct qpnp_pon *pon = sys_reset_dev;
+	int rc;
+	u8 reg = 0;
+
+	if (!pon)
+		return 0;
+
+	rc = spmi_ext_register_readl(pon->spmi->ctrl, pon->spmi->sid,
+		QPNP_POFF_REASON1(pon), &reg, 1);
+	if (rc) {
+		dev_err(&pon->spmi->dev,
+			"Unable to read addr=%x, rc(%d)\n",
+			QPNP_POFF_REASON1(pon), rc);
+		return 0;
+	}
+
+
+	if (reg & 0x80)
+		return 1;
+
+	dev_info(&pon->spmi->dev,
+	"hw_reset reason1 is 0x%x\n", reg);
+
+	rc = spmi_ext_register_readl(pon->spmi->ctrl, pon->spmi->sid,
+		QPNP_POFF_REASON2(pon), &reg, 1);
+
+	dev_info(&pon->spmi->dev,
+		"hw_reset reason2 is 0x%x\n", reg);
+	return 0;
+}
+EXPORT_SYMBOL(qpnp_pon_is_lpk);
+
 /**
  * qpnp_pon_wd_config - Disable the wd in a warm reset.
  * @enable: to enable or disable the PON watch dog
@@ -823,6 +897,40 @@ static int qpnp_pon_store_and_clear_warm_reset(struct qpnp_pon *pon)
 }
 
 static int
+qpnp_pon_lpk_reset_type_change(struct qpnp_pon *pon, u32 reset_type)
+{
+	int rc = 0;
+	struct qpnp_pon_config *lpkcfg = NULL;
+
+	lpkcfg = qpnp_get_cfg(pon, PON_KPDPWR);
+	if (!lpkcfg) {
+		pr_debug("PMIC fail to get lpkcfg\n");
+		return -EINVAL;
+	}
+
+	rc = qpnp_pon_masked_write(pon, lpkcfg->s2_cntl2_addr,
+		QPNP_PON_S2_CNTL_EN, 0);
+	if (rc) {
+		pr_debug("PMIC Unable to configure S2 disable\n");
+		return rc;
+	}
+
+	udelay(500);
+	rc = qpnp_pon_masked_write(pon, lpkcfg->s2_cntl_addr,
+		QPNP_PON_S2_CNTL_TYPE_MASK, reset_type);
+	if (rc)
+		pr_debug("PMIC Unable to configure s2"
+			" warmreset. rc: %d\n", rc);
+	rc = qpnp_pon_masked_write(pon, lpkcfg->s2_cntl2_addr,
+		QPNP_PON_S2_CNTL_EN, QPNP_PON_S2_CNTL_EN);
+	if (rc)
+		pr_err("PMIC Unable to config s2"
+			" enable. rc: %d\n", rc);
+
+	return rc;
+}
+
+static int
 qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 {
 	int rc;
@@ -876,6 +984,23 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 		return -EINVAL;
 	}
 
+	if ((cfg->key_code == KEY_VOLUMEDOWN)
+		&& (pon_rt_sts == (QPNP_PON_KPDPWR_N_SET|QPNP_PON_RESIN_N_SET))
+		&& (pon_rt_bit == QPNP_PON_RESIN_N_SET)
+		&& (pon->is_keycomb_pressed == false)) {
+		pon->is_keycomb_pressed = true;
+		qpnp_pon_lpk_reset_type_change(pon, 0x1);
+		pr_debug("PMIC set warmreset for long power key by keycombo\n");
+	}
+	if ((cfg->key_code == KEY_VOLUMEDOWN)
+		&& (pon_rt_sts == QPNP_PON_KPDPWR_N_SET)
+		&& (pon_rt_bit == QPNP_PON_RESIN_N_SET)
+		&& (pon->is_keycomb_pressed == true)) {
+		pon->is_keycomb_pressed = false;
+		qpnp_pon_lpk_reset_type_change(pon, 0x7);
+		pr_debug("PMIC set hardreset for long power key by keycombo\n");
+	}
+
 	pr_debug("PMIC input: code=%d, sts=0x%hhx\n",
 					cfg->key_code, pon_rt_sts);
 	key_status = pon_rt_sts & pon_rt_bit;
@@ -923,6 +1048,7 @@ static irqreturn_t qpnp_resin_irq(int irq, void *_pon)
 	int rc;
 	struct qpnp_pon *pon = _pon;
 
+	wake_lock_timeout(&volume_down_wl, 3*HZ);
 	rc = qpnp_pon_input_dispatch(pon, PON_RESIN);
 	if (rc)
 		dev_err(&pon->spmi->dev, "Unable to send input event\n");
@@ -2423,12 +2549,16 @@ static int qpnp_pon_probe(struct spmi_device *spmi)
 		boot_reason = ffs(pon_sts);
 	}
 
+	pon->is_keycomb_pressed = false;
 	/* config whether store the hard reset reason */
 	pon->store_hard_reset_reason = of_property_read_bool(
 					spmi->dev.of_node,
 					"qcom,store-hard-reset-reason");
 
 	qpnp_pon_debugfs_init(spmi);
+	/* if wake_lock not be initied, init it */
+	if (volume_down_wl.ws.name != wake_lock_name)
+		wake_lock_init(&volume_down_wl, WAKE_LOCK_SUSPEND, wake_lock_name);
 	return 0;
 }
 
@@ -2449,6 +2579,7 @@ static int qpnp_pon_remove(struct spmi_device *spmi)
 		list_del(&pon->list);
 		spin_unlock_irqrestore(&spon_list_slock, flags);
 	}
+	wake_lock_destroy(&volume_down_wl);
 	return 0;
 }
 
