@@ -16,7 +16,22 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
+ * INFORMATION CONTAINED IN THIS DOCUMENT IS PROVIDED "AS-IS," AND SYNAPTICS
+ * EXPRESSLY DISCLAIMS ALL EXPRESS AND IMPLIED WARRANTIES, INCLUDING ANY
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE,
+ * AND ANY WARRANTIES OF NON-INFRINGEMENT OF ANY INTELLECTUAL PROPERTY RIGHTS.
+ * IN NO EVENT SHALL SYNAPTICS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, PUNITIVE, OR CONSEQUENTIAL DAMAGES ARISING OUT OF OR IN CONNECTION
+ * WITH THE USE OF THE INFORMATION CONTAINED IN THIS DOCUMENT, HOWEVER CAUSED
+ * AND BASED ON ANY THEORY OF LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, AND EVEN IF SYNAPTICS WAS ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE. IF A TRIBUNAL OF COMPETENT JURISDICTION DOES
+ * NOT PERMIT THE DISCLAIMER OF DIRECT DAMAGES OR ANY OTHER DAMAGES, SYNAPTICS'
+ * TOTAL CUMULATIVE LIABILITY TO ANY PARTY SHALL NOT EXCEED ONE HUNDRED U.S.
+ * DOLLARS.
  */
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -31,12 +46,9 @@
 
 #define SYN_I2C_RETRY_TIMES 4
 
-/*
-#define I2C_BURST_LIMIT 255
-*/
-/*
-#define XFER_MSGS_LIMIT 8
-*/
+#define I2C_BURST_LIMIT 2048
+
+#define MAX_WRITE_SIZE 4096
 
 static unsigned char *wr_buf;
 
@@ -174,6 +186,10 @@ static int parse_dt(struct device *dev, struct synaptics_dsx_board_data *bdata)
 
 	bdata->cut_off_power = of_property_read_bool(np, "synaptics,cut-off-power");
 
+	bdata->captouch_use = of_property_read_bool(np, "synaptics,captouch-use");
+
+	bdata->power_ctrl = of_property_read_bool(np, "synaptics,power-ctrl");
+
 	bdata->power_gpio = of_get_named_gpio_flags(np,
 			"synaptics,power-gpio", 0, NULL);
 	if (bdata->power_gpio >= 0) {
@@ -227,7 +243,7 @@ static int parse_dt(struct device *dev, struct synaptics_dsx_board_data *bdata)
 	retval = of_property_read_u32(np, "synaptics,reset-delay-ms",
 			&value);
 	if (retval < 0)
-		bdata->reset_delay_ms = 200;	/* No reset delay by default */
+		bdata->reset_delay_ms = 0;	/* No reset delay by default */
 	else
 		bdata->reset_delay_ms = value;
 
@@ -250,6 +266,42 @@ static int parse_dt(struct device *dev, struct synaptics_dsx_board_data *bdata)
 		bdata->ub_i2c_addr = -1;
 	else
 		bdata->ub_i2c_addr = (unsigned short)value;
+
+	retval = of_property_read_string(np, "synaptics,backup-fw", &name);
+	if (retval == -EINVAL)
+		bdata->backup_fw_name = NULL;
+	else if (retval < 0)
+		return retval;
+	else
+		bdata->backup_fw_name = name;
+
+	retval = of_property_read_u32(np, "synaptics,chip-3330",
+			&value);
+	if (retval < 0)
+		bdata->chip_3330 = 0;
+	else
+		bdata->chip_3330 = value;
+
+	retval = of_property_read_u32(np, "synaptics,chip-3331",
+			&value);
+	if (retval < 0)
+		bdata->chip_3331 = 1;
+	else
+		bdata->chip_3331 = value;
+
+	retval = of_property_read_u32(np, "synaptics,chip-4322",
+			&value);
+	if (retval < 0)
+		bdata->chip_4322 = 2;
+	else
+		bdata->chip_4322 = value;
+
+	retval = of_property_read_u32(np, "synaptics,chip-4722",
+			&value);
+	if (retval < 0)
+		bdata->chip_4722 = 3;
+	else
+		bdata->chip_4722 = value;
 
 	prop = of_find_property(np, "synaptics,cap-button-codes", NULL);
 	if (prop && prop->length) {
@@ -351,6 +403,13 @@ static int parse_dt(struct device *dev, struct synaptics_dsx_board_data *bdata)
 
 	config_info = bdata->config_array;
 	for_each_child_of_node(np, temp) {
+		retval = of_property_read_u32(temp, "synaptics,chip-id",
+				&value);
+		if (retval < 0)
+			config_info->chip_id = -1;
+		else
+			config_info->chip_id = value;
+
 		prop = of_find_property(temp, "synaptics,tp-id", NULL);
 		if (prop && prop->length) {
 			if (bdata->tp_id_num != prop->length / sizeof(u8)) {
@@ -479,21 +538,15 @@ static int synaptics_rmi4_i2c_read(struct synaptics_rmi4_data *rmi4_data,
 	int retval;
 	unsigned char retry;
 	unsigned char buf;
-#ifdef I2C_BURST_LIMIT
-	unsigned char ii;
-	unsigned char rd_msgs = ((length - 1) / I2C_BURST_LIMIT) + 1;
-#else
-	unsigned char rd_msgs = 1;
-#endif
-	unsigned char index = 0;
-	unsigned char xfer_msgs;
-	unsigned char remaining_msgs;
 	unsigned short i2c_addr;
 	unsigned short data_offset = 0;
-	unsigned short remaining_length = length;
 	struct i2c_client *i2c = to_i2c_client(rmi4_data->pdev->dev.parent);
 	struct i2c_adapter *adap = i2c->adapter;
-	struct i2c_msg msg[rd_msgs + 1];
+	struct i2c_msg msg[2];
+	unsigned short index = 0;
+	unsigned short read_size;
+	unsigned short max_read_size;
+	unsigned short left_bytes = length;
 
 	mutex_lock(&rmi4_data->rmi4_io_ctrl_mutex);
 
@@ -508,39 +561,36 @@ static int synaptics_rmi4_i2c_read(struct synaptics_rmi4_data *rmi4_data,
 	msg[0].len = 1;
 	msg[0].buf = &buf;
 
+	msg[1].addr = hw_if.board_data->i2c_addr;
+	msg[1].flags = I2C_M_RD;
+
 #ifdef I2C_BURST_LIMIT
-	for (ii = 0; ii < (rd_msgs - 1); ii++) {
-		msg[ii + 1].addr = hw_if.board_data->i2c_addr;
-		msg[ii + 1].flags = I2C_M_RD;
-		msg[ii + 1].len = I2C_BURST_LIMIT;
-		msg[ii + 1].buf = &data[data_offset];
-		data_offset += I2C_BURST_LIMIT;
-		remaining_length -= I2C_BURST_LIMIT;
-	}
-#endif
-
-	msg[rd_msgs].addr = hw_if.board_data->i2c_addr;
-	msg[rd_msgs].flags = I2C_M_RD;
-	msg[rd_msgs].len = remaining_length;
-	msg[rd_msgs].buf = &data[data_offset];
-
-	buf = addr & MASK_8BIT;
-
-	remaining_msgs = rd_msgs + 1;
-
-	while (remaining_msgs) {
-#ifdef XFER_MSGS_LIMIT
-		if (remaining_msgs > XFER_MSGS_LIMIT)
-			xfer_msgs = XFER_MSGS_LIMIT;
-		else
-			xfer_msgs = remaining_msgs;
+	max_read_size = I2C_BURST_LIMIT;
 #else
-		xfer_msgs = remaining_msgs;
+	max_read_size = length;
 #endif
+
+	do {
+		if (left_bytes / max_read_size)
+			read_size = max_read_size;
+		else
+			read_size = left_bytes;
+
+		msg[1].len = read_size;
+		msg[1].buf = &data[data_offset + index];
+
+		buf = addr & MASK_8BIT;
+
 		for (retry = 0; retry < SYN_I2C_RETRY_TIMES; retry++) {
-			retval = i2c_transfer(adap, &msg[index], xfer_msgs);
-			if (retval == xfer_msgs)
-				break;
+			if (left_bytes == length) {
+				retval = i2c_transfer(adap, &msg[0], 2);
+				if (retval == 2)
+					break;
+			} else {
+				retval = i2c_transfer(adap, &msg[1], 1);
+				if (retval == 1)
+					break;
+			}
 
 			dev_err(rmi4_data->pdev->dev.parent,
 					"%s: I2C retry %d\n",
@@ -551,11 +601,7 @@ static int synaptics_rmi4_i2c_read(struct synaptics_rmi4_data *rmi4_data,
 				synaptics_rmi4_i2c_check_addr(rmi4_data, i2c);
 				i2c_addr = hw_if.board_data->i2c_addr;
 				msg[0].addr = i2c_addr;
-#ifdef I2C_BURST_LIMIT
-				for (ii = 0; ii < (rd_msgs - 1); ii++)
-					msg[ii + 1].addr = i2c_addr;
-#endif
-				msg[rd_msgs].addr = i2c_addr;
+				msg[1].addr = i2c_addr;
 			}
 		}
 
@@ -567,9 +613,9 @@ static int synaptics_rmi4_i2c_read(struct synaptics_rmi4_data *rmi4_data,
 			goto exit;
 		}
 
-		remaining_msgs -= xfer_msgs;
-		index += xfer_msgs;
-	}
+		index += read_size;
+		left_bytes -= read_size;
+	} while (left_bytes);
 
 	retval = length;
 
@@ -586,8 +632,18 @@ static int synaptics_rmi4_i2c_write(struct synaptics_rmi4_data *rmi4_data,
 	unsigned char retry;
 	struct i2c_client *i2c = to_i2c_client(rmi4_data->pdev->dev.parent);
 	struct i2c_msg msg[1];
+	unsigned short index = 0;
+	unsigned short write_size;
+	unsigned short max_write_size;
+	unsigned short left_bytes = length;
 
-	retval = synaptics_rmi4_i2c_alloc_buf(rmi4_data, length + 1);
+#ifdef MAX_WRITE_SIZE
+	max_write_size = MAX_WRITE_SIZE;
+#else
+	max_write_size = length;
+#endif
+
+	retval = synaptics_rmi4_i2c_alloc_buf(rmi4_data, max_write_size + 1);
 	if (retval < 0)
 		return retval;
 
@@ -599,42 +655,52 @@ static int synaptics_rmi4_i2c_write(struct synaptics_rmi4_data *rmi4_data,
 		goto exit;
 	}
 
-	msg[0].addr = hw_if.board_data->i2c_addr;
-	msg[0].flags = 0;
-	msg[0].len = length + 1;
-	msg[0].buf = wr_buf;
+	do {
+		if (left_bytes / max_write_size)
+			write_size = max_write_size;
+		else
+			write_size = left_bytes;
 
-	wr_buf[0] = addr & MASK_8BIT;
-	retval = secure_memcpy(&wr_buf[1], length, &data[0], length, length);
-	if (retval < 0) {
-		dev_err(rmi4_data->pdev->dev.parent,
-				"%s: Failed to copy data\n",
-				__func__);
-		goto exit;
-	}
+		msg[0].addr = hw_if.board_data->i2c_addr;
+		msg[0].flags = 0;
+		msg[0].len = write_size + 1;
+		msg[0].buf = wr_buf;
 
-	for (retry = 0; retry < SYN_I2C_RETRY_TIMES; retry++) {
-		if (i2c_transfer(i2c->adapter, msg, 1) == 1) {
-			retval = length;
-			break;
+		wr_buf[0] = addr & MASK_8BIT;
+		retval = secure_memcpy(&wr_buf[1], write_size, &data[index], write_size, write_size);
+		if (retval < 0) {
+			dev_err(rmi4_data->pdev->dev.parent,
+					"%s: Failed to copy data\n",
+					__func__);
+			goto exit;
 		}
-		dev_err(rmi4_data->pdev->dev.parent,
-				"%s: I2C retry %d\n",
-				__func__, retry + 1);
-		msleep(20);
 
-		if (retry == SYN_I2C_RETRY_TIMES / 2) {
-			synaptics_rmi4_i2c_check_addr(rmi4_data, i2c);
-			msg[0].addr = hw_if.board_data->i2c_addr;
+		for (retry = 0; retry < SYN_I2C_RETRY_TIMES; retry++) {
+			if (i2c_transfer(i2c->adapter, msg, 1) == 1) {
+				retval = length;
+				break;
+			}
+			dev_err(rmi4_data->pdev->dev.parent,
+					"%s: I2C retry %d\n",
+					__func__, retry + 1);
+			msleep(20);
+
+			if (retry == SYN_I2C_RETRY_TIMES / 2) {
+				synaptics_rmi4_i2c_check_addr(rmi4_data, i2c);
+				msg[0].addr = hw_if.board_data->i2c_addr;
+			}
 		}
-	}
 
-	if (retry == SYN_I2C_RETRY_TIMES) {
-		dev_err(rmi4_data->pdev->dev.parent,
-				"%s: I2C write over retry limit\n",
-				__func__);
-		retval = -EIO;
-	}
+		if (retry == SYN_I2C_RETRY_TIMES) {
+			dev_err(rmi4_data->pdev->dev.parent,
+					"%s: I2C write over retry limit\n",
+					__func__);
+			retval = -EIO;
+		}
+
+		index += write_size;
+		left_bytes -= write_size;
+	} while (left_bytes);
 
 exit:
 	mutex_unlock(&rmi4_data->rmi4_io_ctrl_mutex);
@@ -716,7 +782,7 @@ static int synaptics_rmi4_i2c_probe(struct i2c_client *client,
 	hw_if.bus_access = &bus_access;
 	hw_if.board_data->i2c_addr = client->addr;
 
-	synaptics_dsx_i2c_device->name = PLATFORM_DRIVER_NAME;
+	synaptics_dsx_i2c_device->name = PLATFORM_DRIVER_FORCE;
 	synaptics_dsx_i2c_device->id = 0;
 	synaptics_dsx_i2c_device->num_resources = 0;
 	synaptics_dsx_i2c_device->dev.parent = &client->dev;
@@ -742,41 +808,40 @@ static int synaptics_rmi4_i2c_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id synaptics_rmi4_id_table[] = {
-	{I2C_DRIVER_NAME, 0},
+	{I2C_DRIVER_FORCE, 0},
 	{},
 };
 MODULE_DEVICE_TABLE(i2c, synaptics_rmi4_id_table);
 
 #ifdef CONFIG_OF
-static struct of_device_id synaptics_rmi4_of_match_table[] = {
+static struct of_device_id synaptics_rmi4_of_match_table_force[] = {
 	{
-		.compatible = "synaptics,dsx-i2c",
+		.compatible = "synaptics,dsx-i2c-force",
 	},
 	{},
 };
-MODULE_DEVICE_TABLE(of, synaptics_rmi4_of_match_table);
+MODULE_DEVICE_TABLE(of, synaptics_rmi4_of_match_table_force);
 #else
 #define synaptics_rmi4_of_match_table NULL
 #endif
 
 static struct i2c_driver synaptics_rmi4_i2c_driver = {
 	.driver = {
-		.name = I2C_DRIVER_NAME,
+		.name = "synaptics_dsi_force",
 		.owner = THIS_MODULE,
-		.of_match_table = synaptics_rmi4_of_match_table,
+		.of_match_table = synaptics_rmi4_of_match_table_force,
 	},
 	.probe = synaptics_rmi4_i2c_probe,
 	.remove = synaptics_rmi4_i2c_remove,
 	.id_table = synaptics_rmi4_id_table,
 };
 
-int synaptics_rmi4_bus_init(void)
+int synaptics_rmi4_bus_init_force(void)
 {
 	return i2c_add_driver(&synaptics_rmi4_i2c_driver);
 }
-EXPORT_SYMBOL(synaptics_rmi4_bus_init);
 
-void synaptics_rmi4_bus_exit(void)
+void synaptics_rmi4_bus_exit_force(void)
 {
 	kfree(wr_buf);
 
@@ -784,7 +849,6 @@ void synaptics_rmi4_bus_exit(void)
 
 	return;
 }
-EXPORT_SYMBOL(synaptics_rmi4_bus_exit);
 
 MODULE_AUTHOR("Synaptics, Inc.");
 MODULE_DESCRIPTION("Synaptics DSX I2C Bus Support Module");
