@@ -1,0 +1,385 @@
+/* Copyright (c) 2015, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "msm8996-xiaomi-common.dtsi"
+#include "msm8996-camera-sensor-capricorn.dtsi"
+
+&pmi8994_haptics {
+	status = "ok";
+	qcom,vmax-mv = <1740>;
+};
+
+&pm8994_gpios {
+	gpio@c600 { /* GPIO 7 - KEYPAD_LED_EN */
+		qcom,mode = <1>;	/* DIGITAL OUT */
+		qcom,output-type = <0>;	/* CMOS logic */
+		qcom,invert = <1>;	/* output hight initially */
+		qcom,vin-sel = <2>;	/* 1.8 */
+		qcom,src-sel = <0>;	/* CONSTANT */
+		qcom,out-strength = <1>;/* Low drive strength */
+		qcom,master-en = <1>;	/* ENABLE GPIO */
+		status = "okay";
+	};
+};
+
+&soc {
+	qcom,captouch {
+	compatible = "qcom,captouch";
+};
+
+	i2c@75b7000 {
+		lp5562@30 {
+			compatible = "ti,lp5562";
+			reg = <0x30>;
+			enable-gpio = <&pm8994_gpios 7 1>;
+			clock-mode = /bits/8 <2>;
+			label = "button-backlight";
+			chan0 {
+				chan-name = "button-backlight";
+				led-cur = /bits/ 8 <0x32>;
+				max-cur = /bits/ 8 <0xC8>;
+			};
+
+			chan1 {
+				chan-name = "button-backlight1";
+				led-cur = /bits/ 8 <0x32>;
+				max-cur = /bits/ 8 <0xC8>;
+			};
+		};
+	};
+
+	i2c@75ba000 {
+		synaptics_dsi_i2c@20 {
+			compatible = "synaptics,dsx-i2c-force";
+			reg = <0x20>;
+			interrupt-parent = <&tlmm>;
+			interrupts = <125 0x2008>;
+			vdd-supply = <&pm8994_l6>;
+			lab-supply = <&lab_regulator>;
+			ibb-supply = <&ibb_regulator>;
+			disp-supply = <&pm8994_l14>;
+			avdd-supply = <&disp_vddts_vreg>;
+			synaptics,pwr-reg-name = "vdd";
+			synaptics,lab-reg-name = "lab";
+			synaptics,ibb-reg-name = "ibb";
+			synaptics,disp-reg-name = "disp";
+			synaptics,bus-reg-name = "avdd";
+			synaptics,ub-i2c-addr = <0x2c>;
+			pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
+			pinctrl-0 = <&ts_active>;
+			pinctrl-1 = <&ts_suspend>;
+			synaptics,mdss-dsi-reset = <&tlmm 8 0>;
+			synaptics,reset-gpio = <&tlmm 89 0x00>;
+			synaptics,irq-gpio = <&tlmm 125 0x2008>;
+			synaptics,reset-gpio-name = "dsx_reset";
+			synaptics,irq-gpio-name = "dsx_irq";
+			synaptics,irq-on-state = <0>;
+			synaptics,irq-flags = <0x2008>; /* IRQF_ONESHOT | IRQF_TRIGGER_LOW */
+			synaptics,power-delay-ms = <5>;
+			synaptics,reset-delay-ms = <200>;
+			synaptics,reset-active-ms = <5>;
+			synaptics,captouch-use;
+			synaptics,power-on-state = <1>;
+			synaptics,reset-on-state = <0>;
+			synaptics,mdss-reset-state = <1>;
+			synaptics,cap-button-codes = <158 102 139>;
+			synaptics,short-jdi-25 = "000: 0xfb\n001: 0xef\n002: 0xff\n003: 0xff\n004: 0x10\n005: 0x00\n006: 0x00";
+			synaptics,short-jdi-26 = "000: 0x03\n001: 0x00\n002: 0x00\n003: 0x00\n004: 0x10\n005: 0x00\n006: 0x00";
+			clock-names = "iface_clk", "core_clk";
+			clocks = <&clock_gcc clk_gcc_blsp2_ahb_clk>,
+				<&clock_gcc clk_gcc_blsp2_qup6_i2c_apps_clk>;
+			synaptics,backup-fw = "synaptics_lgd_backup_CAPRICORN.fw";
+			synaptics,chip-3330 = <0>;
+			synaptics,chip-3331 = <1>;
+			synaptics,chip-4322 = <2>;
+			synaptics,chip-4722 = <3>;
+			synaptics,guest-serialization-as-lockdown;
+			synaptics,tp-id-byte = /bits/ 8 <0>;
+			synaptics,config-array-size = <4>;
+			synaptics,cfg_1 {
+				synaptics,chip-id = <0>;
+				synaptics,tp-id = /bits/ 8 <0x31>;
+				synaptics,fw-name = "synaptics_jdi_3330_capricorn.fw";
+			};
+			synaptics,cfg_2 {
+				synaptics,chip-id = <2>;
+				synaptics,tp-id = /bits/ 8 <0x34>;
+				synaptics,fw-name = "synaptics_lgd_4322_capricorn.fw";
+			};
+			synaptics,cfg_3 {
+				synaptics,chip-id = <1>;
+				synaptics,tp-id = /bits/ 8 <0x31>;
+				synaptics,fw-name = "synaptics_jdi_3331_capricorn.fw";
+			};
+			synaptics,cfg_4 {
+				synaptics,chip-id = <3>;
+				synaptics,tp-id = /bits/ 8 <0x34>;
+				synaptics,fw-name = "synaptics_lgd_4722_capricorn.fw";
+			};
+		};
+
+		atmel_mxt_ts_641t@4a {
+			compatible = "atmel,mxt-ts";
+			reg = <0x4a>;
+			interrupt-parent = <&tlmm>;
+			interrupts = <125 0x2008>;
+			vddio-supply = <&pm8994_l6>;
+			vdd-supply = <&disp_vddts_vreg>;
+			/* pins used by touchscreen */
+			pinctrl-names = "pmx_ts_active","pmx_ts_suspend";
+			pinctrl-0 = <&ts_active>;
+			pinctrl-1 = <&ts_suspend>;
+			atmel,reset-gpio = <&tlmm 89 0x00>;
+			atmel,irq-gpio = <&tlmm 125 0x2008>;
+			atmel,mxt-fw-name = "mXT641T30AC.fw";
+			atmel,config-array-size = <4>;
+			atmel,default-config = <0>;
+			atmel,default-panel-id = <0x31>;
+			atmel,irqflags = <0x2008>;
+			atmel,gpio-mask = <0xC>;
+			atmel,cfg_1 {
+				atmel,family-id = <0xA4>;
+				atmel,variant-id = <0x2F>;
+				atmel,version = <0x30>;
+				atmel,build = <0xAC>;
+				atmel,rev-id = <0x32>;
+				atmel,mxt-cfg-name = "mxt_641t_sharp_config.fw";
+				atmel,vendor-id = <0x0C>;
+				atmel,panel-id = <0x38>; /* Sharp id = 0x38 */
+				atmel,key-codes = <158 139 102>;
+				atmel,selfintthr-stylus = <0>;
+				atmel,t71-tchthr-pos = <22>;
+				atmel,self-chgtime-min = <0>;
+				atmel,self-chgtime-max = <0>;
+				atmel,mult-intthr-sensitive = <0>;
+				atmel,mult-intthr-not-sensitive = <17>;
+				atmel,atchthr-sensitive = <6>;
+				atmel,mult-tchthr-sensitive = <0x0f>;
+				atmel,mult-tchthr-not-sensitive = <0>;
+				atmel,wake-up-self-adcx = <16>;
+				atmel,atchratio = <33>;
+				atmel,xycfg = <0>;
+				atmel,xsize = <0x07>;
+				atmel,xrange-lsb = <0x08>;
+				atmel,xrange-msb = <0x02>;
+				atmel,tchhyst = <0x05>;
+				atmel,intthrhyst = <0>;
+				atmel,xtchthr = <0x0f>;
+				atmel,xtchhyst = <0x05>;
+				atmel,intthrx = <0>;
+				atmel,ytchthr = <0x0f>;
+				atmel,ytchhyst = <0x05>;
+				atmel,intthry = <0>;
+			};
+			atmel,cfg_2 {
+				atmel,family-id = <0xA4>;
+				atmel,variant-id = <0x2F>;
+				atmel,version = <0x30>;
+				atmel,build = <0xAC>;
+				atmel,rev-id = <0x32>;
+				atmel,mxt-cfg-name = "mxt_641t_sharp_config.fw";
+				atmel,vendor-id = <0x0C>;
+				atmel,panel-id = <0x31>; /* Biel id = 0x31 */
+				atmel,key-codes = <158 139 102>;
+				atmel,selfintthr-stylus = <0>;
+				atmel,t71-tchthr-pos = <22>;
+				atmel,self-chgtime-min = <0>;
+				atmel,self-chgtime-max = <0>;
+				atmel,mult-intthr-sensitive = <0>;
+				atmel,mult-intthr-not-sensitive = <17>;
+				atmel,atchthr-sensitive = <6>;
+				atmel,mult-tchthr-sensitive = <0x0f>;
+				atmel,mult-tchthr-not-sensitive = <0>;
+				atmel,wake-up-self-adcx = <16>;
+				atmel,atchratio = <33>;
+				atmel,xycfg = <0>;
+				atmel,xsize = <0x07>;
+				atmel,xrange-lsb = <0x08>;
+				atmel,xrange-msb = <0x02>;
+				atmel,tchhyst = <0x05>;
+				atmel,intthrhyst = <0>;
+				atmel,xtchthr = <0x0f>;
+				atmel,xtchhyst = <0x05>;
+				atmel,intthrx = <0>;
+				atmel,ytchthr = <0x0f>;
+				atmel,ytchhyst = <0x05>;
+				atmel,intthry = <0>;
+			};
+			atmel,cfg_3 {
+				atmel,family-id = <0xA4>;
+				atmel,variant-id = <0x2F>;
+				atmel,version = <0x30>;
+				atmel,build = <0xAC>;
+				atmel,rev-id = <0x32>;
+				atmel,mxt-cfg-name = "mxt_641t_sharp_config.fw";
+				atmel,vendor-id = <0x0C>;
+				atmel,panel-id = <0x51>; /* WA: Incorrect lockdown */
+				atmel,key-codes = <158 139 102>;
+				atmel,selfintthr-stylus = <0>;
+				atmel,t71-tchthr-pos = <22>;
+				atmel,self-chgtime-min = <0>;
+				atmel,self-chgtime-max = <0>;
+				atmel,mult-intthr-sensitive = <0>;
+				atmel,mult-intthr-not-sensitive = <17>;
+				atmel,atchthr-sensitive = <6>;
+				atmel,mult-tchthr-sensitive = <0x0f>;
+				atmel,mult-tchthr-not-sensitive = <0>;
+				atmel,wake-up-self-adcx = <16>;
+				atmel,atchratio = <33>;
+				atmel,xycfg = <0>;
+				atmel,xsize = <0x07>;
+				atmel,xrange-lsb = <0x08>;
+				atmel,xrange-msb = <0x02>;
+				atmel,tchhyst = <0x05>;
+				atmel,intthrhyst = <0>;
+				atmel,xtchthr = <0x0f>;
+				atmel,xtchhyst = <0x05>;
+				atmel,intthrx = <0>;
+				atmel,ytchthr = <0x0f>;
+				atmel,ytchhyst = <0x05>;
+				atmel,intthry = <0>;
+			};
+			atmel,cfg_4 {
+				atmel,family-id = <0xA4>;
+				atmel,variant-id = <0x2F>;
+				atmel,version = <0x30>;
+				atmel,build = <0xAC>;
+				atmel,rev-id = <0x32>;
+				atmel,mxt-cfg-name = "mxt_641t_sharp_config.fw";
+				atmel,vendor-id = <0x0C>;
+				atmel,panel-id = <0x52>; /* WA: Incorrect lockdown */
+				atmel,key-codes = <158 139 102>;
+				atmel,selfintthr-stylus = <0>;
+				atmel,t71-tchthr-pos = <22>;
+				atmel,self-chgtime-min = <0>;
+				atmel,self-chgtime-max = <0>;
+				atmel,mult-intthr-sensitive = <0>;
+				atmel,mult-intthr-not-sensitive = <17>;
+				atmel,atchthr-sensitive = <6>;
+				atmel,mult-tchthr-sensitive = <0x0f>;
+				atmel,mult-tchthr-not-sensitive = <0>;
+				atmel,wake-up-self-adcx = <16>;
+				atmel,atchratio = <33>;
+				atmel,xycfg = <0>;
+				atmel,xsize = <0x07>;
+				atmel,xrange-lsb = <0x08>;
+				atmel,xrange-msb = <0x02>;
+				atmel,tchhyst = <0x05>;
+				atmel,intthrhyst = <0>;
+				atmel,xtchthr = <0x0f>;
+				atmel,xtchhyst = <0x05>;
+				atmel,intthrx = <0>;
+				atmel,ytchthr = <0x0f>;
+				atmel,ytchhyst = <0x05>;
+				atmel,intthry = <0>;
+			};
+		};
+	};
+};
+
+&rpm_bus {
+	rpm-regulator-ldoa17 {
+		status = "okay";
+		pm8994_l17: regulator-l17 {
+			regulator-min-microvolt = <2800000>;
+			regulator-max-microvolt = <2800000>;
+			qcom,init-voltage = <2800000>;
+			status = "okay";
+		};
+	};
+};
+
+&pm8994_gpios {
+	gpio@c600 { /* GPIO 7 - KEYPAD_LED_EN */
+		qcom,mode = <1>;	/* DIGITAL OUT */
+		qcom,output-type = <0>;	/* CMOS logic */
+		qcom,invert = <1>; 	/* output hight initially */
+		qcom,vin-sel = <2>;	/* 1.8 */
+		qcom,src-sel = <0>;	/* CONSTANT */
+		qcom,out-strength = <1>;/* Low drive strength */
+		qcom,master-en = <1>;	/* ENABLE GPIO */
+		status = "okay";
+	};
+};
+
+&ssc_sensors {
+	qcom,firmware-name = "slpi_a7";
+};
+
+&mdss_dsi1_pll {
+	status = "disabled";
+};
+
+&mdss_dsi1 {
+	status = "disabled";
+};
+
+&mtp_batterydata {
+	qcom,batt-id-range-pct = <15>;
+	#include "batterydata-capricorn-atl-3200mah.dtsi"
+	#include "batterydata-capricorn-sdi-3200mah.dtsi"
+	#include "batterydata-itech-3020mah.dtsi"
+};
+
+&qusb_phy0 {
+	qcom,qusb-phy-init-seq = <0x38 0x80
+			0x90 0x84
+			0x93 0x88
+			0xCf 0x8C
+			0x30 0x08
+			0x79 0x0C
+			0x21 0x10
+			0x14 0x9C
+			0x9F 0x1C
+			0x00 0x18>;
+};
+
+&qusb_phy1 {
+	qcom,qusb-phy-init-seq = <0x38 0x80
+			0x90 0x84
+			0x93 0x88
+			0xCf 0x8C
+			0x30 0x08
+			0x79 0x0C
+			0x21 0x10
+			0x14 0x9C
+			0x9F 0x1C
+			0x00 0x18>;
+};
+
+&red_led {
+	qcom,duty-pcts = [
+		00 00 01 03 06 0a
+		0f 13 16 18 19
+		19 18 16 13 0f
+		0a 06 03 01 00
+		00];
+};
+
+&green_led {
+	qcom,duty-pcts = [
+		00 00 01 03 06 0a
+		0f 13 16 18 19
+		19 18 16 13 0f
+		0a 06 03 01 00
+		00];
+};
+
+&blue_led {
+	qcom,duty-pcts = [
+		00 00 01 03 06 0a
+		0f 13 16 18 19
+		19 18 16 13 0f
+		0a 06 03 01 00
+		00];
+};
