@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_38446d73",
+        "filename": "sound/soc/msm/qdsp6v2/Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-28T11:22:33Z",
+      "side": 1,
+      "message": "remove new line",
+      "revId": "8874df28ed5aa2a56e182ba4a8524f3bc3823e53",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
