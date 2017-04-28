@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_cc48fece",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-xiaomi-common.dtsi",
+        "patchSetId": 6
+      },
+      "lineNbr": 1048,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-04-28T18:17:38Z",
+      "side": 1,
+      "message": "This is not going to work for all devices. Move it somewhere.",
+      "range": {
+        "startLine": 1040,
+        "startChar": 0,
+        "endLine": 1048,
+        "endChar": 23
+      },
+      "revId": "4cd4429fda8e50a6cb96c4d2aec5a20527188484",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_ac45c2b4",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-xiaomi-common.dtsi",
+        "patchSetId": 6
+      },
+      "lineNbr": 1094,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-04-28T18:17:38Z",
+      "side": 1,
+      "message": "The same way that this needs to be moved out.",
+      "range": {
+        "startLine": 1094,
+        "startChar": 1,
+        "endLine": 1094,
+        "endChar": 36
+      },
+      "revId": "4cd4429fda8e50a6cb96c4d2aec5a20527188484",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_ccf11e97",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-xiaomi-common.dtsi",
+        "patchSetId": 6
+      },
+      "lineNbr": 1831,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-04-28T18:17:38Z",
+      "side": 1,
+      "message": "Need to double check this.",
+      "range": {
+        "startLine": 1829,
+        "startChar": 0,
+        "endLine": 1831,
+        "endChar": 26
+      },
+      "revId": "4cd4429fda8e50a6cb96c4d2aec5a20527188484",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_ecf4da88",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-xiaomi-common.dtsi",
+        "patchSetId": 6
+      },
+      "lineNbr": 1861,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-04-28T18:17:38Z",
+      "side": 1,
+      "message": "Need to double check this.",
+      "range": {
+        "startLine": 1858,
+        "startChar": 0,
+        "endLine": 1861,
+        "endChar": 27
+      },
+      "revId": "4cd4429fda8e50a6cb96c4d2aec5a20527188484",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_0cf8567b",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-xiaomi-common.dtsi",
+        "patchSetId": 6
+      },
+      "lineNbr": 2027,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-04-28T18:17:38Z",
+      "side": 1,
+      "message": "This only applies to natrium, so better move it to natrium-msm8996-mtp.dtsi.",
+      "range": {
+        "startLine": 2017,
+        "startChar": 0,
+        "endLine": 2027,
+        "endChar": 27
+      },
+      "revId": "4cd4429fda8e50a6cb96c4d2aec5a20527188484",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
