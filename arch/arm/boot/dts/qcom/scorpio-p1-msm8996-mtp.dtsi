@@ -1,0 +1,363 @@
+/* Copyright (c) 2015, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "msm8996-xiaomi-common.dtsi"
+#include "msm8996-camera-sensor-scorpio-p1.dtsi"
+
+&pm8994_l21 {
+	regulator-min-microvolt = <3300000>;
+	regulator-max-microvolt = <3300000>;
+	qcom,init-voltage = <3300000>;
+	regulator-always-on;
+};
+
+&pm8994_gpios {
+	gpio@ca00 { /* GPIO 11 - A4 FPC fingerprint ID detect*/
+		qcom,mode = <0>;
+		qcom,pull = <0>;
+		qcom,vin-sel = <2>;
+		qcom,src-sel = <0>;
+		qcom,master-en = <1>;
+		status = "okay";
+	};
+};
+
+&soc {
+	sound-9335 {
+		qcom,audio-routing =
+			"AIF4 VI", "MCLK",
+			"RX_BIAS", "MCLK",
+			"MADINPUT", "MCLK",
+			"hifi amp", "LINEOUT1",
+			"hifi amp", "LINEOUT2",
+			"AMIC1", "MIC BIAS4",
+			"MIC BIAS4", "Handset Mic",
+			"AMIC2", "MIC BIAS2",
+			"MIC BIAS2", "Headset Mic",
+			"AMIC3", "MIC BIAS4",
+			"MIC BIAS4", "ANCRight Headset Mic",
+			"AMIC4", "MIC BIAS1",
+			"MIC BIAS1", "ANCLeft Headset Mic",
+			"AMIC5", "MIC BIAS3",
+			"MIC BIAS3", "Handset Mic",
+			"AMIC6", "MIC BIAS4",
+			"MIC BIAS4", "Analog Mic6",
+			"DMIC0", "MIC BIAS1",
+			"MIC BIAS1", "Digital Mic0",
+			"DMIC1", "MIC BIAS1",
+			"MIC BIAS1", "Digital Mic1",
+			"DMIC2", "MIC BIAS3",
+			"MIC BIAS3", "Digital Mic2",
+			"DMIC3", "MIC BIAS3",
+			"MIC BIAS3", "Digital Mic3",
+			"DMIC4", "MIC BIAS4",
+			"MIC BIAS4", "Digital Mic4",
+			"DMIC5", "MIC BIAS4",
+			"MIC BIAS4", "Digital Mic5",
+			"SpkrLeft IN", "SPK1 OUT",
+			"SpkrRight IN", "SPK2 OUT";
+
+		spkr-id-gpio = <&pm8994_gpios 3 0>;
+
+		qcom,pa-devs = <&opa1622>;
+		qcom,pa-dev-prefix = "OPA";
+	};
+
+	opa1622: opa1622-pa {
+		compatible = "ti,opa1622";
+		opa-p2-power-supply = <&vreg_pa_5p0>;
+		opa-en-gpio = <&tlmm 85 0x00>;
+		mute-gpio = <&tlmm 31 0x00>;
+		switch-gpio = <&tlmm 135 0x00>;
+	};
+
+	vreg_pa_5p0: vreg_pa_5p0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vreg_pa_5p0";
+		startup-delay-us = <4000>;
+		gpio = <&tlmm 32 0>;
+		enable-active-high;
+	};
+
+	fpc_fpc1020 {
+		compatible = "fpc,fpc1020";
+		fpc,irq-gpio	= <&tlmm 121 0x2001>;
+		fpc,fp-id-gpio = <&pm8994_gpios 11 0x00>;
+		pinctrl-names = "pmx_fp_active", "pmx_fp_suspend";
+		pinctrl-0 = <&fp_active>;
+		pinctrl-1 = <&fp_suspend>;
+		vcc_spi-supply	= <&pm8994_s4>;
+		vdd_ana-supply	= <&pm8994_s4>;
+		vdd_io-supply	= <&pm8994_s4>;
+	};
+
+	tlmm: pinctrl@01010000 {
+		ts_mux {
+			ts_active: ts_active {
+				mux {
+					pins = "gpio125";
+					function = "gpio";
+				};
+
+				config {
+					pins = "gpio125";
+					drive-strength = <16>;
+					bias-pull-up;
+				};
+			};
+
+			ts_suspend: ts_suspend {
+				mux {
+					pins = "gpio125";
+					function = "gpio";
+				};
+
+
+				config {
+					pins = "gpio125";
+					drive-strength = <2>;
+					bias-disable;
+				};
+			};
+		};
+	};
+
+	i2c@75ba000 {
+		fts@49 {
+			compatible = "st,fts";
+			reg = <0x49>;
+			interrupt-parent = <&tlmm>;
+			interrupts = <125 0x2008>;
+			pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
+			pinctrl-0 = <&ts_active>;
+			pinctrl-1 = <&ts_suspend>;
+			vdd-supply = <&pm8994_l6>;
+			avdd-supply = <&disp_vddts_vreg>;
+			fts,pwr-reg-name = "vdd";
+			fts,bus-reg-name = "avdd";
+			fts,irq-gpio = <&tlmm 125 0x2008>;
+			fts,irq-gpio-name = "fts_irq";
+			fts,irq-flags = <0x2008>; /* IRQF_ONESHOT | IRQF_TRIGGER_LOW */
+			fts,fw-name = "st_fts.fw";
+		};
+
+		atmel_mxt_ts_640u@4a {
+			compatible = "atmel,mxt-ts";
+			reg = <0x4a>;
+			interrupt-parent = <&tlmm>;
+			interrupts = <125 0x2008>;
+			vddio-supply = <&pm8994_l6>;
+			vdd-supply = <&disp_vddts_vreg>;
+			/* pins used by touchscreen */
+			pinctrl-names = "pmx_ts_active","pmx_ts_suspend";
+			pinctrl-0 = <&ts_active>;
+			pinctrl-1 = <&ts_suspend>;
+			atmel,reset-gpio = <&tlmm 89 0x00>;
+			atmel,irq-gpio = <&tlmm 125 0x2008>;
+			atmel,mxt-fw-name = "mXT640U10F1.fw";
+			atmel,config-array-size = <1>;
+			atmel,default-config = <0>;
+			atmel,default-panel-id = <0x31>;
+			atmel,irqflags = <0x2008>;
+			atmel,gpio-mask = <0xC>;
+			atmel,no-keys;
+			atmel,cfg_1 {
+				atmel,family-id = <0xA6>;
+				atmel,variant-id = <0x01>;
+				atmel,version = <0x10>;
+				atmel,build = <0xF1>;
+				atmel,rev-id = <0x12>;
+				atmel,mxt-cfg-name = "mxt_640u_lgd_config.fw";
+				atmel,vendor-id = <0x0C>;
+				atmel,panel-id = <0x38>; /* Sharp id = 0x38 */
+				atmel,key-codes = <158 139 102>;
+				atmel,selfintthr-stylus = <0>;
+				atmel,t71-tchthr-pos = <22>;
+				atmel,self-chgtime-min = <0>;
+				atmel,self-chgtime-max = <0>;
+				atmel,mult-intthr-sensitive = <0>;
+				atmel,mult-intthr-not-sensitive = <17>;
+				atmel,atchthr-sensitive = <6>;
+				atmel,mult-tchthr-sensitive = <0x0f>;
+				atmel,mult-tchthr-not-sensitive = <0>;
+				atmel,wake-up-self-adcx = <16>;
+				atmel,atchratio = <33>;
+				atmel,xycfg = <0>;
+				atmel,xsize = <0x07>;
+				atmel,xrange-lsb = <0x08>;
+				atmel,xrange-msb = <0x02>;
+				atmel,tchhyst = <0x05>;
+				atmel,intthrhyst = <0>;
+				atmel,xtchthr = <0x0f>;
+				atmel,xtchhyst = <0x05>;
+				atmel,intthrx = <0>;
+				atmel,ytchthr = <0x0f>;
+				atmel,ytchhyst = <0x05>;
+				atmel,intthry = <0>;
+			};
+		};
+
+		cyttsp_streetfighter_p2@28 {
+			compatible = "cypress,sf3155";
+			reg = <0x28>;
+/*			vdd-supply = <&pm8994_l6>;
+			avdd-supply = <&disp_vddts_vreg>;*/
+			interrupt-parent = <&tlmm>;
+			interrupts = <78 0x2002>;
+			cyttsp,soft-reset;
+			cyttsp,irq-gpio = <&tlmm 78 0x2002>;
+			cyttsp,irqflags = <0x2002>;
+			cyttsp,input-name = "cyttsp_button";
+			cyttsp,key-num = <2>;
+			cyttsp,key-codes = <158 139>;
+			cyttsp,button-status-reg = <0x4A>;
+			cyttsp,bootloader-addr = <0x56>;
+			cyttsp,config-array-size = <1>;
+			cyttsp,standby-reg = <0x01>;
+			cyttsp,softreset-reg = <0x05>;
+			pinctrl-names = "pmx_btn_active", "pmx_btn_suspend";
+			pinctrl-0 = <&btn_active>;
+			pinctrl-1 = <&btn_suspend>;
+			cyttsp,cfg_1 {
+				cyttsp,hw-version = <0x84>;
+				cyttsp,fw-name = "cyttsp_button_no_shielding.fw";
+			};
+		};
+	};
+};
+
+&pm8994_gpios {
+	gpio@c600 {
+		qcom,mode = <1>;		/* Digital out */ qcom,pull = <5>;		/* NO PULL */
+		qcom,vin-sel = <2>;		/* Logical 1 voltage value 1.8v */
+		qcom,src-sel = <0>;		/* QPNP_PIN_SEL_FUNC_CONSTANT */
+		qcom,out-strength = <1>;	/* Low drive strength */
+		qcom,master-en = <0>;
+		status = "okay";
+	};
+
+	gpio@ca00 {
+		qcom,mode = <1>;		/* Digital out */ qcom,pull = <5>;		/* NO PULL */
+		qcom,vin-sel = <2>;		/* Logical 1 voltage value 1.8v */
+		qcom,src-sel = <0>;		/* QPNP_PIN_SEL_FUNC_CONSTANT */
+		qcom,out-strength = <1>;	/* Low drive strength */
+		qcom,master-en = <0>;
+		status = "okay";
+	};
+};
+
+&pm8994_0 {
+	qcom,leds@c600 {
+				compatible = "qcom,leds-qpnp";
+				reg = <0xc600 0x100>;
+				status = "okay";
+				qcom,led_gpio_7 {
+						label = "gpio";
+						linux,name = "button-backlight";
+						qcom,max-current = <5>;
+						qcom,id = <8>;
+						linux,default-trigger = "notification";
+						qcom,default-state = "on";
+						qcom,turn-off-delay-ms = <1000>;
+						qcom,source-sel = <1>;
+						qcom,mode-ctrl = <0x10>;
+						qcom,vin-ctrl = <0x02>;
+				};
+	};
+
+	qcom,leds@ca00 {
+				compatible = "qcom,leds-qpnp";
+				reg = <0xca00 0x100>;
+				status = "okay";
+				qcom,led_gpio_11 {
+						label = "gpio";
+						linux,name = "button-backlight1";
+						qcom,max-current = <5>;
+						qcom,id = <8>;
+						linux,default-trigger = "notification";
+						qcom,default-state = "on";
+						qcom,turn-off-delay-ms = <1000>;
+						qcom,source-sel = <1>;
+						qcom,mode-ctrl = <0x10>;
+						qcom,vin-ctrl = <0x02>;
+				};
+	};
+
+};
+
+&mdss_dsi0 {
+	qcom,dsi-pref-prim-pan = <&dsi_lgd_sw43101_fhd_video>;
+	pinctrl-names = "mdss_default", "mdss_sleep";
+	pinctrl-0 = <&mdss_dsi_active &mdss_te_active &mdss_vddr_active>;
+	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend &mdss_vddr_suspend>;
+	qcom,platform-te-gpio = <&tlmm 10 0>;
+	qcom,platform-reset-gpio = <&tlmm 8 0>;
+	qcom,platform-enable-gpio = <&tlmm 47 0>;
+	qcom,platform-bklight-en-gpio = <&tlmm 48 0>;
+};
+
+&mdss_dsi1 {
+	pinctrl-names = "mdss_default", "mdss_sleep";
+	pinctrl-0 = <&mdss_dsi_active &mdss_te_active &mdss_vddr_active>;
+	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend &mdss_vddr_suspend>;
+	qcom,platform-te-gpio = <&tlmm 10 0>;
+	qcom,platform-reset-gpio = <&tlmm 8 0>;
+	qcom,platform-enable-gpio = <&tlmm 47 0>;
+	qcom,platform-bklight-en-gpio = <&tlmm 48 0>;
+};
+
+&rpm_bus {
+	rpm-regulator-ldoa11 {
+		status = "okay";
+		pm8994_l11: regulator-l11 {
+			regulator-min-microvolt = <1100000>;
+			regulator-max-microvolt = <1100000>;
+			qcom,init-voltage = <1100000>;
+			status = "okay";
+		};
+	};
+
+	rpm-regulator-ldoa17 {
+		status = "okay";
+		pm8994_l17: regulator-l17 {
+			regulator-min-microvolt = <2800000>;
+			regulator-max-microvolt = <2800000>;
+			qcom,init-voltage = <2800000>;
+			status = "okay";
+		};
+	};
+
+	rpm-regulator-ldoa18 {
+		status = "okay";
+		pm8994_l18: regulator-l18 {
+			regulator-min-microvolt = <2800000>;
+			regulator-max-microvolt = <2800000>;
+			qcom,init-voltage = <2800000>;
+			status = "okay";
+		};
+	};
+
+	rpm-regulator-ldoa29 {
+		status = "okay";
+		pm8994_l29: regulator-l29 {
+			regulator-min-microvolt = <2700000>;
+			regulator-max-microvolt = <2700000>;
+			qcom,init-voltage = <2700000>;
+			status = "okay";
+		};
+	};
+};
+
+&ssc_sensors {
+	qcom,firmware-name = "slpi_a1";
+};
