@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_d8d799be",
+        "filename": "drivers/platform/msm/spmi/qpnp-int.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 646,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-28T07:31:59Z",
+      "side": 1,
+      "message": "Let\u0027s kill this",
+      "revId": "273a0b805965373ce5bab04e8b85aea6ae333b2b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_98e1219d",
+        "filename": "drivers/power/qpnp-smbcharger.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 7956,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-28T07:31:59Z",
+      "side": 1,
+      "message": "let\u0027s kill the useless log",
+      "revId": "273a0b805965373ce5bab04e8b85aea6ae333b2b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_78ee658d",
+        "filename": "drivers/power/qpnp-smbcharger.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 8349,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-28T07:31:59Z",
+      "side": 1,
+      "message": "And this",
+      "revId": "273a0b805965373ce5bab04e8b85aea6ae333b2b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
