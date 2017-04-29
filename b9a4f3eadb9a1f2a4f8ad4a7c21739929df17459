@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_450f41e2",
+        "filename": "arch/arm/boot/dts/qcom/gemini-msm8996-mtp.dtsi",
+        "patchSetId": 10
+      },
+      "lineNbr": 316,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-04-29T02:05:12Z",
+      "side": 1,
+      "message": "Restore me. Don\u0027t do that to the poor users, Xiaomi!",
+      "range": {
+        "startLine": 308,
+        "startChar": 0,
+        "endLine": 316,
+        "endChar": 5
+      },
+      "revId": "b9a4f3eadb9a1f2a4f8ad4a7c21739929df17459",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_650a3dd4",
+        "filename": "arch/arm/boot/dts/qcom/gemini2-msm8996-mtp.dtsi",
+        "patchSetId": 10
+      },
+      "lineNbr": 316,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-04-29T02:05:12Z",
+      "side": 1,
+      "message": "Restore me. Don\u0027t do that to the poor users, Xiaomi!",
+      "range": {
+        "startLine": 308,
+        "startChar": 0,
+        "endLine": 316,
+        "endChar": 5
+      },
+      "revId": "b9a4f3eadb9a1f2a4f8ad4a7c21739929df17459",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
