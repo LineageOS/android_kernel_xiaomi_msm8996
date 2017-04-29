@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_f1ab8bd4",
+        "filename": "drivers/media/platform/msm/camera_v2/sensor/Makefile",
+        "patchSetId": 9
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-29T21:25:14Z",
+      "side": 1,
+      "message": "Later: move to mach check",
+      "range": {
+        "startLine": 9,
+        "startChar": 0,
+        "endLine": 11,
+        "endChar": 5
+      },
+      "revId": "984cb93a2019c165bb9e813683490c0d431c421f",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_b1b51333",
+        "filename": "drivers/media/platform/msm/camera_v2/sensor/io/Makefile",
+        "patchSetId": 9
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-29T21:25:14Z",
+      "side": 1,
+      "message": "later: mach check",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 5,
+        "endChar": 5
+      },
+      "revId": "984cb93a2019c165bb9e813683490c0d431c421f",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_d1b88f2c",
+        "filename": "drivers/media/platform/msm/camera_v2/pproc/cpp/msm_cpp.c",
+        "patchSetId": 9
+      },
+      "lineNbr": 2327,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-29T21:25:14Z",
+      "side": 0,
+      "message": "git checkout LA.UM.5.5.r1-04300-8x96.0 drivers/media/platform/msm/camera_v2/pproc/cpp/msm_cpp.c",
+      "range": {
+        "startLine": 2323,
+        "startChar": 0,
+        "endLine": 2327,
+        "endChar": 2
+      },
+      "revId": "90d8d3a4d1570ac26c0db7162c2dcde60110480d",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_91821751",
+        "filename": "drivers/media/platform/msm/camera_v2/sensor/msm_sensor_driver.c",
+        "patchSetId": 9
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-29T21:25:14Z",
+      "side": 0,
+      "message": "undo",
+      "range": {
+        "startLine": 22,
+        "startChar": 0,
+        "endLine": 22,
+        "endChar": 11
+      },
+      "revId": "90d8d3a4d1570ac26c0db7162c2dcde60110480d",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
