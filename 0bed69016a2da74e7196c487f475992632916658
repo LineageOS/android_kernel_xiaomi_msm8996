@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_388903cb",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-mdss-panels.dtsi",
+        "patchSetId": 25
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-30T18:50:20Z",
+      "side": 1,
+      "message": "Overlay these changes in msm8996-mdss-panels-xiaomi.dtsi ?",
+      "revId": "0bed69016a2da74e7196c487f475992632916658",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
