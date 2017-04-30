@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_58039f73",
+        "filename": "arch/arm/boot/dts/qcom/Makefile",
+        "patchSetId": 25
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-30T18:03:07Z",
+      "side": 1,
+      "message": "CONFIG_MACH_XIAOMI_MSM8996",
+      "range": {
+        "startLine": 1,
+        "startChar": 8,
+        "endLine": 1,
+        "endChar": 33
+      },
+      "revId": "2052c6d34070fcebadfecc671d44ee02821b7f29",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_38f8e37b",
+        "filename": "arch/arm/boot/dts/qcom/Makefile",
+        "patchSetId": 25
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-30T18:03:07Z",
+      "side": 1,
+      "message": "CONFIG_MACH_XIAOMI_GEMINI",
+      "range": {
+        "startLine": 2,
+        "startChar": 6,
+        "endLine": 2,
+        "endChar": 25
+      },
+      "revId": "2052c6d34070fcebadfecc671d44ee02821b7f29",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_18f52783",
+        "filename": "arch/arm/boot/dts/qcom/Makefile",
+        "patchSetId": 25
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-30T18:03:07Z",
+      "side": 1,
+      "message": "CONFIG_MACH_XIAOMI_CAPRICORN",
+      "range": {
+        "startLine": 11,
+        "startChar": 6,
+        "endLine": 11,
+        "endChar": 25
+      },
+      "revId": "2052c6d34070fcebadfecc671d44ee02821b7f29",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_f8f12b96",
+        "filename": "arch/arm/boot/dts/qcom/Makefile",
+        "patchSetId": 25
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-30T18:03:07Z",
+      "side": 1,
+      "message": "CONFIG_MACH_XIAOMI_NATRIUM",
+      "range": {
+        "startLine": 16,
+        "startChar": 6,
+        "endLine": 16,
+        "endChar": 25
+      },
+      "revId": "2052c6d34070fcebadfecc671d44ee02821b7f29",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_d8ee6fb4",
+        "filename": "arch/arm/boot/dts/qcom/Makefile",
+        "patchSetId": 25
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-30T18:03:07Z",
+      "side": 1,
+      "message": "CONFIG_MACH_XIAOMI_LITHIUM",
+      "range": {
+        "startLine": 20,
+        "startChar": 6,
+        "endLine": 20,
+        "endChar": 25
+      },
+      "revId": "2052c6d34070fcebadfecc671d44ee02821b7f29",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_b82bb3ea",
+        "filename": "arch/arm/boot/dts/qcom/Makefile",
+        "patchSetId": 25
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-30T18:03:07Z",
+      "side": 1,
+      "message": "CONFIG_MACH_XIAOMI_SCORPIO",
+      "range": {
+        "startLine": 24,
+        "startChar": 6,
+        "endLine": 24,
+        "endChar": 25
+      },
+      "revId": "2052c6d34070fcebadfecc671d44ee02821b7f29",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
