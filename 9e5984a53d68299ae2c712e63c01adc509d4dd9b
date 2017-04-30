@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_b1e1939c",
+        "filename": "arch/arm64/configs/natrium_defconfig",
+        "patchSetId": 15
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-30T00:22:36Z",
+      "side": 1,
+      "message": "disable",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 14
+      },
+      "revId": "9e5984a53d68299ae2c712e63c01adc509d4dd9b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_91ee978a",
+        "filename": "arch/arm64/configs/natrium_defconfig",
+        "patchSetId": 15
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-04-30T00:22:36Z",
+      "side": 1,
+      "message": "Disable? We aren\u0027t going to enable zram/swap soon",
+      "range": {
+        "startLine": 236,
+        "startChar": 0,
+        "endLine": 236,
+        "endChar": 11
+      },
+      "revId": "9e5984a53d68299ae2c712e63c01adc509d4dd9b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
