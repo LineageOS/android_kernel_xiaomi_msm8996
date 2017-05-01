@@ -414,7 +414,8 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 #define WE_GET_TSF      1
 
 /* (SIOCIWFIRSTPRIV + 17) is currently unused */
-/* (SIOCIWFIRSTPRIV + 19) is currently unused */
+
+#define WLAN_GET_ISOLATION                (SIOCIWFIRSTPRIV + 19)
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 #define WLAN_PRIV_SET_FTIES             (SIOCIWFIRSTPRIV + 20)
@@ -4087,6 +4088,167 @@ static int iw_get_linkspeed_priv(struct net_device *dev,
 	vos_ssr_unprotect(__func__);
 
 	return ret;
+}
+
+void hdd_get_isolation_cb(struct sir_isolation_resp *isolation,
+        void *context)
+{
+    struct statsContext *isolation_context;
+    int buf = 0;
+    int length = 0;
+    char *isolation_output;
+    union iwreq_data *wrqu;
+
+    if ((NULL == isolation) || (NULL == context)) {
+
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Bad param, %s",
+                __func__,
+				isolation ? "context is NULL" : "isolation is NULL");
+        return;
+    }
+
+    spin_lock(&hdd_context_lock);
+
+    isolation_context = context;
+    if (ISOLATION_CONTEXT_MAGIC !=
+            isolation_context->magic) {
+
+        /*
+         * the caller presumably timed out so there is nothing
+         * we can do
+         */
+        spin_unlock(&hdd_context_lock);
+        hddLog(VOS_TRACE_LEVEL_WARN,
+                "%s: Invalid context, magic [%08x]",
+                __func__,
+                isolation_context->magic);
+        return;
+    }
+
+    isolation_output = isolation_context->extra;
+    wrqu = isolation_context->wrqu;
+    isolation_context->magic = 0;
+
+    hddLog(LOG1, "%s: chain1 %d chain2 %d chain3 %d chain4 %d", __func__,
+            isolation->isolation_chain0, isolation->isolation_chain1,
+            isolation->isolation_chain2, isolation->isolation_chain3);
+
+    length = scnprintf((isolation_output), WE_MAX_STR_LEN, "\n");
+    buf = scnprintf
+        (
+         (isolation_output + length), WE_MAX_STR_LEN - length,
+         "isolation chain 0 : %d\n",
+         isolation->isolation_chain0
+        );
+    length += buf;
+    buf = scnprintf
+        (
+         (isolation_output + length), WE_MAX_STR_LEN - length,
+         "isolation chain 1 : %d\n",
+         isolation->isolation_chain1
+        );
+    length += buf;
+    buf = scnprintf
+        (
+         (isolation_output + length), WE_MAX_STR_LEN - length,
+         "isolation chain 2 : %d\n",
+         isolation->isolation_chain2
+        );
+    length += buf;
+    buf = scnprintf
+        (
+         (isolation_output + length), WE_MAX_STR_LEN - length,
+         "isolation chain 3 : %d\n",
+         isolation->isolation_chain3
+        );
+    length += buf;
+
+    wrqu->data.length = length + 1;
+
+    /* notify the caller */
+    complete(&isolation_context->completion);
+
+    /* serialization is complete */
+    spin_unlock(&hdd_context_lock);
+}
+
+static int wlan_hdd_get_isolation(hdd_adapter_t *adapter,
+        union iwreq_data *wrqu, char *extra)
+{
+    eHalStatus hstatus;
+    int ret;
+    struct statsContext context;
+
+    if (NULL == adapter) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL",
+                __func__);
+        return -EINVAL;
+    }
+
+    init_completion(&context.completion);
+    context.magic = ISOLATION_CONTEXT_MAGIC;
+    context.extra = extra;
+    context.wrqu = wrqu;
+
+    hstatus = sme_get_isolation(WLAN_HDD_GET_HAL_CTX(adapter),
+            &context,
+            hdd_get_isolation_cb);
+    if (eHAL_STATUS_SUCCESS != hstatus) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Unable to retrieve isolation",
+                __func__);
+        ret = -EFAULT;
+    } else {
+        if (!wait_for_completion_timeout(&context.completion,
+                    msecs_to_jiffies(8000))) {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                    "%s: SME timed out while retrieving isolation",
+                    __func__);
+            ret = -ETIMEDOUT;
+        } else
+            ret = 0;
+    }
+
+    spin_lock(&hdd_context_lock);
+    context.magic = 0;
+    spin_unlock(&hdd_context_lock);
+    return ret;
+}
+
+static int __iw_get_isolation(struct net_device *dev,
+        struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *hdd_ctx;
+    int ret;
+
+    hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+    ret = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret)
+        return ret;
+
+    ret = wlan_hdd_get_isolation(adapter, wrqu, extra);
+
+    if (ret < 0)
+        return ret;
+
+    /* a value is being successfully returned */
+    return 0;
+}
+
+static int iw_get_isolation(struct net_device *dev,
+        struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra)
+{
+    int ret;
+
+    vos_ssr_protect(__func__);
+    ret = __iw_get_isolation(dev, info, wrqu, extra);
+    vos_ssr_unprotect(__func__);
+
+    return ret;
 }
 
 VOS_STATUS  wlan_hdd_enter_bmps(hdd_adapter_t *pAdapter, int mode)
@@ -11326,6 +11488,7 @@ static const iw_handler we_private[] = {
    [WLAN_GET_LINK_SPEED                 - SIOCIWFIRSTPRIV]   = iw_get_linkspeed_priv,
    [WLAN_PRIV_SET_TWO_INT_GET_NONE      - SIOCIWFIRSTPRIV]   = iw_set_two_ints_getnone,
    [WLAN_SET_DOT11P_CHANNEL_SCHED       - SIOCIWFIRSTPRIV]   = iw_set_dot11p_channel_sched,
+   [WLAN_GET_ISOLATION                  - SIOCIWFIRSTPRIV]   = iw_get_isolation,
 };
 
 /*Maximum command length can be only 15 */
@@ -12389,7 +12552,12 @@ static const struct iw_priv_args we_private_args[] = {
         WLAN_GET_LINK_SPEED,
         IW_PRIV_TYPE_CHAR | 18,
         IW_PRIV_TYPE_CHAR | 5, "getLinkSpeed" },
-
+    {
+        WLAN_GET_ISOLATION,
+        0,
+        IW_PRIV_TYPE_CHAR | WE_MAX_STR_LEN,
+        "get_isolation"
+    },
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_TWO_INT_GET_NONE,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,

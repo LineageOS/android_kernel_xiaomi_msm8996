@@ -3840,6 +3840,11 @@ eHalStatus sme_get_peer_info(tHalHandle hal, struct sir_peer_info_req req,
 			void (*callbackfn)(struct sir_peer_info_resp *param,
 						void *pcontext));
 
+eHalStatus sme_get_isolation(tHalHandle hal,
+           void *context,
+           void (*callbackfn)(struct sir_isolation_resp *param,
+                       void *pcontext));
+
 /*----------------------------------------------------------------------------
  \fn  sme_get_peer_info_ext
  \brief  This function sends msg to get info for remote peer

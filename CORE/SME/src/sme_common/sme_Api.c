@@ -12667,6 +12667,45 @@ eHalStatus sme_get_peer_info_ext(tHalHandle hal,
 	return status;
 }
 
+eHalStatus sme_get_isolation(tHalHandle hal,
+           void *context,
+           void (*callbackfn)(struct sir_isolation_resp *param,
+                       void *pcontext))
+{
+    eHalStatus          status    = eHAL_STATUS_SUCCESS;
+    VOS_STATUS          vosstatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal      mac       = PMAC_STRUCT(hal);
+    vos_msg_t           vosmessage;
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+            "%s: get isolation", __func__);
+
+    status = sme_AcquireGlobalLock(&mac->sme);
+    if (eHAL_STATUS_SUCCESS == status) {
+        if (NULL == callbackfn) {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Indication Call back is NULL",
+                    __func__);
+            sme_ReleaseGlobalLock(&mac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+
+        mac->sme.get_isolation = callbackfn;
+        mac->sme.get_isolation_cb_context = context;
+
+        vosmessage.bodyptr = NULL;
+        vosmessage.type    = WDA_GET_ISOLATION;
+        vosstatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosmessage);
+        if (!VOS_IS_STATUS_SUCCESS(vosstatus)) {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Post get isolation msg fail", __func__);
+            status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&mac->sme);
+    }
+    return status;
+}
+
 /* ---------------------------------------------------------------------------
     \fn sme_IsPmcBmps
     \API to Check if PMC state is BMPS.

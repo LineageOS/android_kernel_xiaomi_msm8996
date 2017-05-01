@@ -367,6 +367,7 @@ extern spinlock_t hdd_context_lock;
 #define POWER_STATS_MAGIC 0x14111990
 #define BPF_CONTEXT_MAGIC 0x4575354    /* BPF */
 #define ACTION_FRAME_RANDOM_CONTEXT_MAGIC 0x87878787
+#define ISOLATION_CONTEXT_MAGIC 0x48575354 //Antenna Isolation
 
 #ifdef QCA_LL_TX_FLOW_CT
 /* MAX OS Q block time value in msec
