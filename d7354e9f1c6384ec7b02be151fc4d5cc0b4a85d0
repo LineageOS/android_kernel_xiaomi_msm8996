@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_0f483b2c",
+        "filename": "drivers/input/touchscreen/atmel_mxt_ts.c",
+        "patchSetId": 26
+      },
+      "lineNbr": 1556,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-01T21:04:52Z",
+      "side": 1,
+      "message": "Use this",
+      "range": {
+        "startLine": 1556,
+        "startChar": 0,
+        "endLine": 1556,
+        "endChar": 41
+      },
+      "revId": "d7354e9f1c6384ec7b02be151fc4d5cc0b4a85d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_ef54bfcb",
+        "filename": "drivers/input/touchscreen/atmel_mxt_ts.c",
+        "patchSetId": 26
+      },
+      "lineNbr": 1571,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-01T21:04:52Z",
+      "side": 1,
+      "message": "here",
+      "range": {
+        "startLine": 1571,
+        "startChar": 18,
+        "endLine": 1571,
+        "endChar": 36
+      },
+      "revId": "d7354e9f1c6384ec7b02be151fc4d5cc0b4a85d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_cf5103da",
+        "filename": "drivers/input/touchscreen/atmel_mxt_ts.c",
+        "patchSetId": 26
+      },
+      "lineNbr": 1577,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-01T21:04:52Z",
+      "side": 1,
+      "message": "here",
+      "range": {
+        "startLine": 1577,
+        "startChar": 18,
+        "endLine": 1577,
+        "endChar": 36
+      },
+      "revId": "d7354e9f1c6384ec7b02be151fc4d5cc0b4a85d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_8f3c2b95",
+        "filename": "drivers/input/touchscreen/atmel_mxt_ts.c",
+        "patchSetId": 26
+      },
+      "lineNbr": 1752,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-01T21:04:52Z",
+      "side": 1,
+      "message": "Use this",
+      "range": {
+        "startLine": 1752,
+        "startChar": 0,
+        "endLine": 1752,
+        "endChar": 41
+      },
+      "revId": "d7354e9f1c6384ec7b02be151fc4d5cc0b4a85d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_6f41ef0a",
+        "filename": "drivers/input/touchscreen/atmel_mxt_ts.c",
+        "patchSetId": 26
+      },
+      "lineNbr": 1771,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-01T21:04:52Z",
+      "side": 1,
+      "message": "here",
+      "range": {
+        "startLine": 1771,
+        "startChar": 18,
+        "endLine": 1771,
+        "endChar": 36
+      },
+      "revId": "d7354e9f1c6384ec7b02be151fc4d5cc0b4a85d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_4f463325",
+        "filename": "drivers/input/touchscreen/atmel_mxt_ts.c",
+        "patchSetId": 26
+      },
+      "lineNbr": 1777,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-01T21:04:52Z",
+      "side": 1,
+      "message": "here",
+      "range": {
+        "startLine": 1777,
+        "startChar": 18,
+        "endLine": 1777,
+        "endChar": 36
+      },
+      "revId": "d7354e9f1c6384ec7b02be151fc4d5cc0b4a85d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
