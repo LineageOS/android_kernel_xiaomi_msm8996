@@ -13,7 +13,7 @@
  *See the License for the specific language governing permissions and
  *limitations under the License.
  */
-#define DEBUG
+
 #include "tfa_config.h"
 #include "tfa98xx_tfafieldnames.h"
 #include "tfa_internal.h"
