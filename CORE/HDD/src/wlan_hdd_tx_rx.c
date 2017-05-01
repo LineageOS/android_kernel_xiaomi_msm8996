@@ -427,6 +427,8 @@ static void hdd_get_transmit_sta_id(hdd_adapter_t *adapter,
 		 */
 		if (mcbc_addr)
 			*station_id = IBSS_BROADCAST_STAID;
+	} else if (adapter->device_mode == WLAN_HDD_OCB) {
+		*station_id = sta_ctx->conn_info.staId[0];
 	} else if (adapter->device_mode == WLAN_HDD_NDI) {
 		/*
 		 * This check is necessary to make sure station id is not
