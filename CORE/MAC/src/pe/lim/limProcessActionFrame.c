@@ -1862,7 +1862,7 @@ __limProcessRadioMeasureRequest( tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo ,tp
 
      limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, (tANI_U8*)pHdr,
           frameLen + sizeof(tSirMacMgmtHdr), 0, WDA_GET_RX_CH(pRxPacketInfo),
-          psessionEntry, 0);
+          psessionEntry, WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo));
 
      /**Unpack the received frame */
      nStatus = dot11fUnpackRadioMeasurementRequest( pMac, pBody, frameLen, &frm );
@@ -2064,7 +2064,8 @@ static void __limProcessSAQueryResponseActionFrame(tpAniSirGlobal pMac, tANI_U8 
         limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType, (tANI_U8*)pHdr,
                                frameLen + sizeof(tSirMacMgmtHdr), 0,
                                WDA_GET_RX_CH( pRxPacketInfo ),
-                               psessionEntry, 0);
+                               psessionEntry,
+                               WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo));
         return;
     }
 
@@ -2448,7 +2449,8 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                  limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType,
                     (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr),
                     psessionEntry->smeSessionId,
-                    WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry, 0);
+                    WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry,
+                    WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo));
               }
               else
               {
@@ -2471,7 +2473,8 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
               limSendSmeMgmtFrameInd(pMac, pHdr->fc.subType,
                     (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr),
                     psessionEntry->smeSessionId,
-                    WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry, 0);
+                    WDA_GET_RX_CH( pRxPacketInfo ), psessionEntry,
+                    WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo));
             }
             break;
 #ifdef FEATURE_WLAN_TDLS
@@ -2565,7 +2568,8 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                                frameLen + sizeof(tSirMacMgmtHdr),
                                psessionEntry->smeSessionId,
                                WDA_GET_RX_CH(pRxPacketInfo),
-                               psessionEntry, 0);
+                               psessionEntry,
+                               WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo));
         break;
     }
     default:
