@@ -2743,4 +2743,14 @@ enum wlan_hdd_scan_type_for_randomization {
 };
 
 int wlan_hdd_try_disconnect(hdd_adapter_t *pAdapter);
+
+/**
+ * wlan_hdd_cfg80211_scan_block_cb() - scan block work handler
+ * @work: Pointer to work
+ *
+ * This function is used to do scan block work handler
+ *
+ * Return: None
+ */
+void wlan_hdd_cfg80211_scan_block_cb(struct work_struct *work);
 #endif
