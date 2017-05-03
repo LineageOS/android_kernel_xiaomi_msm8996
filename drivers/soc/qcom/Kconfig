@@ -906,6 +906,11 @@ config MSM_REMOTEQDSS
 	  enable/disable these events. Interface located in
 	  /sys/class/remoteqdss.
 
+config MSM_CAPTOUCH
+	tristate "Capacitive touch simulation driver"
+	help
+	  This driver is used to allow capacitive touch testing with qbt1000
+
 config QCOM_SMCINVOKE
 	bool "Secure QSEE Support"
 	help
