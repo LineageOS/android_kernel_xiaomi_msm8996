@@ -934,6 +934,11 @@ config WCD_DSP_GLINK
 	   between MSM and WCD DSP over glink transport protocol. This driver
 	   provides read and write interface via char device.
 
+config MSM_CAPTOUCH
+	tristate "Capacitive touch simulation driver"
+	help
+	  This driver is used to allow capacitive touch testing with qbt1000
+
 config QCOM_SMCINVOKE
 	bool "Secure QSEE Support"
 	help
