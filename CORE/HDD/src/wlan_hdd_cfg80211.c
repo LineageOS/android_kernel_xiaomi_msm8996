@@ -6756,16 +6756,18 @@ static int put_wifi_channel_cca_info(struct sir_wifi_chan_cca_stats *cca,
 static int put_wifi_signal_info(struct sir_wifi_peer_signal_stats *peer_signal,
 				struct sk_buff *skb)
 {
-	uint32_t i;
+	uint32_t i, chain_count;
 	struct nlattr *chains, *att;
 
 	/* There might be no signal info for a peer */
 	if (peer_signal == NULL)
 		return 0;
 
+	chain_count = peer_signal->num_chain < WIFI_MAX_CHAINS ?
+		      peer_signal->num_chain : WIFI_MAX_CHAINS;
 	if (nla_put_u32(skb,
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_ANT_NUM,
-			WIFI_MAX_CHAINS)) {
+			chain_count)) {
 		hddLog(LOGE, FL("QCA_WLAN_VENDOR_ATTR put fail"));
 		return -EINVAL;
 	}
@@ -6777,7 +6779,7 @@ static int put_wifi_signal_info(struct sir_wifi_peer_signal_stats *peer_signal,
 		return -EINVAL;
 	}
 
-	for (i = 0; i < WIFI_MAX_CHAINS; i++) {
+	for (i = 0; i < chain_count; i++) {
 		chains = nla_nest_start(skb, i);
 
 		if (chains == NULL) {
@@ -6785,12 +6787,24 @@ static int put_wifi_signal_info(struct sir_wifi_peer_signal_stats *peer_signal,
 			return -EINVAL;
 		}
 
+		hddLog(LOG2,
+		       FL("SNR=%d, NF=%d, RX=%d, TX=%d"),
+		       peer_signal->per_ant_snr[i],
+		       peer_signal->nf[i],
+		       peer_signal->per_ant_rx_mpdus[i],
+		       peer_signal->per_ant_tx_mpdus[i]);
 		if (nla_put_u32(skb,
 				QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_ANT_SNR,
 				peer_signal->per_ant_snr[i]) ||
 		    nla_put_u32(skb,
 				QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_ANT_NF,
-				peer_signal->nf[i])) {
+				peer_signal->nf[i]) ||
+		    nla_put_u32(skb,
+				QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_RX_MPDU,
+				peer_signal->per_ant_rx_mpdus[i]) ||
+		    nla_put_u32(skb,
+				QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_TX_MPDU,
+				peer_signal->per_ant_tx_mpdus[i])) {
 			hddLog(VOS_TRACE_LEVEL_ERROR,
 			       FL("QCA_WLAN_VENDOR_ATTR put fail"));
 			return -EINVAL;
