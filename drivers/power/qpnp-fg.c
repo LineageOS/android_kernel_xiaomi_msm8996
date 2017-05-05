@@ -1379,6 +1379,7 @@ static void fg_enable_irqs(struct fg_chip *chip, bool enable)
 
 	if (enable) {
 		enable_irq(chip->soc_irq[DELTA_SOC].irq);
+		enable_irq_wake(chip->soc_irq[DELTA_SOC].irq);
 		if (!chip->full_soc_irq_enabled) {
 			enable_irq(chip->soc_irq[FULL_SOC].irq);
 			enable_irq_wake(chip->soc_irq[FULL_SOC].irq);
@@ -1396,6 +1397,7 @@ static void fg_enable_irqs(struct fg_chip *chip, bool enable)
 		}
 		chip->irqs_enabled = true;
 	} else {
+		disable_irq_wake(chip->soc_irq[DELTA_SOC].irq);
 		disable_irq_nosync(chip->soc_irq[DELTA_SOC].irq);
 		if (chip->full_soc_irq_enabled) {
 			disable_irq_wake(chip->soc_irq[FULL_SOC].irq);
@@ -6940,7 +6942,7 @@ static void esr_adjust_work(struct work_struct *work)
 			enable_irq_wake(chip->soc_irq[EMPTY_SOC].irq);
 			chip->empty_irq_enabled = true;
 		}
-	} else {
+	} else if (chip->empty_irq_enabled) {
 		disable_irq_wake(chip->soc_irq[EMPTY_SOC].irq);
 		disable_irq_nosync(chip->soc_irq[EMPTY_SOC].irq);
 		chip->empty_irq_enabled = false;
@@ -7413,7 +7415,7 @@ static int fg_init_irqs(struct fg_chip *chip)
 				return rc;
 			}
 
-			enable_irq(chip->soc_irq[DELTA_SOC].irq);
+			enable_irq_wake(chip->soc_irq[DELTA_SOC].irq);
 			if (!chip->use_vbat_low_empty_soc)
 				enable_irq_wake(chip->soc_irq[EMPTY_SOC].irq);
 			break;
