@@ -25,11 +25,6 @@
 
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 
-#ifdef CAMERA_ALS_ENABLE
-static atomic_t camera_als_at = ATOMIC_INIT(0);
-static atomic_t front_camera_at = ATOMIC_INIT(0);
-#endif /*CAMERA_ALS_ENABLE*/
-
 int msm_camera_fill_vreg_params(struct camera_vreg_t *cam_vreg,
 	int num_vreg, struct msm_sensor_power_setting *power_setting,
 	uint16_t power_setting_size)
@@ -1445,28 +1440,8 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 {
 	int rc = 0, index = 0, no_gpio = 0, ret = 0;
 	struct msm_sensor_power_setting *power_setting = NULL;
-#ifdef CAMERA_ALS_ENABLE
-	struct platform_device *pdev = NULL;
-#endif /*CAMERA_ALS_ENABLE*/
 
 	CDBG("%s:%d\n", __func__, __LINE__);
-
-#ifdef CAMERA_ALS_ENABLE
-	pdev = container_of(ctrl->dev, struct platform_device, dev);
-	CDBG("%s:%d pdev->name = %s\n", __func__, __LINE__, pdev->name);
-	if (strcmp(pdev->name, "a0c000.qcom,cci:qcom,camera@2") == 0) {
-		atomic_inc(&front_camera_at);
-		if (atomic_read(&camera_als_at)) {
-			return 0;
-		}
-	} else if (strcmp(pdev->name, "a0c000.qcom,cci:qcom,camera-als@3") == 0) {
-		atomic_inc(&camera_als_at);
-		if (atomic_read(&front_camera_at)) {
-			return 1;
-		}
-	}
-#endif /*CAMERA_ALS_ENABLE*/
-
 	if (!ctrl || !sensor_i2c_client) {
 		pr_err("failed ctrl %pK sensor_i2c_client %pK\n", ctrl,
 			sensor_i2c_client);
@@ -1690,28 +1665,8 @@ int msm_camera_power_down(struct msm_camera_power_ctrl_t *ctrl,
 	int index = 0, ret = 0;
 	struct msm_sensor_power_setting *pd = NULL;
 	struct msm_sensor_power_setting *ps;
-#ifdef CAMERA_ALS_ENABLE
-	struct platform_device *pdev = NULL;
-#endif /*CAMERA_ALS_ENABLE*/
 
 	CDBG("%s:%d\n", __func__, __LINE__);
-
-#ifdef CAMERA_ALS_ENABLE
-	pdev = container_of(ctrl->dev, struct platform_device, dev);
-	CDBG("%s:%d pdev->name = %s\n", __func__, __LINE__, pdev->name);
-	if (strcmp(pdev->name, "a0c000.qcom,cci:qcom,camera@2") == 0) {
-		atomic_dec(&front_camera_at);
-		if (atomic_read(&camera_als_at)) {
-			return 0;
-		}
-	} else if (strcmp(pdev->name, "a0c000.qcom,cci:qcom,camera-als@3") == 0) {
-		atomic_dec(&camera_als_at);
-		if (atomic_read(&front_camera_at)) {
-			return 0;
-		}
-	}
-#endif /*CAMERA_ALS_ENABLE*/
-
 	if (!ctrl || !sensor_i2c_client) {
 		pr_err("failed ctrl %pK sensor_i2c_client %pK\n", ctrl,
 			sensor_i2c_client);
