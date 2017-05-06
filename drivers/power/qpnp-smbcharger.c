@@ -725,11 +725,9 @@ static int fb_notifier_callback(struct notifier_block *self,
 		if (*blank == FB_BLANK_UNBLANK) {
 			chip->screen_on = true;
 			screen_check_ms = SCREEN_ON_CHECK_MS;
-			pr_info("screen on\n");
 		} else if (*blank == FB_BLANK_POWERDOWN) {
 			chip->screen_on = false;
 			screen_check_ms = SCREEN_OFF_CHECK_MS;
-			pr_info("screen off\n");
 		}
 
 		if (!chip->checking_in_progress &&

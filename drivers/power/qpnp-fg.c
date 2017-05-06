@@ -745,8 +745,6 @@ static int get_esr_lvl(int esr)
 	int i;
 
 	for (i = 0; i < (MAX_ESR_LVL + 1); i++) {
-		pr_info("%d,%d,%d,%d\n", cfg[i].esr, cfg[i].v_cutoff,
-				cfg[i].v_empty, cfg[i].empty_irq_enable);
 		if (esr <= cfg[i].esr)
 			return i;
 	}
@@ -2734,12 +2732,6 @@ static void soc_work_fn(struct work_struct *work)
 	static int prev_soc = -EINVAL;
 
 	soc = get_prop_capacity(chip);
-	pr_info("adjust_soc: s %d r %d i %d v %d t %d\n",
-			soc,
-			get_sram_prop_now(chip, FG_DATA_BATT_ESR),
-			get_sram_prop_now(chip, FG_DATA_CURRENT),
-			get_sram_prop_now(chip, FG_DATA_VOLTAGE),
-			get_sram_prop_now(chip, FG_DATA_BATT_TEMP));
 
 	/* if soc changes, report power supply change uevent */
 	if (soc != prev_soc) {
