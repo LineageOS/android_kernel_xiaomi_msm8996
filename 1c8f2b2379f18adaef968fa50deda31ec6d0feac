@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_41315aeb",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-xiaomi-common.dtsi",
+        "patchSetId": 1
+      },
+      "lineNbr": 1860,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-06T19:39:35Z",
+      "side": 1,
+      "message": "tabs",
+      "revId": "1c8f2b2379f18adaef968fa50deda31ec6d0feac",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
