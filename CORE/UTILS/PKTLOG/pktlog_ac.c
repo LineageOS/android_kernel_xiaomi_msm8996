@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -280,6 +280,7 @@ pktlog_init(struct ol_softc *scn)
 
 	OS_MEMZERO(pl_info, sizeof(*pl_info));
 	PKTLOG_LOCK_INIT(pl_info);
+	mutex_init(&pl_info->pktlog_mutex);
 
 	pl_info->buf_size = PKTLOG_DEFAULT_BUFSIZE;
 	pl_info->buf = NULL;
@@ -301,8 +302,9 @@ pktlog_init(struct ol_softc *scn)
 	PKTLOG_RCUPDATE_SUBSCRIBER.callback = pktlog_callback;
 }
 
-int
-pktlog_enable(struct ol_softc *scn, int32_t log_state)
+
+static int
+__pktlog_enable(struct ol_softc *scn, int32_t log_state)
 {
 	struct ol_pktlog_dev_t *pl_dev;
 	struct ath_pktlog_info *pl_info;
@@ -349,6 +351,7 @@ pktlog_enable(struct ol_softc *scn, int32_t log_state)
 			}
 		}
 
+		spin_lock_bh(&pl_info->log_lock);
 		pl_info->buf->bufhdr.version = CUR_PKTLOG_VER;
 		pl_info->buf->bufhdr.magic_num = PKTLOG_MAGIC_NUM;
 		pl_info->buf->wr_offset = 0;
@@ -357,6 +360,7 @@ pktlog_enable(struct ol_softc *scn, int32_t log_state)
 		pl_info->buf->bytes_written = 0;
 		pl_info->buf->msg_index = 1;
 		pl_info->buf->offset = PKTLOG_READ_OFFSET;
+		spin_unlock_bh(&pl_info->log_lock);
 
 		pl_info->start_time_thruput = OS_GET_TIMESTAMP();
 		pl_info->start_time_per = pl_info->start_time_thruput;
@@ -390,12 +394,42 @@ pktlog_enable(struct ol_softc *scn, int32_t log_state)
 
 }
 
-int
-pktlog_setsize(struct ol_softc *scn, int32_t size)
+int pktlog_enable(struct ol_softc *scn, int32_t log_state)
+{
+	struct ol_pktlog_dev_t *pl_dev;
+	struct ath_pktlog_info *pl_info;
+	int error;
+
+	if (!scn) {
+		printk("%s: Invalid scn context\n", __func__);
+		ASSERT(0);
+		return A_ERROR;
+	}
+
+	pl_dev = scn->pdev_txrx_handle->pl_dev;
+	if (!pl_dev) {
+		printk("%s: Invalid pktlog context\n", __func__);
+		ASSERT(0);
+		return A_ERROR;
+	}
+
+	pl_info = pl_dev->pl_info;
+
+	if (!pl_info)
+		return 0;
+
+	mutex_lock(&pl_info->pktlog_mutex);
+	error = __pktlog_enable(scn, log_state);
+	mutex_unlock(&pl_info->pktlog_mutex);
+	return error;
+}
+
+
+static int
+__pktlog_setsize(struct ol_softc *scn, int32_t size)
 {
 	struct ol_pktlog_dev_t *pl_dev = scn->pdev_txrx_handle->pl_dev;
 	struct ath_pktlog_info *pl_info = pl_dev->pl_info;
-
 	if (size < 0)
 		return -EINVAL;
 
@@ -407,12 +441,35 @@ pktlog_setsize(struct ol_softc *scn, int32_t size)
 		return -EINVAL;
 	}
 
+	spin_lock_bh(&pl_info->log_lock);
 	if (pl_info->buf != NULL)
 		pktlog_release_buf(scn);
 
 	if (size != 0)
 		pl_info->buf_size = size;
+	spin_unlock_bh(&pl_info->log_lock);
 
 	return 0;
+}
+int
+pktlog_setsize(struct ol_softc *scn, int32_t size)
+{
+        struct ol_pktlog_dev_t *pl_dev;
+        struct ath_pktlog_info *pl_info;
+	int status;
+
+	if (!scn) {
+		printk("%s: Invalid scn context\n", __func__);
+		ASSERT(0);
+		return A_ERROR;
+	}
+
+	pl_dev = scn->pdev_txrx_handle->pl_dev;
+	pl_info = pl_dev->pl_info;
+
+	mutex_lock(&pl_info->pktlog_mutex);
+	status = __pktlog_setsize(scn, size);
+	mutex_unlock(&pl_info->pktlog_mutex);
+	return status;
 }
 #endif /* REMOVE_PKT_LOG */
