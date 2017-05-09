@@ -764,8 +764,8 @@ unsigned int max_possible_capacity = 1024; /* max(rq->max_possible_capacity) */
 unsigned int
 min_max_possible_capacity = 1024; /* min(rq->max_possible_capacity) */
 
-/* Min window size (in ns) = 10ms */
-#define MIN_SCHED_RAVG_WINDOW ((10000000 / TICK_NSEC) * TICK_NSEC)
+/* Min window size (in ns) = 20ms */
+#define MIN_SCHED_RAVG_WINDOW ((20000000 / TICK_NSEC) * TICK_NSEC)
 
 /* Max window size (in ns) = 1s */
 #define MAX_SCHED_RAVG_WINDOW ((1000000000 / TICK_NSEC) * TICK_NSEC)
