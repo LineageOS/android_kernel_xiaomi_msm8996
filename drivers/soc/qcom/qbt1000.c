@@ -1086,6 +1086,8 @@ int qbt1000_create_input_device(struct qbt1000_drvdata *drvdata)
 
 	drvdata->in_dev->evbit[0] = BIT_MASK(EV_KEY) |  BIT_MASK(EV_ABS);
 	drvdata->in_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
+	drvdata->in_dev->keybit[BIT_WORD(KEY_HOMEPAGE)] =
+		BIT_MASK(KEY_HOMEPAGE);
 
 	/* enable all 256 key events except to key 00 which is "KEY_RESERVED" */
 	memset(drvdata->in_dev->keybit, 0xFE,
