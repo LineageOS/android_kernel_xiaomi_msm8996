@@ -108,6 +108,7 @@ static char b7_front_sensor_name[32];
 
 static int a1_set_front_sensor_name;
 static char a1_front_sensor_name[32];
+int8_t g_ois_vendor = 0;
 
 static int a8_set_rear_sensor_name;
 static char a8_rear_sensor_name[32];
@@ -2324,6 +2325,9 @@ static int eeprom_config_read_cal_data32(struct msm_eeprom_ctrl_t *e_ctrl,
 
 	ptr_dest = (uint8_t *) compat_ptr(cdata32->cfg.read_data.dbuffer);
 
+	if (e_ctrl->cal_data.mapdata[0] == 0x15 && e_ctrl->cal_data.mapdata[1] == 0x01)
+		g_ois_vendor = 1; /* Liteon OIS Module */
+
 	rc = copy_to_user(ptr_dest, e_ctrl->cal_data.mapdata,
 		cdata.cfg.read_data.num_bytes);
 
@@ -2552,6 +2556,8 @@ static long msm_eeprom_subdev_fops_ioctl32(struct file *file, unsigned int cmd,
 
 #endif
 
+uint8_t g_cal_fadj_data[128];
+EXPORT_SYMBOL(g_cal_fadj_data);
 static int msm_eeprom_platform_probe(struct platform_device *pdev)
 {
 	int rc = 0;
@@ -2733,6 +2739,12 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 			CDBG("memory_data[%d] = 0x%X\n", j,
 				e_ctrl->cal_data.mapdata[j]);
 
+		if (strcmp(eb_info->eeprom_name, "sony_imx298") == 0) {
+			CDBG("cp cal data\n");
+			memcpy((void *) g_cal_fadj_data, (void *) e_ctrl->cal_data.mapdata, 128);
+			for (j = 0; j < 128; j++)
+				CDBG("g_cal_fadj_data[%d] = 0x%X\n", j, g_cal_fadj_data[j]);
+		}
 		if (e_ctrl->is_read_vendor_id == 1)
 			e_ctrl->is_supported = 1;
 		else
