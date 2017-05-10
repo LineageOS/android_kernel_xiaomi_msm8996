@@ -18,6 +18,9 @@
 #include "msm_sd.h"
 #include "msm_ois.h"
 #include "msm_cci.h"
+#include "OIS_head.h"
+#include "OIS_user.c"
+#include "OIS_func.c"
 
 DEFINE_MSM_MUTEX(msm_ois_mutex);
 /*#define MSM_OIS_DEBUG*/
@@ -336,6 +339,65 @@ static int32_t msm_ois_power_down(struct msm_ois_ctrl_t *o_ctrl)
 	return rc;
 }
 
+static void msm_ois_fw_dl(struct work_struct *work)
+{
+	struct msm_camera_cci_client *cci_client = NULL;
+	struct msm_ois_ctrl_t *o_ctrl = NULL;
+
+	CDBG("Enter, work:%p\n", work);
+	o_ctrl = container_of(work, struct msm_ois_ctrl_t, work);
+
+	mutex_lock(o_ctrl->ois_mutex);
+
+	g_i2c_ctrl->i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+
+	cci_client = o_ctrl->i2c_client.cci_client;
+	cci_client->sid = 0x1C >> 1;
+	cci_client->retries = 3;
+	cci_client->id_map = 0;
+	cci_client->cci_i2c_master = o_ctrl->cci_master;
+	cci_client->i2c_freq_mode = I2C_FAST_MODE;
+
+	get_FADJ_MEM_from_non_volatile_memory();
+	VCOSET0();
+	func_PROGRAM_DOWNLOAD();
+	func_COEF_DOWNLOAD(0);
+	VCOSET1();
+
+	pr_info("sleep 30ms for gyro \n");
+	usleep_range(30000, 32000);
+	pr_info("Gyro active \n");
+	I2C_OIS_per_write(0x18, 0x000F);
+	I2C_OIS_per_write(0x1B, 0x6B01);
+	I2C_OIS_per_write(0x1C, 0x0000);
+	pr_info("sleep 30ms for gyro \n");
+	usleep_range(30000, 32000);
+
+	I2C_OIS_spcl_cmnd(1, _cmd_8C_EI);
+	pr_info("%s ois goff 0x%x, 0x%x\n", __func__, FADJ_MEM.gl_GX_OFS, FADJ_MEM.gl_GY_OFS);
+	SET_FADJ_PARAM(&FADJ_MEM);
+
+	func_SET_SCENE_PARAM_for_NewGYRO_Fil(_SCENE_SPORT_3, 1, 0, 0, &FADJ_MEM);
+	DisableShiftOIS();
+
+	o_ctrl->ois_state = OIS_OPS_ACTIVE;
+
+	mutex_unlock(o_ctrl->ois_mutex);
+	CDBG("Exit\n");
+}
+
+void msm_ois_shift_gain(int distance)
+{
+
+	if (!g_i2c_ctrl || g_i2c_ctrl->ois_state != OIS_OPS_ACTIVE) {
+		pr_info("ois not ready");
+		return;
+	}
+	mutex_lock(g_i2c_ctrl->ois_mutex);
+	ChangeShiftOISGain(distance);
+	mutex_unlock(g_i2c_ctrl->ois_mutex);
+}
+
 static int msm_ois_init(struct msm_ois_ctrl_t *o_ctrl)
 {
 	int rc = 0;
@@ -353,6 +415,20 @@ static int msm_ois_init(struct msm_ois_ctrl_t *o_ctrl)
 			pr_err("cci_init failed\n");
 	}
 
+	if (!g_i2c_ctrl) {
+		g_i2c_ctrl = o_ctrl;
+		o_ctrl->work_queue =
+			alloc_workqueue("ois_fw_dl", WQ_HIGHPRI|WQ_UNBOUND, 0);
+		if (!o_ctrl->work_queue) {
+			pr_err("Can not register workqueue\n");
+			rc = -ENOMEM;
+			goto error_alloc_workqueue;
+		}
+		INIT_WORK(&o_ctrl->work, msm_ois_fw_dl);
+		queue_work(o_ctrl->work_queue, &o_ctrl->work);
+	}
+
+error_alloc_workqueue:
 	CDBG("Exit\n");
 	return rc;
 }
@@ -496,6 +572,7 @@ static int32_t msm_ois_config(struct msm_ois_ctrl_t *o_ctrl,
 		break;
 	}
 	case CFG_OIS_CALIBRATION:
+		fadj_ois_gyro_offset_calibraion();
 		break;
 	default:
 		break;
@@ -592,6 +669,7 @@ static int msm_ois_close(struct v4l2_subdev *sd,
 		pr_err("failed\n");
 		return -EINVAL;
 	}
+	g_i2c_ctrl = NULL;
 	mutex_lock(o_ctrl->ois_mutex);
 	if (o_ctrl->ois_device_type == MSM_CAMERA_PLATFORM_DEVICE &&
 		o_ctrl->ois_state != OIS_DISABLE_STATE) {
@@ -601,6 +679,12 @@ static int msm_ois_close(struct v4l2_subdev *sd,
 			pr_err("cci_init failed\n");
 	}
 	o_ctrl->ois_state = OIS_DISABLE_STATE;
+
+	if (o_ctrl->work_queue) {
+		destroy_workqueue(o_ctrl->work_queue);
+		o_ctrl->work_queue = NULL;
+	}
+
 	mutex_unlock(o_ctrl->ois_mutex);
 	CDBG("Exit\n");
 	return rc;
