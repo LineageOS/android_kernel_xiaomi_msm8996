@@ -18,6 +18,8 @@
 #include "msm_actuator.h"
 #include "msm_cci.h"
 
+#include <asm/bootinfo.h>
+
 DEFINE_MSM_MUTEX(msm_actuator_mutex);
 
 #undef CDBG
@@ -589,6 +591,7 @@ static int32_t msm_actuator_piezo_move_focus(
 	return rc;
 }
 
+extern void msm_ois_shift_gain(int distance);
 static int32_t msm_actuator_move_focus(
 	struct msm_actuator_ctrl_t *a_ctrl,
 	struct msm_actuator_move_params_t *move_params)
@@ -604,6 +607,10 @@ static int32_t msm_actuator_move_focus(
 	int dir = move_params->dir;
 	int32_t num_steps = move_params->num_steps;
 	struct msm_camera_i2c_reg_setting reg_setting;
+	int distance = 0;
+	int target_margin = 0;
+	int origin_total = 0;
+	int hw_version = 0;
 
 	CDBG("called, dir %d, num_steps %d\n", dir, num_steps);
 
@@ -706,6 +713,22 @@ static int32_t msm_actuator_move_focus(
 		return rc;
 	}
 	a_ctrl->i2c_tbl_index = 0;
+
+	hw_version = get_hw_version_devid();
+	if (1 == hw_version || 2 == hw_version) {
+#define FL 4
+		origin_total = a_ctrl->total_steps * 100 / 120;
+		target_margin = origin_total * 15 / 100;
+		if (target_step_pos > target_margin) {
+			distance = (FL + FL * FL * origin_total / (target_step_pos - target_margin)) / 2;
+		} else {
+			distance = (FL + FL * FL * origin_total / 1) / 2;
+		}
+		distance = distance < 10 ? 10 : distance;
+		msm_ois_shift_gain(distance);
+		CDBG("[OIS] target_step_pos=%d total_steps=%d ois distance=%d \n",
+			target_step_pos, a_ctrl->total_steps, distance);
+	}
 	CDBG("Exit\n");
 
 	return rc;
