@@ -1043,20 +1043,27 @@ static inline bool ce_is_valid_entries(struct hif_pci_softc *sc,
 {
 	bool status;
 	A_target_id_t targid = TARGID(sc);
+	unsigned int hw_index =
+			CE_DEST_RING_READ_IDX_GET(targid, ce_state->ctrl_addr);
 
 	/* check if difference between hw index and read index is with in
 	* nentries_mask limit.
 	*/
-	if (ring_delta < ce_state->dest_ring->nentries_mask) {
+	if ((ring_delta < ce_state->dest_ring->nentries_mask) &&
+		(hw_index != CE_HW_INDEX_LINK_DOWN)) {
 		adf_os_print("%s: spent more time during rx proceesing for CE%d, allow other CE to process Rx packet.\n",
 				__func__, ce_state->id);
 		status = true;
+	} else if (hw_index  == CE_HW_INDEX_LINK_DOWN) {
+		status = false;
+		adf_os_print("%s: hw index is invalid due to link down \n", __func__);
 	} else {
 		adf_os_print("%s:Potential infinite loop detected during rx processing for CE%d\n",
-		__func__, ce_state->id);
+			__func__, ce_state->id);
 		VOS_BUG(0);
 		status = false;
 	}
+
 	adf_os_print("nentries_mask:0x%x sw read_idx:0x%x hw read_idx:0x%x ring_delta:0x%x\n",
 		ce_state->dest_ring->nentries_mask,
 		ce_state->dest_ring->sw_index,
