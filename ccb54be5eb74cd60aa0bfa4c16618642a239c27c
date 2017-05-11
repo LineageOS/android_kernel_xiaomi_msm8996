@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_399b291a",
+        "filename": "drivers/media/platform/msm/camera_v2/sensor/ois/msm_ois.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-11T22:24:50Z",
+      "side": 1,
+      "message": "not needed",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 30
+      },
+      "revId": "ccb54be5eb74cd60aa0bfa4c16618642a239c27c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_5996e5f1",
+        "filename": "drivers/media/platform/msm/camera_v2/sensor/ois/msm_ois.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-11T22:24:50Z",
+      "side": 1,
+      "message": "not needed\nfunction isn\u0027t used before it\u0027s declaration",
+      "range": {
+        "startLine": 35,
+        "startChar": 0,
+        "endLine": 35,
+        "endChar": 52
+      },
+      "revId": "ccb54be5eb74cd60aa0bfa4c16618642a239c27c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_79f9a14c",
+        "filename": "drivers/media/platform/msm/camera_v2/sensor/ois/msm_ois.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 957,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-11T22:24:50Z",
+      "side": 1,
+      "message": "not needed",
+      "range": {
+        "startLine": 942,
+        "startChar": 0,
+        "endLine": 957,
+        "endChar": 96
+      },
+      "revId": "ccb54be5eb74cd60aa0bfa4c16618642a239c27c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a486d77_99fc5d40",
+        "filename": "drivers/media/platform/msm/camera_v2/sensor/ois/msm_ois.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 1068,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-05-11T22:24:50Z",
+      "side": 1,
+      "message": "not needed",
+      "range": {
+        "startLine": 1068,
+        "startChar": 0,
+        "endLine": 1068,
+        "endChar": 59
+      },
+      "revId": "ccb54be5eb74cd60aa0bfa4c16618642a239c27c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
