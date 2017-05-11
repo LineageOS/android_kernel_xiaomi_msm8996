@@ -1104,15 +1104,15 @@
 // msm8996-camera.dtsi start
 &soc {
 	qcom,csiphy@a34000 {
-		qcom,clock-rates = <0 0 266670000 0 0 320000000 0>;
+		qcom,clock-rates = <0 0 0 266670000 0 0 320000000 0>;
 	};
 
 	qcom,csiphy@a35000 {
-		qcom,clock-rates = <0 0 266670000 0 0 320000000 0>;
+		qcom,clock-rates = <0 0 0 266670000 0 0 320000000 0>;
 	};
 
 	qcom,csiphy@a36000 {
-		qcom,clock-rates = <0 0 266670000 0 0 320000000 0>;
+		qcom,clock-rates = <0 0 0 266670000 0 0 320000000 0>;
 	};
 
 	qcom,csid@a30000 {
