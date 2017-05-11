@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -114,6 +114,16 @@ static inline void
 adf_os_mdelay(int msecs)
 {
     __adf_os_mdelay(msecs);
+}
+
+/**
+ * adf_os_msleep() - sleep in milliseconds.
+ * @msecs: milliseconds to sleep
+ */
+static inline void
+adf_os_msleep(int msecs)
+{
+	__adf_os_msleep(msecs);
 }
 
 /**

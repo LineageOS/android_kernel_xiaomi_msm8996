@@ -2840,7 +2840,8 @@ ol_sdio_extra_initialization(struct ol_softc *scn)
 		param |= (HI_ACS_FLAGS_SDIO_SWAP_MAILBOX_SET |
 			HI_ACS_FLAGS_ALT_DATA_CREDIT_SIZE);
 
-		if (!vos_is_ptp_tx_opt_enabled())
+		if (!vos_is_ptp_tx_opt_enabled() &&
+		    !vos_is_ocb_per_pkt_tx_comp_msg_needed())
 			param |= HI_ACS_FLAGS_SDIO_REDUCE_TX_COMPL_SET;
 
 		/* enable TX completion to collect tx_desc for pktlog */

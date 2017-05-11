@@ -6237,17 +6237,19 @@ PREPACK struct htt_txq_group {
  * The following diagram shows the format of the TX completion indication sent
  * from the target to the host
  *
- *          |31      26| 25 |  24 |23        16| 15 |14 11|10   8|7          0|
+ *          |31      27|26|25|24|23     16| 15 |14 11|10    8|7          0|
  *          |-------------------------------------------------------------|
- * header:  | reserved |append1|append|num | t_i| tid |status|  msg_type  |
+ * header:  | reserved |a2|a1|a0|   num   | t_i| tid |status |  msg_type  |
  *          |-------------------------------------------------------------|
  * payload: |            MSDU1 ID          |         MSDU0 ID             |
  *          |-------------------------------------------------------------|
  *          :            MSDU3 ID          :         MSDU2 ID             :
  *          |-------------------------------------------------------------|
  *          |          struct htt_tx_compl_ind_append_retries             |
- *          - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- *          |          struct htt_tx_compl_ind_append_txtstamp         |
+ *          |-------------------------------------------------------------|
+ *          |          struct htt_tx_compl_ind_append_txtstamp            |
+ *          |-------------------------------------------------------------|
+ *          |          struct htt_tx_compl_ind_append_txpower             |
  *          - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  *
  * The following field definitions describe the format of the TX completion
@@ -6274,15 +6276,21 @@ PREPACK struct htt_txq_group {
  *   Bits 23:16
  *   Purpose: the number of payload in this indication
  *   Value: 1 to 255
- * - append
+ * - a0 - append0
  *   Bits 24:24
  *   Purpose: append the struct htt_tx_compl_ind_append_retries which contains
- *            the number of tx retries for one MSDU at the end of this message
+ *            the number of tx retries for one MSDU after MSDU ID.
  *   Value: 0 indicates no appending; 1 indicates appending
- * - append1
+ * - a1 - append1
  *   Bits 25:25
  *   Purpose: append the struct htt_tx_compl_ind_append_txtstamp which contains
- *            the timestamp info for each TX msdu id in payload
+ *            the timestamp info for each TX msdu id in payload after append0.
+ *   Value: 0 indicates no appending; 1 indicates appending
+ * - a2 - append2
+ *   Bits 26:26
+ *   Purpose: append the struct htt_tx_compl_ind_append_txpower which contains
+ *            one or more tx power of each MSDUs after append1.
+ *            The start of tx power(s) must be 4-bytes-word aligned.
  *   Value: 0 indicates no appending; 1 indicates appending
  * Payload fields:
  * - hmsdu_id
@@ -6303,6 +6311,8 @@ PREPACK struct htt_txq_group {
 #define HTT_TX_COMPL_IND_APPEND_M      0x01000000
 #define HTT_TX_COMPL_IND_APPEND1_S     25
 #define HTT_TX_COMPL_IND_APPEND1_M     0x02000000
+#define HTT_TX_COMPL_IND_APPEND2_S     26
+#define HTT_TX_COMPL_IND_APPEND2_M     0x04000000
 
 #define HTT_TX_COMPL_IND_STATUS_SET(_info, _val)                        \
     do {                                                                \
@@ -6347,7 +6357,13 @@ PREPACK struct htt_txq_group {
     } while (0)
 #define HTT_TX_COMPL_IND_APPEND1_GET(_info)                             \
     (((_info) & HTT_TX_COMPL_IND_APPEND1_M) >> HTT_TX_COMPL_IND_APPEND1_S)
-
+#define HTT_TX_COMPL_IND_APPEND2_SET(_info, _val)                        \
+    do {                                                           \
+        HTT_CHECK_SET_VAL(HTT_TX_COMPL_IND_APPEND2, _val);           \
+        ((_info) |= ((_val) << HTT_TX_COMPL_IND_APPEND2_S));         \
+    } while (0)
+#define HTT_TX_COMPL_IND_APPEND2_GET(_info)                              \
+    (((_info) & HTT_TX_COMPL_IND_APPEND2_M) >> HTT_TX_COMPL_IND_APPEND2_S)
 
 #define HTT_TX_COMPL_CTXT_SZ                sizeof(A_UINT16)
 #define HTT_TX_COMPL_CTXT_NUM(_bytes)       ((_bytes) >> 1)
@@ -6388,6 +6404,10 @@ PREPACK struct htt_tx_compl_ind_append_retries {
 
 PREPACK struct htt_tx_compl_ind_append_txtstamp {
     A_UINT32 timestamp[1/*or more*/];
+} POSTPACK;
+
+PREPACK struct htt_tx_compl_ind_append_txpower {
+    A_UINT16 tx_power[1/*or more*/];
 } POSTPACK;
 
 /**

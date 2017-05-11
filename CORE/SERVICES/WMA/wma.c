@@ -17350,6 +17350,7 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_PDEV_PARAM_ANT_DIV_SELFTEST:
 		case WMI_PDEV_PARAM_ANT_DIV_SELFTEST_INTVL:
 		case WMI_PDEV_PARAM_RADIO_CHAN_STATS_ENABLE:
+		case WMI_PDEV_PARAM_RADIO_DIAGNOSIS_ENABLE:
 			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set pdev command/Not"

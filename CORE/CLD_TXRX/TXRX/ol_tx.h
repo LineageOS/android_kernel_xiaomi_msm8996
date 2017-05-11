@@ -37,7 +37,15 @@
 #include <ol_txrx_api.h> /* ol_txrx_vdev_handle */
 #include <ol_txrx_types.h>  /* ol_tx_desc_t, ol_txrx_msdu_info_t */
 
-#ifdef WLAN_FEATURE_DSRC
+/**
+ * struct ol_tx_per_pkt_stats - tx stats info of each packet sent out
+ * @seq_no: sequential number
+ * @chan_freq: channel freqency that this packet used
+ * @bandwidth: channel bandwidth
+ * @datarate: data rate
+ * @tx_power: tx power
+ * @mac_address: source MAC address that this packet used
+ */
 struct ol_tx_per_pkt_stats {
 	uint32_t seq_no;
 	uint32_t chan_freq;
@@ -47,20 +55,51 @@ struct ol_tx_per_pkt_stats {
 	uint8_t mac_address[6];
 };
 
+#ifdef WLAN_FEATURE_DSRC
 void
-ol_per_pkt_tx_stats_enable(int enable);
+ol_per_pkt_tx_stats_enable(bool enable);
+
+bool
+ol_per_pkt_tx_stats_enabled(void);
 
 void
-ol_tx_stats_ring_enque(uint32_t msdu_id, uint32_t chan_freq,
-		       uint32_t bandwidth, uint8_t *mac_address,
-		       uint8_t datarate, uint8_t power);
+ol_tx_stats_ring_enque_host(uint32_t msdu_id, uint32_t chan_freq,
+			   uint32_t bandwidth, uint8_t *mac_address,
+			   uint8_t datarate);
+
+void
+ol_tx_stats_ring_enque_comp(uint32_t msdu_id, uint32_t tx_power);
 
 int
 ol_tx_stats_ring_deque(struct ol_tx_per_pkt_stats *stats);
 #else
 static inline void
-ol_per_pkt_tx_stats_enable(int enable)
+ol_per_pkt_tx_stats_enable(bool enable)
 {
+}
+
+static inline bool
+ol_per_pkt_tx_stats_enabled(void)
+{
+	return false;
+}
+
+static inline void
+ol_tx_stats_ring_enque_host(uint32_t msdu_id, uint32_t chan_freq,
+			   uint32_t bandwidth, uint8_t *mac_address,
+			   uint8_t datarate)
+{
+}
+
+static inline void
+ol_tx_stats_ring_enque_comp(uint32_t msdu_id, uint32_t tx_power)
+{
+}
+
+static inline int
+ol_tx_stats_ring_deque(struct ol_tx_per_pkt_stats *stats)
+{
+	return 0;
 }
 #endif /* WLAN_FEATURE_DSRC */
 

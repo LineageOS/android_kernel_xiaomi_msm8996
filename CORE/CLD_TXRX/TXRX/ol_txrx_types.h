@@ -621,6 +621,7 @@ struct ol_txrx_pdev_t {
 		u_int16_t pool_size;
 		u_int16_t num_free;
 		union ol_tx_desc_list_elem_t *freelist;
+		union ol_tx_desc_list_elem_t *last;
 		uint32_t page_size;
 		uint16_t desc_reserved_size;
 		uint8_t page_divider;

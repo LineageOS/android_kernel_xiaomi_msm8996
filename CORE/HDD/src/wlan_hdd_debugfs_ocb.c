@@ -22,7 +22,9 @@
 #include "wlan_hdd_debugfs.h"
 #include "wlan_hdd_debugfs_ocb.h"
 #include "ol_tx.h"
+#include "wma_api.h"
 #include "wlan_hdd_ocb.h"
+#include "adf_os_time.h"
 
 #define WLAN_DSRC_COMMAND_MAX_SIZE 8
 #define WLAN_DSRC_CHAN_STATS_ENABLE 1
@@ -332,6 +334,16 @@ int wlan_hdd_create_dsrc_chan_stats_file(hdd_adapter_t *adapter,
 	return 0;
 }
 
+static inline bool __tx_stats_enabled(void)
+{
+	return ol_per_pkt_tx_stats_enabled();
+}
+
+static inline void __enable_tx_stats(bool enable)
+{
+	ol_per_pkt_tx_stats_enable(enable);
+}
+
 /**
  * __per_pkt_tx_stats_read() - read DSRC per-packet tx stats by DSRC app
  * @file: file pointer
@@ -359,6 +371,9 @@ static ssize_t __per_pkt_tx_stats_read(struct file *file,
 
 	ret = wlan_hdd_validate_context(WLAN_HDD_GET_CTX(adapter));
 	if (ret)
+		return ret;
+
+	if (!__tx_stats_enabled())
 		return ret;
 
 	ret = ol_tx_stats_ring_deque(&tx_stats);
@@ -392,16 +407,21 @@ static ssize_t per_pkt_tx_stats_read(struct file *file,
  *
  * Return: 0 on success, error number otherwise
  */
-static int __enable_per_pkt_tx_stats(int enable)
+static int __enable_per_pkt_tx_stats(bool enable)
 {
-	static int __enable = 0;
 	int ret = 0;
 
-	if ((__enable && enable) || (!__enable && !enable))
+	if (enable == __tx_stats_enabled())
 		return ret;
 
-	ol_per_pkt_tx_stats_enable(enable);
-	__enable = enable;
+	ret = process_wma_set_command(0, WMI_PDEV_PARAM_RADIO_DIAGNOSIS_ENABLE,
+				      enable ? 1 : 0, PDEV_CMD);
+	if (!ret) {
+		adf_os_msleep(100);
+		__enable_tx_stats(enable);
+	} else {
+		hddLog(LOGE,FL("WMI_PDEV_PARAM_RADIO_DIAGNOSIS_ENABLE failed"));
+	}
 
 	return ret;
 }
@@ -463,7 +483,7 @@ static ssize_t __per_pkt_tx_stats_write(struct file *file,
 		goto failure;
 	}
 
-	__enable_per_pkt_tx_stats((int)enable);
+	__enable_per_pkt_tx_stats(!!enable);
 
 	vos_mem_free(cmd);
 	EXIT();

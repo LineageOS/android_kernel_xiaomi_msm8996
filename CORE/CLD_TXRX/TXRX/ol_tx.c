@@ -56,17 +56,44 @@
 #ifdef WLAN_FEATURE_DSRC
 #include "ol_tx.h"
 #include "adf_os_lock.h"
+#include "adf_os_util.h"
+#include "queue.h"
 
-struct ol_tx_stats_ring_head {
-	adf_os_spinlock_t mutex;
-	uint8_t head;
-	uint8_t tail;
-};
-
+/**
+ * struct ol_tx_stats_ring_item - the item of a packet tx stats in the ring
+ * @list: list for all tx stats item in the ring
+ * @stats: a packet tx stats including fields from host and FW respectively
+ * @msdu_id: msdu ID used to match stats fields respectively from host and FW
+ * into a complete tx stats item
+ * @reserved: reserved to align to 4 bytes
+ */
 struct ol_tx_stats_ring_item {
+	TAILQ_ENTRY(ol_tx_stats_ring_item) list;
 	struct ol_tx_per_pkt_stats stats;
 	uint16_t msdu_id;
 	uint8_t reserved[2];
+};
+
+/**
+ * struct ol_tx_stats_ring_head - the ring head of all tx stats
+ * @mutex: mutex to access it exclusively
+ * @free_list: list of free tx stats ring items
+ * @host_list: list of tx stats items only containing tx stats fields from host
+ * @comp_list: list of tx stats items containing complete tx stats fields
+ * from host and FW, items in this list can be dequeued to user
+ * @num_free: number of free tx stats items
+ * @num_host_stat: number of tx stats items only containing tx stats fields
+ * from host
+ * @num_comp_stat: number of tx stats items containing complete tx stats fields
+ */
+struct ol_tx_stats_ring_head {
+	adf_os_spinlock_t mutex;
+	TAILQ_HEAD(free_list, ol_tx_stats_ring_item) free_list;
+	TAILQ_HEAD(host_list, ol_tx_stats_ring_item) host_list;
+	TAILQ_HEAD(comp_list, ol_tx_stats_ring_item) comp_list;
+	uint8_t num_free;
+	uint8_t num_host_stat;
+	uint8_t num_comp_stat;
 };
 
 #define TX_STATS_RING_SZ 32
@@ -74,7 +101,7 @@ struct ol_tx_stats_ring_item {
 
 static struct ol_tx_stats_ring_head *tx_stats_ring_head;
 static struct ol_tx_stats_ring_item *tx_stats_ring;
-static int ol_per_pkt_tx_stats_enabled = 0;
+static bool __ol_per_pkt_tx_stats_enabled = false;
 
 static int ol_tx_stats_ring_init(void)
 {
@@ -96,8 +123,17 @@ static int ol_tx_stats_ring_init(void)
 
 	vos_mem_zero(head, sizeof(*head));
 	vos_mem_zero(ring, sizeof(*ring) * TX_STATS_RING_SZ);
-	for (i = 0; i < TX_STATS_RING_SZ; i++)
+
+	TAILQ_INIT(&head->free_list);
+	TAILQ_INIT(&head->host_list);
+	TAILQ_INIT(&head->comp_list);
+
+	for (i = 0; i < TX_STATS_RING_SZ; i++) {
 		ring[i].msdu_id = INVALID_TX_MSDU_ID;
+		TAILQ_INSERT_HEAD(&head->free_list, &ring[i], list);
+	}
+	head->num_free = TX_STATS_RING_SZ;
+
 	adf_os_spinlock_init(&head->mutex);
 
 	return 0;
@@ -116,11 +152,11 @@ static void ol_tx_stats_ring_deinit(void)
 	}
 }
 
-void ol_per_pkt_tx_stats_enable(int enable)
+void ol_per_pkt_tx_stats_enable(bool enable)
 {
 	int ret = 0;
 
-	if (ol_per_pkt_tx_stats_enabled == !!enable)
+	if (__ol_per_pkt_tx_stats_enabled == enable)
 		return;
 
 	if (enable)
@@ -129,15 +165,122 @@ void ol_per_pkt_tx_stats_enable(int enable)
 		ol_tx_stats_ring_deinit();
 
 	if (!ret)
-		ol_per_pkt_tx_stats_enabled = !!enable;
+		__ol_per_pkt_tx_stats_enabled = enable;
 	else
-		ol_per_pkt_tx_stats_enabled = 0;
+		__ol_per_pkt_tx_stats_enabled = false;
 
 	adf_os_mb();
 }
 
+bool ol_per_pkt_tx_stats_enabled(void)
+{
+	return __ol_per_pkt_tx_stats_enabled;
+}
+
+static inline int __free_list_empty(void)
+{
+	return TAILQ_EMPTY(&tx_stats_ring_head->free_list);
+}
+
+static inline int __host_list_empty(void)
+{
+	return TAILQ_EMPTY(&tx_stats_ring_head->host_list);
+}
+
+static inline int __comp_list_empty(void)
+{
+	return TAILQ_EMPTY(&tx_stats_ring_head->comp_list);
+}
+
+static inline struct ol_tx_stats_ring_item *__get_ring_item(void)
+{
+	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
+	struct ol_tx_stats_ring_item *item = NULL;
+
+	if (!__free_list_empty()) {
+		item = TAILQ_FIRST(&h->free_list);
+		TAILQ_REMOVE(&h->free_list, item, list);
+		h->num_free--;
+	} else if (!__comp_list_empty()) {
+		/* Discard the oldest one. */
+		item = TAILQ_LAST(&h->comp_list, comp_list);
+		TAILQ_REMOVE(&h->comp_list, item, list);
+		h->num_comp_stat--;
+	} else if (!__host_list_empty()) {
+		item = TAILQ_LAST(&h->host_list, host_list);
+		TAILQ_REMOVE(&h->host_list, item, list);
+		h->num_host_stat--;
+	}
+
+	return item;
+}
+
+static inline struct ol_tx_stats_ring_item *
+__get_ring_item_host(uint32_t msdu_id)
+{
+	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
+	struct ol_tx_stats_ring_item *item = NULL;
+	struct ol_tx_stats_ring_item *temp = NULL;
+
+	if (__host_list_empty())
+		goto exit;
+
+	TAILQ_FOREACH_REVERSE(temp, &h->host_list, host_list, list) {
+		if (temp && (temp->msdu_id == msdu_id)) {
+			item = temp;
+			TAILQ_REMOVE(&h->host_list, item, list);
+			h->num_host_stat--;
+			goto exit;
+		}
+	}
+
+exit:
+	return item;
+}
+
+static inline struct ol_tx_stats_ring_item *__get_ring_item_comp(void)
+{
+	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
+	struct ol_tx_stats_ring_item *item = NULL;
+
+	if (__comp_list_empty())
+		goto exit;
+
+	item = TAILQ_LAST(&h->comp_list, comp_list);
+	TAILQ_REMOVE(&h->comp_list, item, list);
+	h->num_comp_stat--;
+
+exit:
+	return item;
+}
+
+static inline void __put_ring_item_host(struct ol_tx_stats_ring_item *item)
+{
+	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
+
+	TAILQ_INSERT_HEAD(&h->host_list, item, list);
+	h->num_host_stat++;
+}
+
+static inline void __put_ring_item_comp(struct ol_tx_stats_ring_item *item)
+{
+	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
+
+	TAILQ_INSERT_HEAD(&h->comp_list, item, list);
+	h->num_comp_stat++;
+}
+
+static inline void __free_ring_item(struct ol_tx_stats_ring_item *item)
+{
+	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
+
+	TAILQ_INSERT_HEAD(&h->free_list, item, list);
+	h->num_free++;
+}
+
 /**
- * ol_tx_stats_ring_enque() - enqueue the tx per packet stats
+ * ol_tx_stats_ring_enque_host() - enqueue the tx stats fields of a packet
+ * collected from tx path of host driver
  * @msdu_id: ol_tx_desc_id
  * @chan_freq: channel freqency
  * @bandwidth: channel bandwith like 10 or 20MHz
@@ -145,26 +288,23 @@ void ol_per_pkt_tx_stats_enable(int enable)
  * @datarate: data rate used
  *
  * This interface is for caller from TXRX layer in interrupt context.
- *
- * Return: None
  */
-void ol_tx_stats_ring_enque(uint32_t msdu_id, uint32_t chan_freq,
-			    uint32_t bandwidth, uint8_t *mac_address,
-			    uint8_t datarate, uint8_t power)
+void ol_tx_stats_ring_enque_host(uint32_t msdu_id, uint32_t chan_freq,
+				uint32_t bandwidth, uint8_t *mac_address,
+				uint8_t datarate)
 {
 	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
-	struct ol_tx_stats_ring_item *ring = tx_stats_ring;
 	struct ol_tx_stats_ring_item *item;
 	static uint32_t seq_no = 0;
 
-	if (!h || !ring)
+	if (!h)
 		return;
 
 	adf_os_spin_lock(&h->mutex);
 
-	item = &ring[h->head++];
-	if (h->head == TX_STATS_RING_SZ)
-		h->head = 0;
+	item = __get_ring_item();
+	if (!item)
+		goto exit;
 
 	item->msdu_id = msdu_id;
 	item->stats.seq_no = seq_no++;
@@ -172,25 +312,44 @@ void ol_tx_stats_ring_enque(uint32_t msdu_id, uint32_t chan_freq,
 	item->stats.bandwidth = bandwidth;
 	vos_mem_copy(item->stats.mac_address, mac_address, 6);
 	item->stats.datarate = datarate;
-	item->stats.tx_power = power;
 
-	/* if ring is full, discard the oldest one. */
-	if (h->head == h->tail) {
-		item = &ring[h->tail++];
-		if (h->tail == TX_STATS_RING_SZ)
-			h->tail = 0;
+	__put_ring_item_host(item);
 
-		item->msdu_id = INVALID_TX_MSDU_ID;
-	}
-
+exit:
 	adf_os_spin_unlock(&h->mutex);
-
-	TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "%s(), msdu_id=%u,head=%u,tail=%u\n",
-		   __func__, msdu_id, h->head, h->tail);
 }
 
 /**
- * ol_tx_stats_ring_deque() - dequeue a tx per packet stats
+ * ol_tx_stats_ring_enque_comp() - enqueue the tx power of a packet from FW
+ * to form a complete tx stats item, which can be delivered to user
+ * @msdu_id: ol_tx_desc_id
+ * @tx_power: tx power used from FW
+ *
+ * This interface is for caller from WMA layer context.
+ */
+void ol_tx_stats_ring_enque_comp(uint32_t msdu_id, uint32_t tx_power)
+{
+	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
+	struct ol_tx_stats_ring_item *item;
+
+	if (!h)
+		return;
+
+	adf_os_spin_lock(&h->mutex);
+
+	item = __get_ring_item_host(msdu_id);
+	if (!item)
+		goto exit;
+
+	item->stats.tx_power = (uint8_t)tx_power;
+	__put_ring_item_comp(item);
+
+exit:
+	adf_os_spin_unlock(&h->mutex);
+}
+
+/**
+ * ol_tx_stats_ring_deque() - dequeue a complete tx stats item to user
  * @stats: tx per packet stats
  *
  * This interface is for caller from user space process context.
@@ -200,25 +359,19 @@ void ol_tx_stats_ring_enque(uint32_t msdu_id, uint32_t chan_freq,
 int ol_tx_stats_ring_deque(struct ol_tx_per_pkt_stats *stats)
 {
 	struct ol_tx_stats_ring_head *h = tx_stats_ring_head;
-	struct ol_tx_stats_ring_item *ring = tx_stats_ring;
 	struct ol_tx_stats_ring_item *item;
 	int ret = 0;
 
-	if (!h || !ring)
+	if (!h)
 		return ret;
 
 	adf_os_spin_lock(&h->mutex);
 
-	if (h->head == h->tail) {
+	item = __get_ring_item_comp();
+	if (!item)
 		goto exit;
-	}
 
-	item = &ring[h->tail++];
-	if (h->tail == TX_STATS_RING_SZ)
-		h->tail = 0;
-
-	TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1, "%s(), msdu_id=%u,head=%u,tail=%u\n",
-		   __func__, item->msdu_id, h->head, h->tail);
+	__free_ring_item(item);
 
 	vos_mem_copy(stats, &item->stats, sizeof(*stats));
 	item->msdu_id = INVALID_TX_MSDU_ID;
@@ -226,7 +379,6 @@ int ol_tx_stats_ring_deque(struct ol_tx_per_pkt_stats *stats)
 
 exit:
 	adf_os_spin_unlock(&h->mutex);
-
 	return ret;
 }
 #endif /* WLAN_FEATURE_DSRC */
@@ -888,7 +1040,7 @@ ol_collect_per_pkt_tx_stats(ol_txrx_vdev_handle vdev,
 	struct ol_txrx_ocb_chan_info *chan_info;
 	int i;
 
-	if (!ol_per_pkt_tx_stats_enabled)
+	if (!ol_per_pkt_tx_stats_enabled())
 		return;
 
 	chan_info = &vdev->ocb_channel_info[0];
@@ -899,9 +1051,10 @@ ol_collect_per_pkt_tx_stats(ol_txrx_vdev_handle vdev,
 			break;
 		}
 	}
-	ol_tx_stats_ring_enque(msdu_id, tx_ctrl->channel_freq,
-			       chan_info->bandwidth, chan_info->mac_address,
-			       tx_ctrl->datarate, tx_ctrl->pwr);
+
+	ol_tx_stats_ring_enque_host(msdu_id, tx_ctrl->channel_freq,
+				   chan_info->bandwidth, chan_info->mac_address,
+				   tx_ctrl->datarate);
 }
 #else
 static void dsrc_update_broadcast_frame_sa(ol_txrx_vdev_handle vdev,
