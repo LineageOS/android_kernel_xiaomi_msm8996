@@ -24,6 +24,10 @@
 #include "cnss_common.h"
 #include <net/cfg80211.h>
 
+#include <asm/bootinfo.h>
+#include <linux/fcntl.h>
+#include <linux/fs.h>
+
 #define AR6320_REV1_VERSION             0x5000000
 #define AR6320_REV1_1_VERSION           0x5000001
 #define AR6320_REV1_3_VERSION           0x5000003
@@ -456,11 +460,49 @@ void cnss_get_qca9377_fw_files(struct cnss_fw_files *pfw_files,
 }
 EXPORT_SYMBOL(cnss_get_qca9377_fw_files);
 
+int get_fem_fix_flag(void)
+{
+	struct file *fp = NULL;
+	char buf[3];
+	int flag = 0;
+
+	fp = filp_open("/persist/wlan_bt/ff_flag", O_RDONLY, 0);
+	if (!IS_ERR(fp)) {
+		kernel_read(fp, 0, buf, 3);
+		filp_close(fp, NULL);
+		flag = buf[0];
+	}
+
+	return flag;
+}
+
 int cnss_get_fw_files_for_target(struct cnss_fw_files *pfw_files,
 				 u32 target_type, u32 target_version)
 {
 	if (!pfw_files)
 		return -ENODEV;
+
+	if (get_hw_version_devid() == 7) {
+		if (get_fem_fix_flag() == 1) {
+			strlcpy(FW_FILES_QCA6174_FW_3_0.board_data,
+				"bd30_a7.b02", sizeof("bd30_a7.b02"));
+		} else {
+			strlcpy(FW_FILES_QCA6174_FW_3_0.board_data,
+				"bd30_a7.bin", sizeof("bd30_a7.bin"));
+		}
+	} else if (get_hw_version_devid() == 4) {
+		strlcpy(FW_FILES_QCA6174_FW_3_0.board_data, "bd30_a4.bin", sizeof("bd30_a4.bin"));
+	} else if (get_hw_version_devid() == 8) {
+		strlcpy(FW_FILES_QCA6174_FW_3_0.board_data, "bd30_a8.bin", sizeof("bd30_a8.bin"));
+	} else if (get_hw_version_devid() == 9) {
+		if (get_fem_fix_flag() == 1) {
+			strlcpy(FW_FILES_QCA6174_FW_3_0.board_data,
+				"bd30_b7.b02", sizeof("bd30_b7.b02"));
+		} else {
+			strlcpy(FW_FILES_QCA6174_FW_3_0.board_data,
+				"bd30_b7.bin", sizeof("bd30_b7.bin"));
+		}
+	}
 
 	switch (target_version) {
 	case AR6320_REV1_VERSION:
