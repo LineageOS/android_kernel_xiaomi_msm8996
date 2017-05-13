@@ -23,6 +23,7 @@
 #include <net/cnss.h>
 #include "cnss_common.h"
 #include <net/cfg80211.h>
+#include <linux/module.h>
 
 #define AR6320_REV1_VERSION             0x5000000
 #define AR6320_REV1_1_VERSION           0x5000001
@@ -456,6 +457,10 @@ void cnss_get_qca9377_fw_files(struct cnss_fw_files *pfw_files,
 }
 EXPORT_SYMBOL(cnss_get_qca9377_fw_files);
 
+static char *bdwlan_file = NULL;
+module_param(bdwlan_file, charp, S_IWUSR | S_IRUGO);
+MODULE_PARM_DESC(bdwlan_file, "bdwlan file to be picked up based on HW");
+
 int cnss_get_fw_files_for_target(struct cnss_fw_files *pfw_files,
 				 u32 target_type, u32 target_version)
 {
@@ -475,6 +480,9 @@ int cnss_get_fw_files_for_target(struct cnss_fw_files *pfw_files,
 		break;
 	case AR6320_REV3_VERSION:
 	case AR6320_REV3_2_VERSION:
+		if (bdwlan_file)
+			strlcpy(FW_FILES_QCA6174_FW_3_0.board_data, bdwlan_file,
+				sizeof(FW_FILES_QCA6174_FW_3_0.board_data));
 		memcpy(pfw_files, &FW_FILES_QCA6174_FW_3_0, sizeof(*pfw_files));
 		break;
 	default:
