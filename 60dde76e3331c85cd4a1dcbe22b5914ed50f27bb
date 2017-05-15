@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_a5ac87ee",
+        "filename": "drivers/input/touchscreen/ft5x46/ft8716_pramboot.h",
+        "patchSetId": 5
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-05-15T18:56:40Z",
+      "side": 1,
+      "message": "Replace with tabs?",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 20,
+        "endChar": 2
+      },
+      "revId": "60dde76e3331c85cd4a1dcbe22b5914ed50f27bb",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
