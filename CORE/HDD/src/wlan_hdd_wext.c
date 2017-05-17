@@ -11329,6 +11329,8 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
             tHalHandle hal_hdl = hdd_ctx->hHal;
             tCsrBssid bssid = {0};
             tCsrRoamProfile roam_profile;
+            uint8_t ini_sub_20_ch_width =
+                        hdd_ctx->cfg_ini->sub_20_channel_width;
 
             hddLog(LOG1, "Set monitor mode Channel %d", value[1]);
             hdd_select_mon_cbmode(pAdapter, value[1], &vht_channel_width);
@@ -11338,8 +11340,10 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
             roam_profile.ChannelInfo.numOfChannels = 1;
             roam_profile.vht_channel_width = ch_info->channel_width;
             roam_profile.phyMode = ch_info->phy_mode;
-            roam_profile.sub20_channelwidth =
-                    (hdd_ctx->cfg_ini->sub_20_channel_width & 0x3);
+            if (ini_sub_20_ch_width < CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ &&
+                ini_sub_20_ch_width > CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL)
+                roam_profile.sub20_channelwidth =
+                    hdd_ctx->cfg_ini->sub_20_channel_width;
 
             vos_mem_copy(bssid, pAdapter->macAddressCurrent.bytes,
                          VOS_MAC_ADDR_SIZE);
