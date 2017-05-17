@@ -67,6 +67,7 @@
 #include "vos_nvitem.h"
 #include "wlan_qct_wda.h"
 #include "wlan_hdd_main.h"
+#include "wlan_hdd_tsf.h"
 #include <linux/vmalloc.h>
 #include "wlan_hdd_cfg80211.h"
 #include "vos_cnss.h"
@@ -2407,6 +2408,36 @@ v_BOOL_t vos_is_packet_log_enabled(void)
 
    return pHddCtx->cfg_ini->enablePacketLog;
 }
+
+#ifdef WLAN_FEATURE_TSF_PLUS
+bool vos_is_ptp_rx_opt_enabled(void)
+{
+	hdd_context_t *hdd_ctx;
+
+	hdd_ctx = (hdd_context_t *)(gpVosContext->pHDDContext);
+	if ((NULL == hdd_ctx) || (NULL == hdd_ctx->cfg_ini)) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+			  "%s: Hdd Context is Null", __func__);
+		return false;
+	}
+
+	return HDD_TSF_IS_RX_SET(hdd_ctx);
+}
+
+bool vos_is_ptp_tx_opt_enabled(void)
+{
+	hdd_context_t *hdd_ctx;
+
+	hdd_ctx = (hdd_context_t *)(gpVosContext->pHDDContext);
+	if ((NULL == hdd_ctx) || (NULL == hdd_ctx->cfg_ini)) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+			  "%s: Hdd Context is Null", __func__);
+		return false;
+	}
+
+	return HDD_TSF_IS_TX_SET(hdd_ctx);
+}
+#endif
 
 VOS_STATUS vos_config_silent_recovery(pVosContextType vos_context)
 {

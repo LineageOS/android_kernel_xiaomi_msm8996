@@ -1286,6 +1286,24 @@ static bool hdd_is_arp_local(struct sk_buff *skb)
 	return true;
 }
 
+#ifdef WLAN_FEATURE_TSF_PLUS
+static inline void hdd_tsf_timestamp_rx(hdd_context_t *hdd_ctx,
+					adf_nbuf_t netbuf,
+					uint64_t target_time)
+{
+	if (!HDD_TSF_IS_RX_SET(hdd_ctx))
+		return;
+
+	hdd_rx_timestamp(netbuf, target_time);
+}
+#else
+static inline void hdd_tsf_timestamp_rx(hdd_context_t *hdd_ctx,
+					adf_nbuf_t netbuf,
+					uint64_t target_time)
+{
+}
+#endif
+
 /**============================================================================
   @brief hdd_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when one or more packets were
@@ -1438,7 +1456,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
             wake_lock = true;
       }
 
-      hdd_rx_timestamp(skb, ktime_to_us(skb->tstamp));
+      hdd_tsf_timestamp_rx(pHddCtx, skb, ktime_to_us(skb->tstamp));
 
       /*
        * If this is not a last packet on the chain
