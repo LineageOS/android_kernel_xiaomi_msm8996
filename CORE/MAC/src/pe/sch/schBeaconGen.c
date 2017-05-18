@@ -271,13 +271,15 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
         vos_mem_set(( tANI_U8* )&(psessionEntry->probeRespFrame),
                     sizeof(psessionEntry->probeRespFrame), 0);
 
-        /* Can be efficiently updated whenever new IE added
-         * in Probe response in future
-         */
-        if (limUpdateProbeRspTemplateIeBitmapBeacon1(pMac, pBcn1,
-                psessionEntry) != eSIR_SUCCESS) {
-                    schLog(pMac, LOGE,
-                        FL("Failed to build ProbeRsp template"));
+        if (vos_is_probe_rsp_offload_enabled()) {
+            /* Can be efficiently updated whenever new IE added
+             * in Probe response in future
+             */
+            if (limUpdateProbeRspTemplateIeBitmapBeacon1(pMac, pBcn1,
+                   psessionEntry) != eSIR_SUCCESS) {
+                       schLog(pMac, LOGE,
+                           FL("Failed to build ProbeRsp template"));
+            }
         }
     }
 
@@ -450,9 +452,11 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     }
 
     if (LIM_IS_AP_ROLE(psessionEntry)) {
-        /* Can be efficiently updated whenever new IE added  in Probe response in future */
-        limUpdateProbeRspTemplateIeBitmapBeacon2(pMac,pBcn2,&psessionEntry->DefProbeRspIeBitmap[0],
-                                                &psessionEntry->probeRespFrame);
+        if (vos_is_probe_rsp_offload_enabled()) {
+            /* Can be efficiently updated whenever new IE added  in Probe response in future */
+            limUpdateProbeRspTemplateIeBitmapBeacon2(pMac,pBcn2,&psessionEntry->DefProbeRspIeBitmap[0],
+                                                     &psessionEntry->probeRespFrame);
+        }
 
         /* update probe response WPS IE instead of beacon WPS IE
         * */

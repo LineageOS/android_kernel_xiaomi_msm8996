@@ -385,4 +385,7 @@ int vos_set_radio_index(int radio_index);
 void vos_svc_fw_shutdown_ind(struct device *dev);
 uint64_t vos_do_div(uint64_t, uint32_t);
 VOS_STATUS vos_force_fw_dump(void);
+
+bool vos_is_probe_rsp_offload_enabled(void);
+
 #endif // if !defined __VOS_API_H

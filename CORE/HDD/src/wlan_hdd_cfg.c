@@ -5022,6 +5022,12 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ARP_AC_CATEGORY_MIN,
                 CFG_ARP_AC_CATEGORY_MAX),
 
+   REG_VARIABLE(CFG_SAP_PROBE_RESP_OFFLOAD_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, sap_probe_resp_offload,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SAP_PROBE_RESP_OFFLOAD_DEFAULT,
+                CFG_SAP_PROBE_RESP_OFFLOAD_MIN,
+                CFG_SAP_PROBE_RESP_OFFLOAD_MAX),
 };
 
 
@@ -5871,6 +5877,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   hddLog(LOG2, "Name = [%s] Value = [%u]",
                  CFG_BPF_PACKET_FILTER_OFFLOAD,
                  pHddCtx->cfg_ini->bpf_packet_filter_enable);
+  hddLog(LOG2, "Name = [%s] Value = [%u] ",
+          CFG_SAP_PROBE_RESP_OFFLOAD_NAME,
+          pHddCtx->cfg_ini->sap_probe_resp_offload);
 
   hddLog(LOG2, "Name = [%s] Value = [%u]",
          CFG_SUB_20_CHANNEL_WIDTH_NAME,
