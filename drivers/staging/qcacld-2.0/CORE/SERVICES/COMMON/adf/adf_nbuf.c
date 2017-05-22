@@ -1692,11 +1692,11 @@ __adf_nbuf_trace_update(struct sk_buff *buf, char *event_string)
       break;
    case NBUF_PKT_TRAC_TYPE_NS:
       adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
-                      "NS", adf_os_str_len("NS"));
+                      "NS\0", adf_os_str_len("NS"));
       break;
    case NBUF_PKT_TRAC_TYPE_NA:
       adf_os_mem_copy(string_buf + adf_os_str_len(event_string),
-                      "NA", adf_os_str_len("NA"));
+                      "NA\0", adf_os_str_len("NA"));
       break;
    default:
       break;
