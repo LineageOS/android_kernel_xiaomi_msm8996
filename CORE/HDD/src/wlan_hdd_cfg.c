@@ -6613,6 +6613,15 @@ uint8_t hdd_cfg_get_sub20_channel_config(hdd_context_t *hdd_ctx_ptr)
 }
 #endif
 
+#ifdef WLAN_FEATURE_TSF_PLUS
+bool hdd_cfg_is_ptp_opt_enable(hdd_context_t *hdd_ctx_ptr)
+{
+	hdd_config_t *config_ptr = hdd_ctx_ptr->cfg_ini;
+
+	return (config_ptr->tsf_ptp_options != 0);
+}
+#endif
+
 static void hdd_set_power_save_config(hdd_context_t *pHddCtx, tSmeConfigParams *smeConfig)
 {
    hdd_config_t *pConfig = pHddCtx->cfg_ini;

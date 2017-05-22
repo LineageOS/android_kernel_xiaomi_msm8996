@@ -517,6 +517,13 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
           skb_orphan(skb);
       }
 #endif
+#else
+      /*
+       * For PTP feature enabled system, need to orphan the socket buffer asap
+       * otherwise the latency will become unacceptable
+       */
+      if (hdd_cfg_is_ptp_opt_enable(hddCtxt))
+          skb_orphan(skb);
 #endif
 
        /* use self peer directly in monitor mode */

@@ -5686,6 +5686,24 @@ VOS_STATUS hdd_update_nss(hdd_context_t *hdd_ctx, uint8_t nss);
  */
 void hdd_set_dfs_regdomain(hdd_context_t *phddctx, bool restore);
 
+/**
+ * hdd_cfg_is_ptp_opt_enable - check if PTP Option is enabled
+ *
+ * @hdd_ctx_ptr: context for hdd
+ *
+ * This function returns true if PTP option is enabled, returns
+ * false if PTP option is disabled
+ */
+#ifdef WLAN_FEATURE_TSF_PLUS
+bool hdd_cfg_is_ptp_opt_enable(hdd_context_t *hdd_ctx_ptr);
+#else
+static inline
+bool hdd_cfg_is_ptp_opt_enable(hdd_context_t *hdd_ctx_ptr)
+{
+	return 0;
+}
+#endif
+
 #ifdef FEATURE_WLAN_SUB_20_MHZ
 uint8_t hdd_cfg_get_sub20_dyn_capabilities(hdd_context_t *hdd_ctx_ptr);
 uint8_t hdd_cfg_get_static_sub20_channel_width(hdd_context_t *hdd_ctx_ptr);

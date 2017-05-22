@@ -622,6 +622,14 @@ ol_tx_completion_handler(
 
     TAILQ_INIT(&tx_descs);
 
+    if (pdev->cfg.is_high_latency) {
+        /*
+         * For some performance sensitive platform, the ol_tx_sched
+         * must be triggered as soon as possible to reduce latency
+         */
+        ol_tx_sched(pdev);
+    }
+
     OL_TX_DELAY_COMPUTE(pdev, status, desc_ids, num_msdus);
     if (status == htt_tx_status_ok)
         txtstamp_list = ol_tx_get_txtstamps(msg_word, num_msdus);
@@ -689,6 +697,8 @@ ol_tx_completion_handler(
          * but update the number of available tx descriptors,
          * then invoke the scheduler, since new credit is probably
          * available now.
+         * For those performance sensitive platform, the ol_tx_sched
+         * now is triggered again
          */
         adf_os_atomic_add(num_msdus, &pdev->tx_queue.rsrc_cnt);
         ol_tx_sched(pdev);
