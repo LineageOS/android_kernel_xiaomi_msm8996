@@ -5441,6 +5441,11 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
                 smsLog( pMac, LOGE, "CSR: Unable to store scan results for PNO" );
                 status = eHAL_STATUS_FAILURE;
             }
+            else {
+                /* Purge the scan results based on Aging */
+                if (pMac->scan.scanResultCfgAgingTime)
+                    csrPurgeScanResultByAge(pMac);
+            }
         }
 #endif
         else
@@ -5456,6 +5461,11 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
                                                 pScanRsp->sessionId))) {
             smsLog( pMac, LOGE, "CSR: Unable to store scan results for PNO" );
             status = eHAL_STATUS_FAILURE;
+        }
+        else {
+            /* Purge the scan results based on Aging */
+            if (pMac->scan.scanResultCfgAgingTime)
+                csrPurgeScanResultByAge(pMac);
         }
     }
 #endif
