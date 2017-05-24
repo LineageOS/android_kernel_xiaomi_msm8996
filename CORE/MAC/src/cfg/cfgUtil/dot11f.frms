@@ -42,12 +42,12 @@
  *
  */
 
-
 // Tell framesc what types to use for...
 %8-bit-type   tANI_U8  // 8,
 %16-bit-type  tANI_U16 // 16,
 %32-bit-type  tANI_U32 // & 32-bit unsigned integral types.  These can also
                        // be specified on the command line.
+
 
 // Define some mnemonic constants; these are just for our use with the frames
 // files we're compiling.  IOW, they won't result in any C code being
@@ -123,6 +123,23 @@ const EID_WIDER_BW_CHANNEL_SWITCH_ANN=  194;
 const VHT_TRANSMIT_POWER_ENVELOPE    = 195;
 const EID_CHANNEL_SWITCH_WRAPPER     = 196;
 const EID_VENDOR_SPECIFIC            = 221;
+const EID_FILS_INDICATION            = 240;
+/**
+ * Extended Element ID
+ *
+ * As part of IEEE-802.11-2016 spec, extended element ID is introduced(9.4.2.1)
+ * Elements are defined to have a common general format consisting of a 1 octet
+ * Element ID field, a 1 octet Length field, an optional 1 octet Element ID
+ * Extension field, and a variable-length element-specific Information field.
+ * Each element is identified by the contents of the Element ID and, when
+ * present, Element ID Extension fields as defined in this standard. An Extended
+ * Element ID is a combination of an Element ID and an Element ID Extension for
+ * those elements that have a defined Element ID Extension. The Length field
+ * specifies the number of octets following the Length field. The presence of
+ * the Element ID Extension field is determined by the Element ID field having
+ * value of 255
+ */
+const EID_EXTN_ID_ELEMENT            = 255;
 
 const SIR_MAC_PROP_EXT_RATES_TYPE    =   0;
 const SIR_MAC_PROP_AP_NAME_TYPE      =   1;
@@ -2598,6 +2615,68 @@ IE TimeAdvertisement (EID_TIME_ADVERTISEMENT)   // 8.4.2.63
     time_error[5];
 }
 
+IE fils_indication (EID_FILS_INDICATION)
+{
+   // FILS Information element
+   {
+       public_key_identifiers_cnt     : 3;
+       realm_identifiers_cnt          : 3;
+       is_ip_config_supported         : 1;
+       is_cache_id_present            : 1;
+       is_hessid_present              : 1;
+       is_fils_sk_auth_supported      : 1;
+       is_fils_sk_auth_pfs_supported  : 1;
+       is_pk_auth_supported           : 1;
+       reserved                       : 4;
+   }
+   // other FILS elements
+   variable_data[3..255];
+}
+
+IE fils_assoc_delay_info (EID_EXTN_ID_ELEMENT) // OUI ( 0x01 )
+{
+    assoc_delay_info, 1;
+}
+
+IE fils_key_confirmation (EID_EXTN_ID_ELEMENT) // OUI ( 0x03 )
+{
+    key_auth[0..255];
+}
+
+IE fils_session (EID_EXTN_ID_ELEMENT) // OUI ( 0x04 )
+{
+    session[8];
+}
+
+IE fils_hlp_container (EID_EXTN_ID_ELEMENT) // OUI ( 0x05 )
+{
+    dest_mac[6];
+    src_mac[6];
+    hlp_packet[0..255];
+}
+
+IE fils_kde (EID_EXTN_ID_ELEMENT) // OUI ( 0x07 )
+{
+    key_rsc[8];
+    kde_list[0..255];
+}
+
+IE fils_wrapped_data (EID_EXTN_ID_ELEMENT) // OUI ( 0x08 )
+{
+    wrapped_data[0..255];
+}
+
+IE fils_public_key (EID_EXTN_ID_ELEMENT) // OUI ( 0x0C )
+{
+    key_type, 1;
+    public_key[0..255];
+}
+
+IE fils_nonce (EID_EXTN_ID_ELEMENT) // OUI ( 0x0D )
+{
+    nonce[16];
+}
+
 /////////////////////////////////////////////////////////////////////////////
 //                                MULTIIEs                                 //
 /////////////////////////////////////////////////////////////////////////////
@@ -3091,6 +3170,8 @@ FRAME Beacon                              // C.f. Sec. 7.2.3.1
     OPTIE  OperatingMode;
     OPTIE  WiderBWChanSwitchAnn;
     OPTIE  OBSSScanParameters;
+    //WLAN_FEATURE_FILS_SK
+    OPTIE  fils_indication;
     OPTIE  Vendor1IE;
     OPTIE  vendor2_ie;
     OPTIE  Vendor3IE;
@@ -3178,6 +3259,8 @@ FRAME Beacon2
     OPTIE  OperatingMode;
     OPTIE  WiderBWChanSwitchAnn;
     OPTIE  OBSSScanParameters;
+    //WLAN_FEATURE_FILS_SK
+    OPTIE  fils_indication;
     OPTIE  Vendor1IE;
     OPTIE  vendor2_ie;
     OPTIE  Vendor3IE;
@@ -3242,6 +3325,8 @@ FRAME BeaconIEs
     OPTIE  OperatingMode;
     OPTIE  WiderBWChanSwitchAnn;
     OPTIE  OBSSScanParameters;
+    //WLAN_FEATURE_FILS_SK
+    OPTIE  fils_indication;
     OPTIE  Vendor1IE;
     OPTIE  vendor2_ie;
     OPTIE  Vendor3IE;
@@ -3281,6 +3366,11 @@ FRAME AssocRequest                        // 7.2.3.4
     OPTIE  P2PIEOpaque;
     OPTIE  WFDIEOpaque;
     OPTIE  VHTCaps;
+    //WLAN_FEATURE_FILS_SK
+    OPTIE  fils_session;
+    OPTIE  fils_public_key;
+    OPTIE  fils_key_confirmation;
+    OPTIE  fils_hlp_container;
     OPTIE  ExtCap;
     OPTIE  OperatingMode;
     OPTIE  QosMapSet;
@@ -3319,6 +3409,12 @@ FRAME AssocResponse                       // 7.2.3.5
     OPTIE  ExtCap;
     OPTIE  OBSSScanParameters;
     OPTIE  QosMapSet;
+    //WLAN_FEATURE_FILS_SK
+    OPTIE  fils_session;
+    OPTIE  fils_public_key;
+    OPTIE  fils_key_confirmation;
+    OPTIE  fils_hlp_container;
+    OPTIE  fils_kde;
     OPTIE  vendor2_ie;
     OPTIE  QComVendorIE;
 } // End frame AssocResponse.
@@ -3460,6 +3556,8 @@ FRAME ProbeResponse                       // 7.2.3.9
     OPTIE  VHTExtBssLoad;
     OPTIE  ExtCap;
     OPTIE  OBSSScanParameters;
+    //WLAN_FEATURE_FILS_SK
+    OPTIE  fils_indication;
     OPTIE  Vendor1IE;
     OPTIE  vendor2_ie;
     OPTIE  Vendor3IE;
@@ -3479,6 +3577,11 @@ FRAME Authentication                      // 7.2.3.10
     OPTIE  FTInfo;
     OPTIE  TimeoutInterval;
     OPTIE  RICDataDesc[2];
+    //WLAN_FEATURE_FILS_SK
+    OPTIE  fils_nonce;
+    OPTIE  fils_session;
+    OPTIE  fils_wrapped_data;
+    OPTIE  fils_assoc_delay_info;
 } // End frame Auth.
 
 FRAME DeAuth                              // 7.2.3.11
