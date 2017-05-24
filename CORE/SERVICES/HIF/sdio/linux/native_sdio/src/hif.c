@@ -47,6 +47,25 @@
 #include "a_debug.h"
 #include "vos_sched.h"
 
+#define BUS_REQ_RECORD_SIZE 100
+u_int32_t g_bus_req_buf_idx = 0;
+spinlock_t g_bus_request_record_lock;
+
+struct bus_request_record bus_request_record_buf[BUS_REQ_RECORD_SIZE];
+
+#define BUS_REQUEST_RECORD(r, a, l) { \
+	unsigned long flag; \
+	spin_lock_irqsave(&g_bus_request_record_lock, flag); \
+	if (g_bus_req_buf_idx == BUS_REQ_RECORD_SIZE) \
+		g_bus_req_buf_idx = 0; \
+	bus_request_record_buf[g_bus_req_buf_idx].request = r;  \
+	bus_request_record_buf[g_bus_req_buf_idx].address = a;  \
+	bus_request_record_buf[g_bus_req_buf_idx].len = l; \
+	bus_request_record_buf[g_bus_req_buf_idx].time = adf_get_boottime(); \
+	g_bus_req_buf_idx++; \
+	spin_unlock_irqrestore(&g_bus_request_record_lock, flag); \
+}
+
 #if HIF_USE_DMA_BOUNCE_BUFFER
 /* macro to check if DMA buffer is WORD-aligned and DMA-able.  Most host controllers assume the
  * buffer is DMA'able and will bug-check otherwise (i.e. buffers on the stack).
@@ -644,10 +663,11 @@ HIFReadWrite(HIF_DEVICE *device,
                         (request & HIF_ASYNCHRONOUS)?"Async":"Synch"));
             busrequest = hifAllocateBusRequest(device);
             if (busrequest == NULL) {
-                AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+                AR_DEBUG_PRINTF(ATH_DEBUG_INFO,
                     ("AR6000: no async bus requests available (%s, addr:0x%X, len:%d) \n",
                         request & HIF_READ ? "READ":"WRITE", address, length));
-                return A_ERROR;
+                BUS_REQUEST_RECORD(request, address, length);
+                return A_ECANCELED;
             }
             busrequest->address = address;
             busrequest->buffer = buffer;
@@ -1755,8 +1775,8 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
         }
 
         spin_lock_init(&device->lock);
-
         spin_lock_init(&device->asynclock);
+        spin_lock_init(&g_bus_request_record_lock);
 
         DL_LIST_INIT(&device->ScatterReqHead);
 
