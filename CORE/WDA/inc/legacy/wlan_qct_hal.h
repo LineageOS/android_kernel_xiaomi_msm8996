@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -419,100 +419,6 @@ v_BOOL_t WLANHAL_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx, tANI_U8 staId
 
 #define tHalTxBd    halTxBd_type
 #define tpHalTxBd    pHalTxBd_type
-
-#ifdef BA_PARAM_STRUCTURE
-#else
-#define BA_PARAM_STRUCTURE
-//
-// HAL --> TL
-// Messages indicating the setup and/or teardown of
-// A-MPDU/BA sessions with a given peer HT MAC entity
-//
-
-//
-// A data structure identifying all of the variables
-// in a typical A-MPDU/BA setup
-//
-typedef struct sBAParams
-{
-
-  // A unique BA Session ID that has been assigned by HAL
-  // for the curent BA Session
-  tANI_U16 baSessionID;
-
-  // TID for which the BA session has been setup
-  tANI_U8 baTID;
-
-  // BA Buffer Size allocated for the current BA session   //Should be deleted. needs TL change. use winSize instead
-  tANI_U8 baBufferSize;
-
-  tANI_U16 SSN;
-  tANI_U8 winSize;
-  tANI_U8 STAID;
-
-} tBAParams, *tpBAParams;
-
-//
-// TL -> HAL
-// tSirMsgQ.type = SIR_HAL_HDD_ADDBA_RSP
-//
-typedef struct sAddBARsp
-{
-  // Message Type
-  tANI_U16 mesgType;
-
-  // Message Length
-  tANI_U16 mesgLen;
-
-  //BA session ID
-  tANI_U16 baSessionID;
-
-  tANI_U16 replyWinSize;
-}tAddBARsp, *tpAddBARsp;
-
-//
-// HAL -> TL
-// tSirMsgQ.type = SIR_HAL_ADDBA_IND
-// tSirMsgQ.reserved = 0
-// tSirMsgQ.body = "allocated" instance of tpAddBAInd
-//
-typedef struct sAddBAInd
-{
-
-  // Message Type
-  tANI_U16 mesgType;
-
-  // Message Length
-  tANI_U16 mesgLen;
-
-  tBAParams baSession;
-
-} tAddBAInd, *tpAddBAInd;
-
-//
-// HAL -> TL
-// tSirMsgQ.type = SIR_HAL_DELBA_IND
-// tSirMsgQ.reserved = 0
-// tSirMsgQ.body = "allocated" instance of tpDelBAInd
-//
-// TL -> HAL
-// tSirMsgQ.type = SIR_HAL_BA_FAIL_IND
-// tSirMsgQ.reserved = 0
-// tSirMsgQ.body = "allocated" instance of tpDelBAInd
-//
-typedef struct sDelBAInd
-{
-  tANI_U8 staIdx;
-
-  tANI_U8 baTID;
-  // Message Type
-  tANI_U16 mesgType;
-
-  // Message Length
-  tANI_U16 mesgLen;
-
-} tDelBAInd, *tpDelBAInd;
-#endif
 
 /*===============================================
  *

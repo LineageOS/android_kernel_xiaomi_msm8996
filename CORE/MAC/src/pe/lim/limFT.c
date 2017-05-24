@@ -442,7 +442,6 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
     tpSirBssDescription bssDescription )
 {
     tpAddBssParams pAddBssParams = NULL;
-    tANI_U8 i;
     tANI_U8 chanWidthSupp = 0;
     tSchBeaconStruct *pBeaconStruct;
 
@@ -769,17 +768,6 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
               pAddBssParams->staContext.supportedRates.opRateMode = eSTA_11bg;
            }
         }
-    }
-
-    //Disable BA. It will be set as part of ADDBA negotiation.
-    for( i = 0; i < STACFG_MAX_TC; i++ )
-    {
-        pAddBssParams->staContext.staTCParams[i].txUseBA    = eBA_DISABLE;
-        pAddBssParams->staContext.staTCParams[i].rxUseBA    = eBA_DISABLE;
-        pAddBssParams->staContext.staTCParams[i].txBApolicy =
-                                                      eBA_POLICY_IMMEDIATE;
-        pAddBssParams->staContext.staTCParams[i].rxBApolicy =
-                                                      eBA_POLICY_IMMEDIATE;
     }
 
 #if defined WLAN_FEATURE_VOWIFI
