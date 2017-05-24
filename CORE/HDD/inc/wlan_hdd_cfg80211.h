@@ -451,6 +451,11 @@ enum qca_wlan_vendor_attr {
     QCA_WLAN_VENDOR_ATTR_RX_AGGREGATION_STATS_HOLES_NUM = 34,
     QCA_WLAN_VENDOR_ATTR_RX_AGGREGATION_STATS_HOLES_INFO = 35,
 
+    /* Used in QCA_NL80211_VENDOR_SUBCMD_GET_CHAIN_RSSI command
+     * to report the corresponding antenna index to the chain rssi value
+     */
+    QCA_WLAN_VENDOR_ATTR_ANTENNA_INFO = 40,
+
     /* keep last */
     QCA_WLAN_VENDOR_ATTR_AFTER_LAST,
     QCA_WLAN_VENDOR_ATTR_MAX =

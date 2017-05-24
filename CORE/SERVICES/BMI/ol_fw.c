@@ -1001,6 +1001,7 @@ u_int32_t ol_fw_iram_size;
 u_int32_t ol_fw_axi_size;
 #endif
 
+#if defined(HIF_SDIO)
 int ol_copy_ramdump(struct ol_softc *scn)
 {
 	int ret;
@@ -1023,6 +1024,27 @@ int ol_copy_ramdump(struct ol_softc *scn)
 out:
 	return ret;
 }
+#else
+int ol_copy_ramdump(struct ol_softc *scn)
+{
+	int ret;
+
+	if (!vos_is_ssr_fw_dump_required())
+		return 0;
+
+	if (!scn->ramdump_base || !scn->ramdump_size) {
+		pr_info("%s: No RAM dump will be collected since ramdump_base "
+			"is NULL or ramdump_size is 0!\n", __func__);
+		ret = -EACCES;
+		goto out;
+	}
+
+	ret = ol_target_coredump(scn, scn->ramdump_base, scn->ramdump_size);
+
+out:
+	return ret;
+}
+#endif
 
 static void ramdump_work_handler(struct work_struct *ramdump)
 {

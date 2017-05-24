@@ -1370,6 +1370,7 @@ typedef struct tagCsrConfigParam
     uint32_t edca_bk_aifs;
     uint32_t edca_be_aifs;
     struct csr_sta_roam_policy_params sta_roam_policy_params;
+    uint32_t sta_auth_retries_for_code17;
 }tCsrConfigParam;
 
 //Tush

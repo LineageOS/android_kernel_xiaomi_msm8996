@@ -5565,11 +5565,14 @@ struct extscan_cached_scan_results
 /**
  * struct chain_rssi_result - chain rssi result
  * @chain_rssi: chain rssi result
+ * @ant_id: antenna id
  */
 struct chain_rssi_result
 {
-	#define CHAIN_RSSI_NUM  8
-	uint32_t chain_rssi[CHAIN_RSSI_NUM];
+	#define CHAIN_MAX_NUM  8
+	uint32_t num_chains_valid;
+	uint32_t chain_rssi[CHAIN_MAX_NUM];
+	uint32_t ant_id[CHAIN_MAX_NUM];
 };
 
 /**

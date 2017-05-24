@@ -1306,6 +1306,25 @@ enum
 #define CFG_ENABLE_RAMDUMP_COLLECTION_MAX          ( 1 )
 #define CFG_ENABLE_RAMDUMP_COLLECTION_DEFAULT      ( 1 )
 
+/*
+ * gStaAuthRetriesForCode17
+ * It is for an IOT issue.
+ * When DUT receives MAX_ASSOC_STA_REACHED_STATUS as
+ * response for Auth frame this ini decides how many
+ * times DUT has to retry.
+ *
+ * This is mainly for an AP where it wants to force
+ * the Station to connect to its 5G profile session
+ * (Dual band AP) by rejecting the Auth on 2.4G band.
+ * But if a station is only 2.4G capable it can try
+ * 3 times where third time AP will allow the
+ * station to connect to this AP.
+ */
+#define CFG_STA_AUTH_RETRIES_FOR_CODE17_NAME      "gStaAuthRetriesForCode17"
+#define CFG_STA_AUTH_RETRIES_FOR_CODE17_MIN       ( 0 )
+#define CFG_STA_AUTH_RETRIES_FOR_CODE17_MAX       ( 5 )
+#define CFG_STA_AUTH_RETRIES_FOR_CODE17_DEFAULT   ( 0 )
+
 typedef enum
 {
     eHDD_LINK_SPEED_REPORT_ACTUAL = 0,
@@ -5465,6 +5484,7 @@ struct hdd_config {
    uint32_t                    arp_ac_category;
    /* parameter to control probe resp offloads */
    bool                        sap_probe_resp_offload;
+   uint32_t                    sta_auth_retries_for_code17;
 };
 
 typedef struct hdd_config hdd_config_t;

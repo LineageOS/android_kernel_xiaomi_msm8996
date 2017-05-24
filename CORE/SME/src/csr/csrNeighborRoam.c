@@ -1580,15 +1580,21 @@ eHalStatus csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac,
         tpCsrNeighborRoamBSSInfo    pNeighborBssNode = NULL;
         tListElem                   *pEntry;
         bool is_dis_pending = false;
+        uint32_t                    retries;
+
+        retries = pMac->sta_auth_retries_for_code17 >
+                  CSR_NEIGHBOR_ROAM_MAX_NUM_PREAUTH_RETRIES ?
+                        pMac->sta_auth_retries_for_code17 :
+                        CSR_NEIGHBOR_ROAM_MAX_NUM_PREAUTH_RETRIES;
 
         smsLog(pMac, LOGE, FL("Preauth failed retry number %d, status = 0x%x"),
                pNeighborRoamInfo->FTRoamInfo.numPreAuthRetries, limStatus);
 
         /* Preauth failed. Add the bssId to the preAuth failed list MAC Address.
            Also remove the AP from roam able AP list */
-        if ((pNeighborRoamInfo->FTRoamInfo.numPreAuthRetries >=
-             CSR_NEIGHBOR_ROAM_MAX_NUM_PREAUTH_RETRIES) ||
-            (eSIR_LIM_MAX_STA_REACHED_ERROR == limStatus))
+        if ((pNeighborRoamInfo->FTRoamInfo.numPreAuthRetries >= retries) ||
+            ((eSIR_LIM_MAX_STA_REACHED_ERROR == limStatus) &&
+            (pMac->sta_auth_retries_for_code17 == 0)))
         {
             /* We are going to remove the node as it fails for more than MAX tries. Reset this count to 0 */
             pNeighborRoamInfo->FTRoamInfo.numPreAuthRetries = 0;
