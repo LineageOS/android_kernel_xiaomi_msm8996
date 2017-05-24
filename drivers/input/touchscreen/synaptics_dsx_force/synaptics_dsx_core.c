@@ -5801,17 +5801,23 @@ static int synaptics_rmi4_fb_notifier_cb(struct notifier_block *self,
 			}
 
 			if (new_status) {
-				if (is_jdi_panel) {
-					synaptics_rmi4_suspend(&rmi4_data->pdev->dev);
-					rmi4_data->fb_ready = false;
+				synaptics_rmi4_suspend(&rmi4_data->pdev->dev);
+				rmi4_data->fb_ready = false;
+
+				if (!is_jdi_panel && !rmi4_data->wakeup_en) {
+					msleep(10);
+					mdss_regulator_ctrl(rmi4_data, DISP_REG_IBB, false);
+					msleep(10);
+					mdss_regulator_ctrl(rmi4_data, DISP_REG_LAB, false);
 				}
 			} else {
 				synaptics_rmi4_resume(&rmi4_data->pdev->dev);
 				rmi4_data->fb_ready = true;
+
 				if (rmi4_data->wakeup_en) {
 					mdss_panel_reset_skip_enable(false);
 
-					if (rmi4_data->enable_wakeup_gesture) {
+					if (!is_jdi_panel || rmi4_data->enable_wakeup_gesture) {
 						mdss_regulator_ctrl(rmi4_data, DISP_REG_ALL, false);
 					} else if (rmi4_data->homekey_wakeup) {
 						mdss_regulator_ctrl(rmi4_data, DISP_REG_VDD, false);
@@ -5850,19 +5856,23 @@ static int synaptics_rmi4_fb_notifier_cb(struct notifier_block *self,
 				} else if (rmi4_data->homekey_wakeup) {
 					mdss_regulator_ctrl(rmi4_data, DISP_REG_VDD, true);
 				}
+				if (rmi4_data->wakeup_en && rmi4_data->enable_wakeup_gesture &&
+						bdata->mdss_reset != 0) {
+					gpio_set_value(bdata->mdss_reset, !bdata->mdss_reset_state);
+					msleep(10);
+					gpio_set_value(bdata->mdss_reset, bdata->mdss_reset_state);
+					msleep(10);
+				}
 			} else if (new_status) {
-				if (rmi4_data->enable_wakeup_gesture) {
-					rmi4_data->wakeup_en = true;
-					mdss_panel_reset_skip_enable(true);
+				mdss_panel_reset_skip_enable(true);
+
+				if (!is_jdi_panel || rmi4_data->enable_wakeup_gesture)
 					mdss_regulator_ctrl(rmi4_data, DISP_REG_ALL, true);
-				} else if (rmi4_data->homekey_wakeup) {
-					rmi4_data->wakeup_en = true;
+				else if (rmi4_data->homekey_wakeup)
 					mdss_regulator_ctrl(rmi4_data, DISP_REG_VDD, true);
-				}
-				if (!is_jdi_panel) {
-					synaptics_rmi4_suspend(&rmi4_data->pdev->dev);
-					rmi4_data->fb_ready = false;
-				}
+
+				if (rmi4_data->enable_wakeup_gesture || rmi4_data->homekey_wakeup)
+					rmi4_data->wakeup_en = true;
 			} else {
 				if (is_jdi_panel && bdata->reset_gpio >= 0 && rmi4_data->suspend) {
 					gpio_set_value(bdata->reset_gpio, bdata->reset_on_state);
@@ -5876,6 +5886,15 @@ static int synaptics_rmi4_fb_notifier_cb(struct notifier_block *self,
 					gpio_set_value(bdata->mdss_reset, bdata->mdss_reset_state);
 					is_jdi_panel ? msleep(10) : msleep(100);
 				}
+				if (!rmi4_data->wakeup_en) {
+					mdss_regulator_ctrl(rmi4_data, DISP_REG_LAB, true);
+					msleep(10);
+					mdss_regulator_ctrl(rmi4_data, DISP_REG_IBB, true);
+					msleep(10);
+				}
+
+				synaptics_rmi4_resume(&rmi4_data->pdev->dev);
+				rmi4_data->fb_ready = true;
 			}
 			rmi4_data->old_status = new_status;
 			break;
