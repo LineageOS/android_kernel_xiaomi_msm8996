@@ -1293,6 +1293,7 @@ typedef struct sAniSirGlobal
     uint8_t  sub20_dynamic_channelwidth;
     uint8_t  sta_sub20_current_channelwidth;
     bool max_power_cmd_pending;
+    uint32_t sta_auth_retries_for_code17;
 } tAniSirGlobal;
 
 typedef enum
