@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -699,6 +699,8 @@ void limSendDisassocMgmtFrame(tpAniSirGlobal, tANI_U16, tSirMacAddr, tpPESession
 void limSendDeauthMgmtFrame(tpAniSirGlobal, tANI_U16, tSirMacAddr, tpPESession, tANI_BOOLEAN waitForAck);
 void limSendSmeDisassocDeauthNtf(tpAniSirGlobal pMac, eHalStatus status,
                                  tANI_U32 *pCtx);
+
+void limDoSendAuthMgmtFrame(tpAniSirGlobal, tpPESession);
 
 void limContinueChannelScan(tpAniSirGlobal);
 tSirResultCodes limMlmAddBss(tpAniSirGlobal, tLimMlmStartReq *,tpPESession psessionEntry);
