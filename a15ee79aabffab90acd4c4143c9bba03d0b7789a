@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa82b9bf_88d8db54",
+        "filename": "drivers/input/touchscreen/synaptics_dsx_force/synaptics_dsx_core.c",
+        "patchSetId": 6
+      },
+      "lineNbr": 5806,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-05-24T06:43:18Z",
+      "side": 0,
+      "message": "if (!is_jdi_panel) msleep(160);\n\nnot needed?",
+      "range": {
+        "startLine": 5806,
+        "startChar": 33,
+        "endLine": 5806,
+        "endChar": 33
+      },
+      "revId": "a15ee79aabffab90acd4c4143c9bba03d0b7789a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}

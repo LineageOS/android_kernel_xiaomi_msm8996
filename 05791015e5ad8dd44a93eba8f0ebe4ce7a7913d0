@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa82b9bf_e81f2708",
+        "filename": "drivers/input/touchscreen/synaptics_dsx_force/synaptics_dsx_core.c",
+        "patchSetId": 6
+      },
+      "lineNbr": 5890,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-05-24T06:43:18Z",
+      "side": 1,
+      "message": "This requires a !is_jdi_panel check as it applies only to LGD. Move it inside the following if statement.",
+      "range": {
+        "startLine": 5885,
+        "startChar": 0,
+        "endLine": 5890,
+        "endChar": 5
+      },
+      "revId": "05791015e5ad8dd44a93eba8f0ebe4ce7a7913d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa82b9bf_68d31739",
+        "filename": "drivers/input/touchscreen/synaptics_dsx_force/synaptics_dsx_core.c",
+        "patchSetId": 6
+      },
+      "lineNbr": 5891,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-05-24T06:43:18Z",
+      "side": 1,
+      "message": "Above if statement goes here.",
+      "range": {
+        "startLine": 5891,
+        "startChar": 24,
+        "endLine": 5891,
+        "endChar": 24
+      },
+      "revId": "05791015e5ad8dd44a93eba8f0ebe4ce7a7913d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa82b9bf_c816e3f1",
+        "filename": "drivers/input/touchscreen/synaptics_dsx_force/synaptics_dsx_core.c",
+        "patchSetId": 6
+      },
+      "lineNbr": 5893,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-05-24T06:43:18Z",
+      "side": 1,
+      "message": "msleep(10);\n\nnot needed?",
+      "range": {
+        "startLine": 5893,
+        "startChar": 32,
+        "endLine": 5893,
+        "endChar": 32
+      },
+      "revId": "05791015e5ad8dd44a93eba8f0ebe4ce7a7913d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
