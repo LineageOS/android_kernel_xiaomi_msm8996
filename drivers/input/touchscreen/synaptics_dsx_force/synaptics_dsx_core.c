@@ -5681,7 +5681,7 @@ static int synaptics_rmi4_fb_notifier_cb_jdi(struct notifier_block *self,
 	if (evdata && evdata->data && rmi4_data && mdss_panel_is_prim(evdata->info)) {
 		if (event == FB_EVENT_BLANK) {
 			transition = evdata->data;
-			if ((*transition == FB_BLANK_POWERDOWN) || (*transition == FB_BLANK_NORMAL)) {
+			if (*transition == FB_BLANK_POWERDOWN) {
 				synaptics_rmi4_suspend(&rmi4_data->pdev->dev);
 				rmi4_data->fb_ready = false;
 			} else if ((*transition == FB_BLANK_UNBLANK) || (*transition == FB_BLANK_NORMAL)) {
@@ -5699,7 +5699,7 @@ static int synaptics_rmi4_fb_notifier_cb_jdi(struct notifier_block *self,
 			}
 		} else if (event == FB_EARLY_EVENT_BLANK) {
 			transition = evdata->data;
-			if ((*transition == FB_BLANK_POWERDOWN) || (*transition == FB_BLANK_NORMAL)) {
+			if (*transition == FB_BLANK_POWERDOWN) {
 				if (rmi4_data->enable_wakeup_gesture) {
 					rmi4_data->wakeup_en = true;
 					mdss_regulator_ctrl(rmi4_data, DISP_REG_ALL, true);
@@ -5750,7 +5750,7 @@ static int synaptics_rmi4_fb_notifier_cb_lgd(struct notifier_block *self,
 				mdss_panel_reset_skip_enable(false);
 				if (rmi4_data->wakeup_en)
 					rmi4_data->wakeup_en = false;
-			} else if ((*transition == FB_BLANK_POWERDOWN) || (*transition == FB_BLANK_NORMAL)) {
+			} else if (*transition == FB_BLANK_POWERDOWN) {
 				msleep(160);
 				synaptics_rmi4_suspend(&rmi4_data->pdev->dev);
 				rmi4_data->fb_ready = false;
@@ -5764,7 +5764,7 @@ static int synaptics_rmi4_fb_notifier_cb_lgd(struct notifier_block *self,
 			}
 		} else if (event == FB_EARLY_EVENT_BLANK) {
 			transition = evdata->data;
-			if (*transition == FB_BLANK_UNBLANK) {
+			if ((*transition == FB_BLANK_UNBLANK) || (*transition == FB_BLANK_NORMAL)) {
 				if (!rmi4_data->wakeup_en) {
 					mdss_regulator_ctrl(rmi4_data, DISP_REG_LAB, true);
 					msleep(10);
@@ -5775,7 +5775,7 @@ static int synaptics_rmi4_fb_notifier_cb_lgd(struct notifier_block *self,
 				synaptics_rmi4_resume(&rmi4_data->pdev->dev);
 				rmi4_data->fb_ready = true;
 				msleep(10);
-			} else if ((*transition == FB_BLANK_POWERDOWN) || (*transition == FB_BLANK_NORMAL)) {
+			} else if (*transition == FB_BLANK_POWERDOWN) {
 				mdss_panel_reset_skip_enable(true);
 				mdss_regulator_ctrl(rmi4_data, DISP_REG_ALL, true);
 				if (rmi4_data->enable_wakeup_gesture || rmi4_data->homekey_wakeup)
