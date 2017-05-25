@@ -1671,6 +1671,10 @@ v_U8_t* wlan_hdd_get_vendor_oui_ie_ptr(v_U8_t *oui, v_U8_t oui_size, v_U8_t *ie,
         elem_id  = ptr[0];
         elem_len = ptr[1];
         left -= 2;
+
+        if (elem_len < oui_size)
+            return NULL;
+
         if(elem_len > left)
         {
             hddLog(VOS_TRACE_LEVEL_FATAL,
