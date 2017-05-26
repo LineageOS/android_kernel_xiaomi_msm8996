@@ -1114,6 +1114,7 @@ typedef struct tagCsrRoamStruct
     tANI_U16 reassocRespLen;  /* length of reassociation response */
 #endif
     vos_timer_t packetdump_timer;
+    tANI_BOOLEAN pending_roam_disable;
 }tCsrRoamStruct;
 
 
