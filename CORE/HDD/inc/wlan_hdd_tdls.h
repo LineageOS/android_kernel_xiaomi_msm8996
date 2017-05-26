@@ -267,6 +267,7 @@ typedef struct {
     tANI_U32        discovery_sent_cnt;
     tANI_S8         ap_rssi;
     struct _hddTdlsPeer_t  *curr_candidate;
+    bool is_tdls_disabled_bmps;
     v_U32_t            magic;
 } tdlsCtx_t;
 

@@ -26841,6 +26841,7 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
     u32 peer_capability;
     peer_capability = 0;
 #endif
+    tdlsCtx_t *pHddTdlsCtx;
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_TDLS_MGMT,
@@ -26852,6 +26853,12 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
         return -EINVAL;
+    }
+
+    pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
+    if (!pHddTdlsCtx) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: pHddTdlsCtx not valid.", __func__);
     }
 
     if (eTDLS_SUPPORT_NOT_ENABLED == pHddCtx->tdls_mode)
@@ -27027,7 +27034,9 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                           "%s: Sending frame action_code %u.Disable BMPS",
                           __func__, action_code);
-                hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+                status = hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+                if (status == VOS_STATUS_SUCCESS)
+                    pHddTdlsCtx->is_tdls_disabled_bmps = true;
             }
         }
         if (SIR_MAC_TDLS_DIS_REQ != action_code)
