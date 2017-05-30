@@ -53,6 +53,9 @@ struct bpf_prog_aux;
 #define BPF_REG_AX		MAX_BPF_REG
 #define MAX_BPF_JIT_REG		(MAX_BPF_REG + 1)
 
+/* unused opcode to mark special call to bpf_tail_call() helper */
+#define BPF_TAIL_CALL	0xf0
+
 /* BPF program can access up to 512 bytes of stack space. */
 #define MAX_BPF_STACK	512
 
