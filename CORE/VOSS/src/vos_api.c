@@ -2866,7 +2866,7 @@ uint32_t vos_get_log_indicator(void)
 	if (vos_context->isLoadUnloadInProgress ||
 		vos_context->isLogpInProgress ||
 		vos_context->isReInitInProgress) {
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
 			  FL("In LoadUnload: %u LogP: %u ReInit: %u"),
 			     vos_context->isLoadUnloadInProgress,
 			     vos_context->isLogpInProgress,

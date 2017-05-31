@@ -1911,8 +1911,10 @@ int hif_pci_reinit(struct pci_dev *pdev, const struct pci_device_id *id)
 again:
     ret = 0;
 
-    if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
-        printk("Load/unload in progress, ignore SSR reinit\n");
+    if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL) &&
+        !vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+        printk("%s: Load/unload is in progress and SSR is not,"
+               "ignore SSR reinit...\n", __func__);
         return 0;
     }
 

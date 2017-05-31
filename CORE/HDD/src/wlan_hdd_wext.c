@@ -1671,6 +1671,10 @@ v_U8_t* wlan_hdd_get_vendor_oui_ie_ptr(v_U8_t *oui, v_U8_t oui_size, v_U8_t *ie,
         elem_id  = ptr[0];
         elem_len = ptr[1];
         left -= 2;
+
+        if (elem_len < oui_size)
+            return NULL;
+
         if(elem_len > left)
         {
             hddLog(VOS_TRACE_LEVEL_FATAL,
@@ -11332,18 +11336,30 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
             uint8_t ini_sub_20_ch_width =
                         hdd_ctx->cfg_ini->sub_20_channel_width;
 
-            hddLog(LOG1, "Set monitor mode Channel %d", value[1]);
+            vos_mem_zero(&roam_profile, sizeof(roam_profile));
+
+            if (vht_channel_width == 4) {
+                vht_channel_width = 0;
+                roam_profile.sub20_channelwidth = SUB20_MODE_5MHZ;
+            } else if (vht_channel_width == 5) {
+                vht_channel_width = 0;
+                roam_profile.sub20_channelwidth = SUB20_MODE_10MHZ;
+            } else {
+                if (ini_sub_20_ch_width < CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ)
+                    roam_profile.sub20_channelwidth = ini_sub_20_ch_width;
+                else
+                    roam_profile.sub20_channelwidth = SUB20_MODE_NONE;
+            }
+
+            hddLog(LOGE, "Set monitor mode Channel %d bandwidth %d sub20 %d",
+                   value[1], vht_channel_width,
+                   roam_profile.sub20_channelwidth);
             hdd_select_mon_cbmode(pAdapter, value[1], &vht_channel_width);
 
-            vos_mem_zero(&roam_profile, sizeof(roam_profile));
             roam_profile.ChannelInfo.ChannelList = &ch_info->channel;
             roam_profile.ChannelInfo.numOfChannels = 1;
             roam_profile.vht_channel_width = ch_info->channel_width;
             roam_profile.phyMode = ch_info->phy_mode;
-            if (ini_sub_20_ch_width < CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ &&
-                ini_sub_20_ch_width > CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL)
-                roam_profile.sub20_channelwidth =
-                    hdd_ctx->cfg_ini->sub_20_channel_width;
 
             vos_mem_copy(bssid, pAdapter->macAddressCurrent.bytes,
                          VOS_MAC_ADDR_SIZE);

@@ -6635,7 +6635,10 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         if (psessionEntry->currentOperChannel !=
             pChannelChangeReq->targetChannel ||
             psessionEntry->sub20_channelwidth !=
-            pChannelChangeReq->sub20_channelwidth) {
+            pChannelChangeReq->sub20_channelwidth ||
+            ((VOS_MONITOR_MODE == vos_get_conparam()) &&
+            (pChannelChangeReq->vht_channel_width !=
+             psessionEntry->vht_channel_width))) {
                 limLog(pMac, LOGE,
                        FL("switch old chn %d --> new chn %d CH width - %d"),
                        psessionEntry->currentOperChannel,
@@ -6705,7 +6708,8 @@ limProcessSmeChannelChangeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
             /* Update sub 20MHz channel width */
             psessionEntry->sub20_channelwidth =
                  pChannelChangeReq->sub20_channelwidth;
-
+            psessionEntry->vht_channel_width =
+                 pChannelChangeReq->vht_channel_width;
             // Initialize 11h Enable Flag
             if (CHAN_HOP_ALL_BANDS_ENABLE ||
                 SIR_BAND_5_GHZ == psessionEntry->limRFBand) {
