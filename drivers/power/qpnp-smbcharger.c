@@ -8374,6 +8374,8 @@ static int smbchg_probe(struct spmi_device *spmi)
 	schedule_work(&chip->late_init_work);
 
 	schedule_delayed_work(&chip->reg_work, 60 * HZ);
+
+	update_usb_status(chip, is_usb_present(chip), false);
 	create_debugfs_entries(chip);
 
 #if defined(CONFIG_FB)
