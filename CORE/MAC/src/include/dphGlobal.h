@@ -501,23 +501,18 @@ typedef struct sDphHashNode
 
     uint8_t nss;
 
-    /* When a station with already an existing dph entry tries to
-
-     * associate again, the old dph entry will be zeroed out except
-
-     * for the next pointer. The next pointer must be defined at the
-
-     * end of the structure.
-
-     */
-
     tANI_U8 isDisassocDeauthInProgress;
     bool sta_deletion_in_progress;
     tANI_S8 del_sta_ctx_rssi;
     uint8_t sub20_dynamic_channelwidth;
     /* Flag indicating connected STA doesn't support ECSA */
     uint8_t non_ecsa_capable;
-    /* DO NOT ADD NEW MEMBER AFTER MEMBER *next */
+
+    /* When a station with an existing dph entry tries to
+     * associate again, the old dph entry will be zeroed out except
+     * for the next pointer. The next pointer must be defined at the
+     * end of the structure.
+     */
     struct sDphHashNode  *next;
     /* DO NOT ADD NEW MEMBER AFTER MEMBER *next */
 } tDphHashNode, *tpDphHashNode;
