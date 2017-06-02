@@ -45,7 +45,7 @@
 #include <linux/err.h>
 #include <linux/clk.h>
 #include <linux/firmware.h>
-#include <drv2604.h>
+#include "drv2604.h"
 
 static struct drv2604_platform_data  drv2604_plat_data = {
 	.GpioEnable = 0,
