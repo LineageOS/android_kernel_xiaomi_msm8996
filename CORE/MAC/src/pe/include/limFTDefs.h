@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -56,6 +56,7 @@ typedef struct sSirFTPreAuthReq
 {
    tANI_U16    messageType;      // eWNI_SME_FT_PRE_AUTH_REQ
    tANI_U16    length;
+   tANI_U32    dot11mode;
    tANI_BOOLEAN bPreAuthRspProcessed; /* Track if response is processed for this request
                                          We expect only one response per request. */
    tANI_U8     preAuthchannelNum;
