@@ -3152,7 +3152,10 @@ static int __wlan_hdd_cfg80211_extscan_set_significant_change(
     pReqMsg->sessionId = pAdapter->sessionId;
     hddLog(LOG1, FL("Number of AP %d Session Id %d"), pReqMsg->numAp,
            pReqMsg->sessionId);
-
+    if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM]) {
+        hddLog(LOGE, FL("attr ap threshold failed"));
+        goto fail;
+    }
     i = 0;
     nla_for_each_nested(apTh,
                 tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM], rem) {
