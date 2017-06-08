@@ -4099,23 +4099,23 @@ limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable,
     if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
-        //overlapping protection configuration check.
-        if(overlap) {
-        } else {
-            //normal protection config check
-            if (LIM_IS_AP_ROLE(psessionEntry) &&
-                !psessionEntry->cfgProtection.ht20) {
+    //overlapping protection configuration check.
+    if(overlap) {
+    } else {
+        //normal protection config check
+        if (LIM_IS_AP_ROLE(psessionEntry) &&
+            !psessionEntry->cfgProtection.ht20) {
+            // protection disabled.
+            PELOG3(limLog(pMac, LOG3, FL("protection from HT20 is disabled"));)
+            return eSIR_SUCCESS;
+        } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
+            if (!pMac->lim.cfgProtection.ht20) {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL("protection from HT20 is disabled"));)
                 return eSIR_SUCCESS;
-            } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
-                if (!pMac->lim.cfgProtection.ht20) {
-                    // protection disabled.
-                    PELOG3(limLog(pMac, LOG3, FL("protection from HT20 is disabled"));)
-                    return eSIR_SUCCESS;
-                }
             }
         }
+    }
 
     if (enable) {
         //If we are AP and HT capable, we need to set the HT OP mode
@@ -4303,24 +4303,24 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
-        //overlapping protection configuration check.
-        if(overlap) {
-        } else {
+    //overlapping protection configuration check.
+    if(overlap) {
+    } else {
+        //normal protection config check
+        if (LIM_IS_AP_ROLE(psessionEntry) &&
+            !psessionEntry->cfgProtection.nonGf) {
+            // protection disabled.
+            PELOG3(limLog(pMac, LOG3, FL("protection from NonGf is disabled"));)
+            return eSIR_SUCCESS;
+        } else if(!LIM_IS_AP_ROLE(psessionEntry)) {
             //normal protection config check
-            if (LIM_IS_AP_ROLE(psessionEntry) &&
-                !psessionEntry->cfgProtection.nonGf) {
+            if (!pMac->lim.cfgProtection.nonGf) {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL("protection from NonGf is disabled"));)
                 return eSIR_SUCCESS;
-            } else if(!LIM_IS_AP_ROLE(psessionEntry)) {
-                //normal protection config check
-                if (!pMac->lim.cfgProtection.nonGf) {
-                    // protection disabled.
-                    PELOG3(limLog(pMac, LOG3, FL("protection from NonGf is disabled"));)
-                    return eSIR_SUCCESS;
-                }
             }
         }
+    }
 
     if (LIM_IS_AP_ROLE(psessionEntry)) {
         if ((enable) && (false == psessionEntry->beaconParams.llnNonGFCoexist))
@@ -4368,24 +4368,24 @@ limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     if(!psessionEntry->htCapability)
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
-        //overlapping protection configuration check.
-        if(overlap) {
-        } else {
+    //overlapping protection configuration check.
+    if(overlap) {
+    } else {
+        //normal protection config check
+        if (LIM_IS_AP_ROLE(psessionEntry) &&
+           !psessionEntry->cfgProtection.lsigTxop) {
+            // protection disabled.
+            PELOG3(limLog(pMac, LOG3, FL(" protection from LsigTxop not supported is disabled"));)
+            return eSIR_SUCCESS;
+        } else if(!LIM_IS_AP_ROLE(psessionEntry)) {
             //normal protection config check
-            if (LIM_IS_AP_ROLE(psessionEntry) &&
-               !psessionEntry->cfgProtection.lsigTxop) {
+            if(!pMac->lim.cfgProtection.lsigTxop) {
                 // protection disabled.
                 PELOG3(limLog(pMac, LOG3, FL(" protection from LsigTxop not supported is disabled"));)
                 return eSIR_SUCCESS;
-            } else if(!LIM_IS_AP_ROLE(psessionEntry)) {
-                //normal protection config check
-                if(!pMac->lim.cfgProtection.lsigTxop) {
-                    // protection disabled.
-                    PELOG3(limLog(pMac, LOG3, FL(" protection from LsigTxop not supported is disabled"));)
-                    return eSIR_SUCCESS;
-                }
             }
         }
+    }
 
     if (LIM_IS_AP_ROLE(psessionEntry)) {
         if ((enable) && (false == psessionEntry->beaconParams.fLsigTXOPProtectionFullSupport))
@@ -4434,24 +4434,24 @@ limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         return eSIR_SUCCESS; // this protection  is only for HT stations.
 
 
-        //overlapping protection configuration check.
-        if(overlap) {
-        } else {
-             //normal protection config check
-            if (LIM_IS_AP_ROLE(psessionEntry) &&
-               !psessionEntry->cfgProtection.rifs) {
-                // protection disabled.
-                PELOG3(limLog(pMac, LOG3, FL(" protection from Rifs is disabled"));)
-                return eSIR_SUCCESS;
-            } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
-               //normal protection config check
-               if(!pMac->lim.cfgProtection.rifs) {
-                  // protection disabled.
-                  PELOG3(limLog(pMac, LOG3, FL(" protection from Rifs is disabled"));)
-                  return eSIR_SUCCESS;
-               }
-            }
+    //overlapping protection configuration check.
+    if(overlap) {
+    } else {
+         //normal protection config check
+        if (LIM_IS_AP_ROLE(psessionEntry) &&
+           !psessionEntry->cfgProtection.rifs) {
+            // protection disabled.
+            PELOG3(limLog(pMac, LOG3, FL(" protection from Rifs is disabled"));)
+            return eSIR_SUCCESS;
+        } else if (!LIM_IS_AP_ROLE(psessionEntry)) {
+           //normal protection config check
+           if(!pMac->lim.cfgProtection.rifs) {
+              // protection disabled.
+              PELOG3(limLog(pMac, LOG3, FL(" protection from Rifs is disabled"));)
+              return eSIR_SUCCESS;
+           }
         }
+    }
 
     if (LIM_IS_AP_ROLE(psessionEntry)) {
         // Disabling the RIFS Protection means Enable the RIFS mode of operation in the BSS

@@ -1456,11 +1456,11 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
              vos_wake_lock_timeout_acquire(&pHddCtx->rx_wake_lock,
                             pHddCtx->cfg_ini->rx_wakelock_timeout,
                             WIFI_POWER_EVENT_WAKELOCK_HOLD_RX);
-             /*
-              * This is the last packet on the chain
-              * Scheduling rx sirq
-              */
-             rxstat = netif_rx_ni(skb);
+          /*
+           * This is the last packet on the chain
+           * Scheduling rx sirq
+           */
+          rxstat = netif_rx_ni(skb);
       }
 
       if (NET_RX_SUCCESS == rxstat)
