@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -47,6 +47,44 @@
 #include "rrmApi.h"
 #endif
 #include "vos_utils.h"
+
+#ifdef WLAN_FEATURE_FILS_SK
+/**
+ * lim_update_bss_with_fils_data: update fils data to bss descriptor
+ * if available in probe/beacon.
+ * @pr: probe response/beacon
+ * @bss_descr: pointer to bss descriptor
+ *
+ * @Return: None
+ */
+static void lim_update_bss_with_fils_data(tpSirProbeRespBeacon pr,
+                tSirBssDescription *bss_descr)
+{
+    if (!pr->fils_ind.is_present)
+        return;
+
+    if (pr->fils_ind.realm_identifier.realm_cnt > SIR_MAX_REALM_COUNT)
+        pr->fils_ind.realm_identifier.realm_cnt = SIR_MAX_REALM_COUNT;
+
+    bss_descr->fils_info_element.realm_cnt =
+        pr->fils_ind.realm_identifier.realm_cnt;
+    vos_mem_copy(bss_descr->fils_info_element.realm,
+        pr->fils_ind.realm_identifier.realm,
+        bss_descr->fils_info_element.realm_cnt * SIR_REALM_LEN);
+    if (pr->fils_ind.cache_identifier.is_present) {
+        bss_descr->fils_info_element.is_cache_id_present = true;
+        vos_mem_copy(bss_descr->fils_info_element.cache_id,
+            pr->fils_ind.cache_identifier.identifier, CACHE_ID_LEN);
+    }
+    if (pr->fils_ind.is_fils_sk_auth_supported)
+        bss_descr->fils_info_element.is_fils_sk_supported = true;
+}
+#else
+static inline void lim_update_bss_with_fils_data(tpSirProbeRespBeacon pr,
+                tSirBssDescription *bss_descr)
+{
+}
+#endif
 
 /**
  * limDeactiveMinChannelTimerDuringScan()
@@ -282,6 +320,9 @@ limCollectBssDescription(tpAniSirGlobal pMac,
         pBssDescr->QBSSLoad_present = TRUE;
         pBssDescr->QBSSLoad_avail = pBPR->QBSSLoad.avail;
     }
+#endif
+#ifdef WLAN_FEATURE_FILS_SK
+    lim_update_bss_with_fils_data(pBPR, pBssDescr);
 #endif
     // Copy IE fields
     vos_mem_copy((tANI_U8 *) &pBssDescr->ieFields,
