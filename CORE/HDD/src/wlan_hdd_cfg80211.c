@@ -22075,6 +22075,14 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
                             __func__);
             pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
             break;
+#if defined(WLAN_FEATURE_FILS_SK) && defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT)
+        case WLAN_AKM_SUITE_FILS_SHA256:
+        case WLAN_AKM_SUITE_FILS_SHA384:
+        case WLAN_AKM_SUITE_FT_FILS_SHA256:
+        case WLAN_AKM_SUITE_FT_FILS_SHA384:
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
+        break;
+#endif
 
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported key mgmt type %d",
