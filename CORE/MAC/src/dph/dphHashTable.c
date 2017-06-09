@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -248,7 +248,7 @@ tpDphHashNode dphInitStaState(tpAniSirGlobal pMac, tSirMacAddr staAddr,
 {
     tANI_U32 val;
 
-    tpDphHashNode pStaDs;
+    tpDphHashNode pStaDs, pnext;
     tANI_U16 staIdx = HAL_STA_INVALID_IDX;
 
     if (assocId >= pDphHashTable->size)
@@ -259,23 +259,25 @@ tpDphHashNode dphInitStaState(tpAniSirGlobal pMac, tSirMacAddr staAddr,
 
     pStaDs = getNode(pMac, (tANI_U8) assocId, pDphHashTable);
     staIdx = pStaDs->staIndex;
+    pnext = pStaDs->next;
 
     PELOG1(limLog(pMac, LOG1, FL("Assoc Id %d, Addr %p"), assocId, &pStaDs);)
 
-    // Clear the STA node except for the next pointer (last 4 bytes)
-    vos_mem_set( (tANI_U8 *) pStaDs, sizeof(tDphHashNode) - sizeof(tpDphHashNode), 0);
+    /* Clear the STA node except for the next pointer */
+    vos_mem_set((tANI_U8 *)pStaDs, sizeof(tDphHashNode), 0);
+    pStaDs->next = pnext;
 
-    // Initialize the assocId
+    /* Initialize the assocId */
     pStaDs->assocId = assocId;
     if(true == validStaIdx)
       pStaDs->staIndex = staIdx;
     else
       pStaDs->staIndex = HAL_STA_INVALID_IDX;
 
-    // Initialize STA mac address
+    /* Initialize STA mac address */
     vos_mem_copy( pStaDs->staAddr, staAddr, sizeof(tSirMacAddr));
 
-    // Initialize fragmentation threshold
+    /* Initialize fragmentation threshold */
     if (wlan_cfgGetInt(pMac, WNI_CFG_FRAGMENTATION_THRESHOLD, &val) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("could not retrieve fragmentation threshold"));
     else
