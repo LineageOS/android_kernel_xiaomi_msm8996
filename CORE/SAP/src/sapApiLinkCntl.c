@@ -535,6 +535,20 @@ WLANSAP_PreStartBssAcsScanCallback
     }
     else
     {
+#ifdef SOFTAP_CHANNEL_RANGE
+        if(psapContext->channelList != NULL)
+        {
+            /*
+             * Always free up the memory for
+             * channel selection whatever
+             * the result
+             */
+            vos_mem_free(psapContext->channelList);
+            psapContext->channelList = NULL;
+            psapContext->num_of_channel = 0;
+        }
+#endif
+
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                    FL("CSR scanStatus = %s (%d), choose default channel"),
                    "eCSR_SCAN_ABORT/FAILURE", scanStatus );
