@@ -13099,6 +13099,12 @@ static int wlan_hdd_cfg80211_sap_configuration_set(struct wiphy *wiphy,
 #define STATION_MAX \
 	QCA_WLAN_VENDOR_ATTR_GET_STATION_MAX
 
+static const struct nla_policy
+hdd_get_station_policy[STATION_MAX + 1] = {
+        [STATION_INFO] = {.type = NLA_FLAG},
+        [STATION_ASSOC_FAIL_REASON] = {.type = NLA_FLAG},
+};
+
 /* define short names for get station info attributes */
 #define LINK_INFO_STANDARD_NL80211_ATTR \
 	QCA_WLAN_VENDOR_ATTR_GET_STATION_INFO_LINK_STANDARD_NL80211_ATTR
@@ -13505,7 +13511,8 @@ __hdd_cfg80211_get_station_cmd(struct wiphy *wiphy,
 	if (0 != status)
 		goto out;
 
-	status = nla_parse(tb, STATION_MAX, data, data_len, NULL);
+	status = nla_parse(tb, STATION_MAX, data, data_len,
+			   hdd_get_station_policy);
 	if (status) {
 		hddLog(LOGE, FL("Invalid ATTR"));
 		goto out;
