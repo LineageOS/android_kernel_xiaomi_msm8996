@@ -3318,12 +3318,12 @@ void __hdd_indicate_mgmt_frame(hdd_adapter_t *pAdapter,
     if( rxChan <= MAX_NO_OF_2_4_CHANNELS )
     {
         freq = ieee80211_channel_to_frequency( rxChan,
-                NL80211_BAND_2GHZ);
+                HDD_NL80211_BAND_2GHZ);
     }
     else
     {
         freq = ieee80211_channel_to_frequency( rxChan,
-                NL80211_BAND_5GHZ);
+                HDD_NL80211_BAND_5GHZ);
     }
 
     cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );

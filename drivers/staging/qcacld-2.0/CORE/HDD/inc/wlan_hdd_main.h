@@ -79,6 +79,14 @@
  *  the Net Device queue again */
 #define HDD_TX_QUEUE_LOW_WATER_MARK (HDD_TX_QUEUE_MAX_LEN*3/4)
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+#define HDD_NL80211_BAND_2GHZ   NL80211_BAND_2GHZ
+#define HDD_NL80211_BAND_5GHZ   NL80211_BAND_5GHZ
+#else
+#define HDD_NL80211_BAND_2GHZ   IEEE80211_BAND_2GHZ
+#define HDD_NL80211_BAND_5GHZ   IEEE80211_BAND_5GHZ
+#endif
+
 /** Length of the TX queue for the netdev */
 #define HDD_NETDEV_TX_QUEUE_LEN (3000)
 

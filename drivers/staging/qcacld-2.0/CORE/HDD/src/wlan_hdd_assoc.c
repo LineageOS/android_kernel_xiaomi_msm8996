@@ -3203,10 +3203,10 @@ static void hdd_RoamIbssIndicationHandler( hdd_adapter_t *pAdapter,
 
             if (chan_no <= 14)
                 freq = ieee80211_channel_to_frequency(chan_no,
-                                                      NL80211_BAND_2GHZ);
+                                                      HDD_NL80211_BAND_2GHZ);
             else
                 freq = ieee80211_channel_to_frequency(chan_no,
-                                                      NL80211_BAND_5GHZ);
+                                                      HDD_NL80211_BAND_5GHZ);
 
             chan = ieee80211_get_channel(pAdapter->wdev.wiphy, freq);
 
