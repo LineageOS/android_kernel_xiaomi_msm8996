@@ -18,7 +18,6 @@
 &pmi8994_haptics {
 	status = "ok";
 	qcom,vmax-mv = <1740>;
-	qcom,brake-pattern = [03 03 03 02];
 };
 
 &soc {
