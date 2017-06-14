@@ -126,6 +126,28 @@ typedef struct {
 }__attribute__((packed)) qcom_ie_age ;
 #endif
 
+#ifndef NL80211_AUTHTYPE_FILS_SK
+#define NL80211_AUTHTYPE_FILS_SK 5
+#endif
+#ifndef NL80211_AUTHTYPE_FILS_SK_PFS
+#define NL80211_AUTHTYPE_FILS_SK_PFS 6
+#endif
+#ifndef NL80211_AUTHTYPE_FILS_PK
+#define NL80211_AUTHTYPE_FILS_PK 7
+#endif
+#ifndef WLAN_AKM_SUITE_FILS_SHA256
+#define WLAN_AKM_SUITE_FILS_SHA256 0x000FAC0E
+#endif
+#ifndef WLAN_AKM_SUITE_FILS_SHA384
+#define WLAN_AKM_SUITE_FILS_SHA384 0x000FAC0F
+#endif
+#ifndef WLAN_AKM_SUITE_FT_FILS_SHA256
+#define WLAN_AKM_SUITE_FT_FILS_SHA256 0x000FAC10
+#endif
+#ifndef WLAN_AKM_SUITE_FT_FILS_SHA384
+#define WLAN_AKM_SUITE_FT_FILS_SHA384 0x000FAC11
+#endif
+
 /* Vendor id to be used in vendor specific command and events
  * to user space.
  * NOTE: The authoritative place for definition of QCA_NL80211_VENDOR_ID,

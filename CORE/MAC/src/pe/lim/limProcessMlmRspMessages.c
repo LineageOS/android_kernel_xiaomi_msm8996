@@ -2847,6 +2847,22 @@ limProcessIbssMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession 
     }
 }
 
+#ifdef WLAN_FEATURE_FILS_SK
+static void lim_update_fils_auth_mode(tpPESession session_entry,
+                                      tAniAuthType *auth_mode)
+{
+    if (!session_entry->fils_info)
+        return;
+
+    if (session_entry->fils_info->is_fils_connection)
+        *auth_mode = session_entry->fils_info->auth;
+}
+#else
+static void lim_update_fils_auth_mode(tpPESession session_entry,
+                                      tAniAuthType *auth_mode)
+{}
+#endif
+
 static void
 limProcessStaMlmAddBssRspPreAssoc( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession psessionEntry )
 {
@@ -2889,7 +2905,7 @@ limProcessStaMlmAddBssRspPreAssoc( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPES
                 authMode = eSIR_SHARED_KEY; // Try Shared Authentication first
             else
                 authMode = cfgAuthType;
-
+            lim_update_fils_auth_mode(psessionEntry, &authMode);
             // Trigger MAC based Authentication
             pMlmAuthReq = vos_mem_malloc(sizeof(tLimMlmAuthReq));
             if ( NULL == pMlmAuthReq )

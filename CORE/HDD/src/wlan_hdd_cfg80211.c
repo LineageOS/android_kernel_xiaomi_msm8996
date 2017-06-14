@@ -15262,6 +15262,17 @@ wlan_hdd_cfg80211_action_frame_randomization_init(struct wiphy *wiphy)
 }
 #endif
 
+#if defined(WLAN_FEATURE_FILS_SK) && defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT)
+static void wlan_hdd_cfg80211_set_wiphy_fils_feature(struct wiphy *wiphy)
+{
+    wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_FILS_SK_OFFLOAD);
+}
+#else
+static void wlan_hdd_cfg80211_set_wiphy_fils_feature(struct wiphy *wiphy)
+{
+}
+#endif
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_init
  * This function is called by hdd_wlan_startup()
@@ -15518,7 +15529,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_BEACON_RATE_HT);
     wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_BEACON_RATE_VHT);
 #endif
-
+    wlan_hdd_cfg80211_set_wiphy_fils_feature(wiphy);
     hdd_config_sched_scan_plans_to_wiphy(wiphy, pCfg);
     wlan_hdd_cfg80211_scan_randomization_init(wiphy);
     wlan_hdd_cfg80211_action_frame_randomization_init(wiphy);
@@ -22528,8 +22539,12 @@ static int wlan_hdd_cfg80211_set_auth_type(hdd_adapter_t *pAdapter,
             pHddStaCtx->conn_info.authType = eCSR_AUTH_TYPE_CCKM_WPA;//eCSR_AUTH_TYPE_CCKM_RSN needs to be handled as well if required.
             break;
 #endif
-
-
+#if defined(WLAN_FEATURE_FILS_SK) && defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT)
+        case NL80211_AUTHTYPE_FILS_SK:
+            hddLog(LOG1, "set authentication type to FILS SHARED KEY");
+            pHddStaCtx->conn_info.authType = eCSR_AUTH_TYPE_OPEN_SYSTEM;
+            break;
+#endif
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR,
                     "%s: Unsupported authentication type %d", __func__,
@@ -22543,6 +22558,26 @@ static int wlan_hdd_cfg80211_set_auth_type(hdd_adapter_t *pAdapter,
     return 0;
 }
 
+#if defined(WLAN_FEATURE_FILS_SK) && defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT)
+static bool hdd_validate_fils_info_ptr(hdd_wext_state_t *wext_state)
+{
+    struct cds_fils_connection_info *fils_con_info;
+
+    fils_con_info = wext_state->roamProfile.fils_con_info;
+    if (!fils_con_info) {
+        hddLog(LOGE, "No valid Roam profile");
+        return false;
+    }
+
+    return true;
+}
+#else
+static bool hdd_validate_fils_info_ptr(hdd_wext_state_t *wext_state)
+{
+    return TRUE;
+}
+#endif
+
 /*
  * FUNCTION: wlan_hdd_set_akm_suite
  * This function is used to set the key mgmt type(PSK/8021x).
@@ -22553,6 +22588,11 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
                                    )
 {
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
+    tCsrRoamProfile *roam_profile;
+
+    roam_profile = &pWextState->roamProfile;
+    if (!hdd_validate_fils_info_ptr(pWextState))
+        return -EINVAL;
 
     /* Should be in ieee802_11_defs.h */
 #ifndef WLAN_AKM_SUITE_8021X_SHA256
@@ -22602,11 +22642,31 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
             break;
 #if defined(WLAN_FEATURE_FILS_SK) && defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT)
         case WLAN_AKM_SUITE_FILS_SHA256:
+            hddLog(LOG1, "setting key mgmt type to FILS SHA256");
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
+            roam_profile->fils_con_info->akm_type =
+                eCSR_AUTH_TYPE_FILS_SHA256;
+            break;
+
         case WLAN_AKM_SUITE_FILS_SHA384:
+            hddLog(LOG1, "setting key mgmt type to FILS SH384");
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
+            roam_profile->fils_con_info->akm_type =
+                eCSR_AUTH_TYPE_FILS_SHA384;
+            break;
+
         case WLAN_AKM_SUITE_FT_FILS_SHA256:
+            hddLog(LOG1, "setting key mgmt type to FILS FT SH256");
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
+            roam_profile->fils_con_info->akm_type =
+                eCSR_AUTH_TYPE_FT_FILS_SHA256;
+            break;
+
         case WLAN_AKM_SUITE_FT_FILS_SHA384:
             pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
-        break;
+            roam_profile->fils_con_info->akm_type =
+                eCSR_AUTH_TYPE_FT_FILS_SHA384;
+            break;
 #endif
 
         default:
@@ -23030,6 +23090,107 @@ static bool hdd_isWPAIEPresent(const u8 *ie, u8 ie_len)
     return FALSE;
 }
 
+#if defined(WLAN_FEATURE_FILS_SK) && defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT)
+static int wlan_hdd_get_fils_auth_type(enum nl80211_auth_type auth)
+{
+    switch (auth) {
+        case NL80211_AUTHTYPE_FILS_SK:
+            return eSIR_FILS_SK_WITHOUT_PFS;
+        case NL80211_AUTHTYPE_FILS_SK_PFS:
+            return eSIR_FILS_SK_WITH_PFS;
+        case NL80211_AUTHTYPE_FILS_PK:
+            return eSIR_FILS_PK_AUTH;
+        default:
+            return -EINVAL;
+    }
+}
+
+/**
+ * wlan_hdd_cfg80211_set_fils_config() - set fils config params during connect
+ * @adapter: Pointer to adapter
+ * @req: Pointer to fils parameters
+ *
+ * Return: 0 for success, non-zero for failure
+ */
+static int wlan_hdd_cfg80211_set_fils_config(hdd_adapter_t *adapter,
+                                             struct cfg80211_connect_params *req)
+{
+    hdd_wext_state_t *wext_state;
+    tCsrRoamProfile *roam_profile;
+    int auth_type;
+    uint8_t *buf;
+
+    wext_state = WLAN_HDD_GET_WEXT_STATE_PTR(adapter);
+    roam_profile = &wext_state->roamProfile;
+
+    if (!roam_profile) {
+        hddLog(LOGE, "No valid Roam profile");
+        return -EINVAL;
+    }
+
+    roam_profile->fils_con_info =
+        vos_mem_malloc(sizeof(struct cds_fils_connection_info));
+
+    if (!roam_profile->fils_con_info) {
+        hddLog(VOS_TRACE_LEVEL_INFO,"failed to allocate memory");
+        return -EINVAL;
+    }
+    if (req->auth_type != NL80211_AUTHTYPE_FILS_SK) {
+        roam_profile->fils_con_info->is_fils_connection = false;
+        return 0;
+    }
+
+    roam_profile->fils_con_info->is_fils_connection = true;
+    roam_profile->fils_con_info->sequence_number = req->fils_erp_next_seq_num;
+    auth_type = wlan_hdd_get_fils_auth_type(req->auth_type);
+    if (auth_type < 0) {
+        hddLog(VOS_TRACE_LEVEL_INFO,"invalid auth type for fils %d", req->auth_type);
+        return -EINVAL;
+    }
+    roam_profile->fils_con_info->auth_type = auth_type;
+
+    roam_profile->fils_con_info->r_rk_length = req->fils_erp_rrk_len;
+    if (req->fils_erp_rrk_len)
+        vos_mem_copy(roam_profile->fils_con_info->r_rk,
+            req->fils_erp_rrk,
+            roam_profile->fils_con_info->r_rk_length);
+
+    roam_profile->fils_con_info->realm_len = req->fils_erp_realm_len;
+    if (req->fils_erp_realm_len)
+        vos_mem_copy(roam_profile->fils_con_info->realm,
+            req->fils_erp_realm,
+            roam_profile->fils_con_info->realm_len);
+
+    roam_profile->fils_con_info->key_nai_length =
+            req->fils_erp_username_len + sizeof(char) +
+    req->fils_erp_realm_len;
+    if (req->fils_erp_username_len) {
+        buf = roam_profile->fils_con_info->keyname_nai;
+        vos_mem_copy(buf,
+            req->fils_erp_username,
+            req->fils_erp_username_len);
+            buf += req->fils_erp_username_len;
+            vos_mem_copy(buf, "@", sizeof(char));
+            buf += sizeof(char);
+            vos_mem_copy(buf, req->fils_erp_realm,
+            req->fils_erp_realm_len);
+    }
+    hddLog(VOS_TRACE_LEVEL_INFO,"fils connection seq=%d auth=%d user_len=%zu rrk_len=%zu realm_len=%zu keyname nai len %d\n",
+        req->fils_erp_next_seq_num, req->auth_type,
+        req->fils_erp_username_len, req->fils_erp_rrk_len,
+        req->fils_erp_realm_len,
+        roam_profile->fils_con_info->key_nai_length);
+
+    return 0;
+}
+#else
+static int wlan_hdd_cfg80211_set_fils_config(hdd_adapter_t *adapter,
+                                             struct cfg80211_connect_params *req)
+{
+    return 0;
+}
+#endif
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_set_privacy
  * This function is used to initialize the security
@@ -23069,7 +23230,12 @@ int wlan_hdd_cfg80211_set_privacy(hdd_adapter_t *pAdapter,
                 "%s: failed to set authentication type ", __func__);
         return status;
     }
-
+    /* Parase extra info from connect request */
+    status = wlan_hdd_cfg80211_set_fils_config(pAdapter, req);
+    if (0 > status)
+    {
+        return status;
+    }
     /*set key mgmt type*/
     if (req->crypto.n_akm_suites)
     {

@@ -28,6 +28,9 @@
 #if !defined( __LIM_SESSION_H )
 #define __LIM_SESSION_H
 
+#ifdef WLAN_FEATURE_FILS_SK
+#include "lim_fils_defs.h"
+#endif
 /**=========================================================================
 
   \file  limSession.h
@@ -522,6 +525,9 @@ typedef struct sPESession           // Added to Support BT-AMP
     /* Number of STAs that do not support ECSA capability */
     uint8_t lim_non_ecsa_cap_num;
     uint32_t sta_auth_retries_for_code17;
+#ifdef WLAN_FEATURE_FILS_SK
+    struct pe_fils_session *fils_info;
+#endif
 } tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------

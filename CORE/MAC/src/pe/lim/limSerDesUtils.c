@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1338,6 +1338,9 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
             pJoinReq->powerCap.maxTxPower,
             pJoinReq->supportedChannels.numChnl);)
 
+    pJoinReq->sub20_channelwidth = *pBuf++;
+    len--;
+
     // Extract uapsdPerAcBitmask
     pJoinReq->uapsdPerAcBitmask = *pBuf++;
     len--;
@@ -1364,8 +1367,6 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     pBuf += lenUsed;
     len -= lenUsed;
 
-    pJoinReq->sub20_channelwidth = *pBuf++;
-    len--;
 
     return eSIR_SUCCESS;
 } /*** end limJoinReqSerDes() ***/

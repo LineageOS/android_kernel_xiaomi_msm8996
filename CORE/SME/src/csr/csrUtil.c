@@ -3590,6 +3590,35 @@ tANI_BOOLEAN csrLookupPMKID( tpAniSirGlobal pMac, tANI_U32 sessionId, tPmkidCach
     return fRC;
 }
 
+#ifdef WLAN_FEATURE_FILS_SK
+
+/*
+ * csr_update_pmksa_to_profile: update pmk and pmkid to profile which will be
+ * used in case of fils session
+ * @profile: profile
+ * @pmkid_cache: pmksa cache
+ *
+ * Return: None
+ */
+static inline void csr_update_pmksa_to_profile(tCsrRoamProfile *profile,
+        tPmkidCacheInfo *pmkid_cache)
+{
+    if (!profile->fils_con_info)
+        return;
+
+    profile->fils_con_info->pmk_len = pmkid_cache->pmk_len;
+    vos_mem_copy(profile->fils_con_info->pmk,
+            pmkid_cache->pmk, pmkid_cache->pmk_len);
+    vos_mem_copy(profile->fils_con_info->pmkid,
+        pmkid_cache->PMKID, CSR_RSN_PMKID_SIZE);
+
+}
+#else
+static inline void csr_update_pmksa_to_profile(tCsrRoamProfile *profile,
+        tPmkidCacheInfo *pmkid_cache)
+{
+}
+#endif
 
 tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile,
                             tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes, tCsrRSNIe *pRSNIe )
@@ -5362,6 +5391,40 @@ static tANI_BOOLEAN csrIsRateSetMatch( tpAniSirGlobal pMac,
 
 }
 
+#ifdef WLAN_FEATURE_FILS_SK
+/*
+ * csr_is_fils_realm_match: API to check whether realm in scan filter is
+ * matching with realm in bss info
+ * @bss_descr: bss description
+ * @filter: scan filter
+ *
+ * Return: true if success else false
+ */
+static bool csr_is_fils_realm_match(tSirBssDescription *bss_descr,
+                        tCsrScanResultFilter *filter)
+{
+    int i;
+    bool is_match = true;
+
+    if (filter->realm_check) {
+        is_match = false;
+        for (i = 0; i < bss_descr->fils_info_element.realm_cnt; i++) {
+            if (!adf_os_mem_cmp(filter->fils_realm,
+                    bss_descr->fils_info_element.realm[i],
+                    SIR_REALM_LEN)) {
+                    return true;
+            }
+        }
+    }
+    return is_match;
+}
+#else
+static bool csr_is_fils_realm_match(tSirBssDescription *bss_descr,
+                                    tCsrScanResultFilter *filter)
+{
+    return true;
+}
+#endif
 
 //ppIes can be NULL. If caller want to get the *ppIes allocated by this function, pass in *ppIes = NULL
 tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrScanResultFilter *pFilter,
@@ -5502,6 +5565,8 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
         }
 #endif
         fRC = eANI_BOOLEAN_TRUE;
+        if (fRC)
+            fRC = csr_is_fils_realm_match(pBssDesc, pFilter);
 
     } while( 0 );
     if( ppIes )

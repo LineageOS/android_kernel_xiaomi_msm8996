@@ -2187,6 +2187,21 @@ void hdd_PerformRoamSetKeyComplete(hdd_adapter_t *pAdapter)
     pHddStaCtx->roam_info.deferKeyComplete = FALSE;
 }
 
+#if defined(WLAN_FEATURE_FILS_SK) && defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT)
+static void hdd_clear_fils_connection_info(hdd_adapter_t *adapter)
+{
+       hdd_wext_state_t *wext_state = WLAN_HDD_GET_WEXT_STATE_PTR(adapter);
+
+       if (wext_state->roamProfile.fils_con_info) {
+              vos_mem_free(wext_state->roamProfile.fils_con_info);
+              wext_state->roamProfile.fils_con_info = NULL;
+       }
+}
+#else
+static void hdd_clear_fils_connection_info(hdd_adapter_t *adapter)
+{ }
+#endif
+
 /**
  * hdd_sap_restart_handle() - to handle restarting of SAP
  * @work: name of the work
@@ -2889,7 +2904,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
 
     }
-
+    hdd_clear_fils_connection_info(pAdapter);
     /*
      * Call hdd_decide_dynamic_chain_mask only when CSR has
      * completed connect with failure or success i.e. with
@@ -5025,6 +5040,28 @@ hdd_TranslateWPAToCsrEncryptionType(u_int8_t cipher_suite[4])
     hddLog(LOG1, FL("cipher_type: %d"), cipher_type);
     return cipher_type;
 }
+
+#ifdef WLAN_FEATURE_FILS_SK
+/*
+ * hdd_is_fils_connection: API to determine if connection is FILS
+ * @adapter: hdd adapter
+ *
+ * Return: true if fils connection else false
+*/
+static inline bool hdd_is_fils_connection(hdd_adapter_t *adapter)
+{
+    hdd_wext_state_t *wext_state = WLAN_HDD_GET_WEXT_STATE_PTR(adapter);
+    if (wext_state->roamProfile.fils_con_info)
+        return wext_state->roamProfile.fils_con_info->is_fils_connection;
+
+    return false;
+}
+#else
+static inline bool hdd_is_fils_connection(hdd_adapter_t *adapter)
+{
+    return false;
+}
+#endif
 
 static tANI_S32 hdd_ProcessGENIE(hdd_adapter_t *pAdapter,
                 struct ether_addr *pBssid,

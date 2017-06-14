@@ -51,6 +51,8 @@
 #endif
 
 #include "regdomain_common.h"
+#include "qdf_crypto.h"
+#include "lim_process_fils.h"
 
 #define DOT11F_RSN_VERSION 1    /* current supported version */
 #define DOT11F_RSN_OUI_SIZE 4
@@ -4398,6 +4400,51 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
 
 } // End sirConvertBeaconFrame2Struct.
 
+#ifdef WLAN_FEATURE_FILS_SK
+/* sir_update_auth_frame2_struct_fils_conf: API to update fils info from auth
+ * packet type 2
+ * @auth: auth packet pointer received from AP
+ * @auth_frame: data structure needs to be updated
+ *
+ * Return: None
+ */
+static void sir_update_auth_frame2_struct_fils_conf(tDot11fAuthentication *auth,
+                tpSirMacAuthFrameBody auth_frame)
+{
+    if (auth->AuthAlgo.algo != eSIR_FILS_SK_WITHOUT_PFS)
+        return;
+
+    if (auth->fils_assoc_delay_info.present)
+        auth_frame->assoc_delay_info =
+            auth->fils_assoc_delay_info.assoc_delay_info;
+
+    if (auth->fils_session.present)
+        vos_mem_copy(auth_frame->session, auth->fils_session.session,
+            SIR_FILS_SESSION_LENGTH);
+
+    if (auth->fils_nonce.present)
+        vos_mem_copy(auth_frame->nonce, auth->fils_nonce.nonce,
+            SIR_FILS_NONCE_LENGTH);
+
+    if (auth->fils_wrapped_data.present) {
+        vos_mem_copy(auth_frame->wrapped_data,
+            auth->fils_wrapped_data.wrapped_data,
+            auth->fils_wrapped_data.num_wrapped_data);
+        auth_frame->wrapped_data_len =
+            auth->fils_wrapped_data.num_wrapped_data;
+    }
+    if (auth->RSNOpaque.present) {
+        vos_mem_copy(auth_frame->rsn_ie.info, auth->RSNOpaque.data,
+            auth->RSNOpaque.num_data);
+        auth_frame->rsn_ie.length = auth->RSNOpaque.num_data;
+    }
+}
+#else
+static void sir_update_auth_frame2_struct_fils_conf(tDot11fAuthentication *auth,
+                tpSirMacAuthFrameBody auth_frame)
+{ }
+#endif
+
 tSirRetStatus
 sirConvertAuthFrame2Struct(tpAniSirGlobal        pMac,
                            tANI_U8                   *pFrame,
@@ -4438,6 +4485,7 @@ sirConvertAuthFrame2Struct(tpAniSirGlobal        pMac,
         pAuth->length = auth.ChallengeText.num_text;
         vos_mem_copy( pAuth->challengeText, auth.ChallengeText.text, auth.ChallengeText.num_text );
     }
+    sir_update_auth_frame2_struct_fils_conf(&auth, pAuth);
 
     return eSIR_SUCCESS;
 
