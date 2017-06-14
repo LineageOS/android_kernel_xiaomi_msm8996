@@ -2341,6 +2341,32 @@ void sir_copy_hs20_ie(tDot11fIEhs20vendor_ie *dest, tDot11fIEhs20vendor_ie *src)
 }
 
 #ifdef WLAN_FEATURE_FILS_SK
+void populate_dot11f_fils_params(tpAniSirGlobal mac_ctx,
+        tDot11fAssocRequest *frm,
+        tpPESession pe_session)
+{
+    struct pe_fils_session *fils_info = pe_session->fils_info;
+
+    /* Populate RSN IE with FILS AKM */
+    PopulateDot11fRSNOpaque(mac_ctx, &(pe_session->pLimJoinReq->rsnIE),
+                                &frm->RSNOpaque);
+
+    /* Populate FILS session IE */
+    frm->fils_session.present = true;
+    vos_mem_copy(frm->fils_session.session,
+             fils_info->fils_session, FILS_SESSION_LENGTH);
+
+    /* Populate FILS Key confirmation IE */
+    if (fils_info->key_auth_len) {
+        frm->fils_key_confirmation.present = true;
+        frm->fils_key_confirmation.num_key_auth =
+                        fils_info->key_auth_len;
+
+        vos_mem_copy(frm->fils_key_confirmation.key_auth,
+                 fils_info->key_auth, fils_info->key_auth_len);
+    }
+}
+
 /**
  * update_fils_data: update fils params from beacon/probe response
  * @fils_ind: pointer to sir_fils_indication
@@ -2405,11 +2431,6 @@ sir_convert_fils_data_to_probersp_struct(tpSirProbeRespBeacon probe_resp,
 static inline void
 sir_convert_fils_data_to_probersp_struct(tpSirProbeRespBeacon probe_resp,
         tDot11fProbeResponse *pr)
-{
-}
-static inline void populate_dot11f_fils_params(tpAniSirGlobal mac_ctx,
-                 tDot11fAssocRequest *frm,
-                 tpPESession pe_session)
 {
 }
 #endif
@@ -2940,8 +2961,57 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
 
 } // End sirConvertAssocReqFrame2Struct.
 
+#ifdef WLAN_FEATURE_FILS_SK
+/**
+ * fils_convert_assoc_rsp_frame2_struct() - Copy FILS IE's to Assoc rsp struct
+ * @ar: frame parser Assoc response struct
+ * @pAssocRsp: LIM Assoc response
+ *
+ * Return: None
+ */
+static void fils_convert_assoc_rsp_frame2_struct(tpAniSirGlobal pMac,
+                         tDot11fAssocResponse *ar,
+                         tpSirAssocRsp pAssocRsp)
+{
+    if (ar->fils_session.present) {
+        limLog(pMac, LOG1, FL("fils session IE present"));
+        pAssocRsp->fils_session.present = true;
+        vos_mem_copy(pAssocRsp->fils_session.session,
+                ar->fils_session.session,
+                DOT11F_IE_FILS_SESSION_MAX_LEN);
+    }
+
+    if (ar->fils_key_confirmation.present) {
+        limLog(pMac, LOG1, FL("fils key conf IE present"));
+        pAssocRsp->fils_key_auth.num_key_auth =
+            ar->fils_key_confirmation.num_key_auth;
+        vos_mem_copy(pAssocRsp->fils_key_auth.key_auth,
+                ar->fils_key_confirmation.key_auth,
+                pAssocRsp->fils_key_auth.num_key_auth);
+    }
+
+    if (ar->fils_kde.present) {
+        limLog(pMac, LOG1,
+                  FL("fils kde IE present %d"),ar->fils_kde.num_kde_list);
+        pAssocRsp->fils_kde.num_kde_list =
+            ar->fils_kde.num_kde_list;
+        vos_mem_copy(pAssocRsp->fils_kde.key_rsc,
+                ar->fils_kde.key_rsc, KEY_RSC_LEN);
+        vos_mem_copy(&pAssocRsp->fils_kde.kde_list,
+                &ar->fils_kde.kde_list,
+                pAssocRsp->fils_kde.num_kde_list);
+    }
+}
+#else
+static inline void fils_convert_assoc_rsp_frame2_struct(tpAniSirGlobal pMac,
+                                 tDot11fAssocResponse *ar,
+                                 tpSirAssocRsp pAssocRsp)
+{ }
+#endif
+
 tSirRetStatus
 sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
+                                tpPESession psessionEntry,
                                 tANI_U8            *pFrame,
                                 tANI_U32            nFrame,
                                 tpSirAssocRsp  pAssocRsp)
@@ -2953,6 +3023,18 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
     // Zero-init our [out] parameter,
     vos_mem_set( ( tANI_U8* )pAssocRsp, sizeof(tSirAssocRsp), 0 );
 
+#ifdef WLAN_FEATURE_FILS_SK
+    /* decrypt the cipher text using AEAD decryption */
+    if (lim_is_fils_connection(psessionEntry)) {
+        status = aead_decrypt_assoc_rsp(pMac, psessionEntry,
+                        &ar, pFrame, &nFrame);
+        if (!VOS_IS_STATUS_SUCCESS(status)) {
+            limLog(pMac, LOGE,
+                  FL("FILS assoc rsp AEAD decrypt fails"));
+            return eSIR_FAILURE;
+        }
+    }
+#endif
     // delegate to the framesc-generated code,
     status = dot11fUnpackAssocResponse( pMac, pFrame, nFrame, &ar);
     if ( DOT11F_FAILED( status ) )
@@ -3168,6 +3250,7 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
             pAssocRsp->vendor_sub20_capability =
              ar.QComVendorIE.Sub20Info.capability;
 
+    fils_convert_assoc_rsp_frame2_struct(pMac, &ar, pAssocRsp);
     return eSIR_SUCCESS;
 
 } // End sirConvertAssocRespFrame2Struct.

@@ -12169,7 +12169,7 @@ static void __hdd_connect_bss(struct net_device *dev, const u8 *bssid,
 			     resp_ie, resp_ie_len, status, gfp,
 			     nl_timeout_reason);
 }
-#else
+#else /* CFG80211_CONNECT_TIMEOUT_REASON_CODE */
 #if defined CFG80211_CONNECT_TIMEOUT
 static void hdd_cfg80211_connect_timeout(struct net_device *dev,
 					 const u8 *bssid,
@@ -12177,7 +12177,7 @@ static void hdd_cfg80211_connect_timeout(struct net_device *dev,
 {
 	cfg80211_connect_timeout(dev, bssid, NULL, 0, GFP_KERNEL);
 }
-#endif
+#endif /* CFG80211_CONNECT_TIMEOUT */
 static void __hdd_connect_bss(struct net_device *dev, const u8 *bssid,
 			      struct cfg80211_bss *bss, const u8 *req_ie,
 			      size_t req_ie_len, const u8 *resp_ie,
@@ -12187,7 +12187,7 @@ static void __hdd_connect_bss(struct net_device *dev, const u8 *bssid,
 	cfg80211_connect_bss(dev, bssid, bss, req_ie, req_ie_len,
 			     resp_ie, resp_ie_len, status, gfp);
 }
-#endif
+#endif /* CFG80211_CONNECT_TIMEOUT_REASON_CODE */
 /**
  * hdd_connect_bss() - API to send connection status to supplicant
  * @dev: network device
@@ -12229,6 +12229,177 @@ static void hdd_connect_bss(struct net_device *dev, const u8 *bssid,
 		resp_ie, resp_ie_len, status, gfp, timeout_reason);
 }
 #endif
+
+#ifdef WLAN_FEATURE_FILS_SK
+#ifdef CFG80211_CONNECT_DONE
+#ifdef CFG80211_FILS_SK_OFFLOAD_SUPPORT
+/**
+ * hdd_populate_fils_params() - Populate FILS keys to connect response
+ * @fils_params: connect response to supplicant
+ * @fils_kek: FILS kek
+ * @fils_kek_len: FILS kek length
+ * @pmk: FILS PMK
+ * @pmk_len: FILS PMK length
+ * @pmkid: PMKID
+ * @fils_seq_num: FILS Seq number
+ *
+ * Return: None
+ */
+static void hdd_populate_fils_params(struct cfg80211_connect_resp_params
+                     *fils_params, const uint8_t *fils_kek,
+                     size_t fils_kek_len, const uint8_t *pmk,
+                     size_t pmk_len, const uint8_t *pmkid,
+                     uint16_t fils_seq_num)
+{
+    /* Increament seq number to be used for next FILS */
+    fils_params->fils_erp_next_seq_num = fils_seq_num + 1;
+    fils_params->update_erp_next_seq_num = true;
+    fils_params->fils_kek = fils_kek;
+    fils_params->fils_kek_len = fils_kek_len;
+    fils_params->pmk = pmk;
+    fils_params->pmk_len = pmk_len;
+    fils_params->pmkid = pmkid;
+}
+#else /* CFG80211_FILS_SK_OFFLOAD_SUPPORT */
+static inline void hdd_populate_fils_params(struct cfg80211_connect_resp_params
+                        *fils_params, const uint8_t
+                        *fils_kek, size_t fils_kek_len,
+                        const uint8_t *pmk, size_t pmk_len,
+                        const uint8_t *pmkid,
+                        uint16_t fils_seq_num)
+{ }
+#endif /* CFG80211_FILS_SK_OFFLOAD_SUPPORT */
+
+/**
+ * hdd_connect_done() - Wrapper API to call cfg80211_connect_done
+ * @dev: network device
+ * @bssid: bssid to which we want to associate
+ * @bss: cfg80211 bss info
+ * @roam_info: information about connected bss
+ * @req_ie: Request Information Element
+ * @req_ie_len: len of the req IE
+ * @resp_ie: Response IE
+ * @resp_ie_len: len of ht response IE
+ * @status: status
+ * @gfp: allocation flags
+ * @connect_timeout: If timed out waiting for Auth/Assoc/Probe resp
+ * @timeout_reason: reason for connect timeout
+ * @roam_fils_params: FILS join response params
+ *
+ * This API is used as wrapper to send FILS key/sequence number
+ * params etc. to supplicant in case of FILS connection
+ *
+ * Return: None
+ */
+static void hdd_connect_done(struct net_device *dev, const u8 *bssid,
+                 struct cfg80211_bss *bss, tCsrRoamInfo *roam_info,
+                 const u8 *req_ie, size_t req_ie_len,
+                 const u8 *resp_ie, size_t resp_ie_len, u16 status,
+                 gfp_t gfp, bool connect_timeout, tSirResultCodes
+                 timeout_reason, struct fils_join_rsp_params
+                 *roam_fils_params)
+{
+    struct cfg80211_connect_resp_params fils_params;
+    vos_mem_zero(&fils_params, sizeof(fils_params));
+
+    fils_params.bssid = bssid;
+    if (!roam_fils_params) {
+        fils_params.status = WLAN_STATUS_UNSPECIFIED_FAILURE;
+        hdd_populate_fils_params(&fils_params, NULL, 0, NULL,
+                     0, NULL, roam_info->fils_seq_num);
+    } else {
+        fils_params.status = status;
+        fils_params.timeout_reason = timeout_reason;
+        fils_params.req_ie = req_ie;
+        fils_params.req_ie_len = req_ie_len;
+        fils_params.resp_ie = resp_ie;
+        fils_params.resp_ie_len = resp_ie_len;
+        fils_params.bss = bss;
+        hdd_populate_fils_params(&fils_params, roam_fils_params->kek,
+                     roam_fils_params->kek_len,
+                     roam_fils_params->fils_pmk,
+                     roam_fils_params->fils_pmk_len,
+                     roam_fils_params->fils_pmkid,
+                     roam_info->fils_seq_num);
+    }
+    hddLog(LOG1, "FILS indicate connect status %d seq no %d",
+          fils_params.status,
+          fils_params.fils_erp_next_seq_num);
+
+    cfg80211_connect_done(dev, &fils_params, gfp);
+
+    /* Clear all the FILS key info */
+    if (roam_fils_params && roam_fils_params->fils_pmk)
+        vos_mem_free(roam_fils_params->fils_pmk);
+    if (roam_fils_params)
+        vos_mem_free(roam_fils_params);
+    roam_info->fils_join_rsp = NULL;
+}
+#else /* CFG80211_CONNECT_DONE */
+static inline void hdd_connect_done(struct net_device *dev, const u8 *bssid,
+                    struct cfg80211_bss *bss, tCsrRoamInfo
+                    *roam_info, const u8 *req_ie,
+                    size_t req_ie_len, const u8 *resp_ie,
+                    size_t resp_ie_len, u16 status, gfp_t gfp,
+                    bool connect_timeout, tSirResultCodes
+                    timeout_reason, struct fils_join_rsp_params
+                    *roam_fils_params)
+{ }
+#endif /* CFG80211_CONNECT_DONE */
+#endif /* WLAN_FEATURE_FILS_SK */
+
+#if defined(CFG80211_CONNECT_DONE) && defined(WLAN_FEATURE_FILS_SK)
+/**
+ * hdd_fils_update_connect_results() - API to send fils connection status to
+ * supplicant.
+ * @dev: network device
+ * @bssid: bssid to which we want to associate
+ * @bss: cfg80211 bss info
+ * @roam_info: information about connected bss
+ * @req_ie: Request Information Element
+ * @req_ie_len: len of the req IE
+ * @resp_ie: Response IE
+ * @resp_ie_len: len of ht response IE
+ * @status: status
+ * @gfp: allocation flags
+ * @connect_timeout: If timed out waiting for Auth/Assoc/Probe resp
+ * @timeout_reason: reason for connect timeout
+ *
+ * The API is a wrapper to send connection status to supplicant
+ *
+ * Return: 0 if success else failure
+ */
+static int hdd_fils_update_connect_results(struct net_device *dev,
+            const u8 *bssid,
+            struct cfg80211_bss *bss,
+            tCsrRoamInfo *roam_info, const u8 *req_ie,
+            size_t req_ie_len, const u8 *resp_ie,
+            size_t resp_ie_len, u16 status, gfp_t gfp,
+            bool connect_timeout,
+            tSirResultCodes timeout_reason)
+{
+    ENTER();
+    if (!roam_info || !roam_info->is_fils_connection)
+        return -EINVAL;
+
+    hdd_connect_done(dev, bssid, bss, roam_info, req_ie, req_ie_len,
+             resp_ie, resp_ie_len, status, gfp, connect_timeout,
+             timeout_reason, roam_info->fils_join_rsp);
+    return 0;
+}
+#else /* CFG80211_CONNECT_DONE && WLAN_FEATURE_FILS_SK */
+static inline int hdd_fils_update_connect_results(struct net_device *dev,
+            const u8 *bssid,
+            struct cfg80211_bss *bss,
+            tCsrRoamInfo *roam_info, const u8 *req_ie,
+            size_t req_ie_len, const u8 *resp_ie,
+            size_t resp_ie_len, u16 status, gfp_t gfp,
+            bool connect_timeout,
+            tSirResultCodes timeout_reason)
+{
+    return -EINVAL;
+}
+#endif /* CFG80211_CONNECT_DONE && WLAN_FEATURE_FILS_SK */
 
 /**
  * hdd_connect_result() - API to send connection status to supplicant
@@ -12281,12 +12452,18 @@ void hdd_connect_result(struct net_device *dev,
 			roam_info->u.pConnectedProfile->SSID.length);
 	}
 
-	hdd_connect_bss(dev, bssid, bss, req_ie,
+	if (hdd_fils_update_connect_results(dev, bssid, bss,
+			roam_info, req_ie, req_ie_len, resp_ie,
+			resp_ie_len, status, gfp, connect_timeout,
+			timeout_reason) != 0) {
+			hdd_connect_bss(dev, bssid, bss, req_ie,
 				req_ie_len, resp_ie, resp_ie_len,
 				status, gfp, connect_timeout, timeout_reason);
+	}
+
 	vos_runtime_pm_allow_suspend(padapter->runtime_context.connect);
 }
-#else
+#else /* CFG80211_CONNECT_BSS */
 void hdd_connect_result(struct net_device *dev,
 			const u8 *bssid,
 			tCsrRoamInfo *roam_info,
@@ -12305,7 +12482,7 @@ void hdd_connect_result(struct net_device *dev,
 
 	vos_runtime_pm_allow_suspend(padapter->runtime_context.connect);
 }
-#endif
+#endif /* CFG80211_CONNECT_BSS */
 
 VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
 {

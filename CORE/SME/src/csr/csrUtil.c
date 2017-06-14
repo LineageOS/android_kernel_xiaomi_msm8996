@@ -3591,6 +3591,35 @@ tANI_BOOLEAN csrLookupPMKID( tpAniSirGlobal pMac, tANI_U32 sessionId, tPmkidCach
 }
 
 #ifdef WLAN_FEATURE_FILS_SK
+/*
+ * csr_update_pmksa_for_cache_id: update tPmkidCacheInfo to lookup using
+ * ssid and cache id
+ * @bss_desc: bss description
+ * @profile: csr roam profile
+ * @pmkid_cache: pmksa cache
+ *
+ * Return: true if cache identifier present else false
+ */
+static bool csr_update_pmksa_for_cache_id(tSirBssDescription *bss_desc,
+                tCsrRoamProfile *profile,
+                tPmkidCacheInfo *pmkid_cache)
+{
+    if (!bss_desc->fils_info_element.is_cache_id_present)
+        return false;
+
+    pmkid_cache->ssid_len =
+        profile->SSIDs.SSIDList[0].SSID.length;
+    vos_mem_copy(pmkid_cache->ssid,
+        profile->SSIDs.SSIDList[0].SSID.ssId,
+        profile->SSIDs.SSIDList[0].SSID.length);
+    vos_mem_copy(pmkid_cache->cache_id,
+        bss_desc->fils_info_element.cache_id,
+        CACHE_ID_LEN);
+    vos_mem_copy(pmkid_cache->BSSID,
+        bss_desc->bssId, VOS_MAC_ADDR_SIZE);
+
+    return true;
+}
 
 /*
  * csr_update_pmksa_to_profile: update pmk and pmkid to profile which will be
@@ -3614,6 +3643,13 @@ static inline void csr_update_pmksa_to_profile(tCsrRoamProfile *profile,
 
 }
 #else
+static inline bool csr_update_pmksa_for_cache_id(tSirBssDescription *bss_desc,
+                tCsrRoamProfile *profile,
+                tPmkidCacheInfo *pmkid_cache)
+{
+    return false;
+}
+
 static inline void csr_update_pmksa_to_profile(tCsrRoamProfile *profile,
         tPmkidCacheInfo *pmkid_cache)
 {
@@ -3693,7 +3729,8 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
         *(tANI_U16 *)( &pAuthSuite->AuthOui[ 1 ] ) = *((tANI_U16 *)(&RSNCapabilities));
 
         pPMK = (tCsrRSNPMKIe *)( ((tANI_U8 *)(&pAuthSuite->AuthOui[ 1 ])) + sizeof(tANI_U16) );
-        vos_mem_copy((v_MACADDR_t *)pmkid_cache.BSSID,
+        if (!csr_update_pmksa_for_cache_id(pSirBssDesc, pProfile, &pmkid_cache))
+            vos_mem_copy((v_MACADDR_t *)pmkid_cache.BSSID,
                         (v_MACADDR_t *)pSirBssDesc->bssId,
                          VOS_MAC_ADDR_SIZE);
         // Don't include the PMK SA IDs for CCKM associations.
@@ -5875,6 +5912,19 @@ tANI_U16 csrRatesFindBestRate( tSirMacRateSet *pSuppRates, tSirMacRateSet *pExtR
     return nBest;
 }
 
+#ifdef WLAN_FEATURE_FILS_SK
+static inline void csr_free_fils_profile_info(tCsrRoamProfile *profile)
+{
+    if (profile->fils_con_info) {
+        vos_mem_free(profile->fils_con_info);
+        profile->fils_con_info = NULL;
+    }
+}
+#else
+static inline void csr_free_fils_profile_info(tCsrRoamProfile *profile)
+{ }
+#endif
+
 
 void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
 {
@@ -5924,6 +5974,7 @@ void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
             vos_mem_free(pProfile->ChannelInfo.ChannelList);
             pProfile->ChannelInfo.ChannelList = NULL;
         }
+        csr_free_fils_profile_info(pProfile);
         vos_mem_set(pProfile, sizeof(tCsrRoamProfile), 0);
     }
 }

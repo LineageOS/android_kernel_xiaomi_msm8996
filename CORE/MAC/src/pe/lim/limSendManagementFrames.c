@@ -52,7 +52,7 @@
 #ifdef WLAN_FEATURE_11W
 #include "wni_cfg.h"
 #endif
-
+#include<crypto/aes.h>
 #ifdef WLAN_FEATURE_VOWIFI_11R
 #include "limFTDefs.h"
 #endif
@@ -64,7 +64,7 @@
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"
 #endif
-
+#include "qdf_crypto.h"
 #include "wlan_qct_wda.h"
 #include "lim_process_fils.h"
 
@@ -2071,6 +2071,8 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     tANI_U8            *pIe = NULL;
     tANI_U32            ieLen = 0;
     tANI_U32            fixed_param_len = 0;
+    VOS_STATUS          vos_status;
+    tANI_U32            aes_block_size_len = 0;
 
     if(NULL == psessionEntry)
     {
@@ -2355,6 +2357,11 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
                                             &pFrm->QComVendorIE,
                                             psessionEntry);
 
+    if (lim_is_fils_connection(psessionEntry)) {
+        populate_dot11f_fils_params(pMac, pFrm, psessionEntry);
+        aes_block_size_len = AES_BLOCK_SIZE;
+    }
+
     nStatus = dot11fGetPackedAssocRequestSize(pMac, pFrm, &nPayload);
     if (DOT11F_FAILED(nStatus))
     {
@@ -2371,7 +2378,8 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
              nStatus);
     }
 
-    nBytes = nPayload + sizeof(tSirMacMgmtHdr) + nAddIELen;
+    nBytes = nPayload + sizeof(tSirMacMgmtHdr) 
+                      + nAddIELen + aes_block_size_len;
 
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
             ( tANI_U16 )nBytes, ( void** ) &pFrame,
@@ -2444,13 +2452,26 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         psessionEntry->assocReq = NULL;
         psessionEntry->assocReqLen = 0;
     }
-
     if( nAddIELen )
     {
         vos_mem_copy( pFrame + sizeof(tSirMacMgmtHdr) + nPayload,
                       pAddIE,
                       nAddIELen );
         nPayload += nAddIELen;
+    }
+
+    if (lim_is_fils_connection(psessionEntry)) {
+        vos_status = aead_encrypt_assoc_req(pMac, psessionEntry,
+                                            pFrame, &nPayload);
+        if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+            limDiagEventReport(pMac,
+                        WLAN_PE_DIAG_ASSOC_IND_EVENT,
+                        psessionEntry, eSIR_FAILURE, eSIR_FAILURE);
+            palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+                        ( void* ) pFrame, ( void* ) pPacket );
+            vos_mem_free(pFrm);
+            return;
+        }
     }
 
     psessionEntry->assocReq = vos_mem_malloc(nPayload);

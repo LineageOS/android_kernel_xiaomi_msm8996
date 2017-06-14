@@ -11330,46 +11330,53 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
 
             tHalHandle hal_hdl = hdd_ctx->hHal;
             tCsrBssid bssid = {0};
-            tCsrRoamProfile roam_profile;
+            tCsrRoamProfile *roam_profile = NULL;
             uint8_t ini_sub_20_ch_width =
                         hdd_ctx->cfg_ini->sub_20_channel_width;
 
+            roam_profile = vos_mem_malloc(sizeof(tCsrRoamProfile));
+            if (roam_profile == NULL){
+                hddLog(LOGE, "Failed to allocate memory");
+                return -ENOMEM;
+            }
             vos_mem_zero(&roam_profile, sizeof(roam_profile));
 
             if (vht_channel_width == 4) {
                 vht_channel_width = 0;
-                roam_profile.sub20_channelwidth = SUB20_MODE_5MHZ;
+                roam_profile->sub20_channelwidth = SUB20_MODE_5MHZ;
             } else if (vht_channel_width == 5) {
                 vht_channel_width = 0;
-                roam_profile.sub20_channelwidth = SUB20_MODE_10MHZ;
+                roam_profile->sub20_channelwidth = SUB20_MODE_10MHZ;
             } else {
                 if (ini_sub_20_ch_width < CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ)
-                    roam_profile.sub20_channelwidth = ini_sub_20_ch_width;
+                    roam_profile->sub20_channelwidth = ini_sub_20_ch_width;
                 else
-                    roam_profile.sub20_channelwidth = SUB20_MODE_NONE;
+                    roam_profile->sub20_channelwidth = SUB20_MODE_NONE;
             }
 
             hddLog(LOGE, "Set monitor mode Channel %d bandwidth %d sub20 %d",
                    value[1], vht_channel_width,
-                   roam_profile.sub20_channelwidth);
+                   roam_profile->sub20_channelwidth);
             hdd_select_mon_cbmode(pAdapter, value[1], &vht_channel_width);
 
-            roam_profile.ChannelInfo.ChannelList = &ch_info->channel;
-            roam_profile.ChannelInfo.numOfChannels = 1;
-            roam_profile.vht_channel_width = ch_info->channel_width;
-            roam_profile.phyMode = ch_info->phy_mode;
+            roam_profile->ChannelInfo.ChannelList = &ch_info->channel;
+            roam_profile->ChannelInfo.numOfChannels = 1;
+            roam_profile->vht_channel_width = ch_info->channel_width;
+            roam_profile->phyMode = ch_info->phy_mode;
+
 
             vos_mem_copy(bssid, pAdapter->macAddressCurrent.bytes,
                          VOS_MAC_ADDR_SIZE);
 
             hal_status = sme_RoamChannelChangeReq(hal_hdl,
                                  bssid,
-                                 ch_info->cb_mode, &roam_profile);
+                                 ch_info->cb_mode, roam_profile);
             if (!HAL_STATUS_SUCCESS(hal_status)) {
                 hddLog(LOGE,
                        "Failed to set sme_RoamChannel for monitor mode");
                 ret = -EINVAL;
             }
+            vos_mem_free(roam_profile);
         } else {
             hddLog(LOGE, "Not supported, device is not in monitor mode");
             ret = -EINVAL;

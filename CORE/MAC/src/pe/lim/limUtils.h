@@ -635,4 +635,20 @@ eHalStatus limP2PActionCnf(tpAniSirGlobal mac_ctx,
 void lim_send_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
 	uint16_t new_channel, uint8_t ch_bandwidth,
 	tpPESession session_entry);
+/**
+ * lim_check_if_vendor_oui_match() - Check if the given OUI match in IE buffer
+ * @mac_ctx: MAC context
+ * @ie: IE buffer
+ * @oui: OUI string
+ * @oui_len: length of @oui
+ * @ie_len: length of @ie
+ *
+ * This API is used to check if given vendor OUI
+ * matches in given IE buffer
+ *
+ * Return: True, if mataches. False otherwise
+ */
+bool lim_check_if_vendor_oui_match(tpAniSirGlobal mac_ctx,
+                uint8_t *oui, uint8_t oui_len,
+                uint8_t *ie, uint8_t ie_len);
 #endif /* __LIM_UTILS_H */

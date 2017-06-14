@@ -252,7 +252,8 @@ typedef enum
 #ifdef FEATURE_WLAN_ESE
 #define CSR_KRK_KEY_LEN 16
 #endif
-
+/* Cache ID length */
+#define CACHE_ID_LEN 2
 
 typedef struct tagCsrChannelInfo
 {
@@ -1395,6 +1396,9 @@ typedef struct tagCsrConfigParam
     uint32_t edca_be_aifs;
     struct csr_sta_roam_policy_params sta_roam_policy_params;
     uint32_t sta_auth_retries_for_code17;
+#ifdef WLAN_FEATURE_FILS_SK
+    uint8_t fils_max_chan_guard_time;
+#endif
 }tCsrConfigParam;
 
 //Tush
@@ -1541,6 +1545,11 @@ typedef struct tagCsrRoamInfo
     uint8_t              max_mcs_idx;
     uint8_t              rx_mcs_map;
     uint8_t              tx_mcs_map;
+#ifdef WLAN_FEATURE_FILS_SK
+    bool is_fils_connection;
+    uint16_t fils_seq_num;
+    struct fils_join_rsp_params *fils_join_rsp;
+#endif
 }tCsrRoamInfo;
 
 

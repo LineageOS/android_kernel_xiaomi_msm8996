@@ -291,6 +291,12 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
     pBuf += sizeof(tANI_U32);
     len  -= sizeof(tANI_U32);
 
+#ifdef WLAN_FEATURE_FILS_SK
+    vos_mem_copy(&pBssDescription->fils_info_element, pBuf, sizeof(struct fils_ind_elements));
+    pBuf += sizeof(struct fils_ind_elements);
+    len -= sizeof(struct fils_ind_elements);
+#endif
+
     if (len > 0)
     {
         vos_mem_copy( (tANI_U8 *) pBssDescription->ieFields,
@@ -1340,6 +1346,11 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
 
     pJoinReq->sub20_channelwidth = *pBuf++;
     len--;
+#ifdef WLAN_FEATURE_FILS_SK
+    vos_mem_copy(&pJoinReq->fils_con_info, pBuf, sizeof(struct cds_fils_connection_info));
+    pBuf += sizeof(struct cds_fils_connection_info);
+    len -= sizeof(struct cds_fils_connection_info);
+#endif
 
     // Extract uapsdPerAcBitmask
     pJoinReq->uapsdPerAcBitmask = *pBuf++;
@@ -1366,7 +1377,6 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
                        pJoinReq->bssDescription.length + 2);)
     pBuf += lenUsed;
     len -= lenUsed;
-
 
     return eSIR_SUCCESS;
 } /*** end limJoinReqSerDes() ***/

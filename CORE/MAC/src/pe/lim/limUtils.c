@@ -8205,3 +8205,21 @@ void lim_parse_beacon_for_tim(tpAniSirGlobal mac_ctx,
 	return;
 }
 
+bool lim_check_if_vendor_oui_match(tpAniSirGlobal mac_ctx,
+                    uint8_t *oui, uint8_t oui_len,
+                   uint8_t *ie, uint8_t ie_len)
+{
+    uint8_t *ptr = ie;
+    uint8_t elem_id = *ie;
+
+    if (NULL == ie || 0 == ie_len) {
+        limLog(mac_ctx, LOG1, FL("IE Null or ie len zero %d"), ie_len);
+        return false;
+    }
+
+    if (elem_id == IE_EID_VENDOR &&
+        !adf_os_mem_cmp(&ptr[2], oui, oui_len))
+        return true;
+    else
+        return false;
+}
