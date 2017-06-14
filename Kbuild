@@ -1123,7 +1123,7 @@ ifeq ($(CONFIG_MDNS_OFFLOAD_SUPPORT), 1)
 CDEFINES += -DMDNS_OFFLOAD
 endif
 
-ifeq ($(CONFIG_ARCH_MSM), y)
+ifeq (y,$(findstring y,$(CONFIG_ARCH_MSM) $(CONFIG_ARCH_QCOM)))
 CDEFINES += -DMSM_PLATFORM
 ifeq ($(CONFIG_CNSS), y)
 ifeq ($(CONFIG_HIF_PCI), 1)
