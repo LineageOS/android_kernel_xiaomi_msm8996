@@ -8587,6 +8587,29 @@ static void wma_set_nan_enable(tp_wma_handle wma_handle,
 }
 #endif
 
+#ifdef WLAN_FEATURE_TSF_PLUS
+/**
+ * wma_update_ptp_params() - update bundle params
+ * @olCfg: cfg handle
+ * @mac_params: mac params
+ *
+ * Return: none
+ */
+static
+void wma_update_ptp_params(struct txrx_pdev_cfg_param_t *olCfg,
+		tMacOpenParameters *mac_params)
+{
+	olCfg->is_ptp_enabled = mac_params->is_ptp_enabled;
+}
+#else
+static
+void wma_update_ptp_params(struct txrx_pdev_cfg_param_t *olCfg,
+		tMacOpenParameters *mac_params)
+{
+	return;
+}
+#endif
+
 #ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
 /**
  * ol_cfg_update_bundle_params() - update bundle params
@@ -8941,7 +8964,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	ol_cfg_update_bundle_params(&olCfg, mac_params);
 	ol_cfg_update_ac_specs_params(&olCfg, mac_params);
-
+ 	wma_update_ptp_params(&olCfg, mac_params);
 	((pVosContextType) vos_context)->cfg_ctx =
 		ol_pdev_cfg_attach(((pVosContextType) vos_context)->adf_ctx, olCfg);
 	if (!(((pVosContextType) vos_context)->cfg_ctx)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2014-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -461,7 +461,8 @@ htt_htc_attach(struct htt_pdev_t *pdev)
      * TODO:Conditional disabling will be removed once firmware
      * with reduced tx completion is pushed into release builds.
      */
-    if (!pdev->cfg.default_tx_comp_req) {
+    if ((!pdev->cfg.default_tx_comp_req) ||
+            ol_cfg_is_ptp_enabled(pdev->ctrl_pdev)) {
        connect.ConnectionFlags |= HTC_CONNECT_FLAGS_DISABLE_CREDIT_FLOW_CTRL;
     }
 #else

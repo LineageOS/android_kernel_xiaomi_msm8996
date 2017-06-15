@@ -255,6 +255,27 @@ static inline void vos_fw_hash_check_config(struct ol_softc *scn,
 					hdd_context_t *pHddCtx) { }
 #endif
 
+#ifdef WLAN_FEATURE_TSF_PLUS
+/**
+ * vos_set_ptp_enable() - set ptp enable flag in mac open param
+ * @wma_handle: Pointer to mac open param
+ * @hdd_ctx: Pointer to hdd context
+ *
+ * Return: none
+ */
+static void vos_set_ptp_enable(tMacOpenParameters *param,
+					hdd_context_t *hdd_ctx)
+{
+	param->is_ptp_enabled =
+		(hdd_ctx->cfg_ini->tsf_ptp_options != 0);
+}
+#else
+static void vos_set_ptp_enable(tMacOpenParameters *param,
+					hdd_context_t *pHddCtx)
+{
+}
+#endif
+
 #ifdef WLAN_FEATURE_NAN
 /**
  * vos_set_nan_enable() - set nan enable flag in mac open param
@@ -646,6 +667,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    vos_set_nan_enable(&macOpenParms, pHddCtx);
    vos_set_bundle_params(&macOpenParms, pHddCtx);
    vos_set_ac_specs_params(&macOpenParms, pHddCtx);
+   vos_set_ptp_enable(&macOpenParms, pHddCtx);
 
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext,
                        hdd_update_tgt_cfg,
