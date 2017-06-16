@@ -143,6 +143,10 @@ unsigned int modstrength = 0;
 module_param(modstrength, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(modstrength, "Adjust internal driver strength");
 
+bool dynamic_busreq = 1;
+module_param(dynamic_busreq, bool, S_IRUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(dynamic_busreq, "Using dynamic bus request");
+
 /* ATHENV */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27) && defined(CONFIG_PM)
 #define dev_to_sdio_func(d) container_of(d, struct sdio_func, dev)
@@ -1531,7 +1535,6 @@ static int hifDeviceInserted(struct sdio_func *func, const struct sdio_device_id
     int i;
     int ret;
     HIF_DEVICE * device = NULL;
-    int count;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
             ("AR6000: hifDeviceInserted, Function: 0x%X, Vendor ID: 0x%X, Device ID: 0x%X, block size: 0x%X/0x%X\n",
@@ -1774,7 +1777,6 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
             sdio_release_host(func);
         }
 
-        spin_lock_init(&device->lock);
         spin_lock_init(&device->asynclock);
         spin_lock_init(&g_bus_request_record_lock);
 
@@ -1788,11 +1790,15 @@ TODO: MMC SDIO3.0 Setting should also be modified in ReInit() function when Powe
         else
             device->scatter_enabled = FALSE;
 
-        /* Initialize the bus requests to be used later */
-        A_MEMZERO(device->busRequest, sizeof(device->busRequest));
-        for (count = 0; count < BUS_REQUEST_MAX_NUM; count ++) {
-            sema_init(&device->busRequest[count].sem_req, 0);
-            hifFreeBusRequest(device, &device->busRequest[count]);
+        if (!dynamic_busreq) {
+            int count;
+
+            /* Initialize the bus requests to be used later */
+            A_MEMZERO(device->busRequest, sizeof(device->busRequest));
+            for (count = 0; count < BUS_REQUEST_MAX_NUM; count ++) {
+                sema_init(&device->busRequest[count].sem_req, 0);
+                hifFreeBusRequest(device, &device->busRequest[count]);
+            }
         }
         sema_init(&device->sem_async, 0);
         tx_completion_sem_init(device);
@@ -1894,6 +1900,27 @@ void HIFMaskInterrupt(HIF_DEVICE *device)
     EXIT();
 }
 
+void hif_release_bus_requests(HIF_DEVICE *device)
+{
+	BUS_REQUEST *bus_req;
+	unsigned long  flag;
+
+	AR_DEBUG_PRINTF(ATH_DEBUG_TRACE,
+			("AR6000: Release busrequest queue\n"));
+	spin_lock_irqsave(&device->lock, flag);
+
+	while ((bus_req = device->s_busRequestFreeQueue) != NULL) {
+		device->s_busRequestFreeQueue = bus_req->next;
+		spin_unlock_irqrestore(&device->lock, flag);
+
+		A_FREE(bus_req);
+
+		spin_lock_irqsave(&device->lock, flag);
+	}
+
+	spin_unlock_irqrestore(&device->lock, flag);
+}
+
 BUS_REQUEST *hifAllocateBusRequest(HIF_DEVICE *device)
 {
     BUS_REQUEST *busrequest;
@@ -1909,6 +1936,16 @@ BUS_REQUEST *hifAllocateBusRequest(HIF_DEVICE *device)
     }
     /* Release lock */
     spin_unlock_irqrestore(&device->lock, flag);
+
+    if (adf_os_unlikely(!busrequest) && dynamic_busreq) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+                        ("AR6000: No busrequest in free queue\n"));
+        busrequest = (BUS_REQUEST *)A_MALLOC(sizeof(*busrequest));
+        if (busrequest) {
+            A_MEMZERO(busrequest, sizeof(*busrequest));
+            sema_init(&busrequest->sem_req, 0);
+        }
+    }
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: hifAllocateBusRequest: 0x%p\n", busrequest));
     return busrequest;
 }
@@ -2532,6 +2569,7 @@ A_STATUS hifWaitForPendingRecv(HIF_DEVICE *device)
 static HIF_DEVICE *
 addHifDevice(struct sdio_func *func)
 {
+    int count;
     HIF_DEVICE *hifdevice = NULL;
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(3,15,0)) && !defined(WITH_BACKPORTS)
     int ret = 0;
@@ -2555,6 +2593,29 @@ addHifDevice(struct sdio_func *func)
     hifdevice->func = func;
     hifdevice->powerConfig = HIF_DEVICE_POWER_UP;
     hifdevice->DeviceState = HIF_DEVICE_STATE_ON;
+    spin_lock_init(&hifdevice->lock);
+
+    if (dynamic_busreq) {
+        for (count = 0; count < BUS_REQUEST_MAX_NUM; count++) {
+            BUS_REQUEST *busrequest;
+            busrequest = A_MALLOC(sizeof(*busrequest));
+            if (!busrequest)
+                break;
+            A_MEMZERO(busrequest, sizeof(*busrequest));
+            sema_init(&busrequest->sem_req, 0);
+            hifFreeBusRequest(hifdevice, busrequest);
+        }
+
+        if (!count) {
+            printk(KERN_ERR"AR6000:No bus request resources\n");
+            if (hifdevice->dma_buffer)
+                A_FREE(hifdevice->dma_buffer);
+            A_FREE(hifdevice);
+            EXIT();
+            return NULL;
+        }
+    }
+
 #if(LINUX_VERSION_CODE < KERNEL_VERSION(3,15,0)) && !defined(WITH_BACKPORTS)
     ret = sdio_set_drvdata(func, hifdevice);
     EXIT("status %d", ret);
@@ -2578,6 +2639,10 @@ delHifDevice(HIF_DEVICE * device)
     if (device == NULL)
         return;
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: delHifDevice; 0x%p\n", device));
+
+    if (dynamic_busreq)
+        hif_release_bus_requests(device);
+
     if (device->dma_buffer != NULL) {
         A_FREE(device->dma_buffer);
     }
