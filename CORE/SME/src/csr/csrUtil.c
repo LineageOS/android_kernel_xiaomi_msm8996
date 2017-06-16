@@ -3745,6 +3745,7 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
             vos_mem_copy(pPMK->PMKIDList[0].PMKID, 
                          pmkid_cache.PMKID,
                          CSR_RSN_PMKID_SIZE);
+            csr_update_pmksa_to_profile(pProfile, &pmkid_cache);
         }
         else
         {
