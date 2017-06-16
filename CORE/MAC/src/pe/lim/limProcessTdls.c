@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2327,8 +2327,6 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
     tDot11fIEVHTCaps vhtCap;
     tANI_U8 cbMode;
 #endif
-    tpDphHashNode pSessStaDs = NULL;
-    tANI_U16 aid;
 
     if (pTdlsAddStaReq->tdlsAddOper == TDLS_OPER_ADD)
     {
@@ -2427,9 +2425,6 @@ static void limTdlsUpdateHashNodeInfo(tpAniSirGlobal pMac, tDphHashNode *pStaDs,
             pStaDs->htSecondaryChannelOffset = limGetHTCBState(cbMode);
 #endif
     }
-
-    pSessStaDs = dphLookupHashEntry(pMac, psessionEntry->bssId, &aid,
-                                          &psessionEntry->dph.dphHashTable) ;
 
     /* Lets enable QOS parameter */
     pStaDs->qosMode    = (pTdlsAddStaReq->capability & CAPABILITIES_QOS_OFFSET)

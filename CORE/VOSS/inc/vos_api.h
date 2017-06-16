@@ -339,6 +339,21 @@ v_VOID_t vos_fwDumpReq(tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2,
 
 v_BOOL_t vos_is_packet_log_enabled(void);
 
+#ifdef WLAN_FEATURE_TSF_PLUS
+bool vos_is_ptp_rx_opt_enabled(void);
+bool vos_is_ptp_tx_opt_enabled(void);
+#else
+static inline bool vos_is_ptp_rx_opt_enabled(void)
+{
+	return false;
+}
+
+static inline bool vos_is_ptp_tx_opt_enabled(void)
+{
+	return false;
+}
+#endif
+
 v_U64_t vos_get_monotonic_boottime(void);
 
 /**

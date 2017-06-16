@@ -2756,15 +2756,6 @@ u_int8_t ol_get_number_of_peers_supported(struct ol_softc *scn)
 
 #ifdef HIF_SDIO
 
-#if defined(WLAN_FEATURE_TSF_PLUS)
-#define SDIO_HI_ACS_FLAGS (HI_ACS_FLAGS_SDIO_SWAP_MAILBOX_SET | \
-	HI_ACS_FLAGS_ALT_DATA_CREDIT_SIZE)
-#else
-#define SDIO_HI_ACS_FLAGS (HI_ACS_FLAGS_SDIO_SWAP_MAILBOX_SET | \
-	HI_ACS_FLAGS_SDIO_REDUCE_TX_COMPL_SET | \
-	HI_ACS_FLAGS_ALT_DATA_CREDIT_SIZE)
-#endif
-
 /*Setting SDIO block size, mbox ISR yield limit for SDIO based HIF*/
 static A_STATUS
 ol_sdio_extra_initialization(struct ol_softc *scn)
@@ -2846,7 +2837,11 @@ ol_sdio_extra_initialization(struct ol_softc *scn)
 			break;
 		}
 
-		param |= SDIO_HI_ACS_FLAGS;
+		param |= (HI_ACS_FLAGS_SDIO_SWAP_MAILBOX_SET |
+			HI_ACS_FLAGS_ALT_DATA_CREDIT_SIZE);
+
+		if (!vos_is_ptp_tx_opt_enabled())
+			param |= HI_ACS_FLAGS_SDIO_REDUCE_TX_COMPL_SET;
 
 		/* enable TX completion to collect tx_desc for pktlog */
 		if (vos_is_packet_log_enabled())

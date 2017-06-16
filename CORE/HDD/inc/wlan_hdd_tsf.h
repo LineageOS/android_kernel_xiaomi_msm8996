@@ -32,6 +32,7 @@
   Include files
   -------------------------------------------------------------------------*/
 #include <wlan_hdd_includes.h>
+#include "wlan_hdd_cfg.h"
 
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -114,6 +115,29 @@ hdd_capture_tsf(hdd_adapter_t *adapter, uint32_t *buf, int len)
 #endif
 
 #if defined(WLAN_FEATURE_TSF_PLUS) && defined(WLAN_FEATURE_TSF)
+#define HDD_TSF_IS_PTP_ENABLED(hdd_ctx) \
+	((hdd_ctx) && (hdd_ctx)->cfg_ini && \
+	((hdd_ctx)->cfg_ini->tsf_ptp_options))
+
+#define HDD_TSF_IS_TX_SET(hdd_ctx) \
+	((hdd_ctx) && (hdd_ctx)->cfg_ini && \
+	(((hdd_ctx)->cfg_ini->tsf_ptp_options & CFG_SET_TSF_PTP_OPT_TX) == \
+	CFG_SET_TSF_PTP_OPT_TX))
+
+#define HDD_TSF_IS_RX_SET(hdd_ctx) \
+	((hdd_ctx) && (hdd_ctx)->cfg_ini && \
+	(((hdd_ctx)->cfg_ini->tsf_ptp_options & CFG_SET_TSF_PTP_OPT_RX) == \
+	CFG_SET_TSF_PTP_OPT_RX))
+
+#define HDD_TSF_IS_RAW_SET(hdd_ctx) \
+	((hdd_ctx) && (hdd_ctx)->cfg_ini && \
+	(((hdd_ctx)->cfg_ini->tsf_ptp_options & CFG_SET_TSF_PTP_OPT_RAW) == \
+	CFG_SET_TSF_PTP_OPT_RAW))
+
+#define HDD_TSF_IS_DBG_FS_SET(hdd_ctx) \
+	((hdd_ctx) && (hdd_ctx)->cfg_ini && \
+	(((hdd_ctx)->cfg_ini->tsf_ptp_options & CFG_SET_TSF_DBG_FS) == \
+	CFG_SET_TSF_DBG_FS))
 
 /**
  * hdd_start_tsf_sync() - start tsf sync

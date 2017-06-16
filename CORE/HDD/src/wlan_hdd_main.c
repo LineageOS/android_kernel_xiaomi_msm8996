@@ -1511,7 +1511,7 @@ static int hdd_parse_setrmcrate_command(tANI_U8 *pValue,
         return 0;
     }
 
-    sscanf(inPtr, "%32s ", buf);
+    sscanf(inPtr, "%31s ", buf);
     v = kstrtos32(buf, 10, &tempInt);
     if ( v < 0)
     {
@@ -11075,504 +11075,526 @@ uint32_t hdd_get_current_vdev_sta_count(hdd_context_t *hdd_ctx)
 	return vdev_sta_cnt;
 }
 
-hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
-                                 const char *iface_name, tSirMacAddr macAddr,
-                                 unsigned char name_assign_type,
-                                 tANI_U8 rtnl_held )
+hdd_adapter_t *hdd_open_adapter(hdd_context_t *hdd_ctx,
+				uint8_t session_type,
+				const char *iface_name,
+				tSirMacAddr mac_addr,
+				uint8_t name_assign_type,
+				uint8_t rtnl_held)
 {
-   hdd_adapter_t *pAdapter = NULL;
-   hdd_adapter_list_node_t *pHddAdapterNode = NULL;
-   VOS_STATUS status = VOS_STATUS_E_FAILURE;
-   VOS_STATUS exitbmpsStatus = VOS_STATUS_E_FAILURE;
-   hdd_cfg80211_state_t *cfgState;
-   int ret;
+	VOS_STATUS status, exit_bmps_status = VOS_STATUS_E_FAILURE;
+	hdd_adapter_t *adapter;
+	hdd_adapter_list_node_t *hdd_adapter_node;
+	hdd_cfg80211_state_t *cfg_state;
+	int ret;
 
-   hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: iface =%s type = %d\n", __func__,
-                                      iface_name, session_type);
+	hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: iface =%s type = %d\n",
+	       __func__, iface_name, session_type);
 
-   if (pHddCtx->current_intf_count >= pHddCtx->max_intf_count){
-        /* Max limit reached on the number of vdevs configured by the host.
-         *  Return error
-         */
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Unable to add virtual intf: currentVdevCnt=%d,hostConfiguredVdevCnt=%d",
-                 __func__,pHddCtx->current_intf_count, pHddCtx->max_intf_count);
-        return NULL;
-   }
+	if (hdd_ctx->current_intf_count >= hdd_ctx->max_intf_count) {
+		/*
+		 * Max limit reached on the number of vdevs
+		 * configured by the host.
+		 */
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Unable to add virtual intf: "
+		       "current_vdev_cnt=%d,host_configured_vdev_cnt=%d",
+		       __func__,
+		       hdd_ctx->current_intf_count,
+		       hdd_ctx->max_intf_count);
+		return NULL;
+	}
 
-   if (((WLAN_HDD_INFRA_STATION == session_type) ||
-        (WLAN_HDD_P2P_CLIENT == session_type) ||
-        (WLAN_HDD_IBSS == session_type)) &&
-       (WLAN_HDD_VDEV_STA_MAX == hdd_get_current_vdev_sta_count(pHddCtx))) {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Unable to add sta interface: max sta cnt is %d",
-                  __func__, WLAN_HDD_VDEV_STA_MAX);
-        return NULL;
-   }
+	if (((WLAN_HDD_INFRA_STATION == session_type) ||
+	     (WLAN_HDD_P2P_CLIENT == session_type) ||
+	     (WLAN_HDD_IBSS == session_type)) &&
+	    (WLAN_HDD_VDEV_STA_MAX ==
+	     hdd_get_current_vdev_sta_count(hdd_ctx))) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Unable to add sta interface: max sta cnt is %d",
+		       __func__, WLAN_HDD_VDEV_STA_MAX);
+		return NULL;
+	}
 
-   if (hdd_cfg_is_sub20_channel_width_enabled(pHddCtx) &&
-       pHddCtx->current_intf_count >= 1) {
-           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                     "%s: Unable add another virtual intf when sub20 enable",
-                     __func__);
-           return NULL;
-   }
+	if (hdd_cfg_is_sub20_channel_width_enabled(hdd_ctx) &&
+	    (hdd_ctx->current_intf_count >= 1)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Unable add another virtual intf when sub20 enable",
+		       __func__);
+		return NULL;
+	}
 
-   if(macAddr == NULL)
-   {
-         /* Not received valid macAddr */
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "%s:Unable to add virtual intf: Not able to get"
-                             "valid mac address",__func__);
-         return NULL;
-   }
+	if (NULL == mac_addr) {
+		/* Not received valid macAddr */
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s:Unable to add virtual intf: Not able to get"
+		       "valid mac address", __func__);
+		return NULL;
+	}
 
-   status = hdd_check_for_existing_macaddr(pHddCtx, macAddr);
-   if (VOS_STATUS_E_FAILURE == status) {
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: Duplicate MAC addr: "MAC_ADDRESS_STR" already exists",
-                   __func__, MAC_ADDR_ARRAY(macAddr));
-         return NULL;
-   }
+	status = hdd_check_for_existing_macaddr(hdd_ctx, mac_addr);
+	if (VOS_STATUS_E_FAILURE == status) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Duplicate MAC addr: "MAC_ADDRESS_STR
+		       " already exists",
+		       __func__, MAC_ADDR_ARRAY(mac_addr));
+		return NULL;
+	}
 
-   /*
-    * If Powersave Offload is enabled
-    * Fw will take care incase of concurrency
-    */
-   if(!pHddCtx->cfg_ini->enablePowersaveOffload)
-   {
-      //Disable BMPS incase of Concurrency
-      exitbmpsStatus = hdd_disable_bmps_imps(pHddCtx, session_type);
+	/*
+	 * If Powersave Offload is enabled
+	 * Fw will take care incase of concurrency
+	 */
+	if (!hdd_ctx->cfg_ini->enablePowersaveOffload) {
+		/* Disable BMPS incase of Concurrency */
+		exit_bmps_status = hdd_disable_bmps_imps(hdd_ctx, session_type);
 
-      if(VOS_STATUS_E_FAILURE == exitbmpsStatus)
-      {
-         //Fail to Exit BMPS
-         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Fail to Exit BMPS"));
-         VOS_ASSERT(0);
-         return NULL;
-      }
-   }
+		if (VOS_STATUS_E_FAILURE == exit_bmps_status) {
+			/* Fail to Exit BMPS */
+			hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Fail to Exit BMPS",
+			       __func__);
+			VOS_ASSERT(0);
+			return NULL;
+		}
+	}
 
-   switch(session_type)
-   {
-      case WLAN_HDD_INFRA_STATION:
-         /* Reset locally administered bit if the device mode is STA */
-         WLAN_HDD_RESET_LOCALLY_ADMINISTERED_BIT(macAddr);
-         /* fall through */
-      case WLAN_HDD_P2P_CLIENT:
-      case WLAN_HDD_P2P_DEVICE:
-      case WLAN_HDD_OCB:
-      case WLAN_HDD_NDI:
-      {
-         pAdapter = hdd_alloc_station_adapter(pHddCtx, macAddr,
-                                              name_assign_type,
-                                              iface_name);
+	switch (session_type) {
 
-         if( NULL == pAdapter )
-         {
-            hddLog(VOS_TRACE_LEVEL_FATAL,
-                   FL("failed to allocate adapter for session %d"), session_type);
-            return NULL;
-         }
+	case WLAN_HDD_INFRA_STATION:
+		 /* Reset locally administered bit if the device mode is STA */
+		WLAN_HDD_RESET_LOCALLY_ADMINISTERED_BIT(mac_addr);
+	/* fall through */
+	case WLAN_HDD_P2P_CLIENT:
+	case WLAN_HDD_P2P_DEVICE:
+	case WLAN_HDD_OCB:
+	case WLAN_HDD_NDI:
+	{
+		adapter = hdd_alloc_station_adapter(hdd_ctx,
+						    mac_addr,
+						    name_assign_type,
+						    iface_name);
 
-         if (0 != hdd_init_packet_filtering(pHddCtx, pAdapter))
-            goto err_free_netdev;
+		if (NULL == adapter) {
+			hddLog(VOS_TRACE_LEVEL_FATAL,
+			       FL("%s: Failed to allocate adapter for session %d"),
+			       __func__, session_type);
+			return NULL;
+		}
 
-         if (session_type == WLAN_HDD_P2P_CLIENT)
-            pAdapter->wdev.iftype = NL80211_IFTYPE_P2P_CLIENT;
-         else
-            pAdapter->wdev.iftype = NL80211_IFTYPE_STATION;
+		if (0 != hdd_init_packet_filtering(hdd_ctx, adapter))
+			goto err_init_packet_filtering;
 
-         pAdapter->device_mode = session_type;
+		if (session_type == WLAN_HDD_P2P_CLIENT)
+			adapter->wdev.iftype = NL80211_IFTYPE_P2P_CLIENT;
+		else
+			adapter->wdev.iftype = NL80211_IFTYPE_STATION;
 
-         hdd_initialize_adapter_common(pAdapter);
-         if (WLAN_HDD_NDI == session_type)
-                status = hdd_init_nan_data_mode(pAdapter);
-         else
-                status = hdd_init_station_mode( pAdapter );
+		adapter->device_mode = session_type;
 
-         if( VOS_STATUS_SUCCESS != status )
-            goto err_free_netdev;
+		hdd_initialize_adapter_common(adapter);
+		if (WLAN_HDD_NDI == session_type)
+			status = hdd_init_nan_data_mode(adapter);
+		else
+			status = hdd_init_station_mode(adapter);
 
-         /* initialize action frame random mac info */
-         hdd_adapter_init_action_frame_random_mac(pAdapter);
+		if (VOS_STATUS_SUCCESS != status)
+			goto err_init_adapter_mode;
 
-         // Workqueue which gets scheduled in IPv4 notification callback
-         vos_init_work(&pAdapter->ipv4NotifierWorkQueue,
-                        hdd_ipv4_notifier_work_queue);
+		/* initialize action frame random mac info */
+		hdd_adapter_init_action_frame_random_mac(adapter);
+
+		/* Workqueue which gets scheduled in IPv4
+		 * notification callback
+		 */
+		vos_init_work(&adapter->ipv4NotifierWorkQueue,
+			      hdd_ipv4_notifier_work_queue);
 
 #ifdef WLAN_NS_OFFLOAD
-         // Workqueue which gets scheduled in IPv6 notification callback.
-         vos_init_work(&pAdapter->ipv6NotifierWorkQueue,
-                        hdd_ipv6_notifier_work_queue);
+		/* Workqueue which gets scheduled in IPv6
+		 * notification callback
+		 */
+		vos_init_work(&adapter->ipv6NotifierWorkQueue,
+			      hdd_ipv6_notifier_work_queue);
 #endif
-         status = hdd_register_interface(pAdapter, rtnl_held);
-         if (VOS_STATUS_SUCCESS != status) {
-            hdd_deinit_adapter(pHddCtx, pAdapter, rtnl_held);
-            goto err_free_netdev;
-         }
+		status = hdd_register_interface(adapter, rtnl_held);
+		if (VOS_STATUS_SUCCESS != status)
+			goto err_register_interface;
 
-         /* do not disable tx in monitor mode */
-         if (VOS_MONITOR_MODE != vos_get_conparam()) {
-             /* Stop the Interface TX queue */
-             hddLog(LOG1, FL("Disabling queues"));
-             wlan_hdd_netif_queue_control(pAdapter,
-                                          WLAN_NETIF_TX_DISABLE_N_CARRIER,
-                                          WLAN_CONTROL_PATH);
-         }
+		/* do not disable tx in monitor mode */
+		if (VOS_MONITOR_MODE != vos_get_conparam()) {
+			/* Stop the Interface TX queue */
+			hddLog(LOG1, FL("Disabling queues"));
+			wlan_hdd_netif_queue_control(adapter,
+					WLAN_NETIF_TX_DISABLE_N_CARRIER,
+					WLAN_CONTROL_PATH);
+		}
 
 #ifdef QCA_LL_TX_FLOW_CT
-         /* SAT mode default TX Flow control instance
-          * This instance will be used for
-          * STA mode, IBSS mode and TDLS mode */
-         if (pAdapter->tx_flow_timer_initialized == VOS_FALSE) {
-            vos_timer_init(&pAdapter->tx_flow_control_timer,
-                           VOS_TIMER_TYPE_SW,
-                           hdd_tx_resume_timer_expired_handler,
-                           pAdapter);
-            pAdapter->tx_flow_timer_initialized = VOS_TRUE;
-         }
-         WLANTL_RegisterTXFlowControl(pHddCtx->pvosContext,
-                     hdd_tx_resume_cb,
-                     pAdapter->sessionId,
-                     (void *)pAdapter);
+		/* SAT mode default TX Flow control instance
+		 * This instance will be used for
+		 * STA mode, IBSS mode and TDLS mode */
+		if (adapter->tx_flow_timer_initialized == VOS_FALSE) {
+			vos_timer_init(&adapter->tx_flow_control_timer,
+				       VOS_TIMER_TYPE_SW,
+				       hdd_tx_resume_timer_expired_handler,
+				       adapter);
+			adapter->tx_flow_timer_initialized = VOS_TRUE;
+		}
+		WLANTL_RegisterTXFlowControl(hdd_ctx->pvosContext,
+					     hdd_tx_resume_cb,
+					     adapter->sessionId,
+					     (void *)adapter);
 #endif /* QCA_LL_TX_FLOW_CT */
 
-         break;
-      }
+		break;
+	}
 
-      case WLAN_HDD_P2P_GO:
-      case WLAN_HDD_SOFTAP:
-      {
-         pAdapter = hdd_wlan_create_ap_dev(pHddCtx, macAddr,
-                                           name_assign_type,
-                                           (tANI_U8 *)iface_name );
-         if( NULL == pAdapter )
-         {
-            hddLog(VOS_TRACE_LEVEL_FATAL,
-                   FL("failed to allocate adapter for session %d"), session_type);
-            return NULL;
-         }
+	case WLAN_HDD_P2P_GO:
+	case WLAN_HDD_SOFTAP:
+	{
+		adapter = hdd_wlan_create_ap_dev(hdd_ctx,
+						 mac_addr,
+						 name_assign_type,
+						 (tANI_U8 *)iface_name);
+		if (NULL == adapter) {
+			hddLog(VOS_TRACE_LEVEL_FATAL,
+			       FL("failed to allocate adapter for session %d"),
+			       session_type);
+			return NULL;
+		}
 
-         if (0 != hdd_init_packet_filtering(pHddCtx, pAdapter))
-            goto err_free_netdev;
+		if (0 != hdd_init_packet_filtering(hdd_ctx, adapter))
+			goto err_init_packet_filtering;
 
-         pAdapter->wdev.iftype = (session_type == WLAN_HDD_SOFTAP) ?
-                                  NL80211_IFTYPE_AP:
-                                  NL80211_IFTYPE_P2P_GO;
-         pAdapter->device_mode = session_type;
+		adapter->wdev.iftype = (session_type == WLAN_HDD_SOFTAP) ?
+				       NL80211_IFTYPE_AP :
+				       NL80211_IFTYPE_P2P_GO;
+		adapter->device_mode = session_type;
 
-         hdd_initialize_adapter_common(pAdapter);
-         status = hdd_init_ap_mode(pAdapter, false);
-         if( VOS_STATUS_SUCCESS != status )
-            goto err_free_netdev;
+		hdd_initialize_adapter_common(adapter);
+		status = hdd_init_ap_mode(adapter, false);
+		if (VOS_STATUS_SUCCESS != status)
+			goto err_init_adapter_mode;
 
-         status = hdd_register_hostapd( pAdapter, rtnl_held );
-         if( VOS_STATUS_SUCCESS != status )
-         {
-            hdd_deinit_adapter(pHddCtx, pAdapter, rtnl_held);
-            goto err_free_netdev;
-         }
+		status = hdd_register_hostapd(adapter, rtnl_held);
+		if (VOS_STATUS_SUCCESS != status)
+			goto err_register_interface;
 
-         hddLog(LOG1, FL("Disabling queues"));
-         wlan_hdd_netif_queue_control(pAdapter,
-             WLAN_NETIF_TX_DISABLE_N_CARRIER,
-             WLAN_CONTROL_PATH);
-         hdd_set_conparam( 1 );
+		hddLog(LOG1, FL("Disabling queues"));
+		wlan_hdd_netif_queue_control(adapter,
+					     WLAN_NETIF_TX_DISABLE_N_CARRIER,
+					     WLAN_CONTROL_PATH);
+		hdd_set_conparam(1);
 
-         // Workqueue which gets scheduled in IPv4 notification callback
-         vos_init_work(&pAdapter->ipv4NotifierWorkQueue,
-                        hdd_ipv4_notifier_work_queue);
+		/* Workqueue which gets scheduled in IPv4
+		 * notification callback
+		 */
+		vos_init_work(&adapter->ipv4NotifierWorkQueue,
+			      hdd_ipv4_notifier_work_queue);
 
 #ifdef WLAN_NS_OFFLOAD
-         // Workqueue which gets scheduled in IPv6 notification callback.
-         vos_init_work(&pAdapter->ipv6NotifierWorkQueue,
-                        hdd_ipv6_notifier_work_queue);
+		/* Workqueue which gets scheduled in IPv6
+		 * notification callback
+		 */
+		vos_init_work(&adapter->ipv6NotifierWorkQueue,
+			      hdd_ipv6_notifier_work_queue);
 #endif
-         break;
-      }
-      case WLAN_HDD_FTM:
-      {
-         pAdapter = hdd_alloc_station_adapter(pHddCtx, macAddr,
-                                              name_assign_type,
-                                              iface_name );
 
-         if( NULL == pAdapter )
-         {
-            hddLog(VOS_TRACE_LEVEL_FATAL,
-                   FL("failed to allocate adapter for session %d"), session_type);
-            return NULL;
-         }
+		break;
+	}
 
-         /* Assign NL80211_IFTYPE_STATION as interface type to resolve Kernel Warning
-          * message while loading driver in FTM mode. */
-         pAdapter->wdev.iftype = NL80211_IFTYPE_STATION;
-         pAdapter->device_mode = session_type;
-         status = hdd_register_interface( pAdapter, rtnl_held );
+	case WLAN_HDD_FTM:
+	{
+		adapter = hdd_alloc_station_adapter(hdd_ctx,
+						    mac_addr,
+						    name_assign_type,
+						    iface_name);
 
-         hdd_initialize_adapter_common(pAdapter);
-         hdd_init_tx_rx( pAdapter );
+		if (NULL == adapter) {
+			hddLog(VOS_TRACE_LEVEL_FATAL,
+			       FL("failed to allocate adapter for session %d"),
+			       session_type);
+			return NULL;
+		}
 
-         //Stop the Interface TX queue.
-         hddLog(LOG1, FL("Disabling queues"));
-         wlan_hdd_netif_queue_control(pAdapter,
-            WLAN_NETIF_TX_DISABLE_N_CARRIER,
-            WLAN_CONTROL_PATH);
-      }
-         break;
-      default:
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,"%s Invalid session type %d",
-                __func__, session_type);
-         VOS_ASSERT(0);
-         return NULL;
-      }
-   }
+		/* Assign NL80211_IFTYPE_STATION as interface type to resolve
+		 * Kernel Warning message while loading driver in FTM mode.
+		 */
+		adapter->wdev.iftype = NL80211_IFTYPE_STATION;
+		adapter->device_mode = session_type;
+		status = hdd_register_interface(adapter, rtnl_held);
+		if (VOS_STATUS_SUCCESS != status)
+			goto err_register_interface;
 
-    vos_init_work(&pAdapter->scan_block_work, wlan_hdd_cfg80211_scan_block_cb);
+		hdd_initialize_adapter_common(adapter);
+		hdd_init_tx_rx(adapter);
 
-    cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
-    mutex_init(&cfgState->remain_on_chan_ctx_lock);
+		/* Stop the Interface TX queue */
+		hddLog(LOG1, FL("Disabling queues"));
+		wlan_hdd_netif_queue_control(adapter,
+					     WLAN_NETIF_TX_DISABLE_N_CARRIER,
+					     WLAN_CONTROL_PATH);
 
-   if( VOS_STATUS_SUCCESS == status )
-   {
+		break;
+	}
+
+	default:
+	{
+		hddLog(VOS_TRACE_LEVEL_FATAL, "%s Invalid session type %d",
+		       __func__, session_type);
+		VOS_ASSERT(0);
+		return NULL;
+	}
+
+	}
+
+	vos_init_work(&adapter->scan_block_work,
+		      wlan_hdd_cfg80211_scan_block_cb);
+
+	cfg_state = WLAN_HDD_GET_CFG_STATE_PTR(adapter);
+	mutex_init(&cfg_state->remain_on_chan_ctx_lock);
+
 #ifdef WLAN_FEATURE_MBSSID
-      hdd_mbssid_apply_def_cfg_ini(pAdapter);
+	hdd_mbssid_apply_def_cfg_ini(adapter);
 #endif
-      //Add it to the hdd's session list.
-      pHddAdapterNode = vos_mem_malloc( sizeof( hdd_adapter_list_node_t ) );
-      if( NULL == pHddAdapterNode )
-      {
-         status = VOS_STATUS_E_NOMEM;
-      }
-      else
-      {
-         pHddAdapterNode->pAdapter = pAdapter;
-         status = hdd_add_adapter_back ( pHddCtx,
-                                         pHddAdapterNode );
-      }
-   }
+	/* Add it to the hdd's session list */
+	hdd_adapter_node = vos_mem_malloc(sizeof(hdd_adapter_list_node_t));
+	if (NULL == hdd_adapter_node)
+		goto err_malloc_adapter_node;
 
-   if( VOS_STATUS_SUCCESS != status )
-   {
-      if( NULL != pAdapter )
-      {
-         hdd_deinit_packet_filtering(pAdapter);
-         hdd_cleanup_adapter( pHddCtx, pAdapter, rtnl_held );
-         pAdapter = NULL;
-      }
-      if( NULL != pHddAdapterNode )
-      {
-         vos_mem_free( pHddAdapterNode );
-      }
+	hdd_adapter_node->pAdapter = adapter;
+	status = hdd_add_adapter_back(hdd_ctx,
+				      hdd_adapter_node);
 
-      goto resume_bmps;
-   }
+	if (VOS_STATUS_SUCCESS != status)
+		goto err_add_adapter_back;
 
-   if(VOS_STATUS_SUCCESS == status)
-   {
-      wlan_hdd_set_concurrency_mode(pHddCtx, session_type);
+	wlan_hdd_set_concurrency_mode(hdd_ctx, session_type);
 
-      //Initialize the WoWL service
-      if(!hdd_init_wowl(pAdapter))
-      {
-          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_init_wowl failed",__func__);
-          goto err_free_netdev;
-      }
+	/* Initialize the WoWL service */
+	if (!hdd_init_wowl(adapter)) {
+		hddLog(VOS_TRACE_LEVEL_FATAL,
+		       "%s: hdd_init_wowl failed", __func__);
+		goto err_post_add_adapter;
+	}
 
-      /* Adapter successfully added. Increment the vdev count  */
-      pHddCtx->current_intf_count++;
+	/* Adapter successfully added. Increment the vdev count  */
+	hdd_ctx->current_intf_count++;
 
-      hddLog(VOS_TRACE_LEVEL_DEBUG,"%s: current_intf_count=%d", __func__,
-                                    pHddCtx->current_intf_count);
+	hddLog(VOS_TRACE_LEVEL_DEBUG,
+	       "%s: current_intf_count=%d", __func__,
+	       hdd_ctx->current_intf_count);
 #ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
-      if (vos_get_concurrency_mode() == VOS_STA_SAP) {
-          hdd_adapter_t *ap_adapter;
+	if (vos_get_concurrency_mode() == VOS_STA_SAP) {
+		hdd_adapter_t *ap_adapter;
 
-          ap_adapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
-          if (ap_adapter != NULL &&
-              test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags) &&
-              VOS_IS_DFS_CH(ap_adapter->sessionCtx.ap.operatingChannel)) {
+		ap_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_SOFTAP);
+		if (ap_adapter != NULL &&
+		    test_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags) &&
+		    VOS_IS_DFS_CH(ap_adapter->sessionCtx.ap.operatingChannel)) {
 
-              hddLog(VOS_TRACE_LEVEL_WARN,
-                  "STA-AP Mode DFS not supported. Restart SAP with Non DFS ACS"
-                  );
-              ap_adapter->sessionCtx.ap.sapConfig.channel = AUTO_CHANNEL_SELECT;
-              ap_adapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode = true;
-              wlan_hdd_restart_sap(ap_adapter);
-          }
-      }
+			hddLog(VOS_TRACE_LEVEL_WARN,
+			       "STA-AP Mode DFS not supported. "
+			       "Restart SAP with Non DFS ACS");
+			ap_adapter->sessionCtx.ap.sapConfig.channel =
+				AUTO_CHANNEL_SELECT;
+			ap_adapter->sessionCtx.ap.sapConfig.acs_cfg.acs_mode =
+				true;
+			wlan_hdd_restart_sap(ap_adapter);
+		}
+	}
 #endif
-   }
 
-   if ((vos_get_conparam() != VOS_FTM_MODE) && (!pHddCtx->cfg_ini->enable2x2))
-   {
+	if ((vos_get_conparam() != VOS_FTM_MODE) &&
+	    (!hdd_ctx->cfg_ini->enable2x2)) {
 #define HDD_DTIM_1CHAIN_RX_ID 0x5
 #define HDD_SMPS_PARAM_VALUE_S 29
 
-      /* Disable DTIM 1 chain Rx when in 1x1, we are passing two values as
-         param_id << 29 | param_value. Below param_value = 0(disable) */
-      ret = process_wma_set_command((int)pAdapter->sessionId,
-                             (int)WMI_STA_SMPS_PARAM_CMDID,
-                             HDD_DTIM_1CHAIN_RX_ID << HDD_SMPS_PARAM_VALUE_S,
-                             VDEV_CMD);
+		/* Disable DTIM 1 chain Rx when in 1x1,
+		 * we are passing two values as
+		 * param_id << 29 | param_value.
+		 * Below param_value = 0(disable)
+		 */
+		ret = process_wma_set_command((int)adapter->sessionId,
+				(int)WMI_STA_SMPS_PARAM_CMDID,
+				HDD_DTIM_1CHAIN_RX_ID << HDD_SMPS_PARAM_VALUE_S,
+				VDEV_CMD);
 
-      if (ret != 0)
-      {
-         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: DTIM 1 chain set failed %d", __func__, ret);
-         goto err_free_netdev;
-      }
+		if (ret != 0) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       "%s: DTIM 1 chain set failed %d",
+			       __func__, ret);
+			goto err_post_add_adapter;
+		}
 
-        if (!pHddCtx->per_band_chainmask_supp) {
-            ret = process_wma_set_command((int)pAdapter->sessionId,
-                        (int)WMI_PDEV_PARAM_TX_CHAIN_MASK,
-                        (int)pHddCtx->cfg_ini->txchainmask1x1, PDEV_CMD);
-            if (ret != 0)
-            {
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                                "%s: PDEV_PARAM_TX_CHAIN_MASK set failed %d",
-                                __func__, ret);
-                goto err_free_netdev;
-            }
-            ret = process_wma_set_command((int)pAdapter->sessionId,
-                            (int)WMI_PDEV_PARAM_RX_CHAIN_MASK,
-                            (int)pHddCtx->cfg_ini->rxchainmask1x1, PDEV_CMD);
-            if (ret != 0)
-            {
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                                "%s: WMI_PDEV_PARAM_RX_CHAIN_MASK set failed %d",
-                                __func__, ret);
-                goto err_free_netdev;
-            }
-        }
+		if (!hdd_ctx->per_band_chainmask_supp) {
+			ret = process_wma_set_command((int)adapter->sessionId,
+					(int)WMI_PDEV_PARAM_TX_CHAIN_MASK,
+					(int)hdd_ctx->cfg_ini->txchainmask1x1,
+					PDEV_CMD);
+			if (ret != 0) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+				       "%s: PDEV_PARAM_TX_CHAIN_MASK set failed %d",
+				       __func__, ret);
+				goto err_post_add_adapter;
+			}
+			ret = process_wma_set_command((int)adapter->sessionId,
+					(int)WMI_PDEV_PARAM_RX_CHAIN_MASK,
+					(int)hdd_ctx->cfg_ini->rxchainmask1x1,
+					PDEV_CMD);
+			if (ret != 0) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+				       "%s: WMI_PDEV_PARAM_RX_CHAIN_MASK set failed %d",
+				       __func__, ret);
+				goto err_post_add_adapter;
+			}
+		}
 #undef HDD_DTIM_1CHAIN_RX_ID
 #undef HDD_SMPS_PARAM_VALUE_S
-   }
+	}
 
-  if (VOS_FTM_MODE != vos_get_conparam())
-  {
-       ret = process_wma_set_command((int)pAdapter->sessionId,
-                         (int)WMI_PDEV_PARAM_HYST_EN,
-                         (int)pHddCtx->cfg_ini->enableMemDeepSleep,
-                         PDEV_CMD);
+	if (VOS_FTM_MODE != vos_get_conparam()) {
+		ret = process_wma_set_command((int)adapter->sessionId,
+			      (int)WMI_PDEV_PARAM_HYST_EN,
+			      (int)hdd_ctx->cfg_ini->enableMemDeepSleep,
+			      PDEV_CMD);
+		if (ret != 0) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       "%s: WMI_PDEV_PARAM_HYST_EN set failed %d",
+			       __func__, ret);
+			goto err_post_add_adapter;
+		}
 
-       if (ret != 0)
-       {
-           hddLog(VOS_TRACE_LEVEL_ERROR,"%s: WMI_PDEV_PARAM_HYST_EN set"
-                                 " failed %d", __func__, ret);
-           goto err_free_netdev;
-       }
+		hddLog(LOG1, FL("SET AMSDU num %d"),
+		       hdd_ctx->cfg_ini->max_amsdu_num);
 
-        hddLog(LOG1, FL("SET AMSDU num %d"), pHddCtx->cfg_ini->max_amsdu_num);
-
-        ret = process_wma_set_command((int)pAdapter->sessionId,
-                        (int)GEN_VDEV_PARAM_AMSDU,
-                        (int)pHddCtx->cfg_ini->max_amsdu_num,
-                        GEN_CMD);
-        if (ret != 0) {
-                hddLog(VOS_TRACE_LEVEL_ERROR,
-                        FL("GEN_VDEV_PARAM_AMSDU set failed %d"), ret);
-                goto err_free_netdev;
-        }
-  }
-
+		ret = process_wma_set_command((int)adapter->sessionId,
+				(int)GEN_VDEV_PARAM_AMSDU,
+				(int)hdd_ctx->cfg_ini->max_amsdu_num,
+				GEN_CMD);
+		if (ret != 0) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       FL("GEN_VDEV_PARAM_AMSDU set failed %d"), ret);
+			goto err_post_add_adapter;
+		}
+	}
 
 #ifdef CONFIG_FW_LOGS_BASED_ON_INI
 
-  /* Enable FW logs based on INI configuration */
-  if ((VOS_FTM_MODE != vos_get_conparam()) &&
-             (pHddCtx->cfg_ini->enablefwlog))
-  {
-     tANI_U8 count = 0;
-     tANI_U32 value = 0;
-     tANI_U8 numEntries = 0;
-     tANI_U8 moduleLoglevel[FW_MODULE_LOG_LEVEL_STRING_LENGTH];
+	/* Enable FW logs based on INI configuration */
+	if ((VOS_FTM_MODE != vos_get_conparam()) &&
+	    (hdd_ctx->cfg_ini->enablefwlog)) {
+		uint8_t count = 0;
+		uint32_t value = 0;
+		uint8_t num_entries = 0;
+		uint8_t module_loglevel[FW_MODULE_LOG_LEVEL_STRING_LENGTH];
 
-     pHddCtx->fw_log_settings.dl_type = pHddCtx->cfg_ini->enableFwLogType;
-     ret = process_wma_set_command( (int)pAdapter->sessionId,
-                                  (int)WMI_DBGLOG_TYPE,
-                                  pHddCtx->cfg_ini->enableFwLogType, DBG_CMD );
-     if (ret != 0)
-     {
-          hddLog(LOGE, FL("Failed to enable FW log type ret %d"), ret);
-     }
+		hdd_ctx->fw_log_settings.dl_type =
+					hdd_ctx->cfg_ini->enableFwLogType;
+		ret = process_wma_set_command((int)adapter->sessionId,
+					(int)WMI_DBGLOG_TYPE,
+					hdd_ctx->cfg_ini->enableFwLogType,
+					DBG_CMD);
+		if (ret != 0)
+			hddLog(LOGE,
+			       FL("Failed to enable FW log type ret %d"), ret);
 
-     pHddCtx->fw_log_settings.dl_loglevel = pHddCtx->cfg_ini->enableFwLogLevel;
-     ret = process_wma_set_command((int)pAdapter->sessionId,
-                                   (int)WMI_DBGLOG_LOG_LEVEL,
-                                   pHddCtx->cfg_ini->enableFwLogLevel, DBG_CMD);
-     if (ret != 0)
-     {
-          hddLog(LOGE, FL("Failed to enable FW log level ret %d"), ret);
-     }
+		hdd_ctx->fw_log_settings.dl_loglevel =
+					hdd_ctx->cfg_ini->enableFwLogLevel;
+		ret = process_wma_set_command((int)adapter->sessionId,
+					(int)WMI_DBGLOG_LOG_LEVEL,
+					hdd_ctx->cfg_ini->enableFwLogLevel,
+					DBG_CMD);
+		if (ret != 0)
+			hddLog(LOGE,
+			       FL("Failed to enable FW log level ret %d"),
+			       ret);
 
-     hdd_string_to_u8_array( pHddCtx->cfg_ini->enableFwModuleLogLevel,
-                             moduleLoglevel,
-                             &numEntries,
-                             FW_MODULE_LOG_LEVEL_STRING_LENGTH);
+		hdd_string_to_u8_array(hdd_ctx->cfg_ini->enableFwModuleLogLevel,
+				       module_loglevel,
+				       &num_entries,
+				       FW_MODULE_LOG_LEVEL_STRING_LENGTH);
 
-     while (count < numEntries)
-     {
-         /* FW module log level input string looks like below:
-            gFwDebugModuleLoglevel=<FW Module ID>, <Log Level>, so on....
-            For example:
-            gFwDebugModuleLoglevel=1,0,2,1,3,2,4,3,5,4,6,5,7,6,8,7
-            Above input string means :
-            For FW module ID 1 enable log level 0
-            For FW module ID 2 enable log level 1
-            For FW module ID 3 enable log level 2
-            For FW module ID 4 enable log level 3
-            For FW module ID 5 enable log level 4
-            For FW module ID 6 enable log level 5
-            For FW module ID 7 enable log level 6
-            For FW module ID 8 enable log level 7
-         */
-         /* FW expects WMI command value = Module ID * 10 + Module Log level */
-         value = ( (moduleLoglevel[count] * 10) + moduleLoglevel[count + 1] );
-         ret = process_wma_set_command((int)pAdapter->sessionId,
-                                       (int)WMI_DBGLOG_MOD_LOG_LEVEL,
-                                       value, DBG_CMD);
-         if (ret != 0)
-         {
-            hddLog(LOGE, FL("Failed to enable FW module log level %d ret %d"),
-              value, ret);
-         }
+		while (count < num_entries) {
+			/* FW module log level input string looks like below:
+			 * gFwDebugModuleLoglevel=
+			 *	<FW Module ID>, <Log Level>, so on....
+			 * For example:
+			 * gFwDebugModuleLoglevel=
+			 *	1,0,2,1,3,2,4,3,5,4,6,5,7,6,8,7
+			 * Above input string means :
+			 * For FW module ID 1 enable log level 0
+			 * For FW module ID 2 enable log level 1
+			 * For FW module ID 3 enable log level 2
+			 * For FW module ID 4 enable log level 3
+			 * For FW module ID 5 enable log level 4
+			 * For FW module ID 6 enable log level 5
+			 * For FW module ID 7 enable log level 6
+			 * For FW module ID 8 enable log level 7
+			 *
+			 * FW expects WMI command value =
+			 *	Module ID * 10 + Module Log level
+			 */
+			value = ((module_loglevel[count] * 10) +
+						module_loglevel[count + 1]);
+			ret = process_wma_set_command((int)adapter->sessionId,
+						(int)WMI_DBGLOG_MOD_LOG_LEVEL,
+						value, DBG_CMD);
+			if (ret != 0)
+				hddLog(LOGE, FL("Failed to enable FW module log level %d ret %d"),
+				       value, ret);
 
-         count += 2;
-     }
-  }
+			count += 2;
+		}
+	}
 
 #endif
 
-     ret = process_wma_set_command((int)pAdapter->sessionId,
-                                (int)WMI_VDEV_PARAM_ENABLE_RTSCTS,
-                                pHddCtx->cfg_ini->rts_profile, VDEV_CMD);
-     if (ret != 0)
-        hddLog(LOGE, "FAILED TO SET RTSCTS Profile ret:%d", ret);
+	ret = process_wma_set_command((int)adapter->sessionId,
+				      (int)WMI_VDEV_PARAM_ENABLE_RTSCTS,
+				      hdd_ctx->cfg_ini->rts_profile, VDEV_CMD);
+	if (ret != 0)
+		hddLog(LOGE, "FAILED TO SET RTSCTS Profile ret:%d", ret);
 
+	return adapter;
 
-   return pAdapter;
+err_post_add_adapter:
+	hdd_remove_adapter(hdd_ctx, hdd_adapter_node);
 
-err_free_netdev:
-   free_netdev(pAdapter->dev);
-   wlan_hdd_release_intf_addr( pHddCtx,
-                               pAdapter->macAddressCurrent.bytes );
+err_add_adapter_back:
+	vos_mem_free(hdd_adapter_node);
 
-resume_bmps:
-   //If bmps disabled enable it
-   if (!pHddCtx->cfg_ini->enablePowersaveOffload)
-   {
-       if(VOS_STATUS_SUCCESS == exitbmpsStatus)
-       {
-          if (pHddCtx->hdd_wlan_suspended)
-          {
-             hdd_set_pwrparams(pHddCtx);
-          }
-          hdd_enable_bmps_imps(pHddCtx);
-       }
-   }
+err_malloc_adapter_node:
+	if (rtnl_held)
+		unregister_netdevice(adapter->dev);
+	else
+		unregister_netdev(adapter->dev);
 
-   return NULL;
+err_register_interface:
+	/* close sme session to detach vdev */
+	hdd_stop_adapter(hdd_ctx, adapter, VOS_TRUE);
+	hdd_deinit_adapter(hdd_ctx, adapter, rtnl_held);
+
+err_init_adapter_mode:
+	hdd_deinit_packet_filtering(adapter);
+
+err_init_packet_filtering:
+	hdd_adapter_runtime_suspend_denit(adapter);
+
+	free_netdev(adapter->dev);
+	wlan_hdd_release_intf_addr(hdd_ctx,
+				   adapter->macAddressCurrent.bytes);
+
+	/* If bmps disabled enable it */
+	if (!hdd_ctx->cfg_ini->enablePowersaveOffload) {
+		if (VOS_STATUS_SUCCESS == exit_bmps_status) {
+			if (hdd_ctx->hdd_wlan_suspended)
+				hdd_set_pwrparams(hdd_ctx);
+			hdd_enable_bmps_imps(hdd_ctx);
+		}
+	}
+
+	return NULL;
 }
 
 VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
@@ -14955,7 +14977,7 @@ static void hdd_state_info_dump(char **buf_ptr, uint16_t *size)
 		if (adapter->dev)
 			len += scnprintf(buf + len, *size - len,
 				"\n device name: %s", adapter->dev->name);
-			len += scnprintf(buf + len, *size - len,
+		len += scnprintf(buf + len, *size - len,
 				"\n device_mode: %d", adapter->device_mode);
 		switch (adapter->device_mode) {
 		case WLAN_HDD_INFRA_STATION:
@@ -15092,12 +15114,14 @@ static int hdd_initialize_mac_address(hdd_context_t *hdd_ctx)
 
 	hddLog(LOGW, FL("Can't update MAC via platform driver ret: %d"), ret);
 
-	status = hdd_update_mac_config(hdd_ctx);
-	if (status != VOS_STATUS_SUCCESS) {
-		hddLog(LOGW,
-		      FL("Failed to update MAC from %s status: %d"),
-		      WLAN_MAC_FILE, status);
-		return -EIO;
+	if (!hdd_ctx->cfg_ini->skip_mac_config) {
+		status = hdd_update_mac_config(hdd_ctx);
+		if (status != VOS_STATUS_SUCCESS) {
+			hddLog(LOGW,
+			      FL("Failed to update MAC from %s status: %d"),
+			      WLAN_MAC_FILE, status);
+			return -EIO;
+		}
 	}
 	return 0;
 }

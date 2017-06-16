@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -114,53 +114,61 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
                else
                    pStaDs->htSupportedChannelWidthSet = eHT_CHANNEL_WIDTH_20MHZ;
 
-                   pStaDs->htLsigTXOPProtection = ( tANI_U8 ) pAssocRsp->HTCaps.lsigTXOPProtection;
-                   pStaDs->htMIMOPSState =  (tSirMacHTMIMOPowerSaveState)pAssocRsp->HTCaps.mimoPowerSave;
-                   pStaDs->htMaxAmsduLength = ( tANI_U8 ) pAssocRsp->HTCaps.maximalAMSDUsize;
-                   pStaDs->htAMpduDensity =             pAssocRsp->HTCaps.mpduDensity;
-                   pStaDs->htDsssCckRate40MHzSupport = (tANI_U8)pAssocRsp->HTCaps.dsssCckMode40MHz;
-                   pStaDs->htMaxRxAMpduFactor = pAssocRsp->HTCaps.maxRxAMPDUFactor;
-                   limFillRxHighestSupportedRate(pMac, &rxHighestRate, pAssocRsp->HTCaps.supportedMCSSet);
-                   pStaDs->supportedRates.rxHighestDataRate = rxHighestRate;
-                   /* This is for AP as peer STA and we are INFRA STA. We will put APs offset in dph node which is peer STA */
-                   pStaDs->htSecondaryChannelOffset = (tANI_U8)pAssocRsp->HTInfo.secondaryChannelOffset;
+               pStaDs->htLsigTXOPProtection =
+	       ( tANI_U8 ) pAssocRsp->HTCaps.lsigTXOPProtection;
+               pStaDs->htMIMOPSState =
+	       (tSirMacHTMIMOPowerSaveState)pAssocRsp->HTCaps.mimoPowerSave;
+               pStaDs->htMaxAmsduLength =
+	       ( tANI_U8 ) pAssocRsp->HTCaps.maximalAMSDUsize;
+               pStaDs->htAMpduDensity = pAssocRsp->HTCaps.mpduDensity;
+               pStaDs->htDsssCckRate40MHzSupport =
+	       (tANI_U8)pAssocRsp->HTCaps.dsssCckMode40MHz;
+               pStaDs->htMaxRxAMpduFactor = pAssocRsp->HTCaps.maxRxAMPDUFactor;
+               limFillRxHighestSupportedRate(pMac, &rxHighestRate,
+	       		pAssocRsp->HTCaps.supportedMCSSet);
+               pStaDs->supportedRates.rxHighestDataRate = rxHighestRate;
+               /* This is for AP as peer STA and we are INFRA STA.
+	        * We will put APs offset in dph node which is peer STA
+		*/
+               pStaDs->htSecondaryChannelOffset =
+	       (tANI_U8)pAssocRsp->HTInfo.secondaryChannelOffset;
 
-                   //FIXME_AMPDU
-                   // In the future, may need to check for "assoc.HTCaps.delayedBA"
-                   // For now, it is IMMEDIATE BA only on ALL TID's
-                   pStaDs->baPolicyFlag = 0xFF;
+               //FIXME_AMPDU
+               // In the future, may need to check for "assoc.HTCaps.delayedBA"
+               // For now, it is IMMEDIATE BA only on ALL TID's
+               pStaDs->baPolicyFlag = 0xFF;
 
-                   /*
-                    * Check if we have support for gShortGI20Mhz and
-                    * gShortGI40Mhz from ini file.
-                    */
-                   if (HAL_STATUS_SUCCESS(ccmCfgGetInt(pMac,
+               /*
+                * Check if we have support for gShortGI20Mhz and
+                * gShortGI40Mhz from ini file.
+                */
+               if (HAL_STATUS_SUCCESS(ccmCfgGetInt(pMac,
                                           WNI_CFG_SHORT_GI_20MHZ,
                                           &shortgi_20mhz_support))) {
-                       if (VOS_TRUE == shortgi_20mhz_support)
-                           pStaDs->htShortGI20Mhz =
+                   if (VOS_TRUE == shortgi_20mhz_support)
+                       pStaDs->htShortGI20Mhz =
                                   (tANI_U8)pAssocRsp->HTCaps.shortGI20MHz;
-                       else
-                           pStaDs->htShortGI20Mhz = VOS_FALSE;
-                   } else {
-                       limLog(pMac, LOGE,
-                              FL("could not retrieve shortGI 20Mhz CFG, setting value to default"));
-                       pStaDs->htShortGI20Mhz = WNI_CFG_SHORT_GI_20MHZ_STADEF;
-                   }
+                   else
+                       pStaDs->htShortGI20Mhz = VOS_FALSE;
+               } else {
+                   limLog(pMac, LOGE,
+                       FL("could not retrieve shortGI 20Mhz CFG, setting value to default"));
+                   pStaDs->htShortGI20Mhz = WNI_CFG_SHORT_GI_20MHZ_STADEF;
+               }
 
-                   if (HAL_STATUS_SUCCESS(ccmCfgGetInt(pMac,
+               if (HAL_STATUS_SUCCESS(ccmCfgGetInt(pMac,
                                           WNI_CFG_SHORT_GI_40MHZ,
                                           &shortgi_40mhz_support))) {
-                       if (VOS_TRUE == shortgi_40mhz_support)
-                           pStaDs->htShortGI40Mhz =
+                   if (VOS_TRUE == shortgi_40mhz_support)
+                       pStaDs->htShortGI40Mhz =
                                    (tANI_U8)pAssocRsp->HTCaps.shortGI40MHz;
-                       else
-                           pStaDs->htShortGI40Mhz = VOS_FALSE;
-                   } else {
-                       limLog(pMac, LOGE,
-                              FL("could not retrieve shortGI 40Mhz CFG,setting value to default"));
-                       pStaDs->htShortGI40Mhz = WNI_CFG_SHORT_GI_40MHZ_STADEF;
-                   }
+                   else
+                       pStaDs->htShortGI40Mhz = VOS_FALSE;
+               } else {
+                   limLog(pMac, LOGE,
+                      FL("could not retrieve shortGI 40Mhz CFG,setting value to default"));
+                   pStaDs->htShortGI40Mhz = WNI_CFG_SHORT_GI_40MHZ_STADEF;
+               }
            }
        }
 

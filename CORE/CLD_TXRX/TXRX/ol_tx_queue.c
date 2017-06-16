@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1683,6 +1683,9 @@ ol_tx_queue_log_display(struct ol_txrx_pdev_t *pdev)
      * being changed while in use, but since this is just for debugging,
      * don't bother.
      */
+    VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+        "Current target credit: %d",
+        adf_os_atomic_read(&pdev->target_tx_credit));
     VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
         "Tx queue log:");
     VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,

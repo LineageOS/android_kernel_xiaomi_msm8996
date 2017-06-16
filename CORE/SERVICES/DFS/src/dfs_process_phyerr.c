@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2014,2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2014,2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -199,9 +199,10 @@ dfs_process_phyerr_owl(struct ath_dfs *dfs, void *buf, u_int16_t datalen,
    /*
     * This is a spurious event; toss.
     */
-   if (rssi == 0 && dur == 0)
+   if (rssi == 0 && dur == 0) {
       dfs->ath_dfs_stats.datalen_discards++;
       return (0);
+   }
 
    /*
     * Fill out dfs_phy_err with the information we have
