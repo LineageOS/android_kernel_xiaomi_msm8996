@@ -11339,7 +11339,7 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
                 hddLog(LOGE, "Failed to allocate memory");
                 return -ENOMEM;
             }
-            vos_mem_zero(&roam_profile, sizeof(roam_profile));
+            vos_mem_zero(roam_profile, sizeof(*roam_profile));
 
             if (vht_channel_width == 4) {
                 vht_channel_width = 0;
