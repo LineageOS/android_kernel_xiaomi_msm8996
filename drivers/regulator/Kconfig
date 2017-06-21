@@ -849,6 +849,13 @@ config REGULATOR_CPR3
 	  or decrease requests all the way to the PMIC without software
 	  involvement.
 
+config REGULATOR_CPR3_VOLTAGE_CONTROL
+	bool "CPR3 regulator voltage control"
+	depends on REGULATOR_CPR3
+	default n
+	help
+	  Enable msm8996 cpu voltage control
+
 config REGULATOR_CPR3_HMSS
 	bool "CPR3 regulator for HMSS"
 	depends on OF

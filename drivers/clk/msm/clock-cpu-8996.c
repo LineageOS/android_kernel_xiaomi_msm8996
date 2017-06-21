@@ -27,6 +27,8 @@
 #include <linux/of_platform.h>
 #include <linux/pm_opp.h>
 #include <linux/pm_qos.h>
+#include <linux/cpufreq.h>
+#include <linux/regulator/driver.h>
 
 #include <asm/cputype.h>
 
@@ -1285,6 +1287,181 @@ static void populate_opp_table(struct platform_device *pdev)
 	WARN(add_opp(&cbf_clk.c, &cbf_dev->dev, cbf_fmax),
 	    "Failed to add OPP levels for CBF\n");
 }
+
+#ifdef CONFIG_REGULATOR_CPR3_VOLTAGE_CONTROL
+extern int cpr_regulator_get_ceiling_voltage(struct regulator *regulator,int cori);
+extern int cpr_regulator_get_floor_voltage(struct regulator *regulator,int cori);
+extern int cpr_regulator_get_last_voltage(struct regulator *regulator,int cori);
+extern int cpr_regulator_set_ceiling_voltage(struct regulator *regulator,int cori, int volt);
+extern int cpr_regulator_set_floor_voltage(struct regulator *regulator,int cori, int volt);
+extern int cpr_regulator_set_last_voltage(struct regulator *regulator,int cori, int volt);
+		
+ssize_t get_Voltages(char *buf)
+{
+	ssize_t count = 0;
+	int i, uv;
+
+	if (!buf)
+		return 0;
+
+	//Ceiling
+	for (i = 1; i < pwrcl_clk.c.num_fmax; i++) {
+		uv = cpr_regulator_get_ceiling_voltage(
+					pwrcl_clk.c.vdd_class->regulator[0],
+					pwrcl_clk.c.vdd_class->vdd_uv[i]);
+		if (uv < 0) return 0;
+		count += sprintf(buf + count, "pwrc_vol_ceiling:%lumhz: %d mV\n",
+					pwrcl_clk.c.fmax[i] / 1000000,
+					uv / 1000);
+	//Floor
+		uv = cpr_regulator_get_floor_voltage(
+					pwrcl_clk.c.vdd_class->regulator[0],
+					pwrcl_clk.c.vdd_class->vdd_uv[i]);
+		if (uv < 0) return 0;
+		count += sprintf(buf + count, "pwrc_vol_floor:%lumhz: %d mV\n",
+					pwrcl_clk.c.fmax[i] / 1000000,
+					uv / 1000);
+	//current
+		uv = cpr_regulator_get_last_voltage(
+					pwrcl_clk.c.vdd_class->regulator[0],
+					pwrcl_clk.c.vdd_class->vdd_uv[i]);
+		if (uv < 0) return 0;
+		count += sprintf(buf + count, "pwrc_vol_cur:%lumhz: %d mV\n",
+					pwrcl_clk.c.fmax[i] / 1000000,
+					uv / 1000);
+	}
+	//Big ceiling
+	for (i = 1; i < perfcl_clk.c.num_fmax; i++) {
+		uv = cpr_regulator_get_ceiling_voltage(
+					perfcl_clk.c.vdd_class->regulator[0],
+					perfcl_clk.c.vdd_class->vdd_uv[i]);
+		if (uv < 0)
+			return 0;
+		count += sprintf(buf + count, "perc_vol_ceiling:%lumhz: %d mV\n",
+					perfcl_clk.c.fmax[i] / 1000000,
+					uv / 1000);
+	//floor
+		uv = cpr_regulator_get_floor_voltage(
+					perfcl_clk.c.vdd_class->regulator[0],
+					perfcl_clk.c.vdd_class->vdd_uv[i]);
+		if (uv < 0)
+			return 0;
+		count += sprintf(buf + count, "perc_vol_floor:%lumhz: %d mV\n",
+					perfcl_clk.c.fmax[i] / 1000000,
+					uv / 1000);
+	//current
+		uv = cpr_regulator_get_last_voltage(
+					perfcl_clk.c.vdd_class->regulator[0],
+					perfcl_clk.c.vdd_class->vdd_uv[i]);
+		if (uv < 0)
+			return 0;
+		count += sprintf(buf + count, "perc_vol_cur:%lumhz: %d mV\n",
+					perfcl_clk.c.fmax[i] / 1000000,
+					uv / 1000);
+	}
+
+	return count;
+}
+ssize_t set_Voltages(const char *buf, size_t count)
+{
+	int i, mv, ret;
+	char line[32];
+
+	if (!buf)
+		return -EINVAL;
+
+	for (i = 1; i < pwrcl_clk.c.num_fmax; i++) 
+	{
+		ret = sscanf(buf, "%d", &mv);
+		if (ret != 1)
+			return -EINVAL;
+
+		ret = cpr_regulator_set_ceiling_voltage(
+					pwrcl_clk.c.vdd_class->regulator[0],
+					pwrcl_clk.c.vdd_class->vdd_uv[i],
+					mv * 1000);
+        if (ret < 0)
+			return ret;
+
+        ret = sscanf(buf, "%s", line);
+		buf += strlen(line) + 1;
+	//floor
+		ret = sscanf(buf, "%d", &mv);
+		if (ret != 1)
+			return -EINVAL;
+
+		ret = cpr_regulator_set_floor_voltage(
+					pwrcl_clk.c.vdd_class->regulator[0],
+					pwrcl_clk.c.vdd_class->vdd_uv[i],
+					mv * 1000);
+        if (ret < 0)
+			return ret;
+
+        ret = sscanf(buf, "%s", line);
+		buf += strlen(line) + 1;
+	//current
+		ret = sscanf(buf, "%d", &mv);
+		if (ret != 1)
+			return -EINVAL;
+
+		ret = cpr_regulator_set_last_voltage(
+					pwrcl_clk.c.vdd_class->regulator[0],
+					pwrcl_clk.c.vdd_class->vdd_uv[i],
+					mv * 1000);
+        if (ret < 0)
+			return ret;
+
+        ret = sscanf(buf, "%s", line);
+		buf += strlen(line) + 1;
+	}
+	for (i = 1; i < perfcl_clk.c.num_fmax; i++) 
+	{
+		ret = sscanf(buf, "%d", &mv);
+		if (ret != 1)
+			return -EINVAL;
+
+		ret = cpr_regulator_set_ceiling_voltage(
+					perfcl_clk.c.vdd_class->regulator[0],
+					perfcl_clk.c.vdd_class->vdd_uv[i],
+					mv * 1000);
+        if (ret < 0)
+			return ret;
+
+        ret = sscanf(buf, "%s", line);
+		buf += strlen(line) + 1;
+		
+		ret = sscanf(buf, "%d", &mv);
+		if (ret != 1)
+			return -EINVAL;
+
+		ret = cpr_regulator_set_floor_voltage(
+					perfcl_clk.c.vdd_class->regulator[0],
+					perfcl_clk.c.vdd_class->vdd_uv[i],
+					mv * 1000);
+        if (ret < 0)
+			return ret;
+
+        ret = sscanf(buf, "%s", line);
+		buf += strlen(line) + 1;
+
+		ret = sscanf(buf, "%d", &mv);
+		if (ret != 1)
+			return -EINVAL;
+
+		ret = cpr_regulator_set_last_voltage(
+					perfcl_clk.c.vdd_class->regulator[0],
+					perfcl_clk.c.vdd_class->vdd_uv[i],
+					mv * 1000);
+        if (ret < 0)
+			return ret;
+
+        ret = sscanf(buf, "%s", line);
+		buf += strlen(line) + 1;
+	}
+
+	return count;
+}
+#endif
 
 static void cpu_clock_8996_pro_fixup(void)
 {
