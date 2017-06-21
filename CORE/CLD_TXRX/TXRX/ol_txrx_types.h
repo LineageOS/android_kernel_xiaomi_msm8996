@@ -167,6 +167,8 @@ typedef struct _tx_peer_threshold{
 } tx_peer_threshold;
 #endif
 
+#define MAX_RADIOTAP_LEN 64
+
 struct ol_tx_desc_t {
 	adf_nbuf_t netbuf;
 	void *htt_tx_desc;
@@ -202,6 +204,8 @@ struct ol_tx_desc_t {
 	struct ol_txrx_vdev_t* vdev;
 
 	void *txq;
+	uint8_t rtap[MAX_RADIOTAP_LEN];
+	uint8_t rtap_len;
 };
 
 typedef TAILQ_HEAD(, ol_tx_desc_t) ol_tx_desc_list;
