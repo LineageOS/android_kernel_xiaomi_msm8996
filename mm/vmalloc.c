@@ -29,6 +29,7 @@
 #include <linux/atomic.h>
 #include <linux/compiler.h>
 #include <linux/llist.h>
+#include <linux/ratelimit.h>
 
 #include <asm/uaccess.h>
 #include <asm/tlbflush.h>
@@ -39,6 +40,23 @@ struct vfree_deferred {
 	struct work_struct wq;
 };
 static DEFINE_PER_CPU(struct vfree_deferred, vfree_deferred);
+
+#ifdef CONFIG_VMAP_ZERO
+static DEFINE_MUTEX(vmap_zero_mutex);
+static struct vm_struct  *vmap_zero_vm;
+static struct vmap_area *vmap_zero_va;
+#ifdef CONFIG_VMAP_ZERO_MAX
+static unsigned long vmap_zero_area_size = (CONFIG_VMAP_ZERO_MAX);
+#else
+static unsigned long vmap_zero_area_size = 32*0x100000;
+#endif
+#ifdef CONFIG_VMAP_ZERO_MIN
+static unsigned long vmap_zero_bottom_limit = (CONFIG_VMAP_ZERO_MIN);
+#else
+static unsigned long vmap_zero_bottom_limit = 12*0x100000;
+#endif
+static void vmap_zero_init(void);
+#endif
 
 static void __vunmap(const void *, int);
 
@@ -386,6 +404,16 @@ static void __insert_vmap_area(struct vmap_area *va)
 		list_add_rcu(&va->list, &vmap_area_list);
 }
 
+/*
+ * vmap alloc failure rate limiting: no mmore than 5 failures per 1s
+ */
+DEFINE_RATELIMIT_STATE(vmap_alloc_fail_ratelimit_state, 1 * HZ, 5);
+
+static inline int vmap_alloc_fail_ratelimit(void)
+{
+	return ___ratelimit(&vmap_alloc_fail_ratelimit_state, __func__);
+}
+
 static void purge_vmap_area_lazy(void);
 
 /*
@@ -402,6 +430,8 @@ static struct vmap_area *alloc_vmap_area(unsigned long size,
 	unsigned long addr;
 	int purged = 0;
 	struct vmap_area *first;
+	static struct vmalloc_info vmi;
+	int ratelimit;
 
 	BUG_ON(!size);
 	BUG_ON(size & ~PAGE_MASK);
@@ -513,10 +543,22 @@ overflow:
 		purged = 1;
 		goto retry;
 	}
-	if (printk_ratelimit())
+
+	count_vm_event(VMAP_ALLOC_FAIL);
+	ratelimit = vmap_alloc_fail_ratelimit();
+	if (ratelimit) {
+		get_vmalloc_info(&vmi);
 		printk(KERN_WARNING
-			"vmap allocation for size %lu failed: "
-			"use vmalloc=<size> to increase size.\n", size);
+			"vmap allocation for size %lu failed (0x%lx, 0x%lx): "
+			"use vmalloc=<size> to increase size.\n"
+			"current VmallocUsed: %8lu kB, VmallocChunk:   %8lu kB\n",
+			 size, vstart, vend, vmi.used >> 10,
+			 vmi.largest_chunk >> 10);
+	}
+#ifdef CONFIG_DEBUG_VMAP_ALLOC_FAIL
+	if (!ratelimit)
+		BUG();
+#endif
 	kfree(va);
 	return ERR_PTR(-EBUSY);
 }
@@ -1283,6 +1325,9 @@ void __init vmalloc_init(void)
 	vmap_area_pcpu_hole = VMALLOC_END;
 	calc_total_vmalloc_size();
 	vmap_initialized = true;
+#ifdef CONFIG_VMAP_ZERO
+	vmap_zero_init();
+#endif
 }
 
 /**
@@ -1640,6 +1685,94 @@ void *vmap(struct page **pages, unsigned int count,
 }
 EXPORT_SYMBOL(vmap);
 
+#ifdef CONFIG_VMAP_ZERO
+void *__vmap4zero(struct page **pages, unsigned int count,
+		unsigned long flags, pgprot_t prot)
+{
+	struct vm_struct *area;
+
+	area = vmap_zero_vm;
+
+	spin_lock(&vmap_area_lock);
+
+	area->flags = flags;
+	if (unlikely(flags & VM_NO_GUARD))
+		area->size = count << PAGE_SHIFT;
+	else
+		area->size = (count + 1) << PAGE_SHIFT;
+
+	vmap_zero_va->flags |= VM_VM_AREA;
+
+	spin_unlock(&vmap_area_lock);
+
+	if (map_vm_area(area, prot, pages)) {
+		vunmap(area->addr);
+		return NULL;
+	}
+
+	return area->addr;
+}
+int vmap_zero(struct page **pages, unsigned int count,
+		unsigned long flags, pgprot_t prot,
+		void (*f)(void *start, void *end))
+{
+	void *ptr;
+	int ret = 0;
+
+	if (!(flags & VM_IOREMAP))
+		return -EINVAL;
+
+	if ((count > (vmap_zero_area_size >> PAGE_SHIFT)) ||
+	    (count < (vmap_zero_bottom_limit >> PAGE_SHIFT)) ||
+	    !vmap_zero_vm || !vmap_zero_va)
+		return -ENOMEM;
+
+	if (!mutex_trylock(&vmap_zero_mutex)) {
+		count_vm_event(VMAP_ZERO_CONTEND);
+		return -EBUSY;
+	}
+	ptr = __vmap4zero(pages, count, flags, prot);
+	if (!ptr) {
+		ret = -ENOMEM;
+		goto zero_out;
+	}
+	memset(ptr, 0, count * PAGE_SIZE);
+	if (f)
+		(*f)(ptr, ptr + count * PAGE_SIZE);
+
+	flush_cache_vunmap(vmap_zero_va->va_start, vmap_zero_va->va_end);
+	unmap_vmap_area(vmap_zero_va);
+
+zero_out:
+	mutex_unlock(&vmap_zero_mutex);
+	return ret;
+}
+static void vmap_zero_init(void)
+{
+	vmap_zero_vm = __get_vm_area_node(vmap_zero_area_size,
+					1 << IOREMAP_MAX_ORDER,
+					VM_IOREMAP,
+#ifdef CONFIG_ENABLE_VMALLOC_SAVING
+					PAGE_OFFSET,
+#else
+					VMALLOC_START,
+#endif
+					VMALLOC_END,
+					NUMA_NO_NODE,
+					GFP_KERNEL,
+					(const void *)vmap_zero);
+	if (!vmap_zero_vm)
+		return;
+
+	vmap_zero_va = find_vmap_area((unsigned long)(vmap_zero_vm->addr));
+	printk(KERN_INFO"%s: start from 0x%lx (size = 0x%lx)\n",
+			__func__,
+			(unsigned long)(vmap_zero_vm->addr),
+			(unsigned long)(vmap_zero_vm->size));
+
+
+}
+#endif
 static void *__vmalloc_node(unsigned long size, unsigned long align,
 			    gfp_t gfp_mask, pgprot_t prot,
 			    int node, const void *caller);

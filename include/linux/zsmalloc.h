@@ -34,6 +34,13 @@ enum zs_mapmode {
 	 */
 };
 
+struct zs_pool_stats {
+	/* How many pages were compacted (freed) */
+	unsigned long pages_compacted;
+	/* How many pages were migrated */
+	unsigned long pages_moved;
+};
+
 struct zs_pool;
 
 struct zs_pool *zs_create_pool(char *name, gfp_t flags);
@@ -49,4 +56,5 @@ void zs_unmap_object(struct zs_pool *pool, unsigned long handle);
 unsigned long zs_get_total_pages(struct zs_pool *pool);
 unsigned long zs_compact(struct zs_pool *pool);
 
+void zs_pool_stats(struct zs_pool *pool, struct zs_pool_stats *stats);
 #endif
