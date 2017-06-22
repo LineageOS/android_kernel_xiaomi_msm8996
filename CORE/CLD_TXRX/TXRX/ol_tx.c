@@ -644,6 +644,7 @@ ol_tx_hl_base(
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     adf_nbuf_t msdu = msdu_list;
     adf_nbuf_t msdu_drop_list = NULL;
+    adf_nbuf_t prev_drop = NULL;
     struct ol_txrx_msdu_info_t tx_msdu_info;
     struct ocb_tx_ctrl_hdr_t tx_ctrl;
 
@@ -660,7 +661,6 @@ ol_tx_hl_base(
      */
     while (msdu) {
         adf_nbuf_t next;
-        adf_nbuf_t prev_drop = NULL;
         struct ol_tx_frms_queue_t *txq;
         struct ol_tx_desc_t *tx_desc = NULL;
 
