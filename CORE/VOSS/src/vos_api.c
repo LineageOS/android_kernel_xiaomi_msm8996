@@ -3154,6 +3154,11 @@ v_U64_t vos_get_monotonic_boottime_ns(void)
 	return timespec_to_ns(&ts);
 }
 
+v_U64_t vos_get_bootbased_boottime_ns(void)
+{
+       return ktime_get_boot_ns();
+}
+
 /**
  * vos_do_div() - wrapper function for kernel macro(do_div).
  *
