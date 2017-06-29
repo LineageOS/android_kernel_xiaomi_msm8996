@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -320,4 +320,12 @@ bool vos_is_channel_support_sub20(uint16_t operation_channel,
 				  enum phy_ch_width channel_width,
 				  uint16_t secondary_channel);
 uint8_t vos_phy_channel_width_to_sub20(enum phy_ch_width ch_width);
+
+/**
+ * vos_is_etsi_europe_country - check ETSI Europe country or not
+ * @country: country string with two Characters
+ *
+ * Return: true if country in ETSI Europe country list
+ */
+bool vos_is_etsi_europe_country(uint8_t *country);
 #endif // __VOS_NVITEM_H

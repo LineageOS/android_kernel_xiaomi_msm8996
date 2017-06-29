@@ -538,7 +538,7 @@ struct cgstatic cfg_static[WNI_CFG_MAX] = {
 	 WNI_CFG_PROPRIETARY_RATES_ENABLED_STADEF},
 
 	{WNI_CFG_COUNTRY_CODE,
-	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE,
+	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_NTF_SCH,
 	 0, 0, 0},
 
 	{WNI_CFG_11H_ENABLED,
@@ -1927,6 +1927,37 @@ struct cgstatic cfg_static[WNI_CFG_MAX] = {
 	 WNI_CFG_RATE_FOR_TX_MGMT_5G_STAMAX,
 	 WNI_CFG_RATE_FOR_TX_MGMT_5G_STADEF},
 
+	{WNI_CFG_EDCA_ETSI_ACBK_LOCAL,
+	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_RESTART,
+	 0, 0, 0},
+
+	{WNI_CFG_EDCA_ETSI_ACBE_LOCAL,
+	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_RESTART,
+	 0, 0, 0},
+
+	{WNI_CFG_EDCA_ETSI_ACVI_LOCAL,
+	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_RESTART,
+	 0, 0, 0},
+
+	{WNI_CFG_EDCA_ETSI_ACVO_LOCAL,
+	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_RESTART,
+	 0, 0, 0},
+
+	{WNI_CFG_EDCA_ETSI_ACBK,
+	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_RESTART,
+	 0, 0, 0},
+
+	{WNI_CFG_EDCA_ETSI_ACBE,
+	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_RESTART,
+	 0, 0, 0},
+
+	{WNI_CFG_EDCA_ETSI_ACVI,
+	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_RESTART,
+	 0, 0, 0},
+
+	{WNI_CFG_EDCA_ETSI_ACVO,
+	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_RESTART,
+	 0, 0, 0},
 };
 
 struct cfgstatic_string cfg_static_string[CFG_MAX_STATIC_STRING] = {
@@ -2133,6 +2164,55 @@ struct cfgstatic_string cfg_static_string[CFG_MAX_STATIC_STRING] = {
 	 17,
 	 {0x0, 0x2, 0x0, 0x3, 0x0, 0x7, 0x2f, 0x0, 0x3, 0x0, 0x7, 0x66, 0x0,
 	  0x3, 0x0, 0x7, 0x2f}},
+
+	{WNI_CFG_EDCA_ETSI_ACBK_LOCAL,
+	 WNI_CFG_EDCA_ETSI_ACBK_LOCAL_LEN,
+	 17,
+	 {0x0, 0x7, 0x0, 0xf, 0x3, 0xff, 0xbb, 0x0, 0x1f, 0x3, 0xff, 0x0, 0x0,
+	  0xf, 0x3, 0xff, 0x0}},
+
+	{WNI_CFG_EDCA_ETSI_ACBE_LOCAL,
+	 WNI_CFG_EDCA_ETSI_ACBE_LOCAL_LEN,
+	 17,
+	 {0x0, 0x3, 0x0, 0xf, 0x0, 0x3f, 0xbb, 0x0, 0x1f, 0x3, 0xff,0x0, 0x0,
+	  0xf, 0x0, 0x3f, 0x0}},
+
+	{WNI_CFG_EDCA_ETSI_ACVI_LOCAL,
+	 WNI_CFG_EDCA_ETSI_ACVI_LOCAL_LEN,
+	 17,
+	 {0x0, 0x1, 0x0, 0x7, 0x0, 0xf, 0x7d, 0x0, 0x7, 0x0, 0xf, 0xbc, 0x0,
+	  0x7, 0x0, 0xf, 0x5e}},
+
+	{WNI_CFG_EDCA_ETSI_ACVO_LOCAL,
+	 WNI_CFG_EDCA_ETSI_ACVO_LOCAL_LEN,
+	 17,
+	 {0x0, 0x1, 0x0, 0x3, 0x0, 0x7, 0x3e, 0x0, 0x3, 0x0, 0x7, 0x66, 0x0,
+	  0x3, 0x0, 0x7, 0x2f}},
+
+	{WNI_CFG_EDCA_ETSI_ACBK,
+	 WNI_CFG_EDCA_ETSI_ACBK_LEN,
+	 17,
+	 {0x0, 0x7, 0x0, 0xf, 0x3, 0xff, 0xbb, 0x0, 0xf, 0x3, 0xff, 0x0, 0x0,
+	  0xf, 0x3, 0xff, 0x0}},
+
+	{WNI_CFG_EDCA_ETSI_ACBE,
+	 WNI_CFG_EDCA_ETSI_ACBE_LEN,
+	 17,
+	 {0x0, 0x3, 0x0, 0xf, 0x3, 0xff, 0xbb, 0x0, 0xf, 0x3, 0xff, 0x0, 0x0,
+	  0xf, 0x3, 0xff, 0x0}},
+
+	{WNI_CFG_EDCA_ETSI_ACVI,
+	 WNI_CFG_EDCA_ETSI_ACVI_LEN,
+	 17,
+	 {0x0, 0x2, 0x0, 0x7, 0x0, 0xf, 0x7d, 0x0, 0x7, 0x0, 0xf, 0xbc, 0x0,
+	  0x7, 0x0, 0xf, 0x5e}},
+
+	{WNI_CFG_EDCA_ETSI_ACVO,
+	 WNI_CFG_EDCA_ETSI_ACVO_LEN,
+	 17,
+	 {0x0, 0x2, 0x0, 0x3, 0x0, 0x7, 0x3e, 0x0, 0x3, 0x0, 0x7, 0x66, 0x0,
+	  0x3, 0x0, 0x7, 0x2f}},
+
 
 	{WNI_CFG_RADAR_CHANNEL_LIST,
 	 WNI_CFG_RADAR_CHANNEL_LIST_LEN,
@@ -2965,8 +3045,11 @@ processCfgDownloadReq(tpAniSirGlobal pMac)
             if ((pMac->cfg.gCfgEntry[i].control & CFG_CTL_VALID) == 0)
                 continue;
 
-            if (index >= CFG_STA_SBUF_MAX_SIZE)
+            if (index >= CFG_STA_SBUF_MAX_SIZE) {
+                cfgLog(pMac, LOGE, FL("str_cfg id %d index %d too long"),
+                       i, index);
                 continue;
+            }
 
             dst_ptr = &pMac->cfg.gCfgSBuf[index];
             str_cfg = (struct cfgstatic_string *)cfg_static[i].p_str_data;

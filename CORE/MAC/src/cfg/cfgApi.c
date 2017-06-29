@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -140,6 +140,9 @@ tSirRetStatus cfgInit(tpAniSirGlobal pMac)
     pMac->cfg.gCfgSBuf     = __gCfgSBuf;
     pMac->cfg.gSBuffer     = __gSBuffer;
     pMac->cfg.gCfgEntry    = __gCfgEntry;
+
+    pMac->cfg.gCfgMaxIBufSize = CFG_STA_IBUF_MAX_SIZE;
+    pMac->cfg.gCfgMaxSBufSize = CFG_STA_SBUF_MAX_SIZE;
 
     for (i = 0; i < WNI_CFG_MAX; i++) {
         if (!(cfg_static[i].control & CFG_CTL_INT))
