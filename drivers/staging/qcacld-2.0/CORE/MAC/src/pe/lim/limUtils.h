@@ -64,16 +64,6 @@ typedef enum
 // classifier ID is coded as 0-3: tsid, 4-5:direction
 #define LIM_MAKE_CLSID(tsid, dir) (((tsid) & 0x0F) | (((dir) & 0x03) << 4))
 
-#define LIM_SET_STA_BA_STATE(pSta, tid, newVal) \
-{\
-    pSta->baState = ((pSta->baState | (0x3 << tid*2)) & ((newVal << tid*2) | ~(0x3 << tid*2)));\
-}
-
-#define LIM_GET_STA_BA_STATE(pSta, tid, pCurVal)\
-{\
-    *pCurVal = (tLimBAState)(((pSta->baState >> tid*2) & 0x3));\
-}
-
 #define VHT_MCS_3x3_MASK    0x30
 #define VHT_MCS_2x2_MASK    0x0C
 
@@ -354,52 +344,12 @@ tANI_U32 result = 1, i;
   return result;
 }
 
-
-
-tSirRetStatus limPostMlmAddBAReq( tpAniSirGlobal pMac,
-    tpDphHashNode pStaDs,
-    tANI_U8 tid, tANI_U16 startingSeqNum,tpPESession psessionEntry);
-tSirRetStatus limPostMlmAddBARsp( tpAniSirGlobal pMac,
-    tSirMacAddr peerMacAddr,
-    tSirMacStatusCodes baStatusCode,
-    tANI_U8 baDialogToken,
-    tANI_U8 baTID,
-    tANI_U8 baPolicy,
-    tANI_U16 baBufferSize,
-    tANI_U16 baTimeout,
-    tpPESession psessionEntry);
-tSirRetStatus limPostMlmDelBAReq( tpAniSirGlobal pMac,
-    tpDphHashNode pSta,
-    tANI_U8 baDirection,
-    tANI_U8 baTID,
-    tSirMacReasonCodes baReasonCode ,
-    tpPESession psessionEntry);
-tSirRetStatus limPostMsgAddBAReq( tpAniSirGlobal pMac,
-    tpDphHashNode pSta,
-    tANI_U8 baDialogToken,
-    tANI_U8 baTID,
-    tANI_U8 baPolicy,
-    tANI_U16 baBufferSize,
-    tANI_U16 baTimeout,
-    tANI_U16 baSSN,
-    tANI_U8 baDirection,
-    tpPESession psessionEntry);
-tSirRetStatus limPostMsgDelBAInd( tpAniSirGlobal pMac,
-    tpDphHashNode pSta,
-    tANI_U8 baTID,
-    tANI_U8 baDirection,
-    tpPESession psessionEntry);
-
 tSirRetStatus limPostSMStateUpdate(tpAniSirGlobal pMac,
     tANI_U16 StaIdx,
     tSirMacHTMIMOPowerSaveState MIMOPSState,
     tANI_U8 *pPeerStaMac, tANI_U8 sessionId);
 
 void limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
-void limProcessAddBaInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
-void limDeleteBASessions(tpAniSirGlobal pMac, tpPESession pSessionEntry, tANI_U32 baDirection);
-void limDelPerBssBASessionsBtc(tpAniSirGlobal pMac);
-void limDelAllBASessions(tpAniSirGlobal pMac);
 void limDeleteDialogueTokenList(tpAniSirGlobal pMac);
 tSirRetStatus limSearchAndDeleteDialogueToken(tpAniSirGlobal pMac, tANI_U8 token, tANI_U16 assocId, tANI_U16 tid);
 void limRessetScanChannelInfo(tpAniSirGlobal pMac);

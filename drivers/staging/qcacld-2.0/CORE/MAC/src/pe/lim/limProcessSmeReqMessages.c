@@ -2763,13 +2763,6 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
        }
     }
 
-    /* Delete all BA sessions before Re-Assoc.
-     *  BA frames are class 3 frames and the session
-     *  is lost upon disassociation and reassociation.
-     */
-
-    limDeleteBASessions(pMac, psessionEntry, BA_BOTH_DIRECTIONS);
-
     pMlmReassocReq->listenInterval = (tANI_U16) val;
 
     /* Indicate whether spectrum management is enabled*/
@@ -5266,49 +5259,6 @@ static void __limProcessSmeSetHT2040Mode(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 }
 #endif
 
-/** -------------------------------------------------------------
-\fn limProcessSmeDelBaPeerInd
-\brief handles indication message from HDD to send delete BA request
-\param   tpAniSirGlobal pMac
-\param   tANI_U32 pMsgBuf
-\return None
--------------------------------------------------------------*/
-void
-limProcessSmeDelBaPeerInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
-{
-    tANI_U16            assocId =0;
-    tpSmeDelBAPeerInd   pSmeDelBAPeerInd = (tpSmeDelBAPeerInd)pMsgBuf;
-    tpDphHashNode       pSta;
-    tpPESession         psessionEntry;
-    tANI_U8             sessionId;
-
-
-
-    if(NULL == pSmeDelBAPeerInd)
-        return;
-
-    if ((psessionEntry = peFindSessionByBssid(pMac,pSmeDelBAPeerInd->bssId,&sessionId))==NULL)
-    {
-        limLog(pMac, LOGE,FL("session does not exist for given bssId"));
-        return;
-    }
-    limLog(pMac, LOGW, FL("called with staId = %d, tid = %d, baDirection = %d"),
-              pSmeDelBAPeerInd->staIdx, pSmeDelBAPeerInd->baTID, pSmeDelBAPeerInd->baDirection);
-
-    pSta = dphLookupAssocId(pMac, pSmeDelBAPeerInd->staIdx, &assocId, &psessionEntry->dph.dphHashTable);
-    if( eSIR_SUCCESS != limPostMlmDelBAReq( pMac,
-          pSta,
-          pSmeDelBAPeerInd->baDirection,
-          pSmeDelBAPeerInd->baTID,
-          eSIR_MAC_UNSPEC_FAILURE_REASON,psessionEntry))
-    {
-      limLog( pMac, LOGW,
-          FL( "Failed to post LIM_MLM_DELBA_REQ to " ));
-      if (pSta)
-          limPrintMacAddr(pMac, pSta->staAddr, LOGW);
-    }
-}
-
 // --------------------------------------------------------------------
 /**
  * __limProcessReportMessage
@@ -6260,9 +6210,6 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             bufConsumed = FALSE;
             break;
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
-        case eWNI_SME_DEL_BA_PEER_IND:
-            limProcessSmeDelBaPeerInd(pMac, pMsgBuf);
-            break;
         case eWNI_SME_GET_SCANNED_CHANNEL_REQ:
             limProcessSmeGetScanChannelInfo(pMac, pMsgBuf);
             break;
