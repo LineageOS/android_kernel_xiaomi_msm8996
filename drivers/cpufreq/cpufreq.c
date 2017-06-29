@@ -850,7 +850,7 @@ cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
 #ifdef CONFIG_REGULATOR_CPR3_VOLTAGE_CONTROL
-cpufreq_freq_attr_ro(UV_mV_table);
+cpufreq_freq_attr_rw(UV_mV_table);
 #endif
 
 static struct attribute *default_attrs[] = {

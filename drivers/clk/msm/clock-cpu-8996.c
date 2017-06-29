@@ -1310,7 +1310,7 @@ ssize_t get_Voltages(char *buf)
 					pwrcl_clk.c.vdd_class->regulator[0],
 					pwrcl_clk.c.vdd_class->vdd_uv[i]);
 		if (uv < 0) return 0;
-		count += sprintf(buf + count, "pwrc_vol_ceiling:%lumhz: %d mV\n",
+		count += sprintf(buf + count, "Lc_Vmax:%lumhz: %d mV\n",
 					pwrcl_clk.c.fmax[i] / 1000000,
 					uv / 1000);
 	//Floor
@@ -1318,7 +1318,7 @@ ssize_t get_Voltages(char *buf)
 					pwrcl_clk.c.vdd_class->regulator[0],
 					pwrcl_clk.c.vdd_class->vdd_uv[i]);
 		if (uv < 0) return 0;
-		count += sprintf(buf + count, "pwrc_vol_floor:%lumhz: %d mV\n",
+		count += sprintf(buf + count, "Lc_Vmin:%lumhz: %d mV\n",
 					pwrcl_clk.c.fmax[i] / 1000000,
 					uv / 1000);
 	//current
@@ -1326,7 +1326,7 @@ ssize_t get_Voltages(char *buf)
 					pwrcl_clk.c.vdd_class->regulator[0],
 					pwrcl_clk.c.vdd_class->vdd_uv[i]);
 		if (uv < 0) return 0;
-		count += sprintf(buf + count, "pwrc_vol_cur:%lumhz: %d mV\n",
+		count += sprintf(buf + count, "Lc_Vcur:%lumhz: %d mV\n",
 					pwrcl_clk.c.fmax[i] / 1000000,
 					uv / 1000);
 	}
@@ -1337,7 +1337,7 @@ ssize_t get_Voltages(char *buf)
 					perfcl_clk.c.vdd_class->vdd_uv[i]);
 		if (uv < 0)
 			return 0;
-		count += sprintf(buf + count, "perc_vol_ceiling:%lumhz: %d mV\n",
+		count += sprintf(buf + count, "Bc_Vmax:%lumhz: %d mV\n",
 					perfcl_clk.c.fmax[i] / 1000000,
 					uv / 1000);
 	//floor
@@ -1346,7 +1346,7 @@ ssize_t get_Voltages(char *buf)
 					perfcl_clk.c.vdd_class->vdd_uv[i]);
 		if (uv < 0)
 			return 0;
-		count += sprintf(buf + count, "perc_vol_floor:%lumhz: %d mV\n",
+		count += sprintf(buf + count, "Bc_Vmin:%lumhz: %d mV\n",
 					perfcl_clk.c.fmax[i] / 1000000,
 					uv / 1000);
 	//current
@@ -1355,7 +1355,7 @@ ssize_t get_Voltages(char *buf)
 					perfcl_clk.c.vdd_class->vdd_uv[i]);
 		if (uv < 0)
 			return 0;
-		count += sprintf(buf + count, "perc_vol_cur:%lumhz: %d mV\n",
+		count += sprintf(buf + count, "Bc_Vcur:%lumhz: %d mV\n",
 					perfcl_clk.c.fmax[i] / 1000000,
 					uv / 1000);
 	}
