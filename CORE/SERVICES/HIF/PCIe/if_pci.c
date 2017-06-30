@@ -2553,6 +2553,7 @@ void hif_pci_shutdown(struct pci_dev *pdev)
 
     if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL)) {
         printk("Load/unload in progress, ignore SSR shutdown\n");
+        vos_set_logp_in_progress(VOS_MODULE_ID_HIF, FALSE);
         return;
     }
     /* this is for cases, where shutdown invoked from CNSS */

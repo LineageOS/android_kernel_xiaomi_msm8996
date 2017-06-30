@@ -1070,7 +1070,7 @@ eHalStatus csrScanCreateEntryInScanCache(tpAniSirGlobal pMac, tANI_U32 sessionId
 eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac);
 eHalStatus csrRoamDelPMKIDfromCache(tpAniSirGlobal pMac,
                                     tANI_U32 sessionId,
-                                    const tANI_U8 *pBSSId,
+                                    tPmkidCacheInfo *pmksa,
                                     tANI_BOOLEAN flush_cache);
 
 tANI_BOOLEAN csrElectedCountryInfo(tpAniSirGlobal pMac);

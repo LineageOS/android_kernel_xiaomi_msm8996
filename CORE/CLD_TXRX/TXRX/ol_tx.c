@@ -634,8 +634,6 @@ static void merge_ocb_tx_ctrl_hdr(struct ocb_tx_ctrl_hdr_t *tx_ctrl,
 	}
 }
 
-#define MAX_RADIOTAP_LEN 256
-
 static inline adf_nbuf_t
 ol_tx_hl_base(
     ol_txrx_vdev_handle vdev,
@@ -646,6 +644,7 @@ ol_tx_hl_base(
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     adf_nbuf_t msdu = msdu_list;
     adf_nbuf_t msdu_drop_list = NULL;
+    adf_nbuf_t prev_drop = NULL;
     struct ol_txrx_msdu_info_t tx_msdu_info;
     struct ocb_tx_ctrl_hdr_t tx_ctrl;
 
@@ -662,7 +661,6 @@ ol_tx_hl_base(
      */
     while (msdu) {
         adf_nbuf_t next;
-        adf_nbuf_t prev_drop;
         struct ol_tx_frms_queue_t *txq;
         struct ol_tx_desc_t *tx_desc = NULL;
 
@@ -723,6 +721,9 @@ ol_tx_hl_base(
                 adf_nbuf_set_next(prev_drop, msdu);
             return msdu_drop_list; /* the list of unaccepted MSDUs */
         }
+
+        tx_desc->rtap_len = rtap_len;
+        adf_os_mem_copy(tx_desc->rtap, rtap, rtap_len);
 
 //        OL_TXRX_PROT_AN_LOG(pdev->prot_an_tx_sent, msdu);
 
@@ -836,8 +837,8 @@ ol_tx_hl_base(
         if (VOS_MONITOR_MODE == vos_get_conparam()) {
             adf_nbuf_frag_push_head(
                     msdu,
-                    rtap_len,
-                    (uint8_t *)rtap, /* virtual addr */
+                    tx_desc->rtap_len,
+                    (uint8_t *)tx_desc->rtap, /* virtual addr */
                     0, 0 /* phys addr MSBs - n/a */);
                     adf_nbuf_set_frag_is_wordstream(msdu, 1, 1);
         }

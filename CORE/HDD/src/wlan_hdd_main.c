@@ -13518,6 +13518,11 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    {
       vos_timer_stop(&pHddCtx->bus_bw_timer);
       hdd_rst_tcp_delack(pHddCtx);
+
+      if (pHddCtx->hbw_requested) {
+          vos_remove_pm_qos();
+          pHddCtx->hbw_requested = false;
+      }
    }
 
    if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
@@ -18241,6 +18246,10 @@ void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
 
     if (can_stop == VOS_TRUE) {
         vos_timer_stop(&pHddCtx->bus_bw_timer);
+        if (pHddCtx->hbw_requested) {
+            vos_remove_pm_qos();
+            pHddCtx->hbw_requested = false;
+        }
         /* reset the ipa perf level */
         hdd_ipa_set_perf_level(pHddCtx, 0, 0);
         hdd_rst_tcp_delack(pHddCtx);

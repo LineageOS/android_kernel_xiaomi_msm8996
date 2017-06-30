@@ -2060,6 +2060,11 @@ VOS_STATUS hdd_wlan_shutdown(void)
    {
       vos_timer_stop(&pHddCtx->bus_bw_timer);
       hdd_rst_tcp_delack(pHddCtx);
+
+      if (pHddCtx->hbw_requested) {
+          vos_remove_pm_qos();
+          pHddCtx->hbw_requested = false;
+      }
    }
 #endif
 

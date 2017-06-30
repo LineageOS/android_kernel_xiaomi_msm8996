@@ -841,7 +841,9 @@ wlan_hdd_extscan_config_policy[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_CACHED_SCAN_RESULTS_CONFIG_PARAM_FLUSH] = { .type = NLA_U8 },
 
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_GET_CACHED_SCAN_RESULTS_CONFIG_PARAM_MAX] = { .type = NLA_U32 },
-    [QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_BSSID] = { .type = NLA_UNSPEC },
+    [QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_BSSID] = {
+        .type = NLA_UNSPEC,
+        .len = HDD_MAC_ADDR_LEN},
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_RSSI_LOW] = { .type = NLA_S32 },
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_RSSI_HIGH] = { .type = NLA_S32 },
     [QCA_WLAN_VENDOR_ATTR_EXTSCAN_AP_THRESHOLD_PARAM_CHANNEL] = { .type = NLA_U32 },
@@ -1755,6 +1757,15 @@ wlan_hdd_cfg80211_set_scanning_mac_oui(struct wiphy *wiphy,
 	return ret;
 }
 
+#define MAX_CONCURRENT_MATRIX \
+	QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_MAX
+#define MATRIX_CONFIG_PARAM_SET_SIZE_MAX \
+	QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_CONFIG_PARAM_SET_SIZE_MAX
+static const struct nla_policy
+wlan_hdd_get_concurrency_matrix_policy[MAX_CONCURRENT_MATRIX + 1] = {
+	[MATRIX_CONFIG_PARAM_SET_SIZE_MAX] = {.type = NLA_U32},
+};
+
 static int
 __wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
                                          struct wireless_dev *wdev,
@@ -1763,7 +1774,7 @@ __wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
 {
     uint32_t feature_set_matrix[WLAN_HDD_MAX_FEATURE_SET] = {0};
     uint8_t i, feature_sets, max_feature_sets;
-    struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_MAX + 1];
+    struct nlattr *tb[MAX_CONCURRENT_MATRIX + 1];
     struct sk_buff *reply_skb;
     hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
     int ret;
@@ -1779,19 +1790,19 @@ __wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
     if (0 != ret)
         return ret;
 
-    if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_MAX,
-                  data, data_len, NULL)) {
+    if (nla_parse(tb, MAX_CONCURRENT_MATRIX,
+                  data, data_len, wlan_hdd_get_concurrency_matrix_policy)) {
         hddLog(LOGE, FL("Invalid ATTR"));
         return -EINVAL;
     }
 
     /* Parse and fetch max feature set */
-    if (!tb[QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_CONFIG_PARAM_SET_SIZE_MAX]) {
+    if (!tb[MATRIX_CONFIG_PARAM_SET_SIZE_MAX]) {
         hddLog(LOGE, FL("Attr max feature set size failed"));
         return -EINVAL;
     }
-    max_feature_sets = nla_get_u32(
-     tb[QCA_WLAN_VENDOR_ATTR_GET_CONCURRENCY_MATRIX_CONFIG_PARAM_SET_SIZE_MAX]);
+
+    max_feature_sets = nla_get_u32(tb[MATRIX_CONFIG_PARAM_SET_SIZE_MAX]);
     hddLog(LOG1, FL("Max feature set size: %d"), max_feature_sets);
 
     /* Fill feature combination matrix */
@@ -1833,6 +1844,9 @@ __wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
     return -ENOMEM;
 }
 
+#undef MAX_CONCURRENT_MATRIX
+#undef MATRIX_CONFIG_PARAM_SET_SIZE_MAX
+
 /**
  * wlan_hdd_cfg80211_get_concurrency_matrix() - get concurrency matrix
  * @wiphy:   pointer to wireless wiphy structure.
@@ -1855,6 +1869,49 @@ wlan_hdd_cfg80211_get_concurrency_matrix(struct wiphy *wiphy,
 	vos_ssr_unprotect(__func__);
 	return ret;
 }
+
+#define MAX_ROAMING_PARAM \
+       QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX
+
+static const struct nla_policy
+wlan_hdd_set_roam_param_policy[MAX_ROAMING_PARAM + 1] = {
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_SUBCMD] = {.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_REQ_ID] = {.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID_NUM_NETWORKS] = {
+					.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID_LIST] = {
+					.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_WHITE_LIST_SSID] = {
+					.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_A_BAND_BOOST_THRESHOLD] = {
+					.type = NLA_S32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_A_BAND_PENALTY_THRESHOLD] = {
+					.type = NLA_S32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_A_BAND_BOOST_FACTOR] = {
+					.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_A_BAND_PENALTY_FACTOR] = {
+					.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_A_BAND_MAX_BOOST] = {
+					.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_LAZY_ROAM_HISTERESYS] = {
+					.type = NLA_S32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_ALERT_ROAM_RSSI_TRIGGER] = {
+					.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_LAZY_ROAM_ENABLE] = {
+					.type = NLA_S32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_LAZY_ROAM_NUM_BSSID] = {
+					.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_LAZY_ROAM_BSSID] = {
+					.type = NLA_BINARY,
+					.len = MAC_ADDRESS_STR_LEN},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_LAZY_ROAM_RSSI_MODIFIER] = {
+					.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS_NUM_BSSID] = {
+					.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_SET_BSSID_PARAMS_BSSID] = {
+					.type = NLA_BINARY,
+					.len = MAC_ADDRESS_STR_LEN},
+};
 
 static int
 __wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
@@ -1887,7 +1944,7 @@ __wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX,
 		data, data_len,
-		NULL)) {
+		wlan_hdd_set_roam_param_policy)) {
 		hddLog(LOGE, FL("Invalid ATTR"));
 		return -EINVAL;
 	}
@@ -1926,7 +1983,7 @@ __wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 				if (nla_parse(tb2,
 					QCA_WLAN_VENDOR_ATTR_ROAM_SUBCMD_MAX,
 					nla_data(curr_attr), nla_len(curr_attr),
-					NULL)) {
+					wlan_hdd_set_roam_param_policy)) {
 					hddLog(LOGE, FL("nla_parse failed"));
 					goto fail;
 				}
@@ -2090,7 +2147,7 @@ __wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 			if (nla_parse(tb2,
 				QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX,
 				nla_data(curr_attr), nla_len(curr_attr),
-				NULL)) {
+				wlan_hdd_set_roam_param_policy)) {
 				hddLog(LOGE, FL("nla_parse failed"));
 				goto fail;
 			}
@@ -2152,7 +2209,7 @@ __wlan_hdd_cfg80211_set_ext_roam_params(struct wiphy *wiphy,
 				if (nla_parse(tb2,
 					QCA_WLAN_VENDOR_ATTR_ROAMING_PARAM_MAX,
 					nla_data(curr_attr), nla_len(curr_attr),
-					NULL)) {
+					wlan_hdd_set_roam_param_policy)) {
 					hddLog(LOGE, FL("nla_parse failed"));
 					goto fail;
 				}
@@ -8068,7 +8125,9 @@ wlan_hdd_cfg80211_get_logger_supp_feature(struct wiphy *wiphy,
 static const struct nla_policy
 wlan_hdd_tdls_config_enable_policy[QCA_WLAN_VENDOR_ATTR_TDLS_ENABLE_MAX +1] =
 {
-    [QCA_WLAN_VENDOR_ATTR_TDLS_ENABLE_MAC_ADDR] = {.type = NLA_UNSPEC },
+    [QCA_WLAN_VENDOR_ATTR_TDLS_ENABLE_MAC_ADDR] = {
+        .type = NLA_UNSPEC,
+        .len = HDD_MAC_ADDR_LEN},
     [QCA_WLAN_VENDOR_ATTR_TDLS_ENABLE_CHANNEL] = {.type = NLA_S32 },
     [QCA_WLAN_VENDOR_ATTR_TDLS_ENABLE_GLOBAL_OPERATING_CLASS] =
                                                        {.type = NLA_S32 },
@@ -8080,15 +8139,18 @@ wlan_hdd_tdls_config_enable_policy[QCA_WLAN_VENDOR_ATTR_TDLS_ENABLE_MAX +1] =
 static const struct nla_policy
 wlan_hdd_tdls_config_disable_policy[QCA_WLAN_VENDOR_ATTR_TDLS_DISABLE_MAX +1] =
 {
-    [QCA_WLAN_VENDOR_ATTR_TDLS_DISABLE_MAC_ADDR] = {.type = NLA_UNSPEC },
-
+    [QCA_WLAN_VENDOR_ATTR_TDLS_DISABLE_MAC_ADDR] = {
+        .type = NLA_UNSPEC,
+        .len = HDD_MAC_ADDR_LEN},
 };
 
 static const struct nla_policy
 wlan_hdd_tdls_config_state_change_policy[
                     QCA_WLAN_VENDOR_ATTR_TDLS_STATE_MAX +1] =
 {
-    [QCA_WLAN_VENDOR_ATTR_TDLS_STATE_MAC_ADDR] = {.type = NLA_UNSPEC },
+    [QCA_WLAN_VENDOR_ATTR_TDLS_STATE_MAC_ADDR] = {
+        .type = NLA_UNSPEC,
+        .len = HDD_MAC_ADDR_LEN},
     [QCA_WLAN_VENDOR_ATTR_TDLS_NEW_STATE] = {.type = NLA_U32 },
     [QCA_WLAN_VENDOR_ATTR_TDLS_STATE_REASON] = {.type = NLA_S32 },
     [QCA_WLAN_VENDOR_ATTR_TDLS_STATE_CHANNEL] = {.type = NLA_U32 },
@@ -8101,7 +8163,9 @@ static const struct nla_policy
 wlan_hdd_tdls_config_get_status_policy[
                      QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_MAX +1] =
 {
-    [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_MAC_ADDR] = {.type = NLA_UNSPEC },
+    [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_MAC_ADDR] = {
+        .type = NLA_UNSPEC,
+        .len = HDD_MAC_ADDR_LEN},
     [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_STATE] = {.type = NLA_U32 },
     [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_REASON] = {.type = NLA_S32 },
     [QCA_WLAN_VENDOR_ATTR_TDLS_GET_STATUS_CHANNEL] = {.type = NLA_U32 },
@@ -9149,9 +9213,20 @@ static void
 wlan_hdd_set_mcc_to_scc_switch(hdd_adapter_t *adapter)
 {}
 #endif
+static const struct nla_policy
+wlan_hdd_cfg80211_do_acs_policy[QCA_WLAN_VENDOR_ATTR_ACS_MAX+1] = {
+	[QCA_WLAN_VENDOR_ATTR_ACS_HW_MODE] = { .type = NLA_U8 },
+	[QCA_WLAN_VENDOR_ATTR_ACS_HT_ENABLED] = { .type = NLA_FLAG },
+	[QCA_WLAN_VENDOR_ATTR_ACS_HT40_ENABLED] = { .type = NLA_FLAG },
+	[QCA_WLAN_VENDOR_ATTR_ACS_VHT_ENABLED] = { .type = NLA_FLAG },
+	[QCA_WLAN_VENDOR_ATTR_ACS_CHWIDTH] = { .type = NLA_U16 },
+	[QCA_WLAN_VENDOR_ATTR_ACS_CH_LIST] = { .type = NLA_UNSPEC },
+};
+
 
 /**
- * __wlan_hdd_cfg80211_do_acs : CFG80211 handler fucntion for DO_ACS Vendor CMD
+ * __wlan_hdd_cfg80211_do_acs() : CFG80211 handler fucntion for DO_ACS
+ * Vendor CMD
  * @wiphy:  Linux wiphy struct pointer
  * @wdev:   Linux wireless device struct pointer
  * @data:   ACS information from hostapd
@@ -9195,18 +9270,6 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	 * config shall be set only from start_acs.
 	 */
 
-	/* nla_policy Policy template. Policy not applied as some attributes are
-	 * optional and QCA_WLAN_VENDOR_ATTR_ACS_CH_LIST has variable length
-	 *
-	 * [QCA_WLAN_VENDOR_ATTR_ACS_HW_MODE] = { .type = NLA_U8 },
-	 * [QCA_WLAN_VENDOR_ATTR_ACS_HT_ENABLED] = { .type = NLA_FLAG },
-	 * [QCA_WLAN_VENDOR_ATTR_ACS_HT40_ENABLED] = { .type = NLA_FLAG },
-	 * [QCA_WLAN_VENDOR_ATTR_ACS_VHT_ENABLED] = { .type = NLA_FLAG },
-	 * [QCA_WLAN_VENDOR_ATTR_ACS_CHWIDTH] = { .type = NLA_U16 },
-	 * [QCA_WLAN_VENDOR_ATTR_ACS_CH_LIST] = { .type = NLA_NESTED },
-	 */
-
-
 	status = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != status)
 		return status;
@@ -9236,7 +9299,7 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	vos_mem_zero(&sap_config->acs_cfg, sizeof(struct sap_acs_cfg));
 
 	status = nla_parse(tb, QCA_WLAN_VENDOR_ATTR_ACS_MAX, data, data_len,
-						NULL);
+						wlan_hdd_cfg80211_do_acs_policy);
 	if (status) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid ATTR"));
 		goto out;
@@ -9600,6 +9663,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_MODULATED_DTIM] = {.type = NLA_U32 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_STATS_AVG_FACTOR] = {.type = NLA_U16 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_GUARD_TIME] = {.type = NLA_U32 },
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_FINE_TIME_MEASUREMENT] = {.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_RATE] = {.type = NLA_U16 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_CHANNEL_AVOIDANCE_IND] = {.type = NLA_U8 },
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_TX_MPDU_AGGREGATION] = {.type = NLA_U8 },
@@ -10748,7 +10812,9 @@ static int __wlan_hdd_cfg80211_wifi_logger_start(struct wiphy *wiphy,
 static const struct
 nla_policy
 qca_wlan_vendor_attr_policy[QCA_WLAN_VENDOR_ATTR_MAX+1] = {
-	[QCA_WLAN_VENDOR_ATTR_MAC_ADDR] = { .type = NLA_UNSPEC },
+	[QCA_WLAN_VENDOR_ATTR_MAC_ADDR] = {
+		.type = NLA_BINARY,
+		.len = HDD_MAC_ADDR_LEN},
 };
 
 /**
@@ -10800,6 +10866,13 @@ static int __wlan_hdd_cfg80211_get_link_properties(struct wiphy *wiphy,
 		hddLog(VOS_TRACE_LEVEL_ERROR,
 		       FL("Attribute peerMac not provided for mode=%d"),
 		       adapter->device_mode);
+		return -EINVAL;
+	}
+
+	if (nla_len(tb[QCA_WLAN_VENDOR_ATTR_MAC_ADDR]) < sizeof(peer_mac)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			FL("Attribute peerMac is invalid=%d"),
+			adapter->device_mode);
 		return -EINVAL;
 	}
 
@@ -18230,25 +18303,6 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                 wlan_hdd_cancel_existing_remain_on_channel(pAdapter);
             }
 
-            if (NL80211_IFTYPE_AP == type) {
-                /* As Loading WLAN Driver one interface being created for
-                 * p2p device address. This will take one HW STA and the
-                 * max number of clients that can connect to softAP will be
-                 * reduced by one. so while changing the interface type to
-                 * NL80211_IFTYPE_AP (SoftAP) remove p2p0 interface as it is
-                 * not required in SoftAP mode.
-                 */
-
-                /* Get P2P Adapter */
-                hdd_adapter_t  *pP2pAdapter = NULL;
-                pP2pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE);
-
-                if (pP2pAdapter) {
-                    hdd_stop_adapter(pHddCtx, pP2pAdapter, VOS_TRUE);
-                    hdd_deinit_adapter(pHddCtx, pP2pAdapter, true);
-                    hdd_close_adapter(pHddCtx, pP2pAdapter, VOS_TRUE);
-                }
-            }
             hdd_stop_adapter(pHddCtx, pAdapter, VOS_TRUE);
 
             /* De-init the adapter */
@@ -20427,7 +20481,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("interface state %s"),
-                   iface_down ? "up" : "down");
+                   iface_down ? "down" : "up");
 #endif
         if (pAdapter->dev)
         {
@@ -22055,6 +22109,14 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
                             __func__);
             pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
             break;
+#if defined(WLAN_FEATURE_FILS_SK) && defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT)
+        case WLAN_AKM_SUITE_FILS_SHA256:
+        case WLAN_AKM_SUITE_FILS_SHA384:
+        case WLAN_AKM_SUITE_FT_FILS_SHA256:
+        case WLAN_AKM_SUITE_FT_FILS_SHA384:
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
+        break;
+#endif
 
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported key mgmt type %d",
@@ -25952,6 +26014,99 @@ static int wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
     return ret;
 }
 
+#ifdef CFG80211_FILS_SK_OFFLOAD_SUPPORT
+/*
+ * wlan_hdd_is_pmksa_valid: API to validate pmksa
+ * @pmksa: pointer to cfg80211_pmksa structure
+ *
+ * Return: True if valid else false
+ */
+static inline bool wlan_hdd_is_pmksa_valid(struct cfg80211_pmksa *pmksa)
+{
+    if (pmksa->bssid || (pmksa->ssid && pmksa->cache_id) ){
+        return true;
+    }
+    else
+    {
+        hddLog(LOGE, FL(" Either of  bssid (%p) ssid (%p) or cache_id (%p) are NULL"),
+                pmksa->bssid, pmksa->ssid, pmksa->cache_id);
+        return false;
+    }
+}
+
+/*
+ * hdd_update_pmksa_info: API to update tPmkidCacheInfo from cfg80211_pmksa
+ * @pmk_cache: pmksa from supplicant
+ * @pmk_cache: pmk needs to be updated
+ *
+ * Return: None
+ */
+static void hdd_update_pmksa_info(tPmkidCacheInfo *pmk_cache,
+        struct cfg80211_pmksa *pmksa, bool is_delete)
+{
+    if (pmksa->bssid) {
+        hddLog(VOS_TRACE_LEVEL_DEBUG,"set PMKSA for " MAC_ADDRESS_STR,
+                MAC_ADDR_ARRAY(pmksa->bssid));
+        vos_mem_copy(pmk_cache->BSSID,
+                pmksa->bssid, VOS_MAC_ADDR_SIZE);
+    } else {
+        vos_mem_copy(pmk_cache->ssid, pmksa->ssid,
+                SIR_MAC_MAX_SSID_LENGTH);
+        vos_mem_copy(pmk_cache->cache_id, pmksa->cache_id, CACHE_ID_LEN);
+        pmk_cache->ssid_len = pmksa->ssid_len;
+        hddLog(VOS_TRACE_LEVEL_INFO, "set PMKSA for ssid %*.*s cache_id %x %x",
+                pmk_cache->ssid_len, pmk_cache->ssid_len,
+                pmksa->ssid, pmksa->cache_id[0], pmksa->cache_id[1]);
+   }
+
+    if (is_delete)
+        return;
+
+    vos_mem_copy(pmk_cache->PMKID, pmksa->pmkid, CSR_RSN_PMKID_SIZE);
+    if (pmksa->pmk_len && (pmksa->pmk_len <= CSR_RSN_MAX_PMK_LEN)) {
+        vos_mem_copy(pmk_cache->pmk, pmksa->pmk, pmksa->pmk_len);
+        pmk_cache->pmk_len = pmksa->pmk_len;
+    } else
+        hddLog(VOS_TRACE_LEVEL_INFO, "pmk len is %zu", pmksa->pmk_len);
+}
+#else
+/*
+ * wlan_hdd_is_pmksa_valid: API to validate pmksa
+ * @pmksa: pointer to cfg80211_pmksa structure
+ *
+ * Return: True if valid else false
+ */
+static inline bool wlan_hdd_is_pmksa_valid(struct cfg80211_pmksa *pmksa)
+{
+    if (!pmksa->bssid) {
+        hddLog(LOGE,FL("both bssid is NULL %p"), pmksa->bssid);
+        return false;
+    }
+    return true;
+}
+
+/*
+ * hdd_update_pmksa_info: API to update tPmkidCacheInfo from cfg80211_pmksa
+ * @pmk_cache: pmksa from supplicant
+ * @pmk_cache: pmk needs to be updated
+ *
+ * Return: None
+ */
+static void hdd_update_pmksa_info(tPmkidCacheInfo *pmk_cache,
+        struct cfg80211_pmksa *pmksa, bool is_delete)
+{
+    hddLog(VOS_TRACE_LEVEL_INFO,"set PMKSA for " MAC_ADDRESS_STR,
+            MAC_ADDR_ARRAY(pmksa->bssid));
+    vos_mem_copy(pmk_cache->BSSID,
+            pmksa->bssid, VOS_MAC_ADDR_SIZE);
+
+    if (is_delete)
+        return;
+
+    vos_mem_copy(pmk_cache->PMKID, pmksa->pmkid, CSR_RSN_PMKID_SIZE);
+}
+#endif
+
 #ifdef FEATURE_WLAN_LFR
 static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *dev,
             struct cfg80211_pmksa *pmksa)
@@ -25961,7 +26116,7 @@ static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device 
     tHalHandle halHandle;
     eHalStatus result = eHAL_STATUS_SUCCESS;
     int status;
-    tPmkidCacheInfo pmk_id;
+    tPmkidCacheInfo pmk_cache;
 
     ENTER();
 
@@ -25975,14 +26130,14 @@ static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device 
         return -EINVAL;
     }
 
-    if (!pmksa->bssid || !pmksa->pmkid) {
-        hddLog(LOGE, FL("pmksa->bssid(%p) or pmksa->pmkid(%p) is NULL"),
-               pmksa->bssid, pmksa->pmkid);
+    if (!pmksa->pmkid) {
+        hddLog(LOGE, FL("pmksa->pmkid(%p) is NULL"),
+               pmksa->pmkid);
         return -EINVAL;
     }
 
-    hddLog(VOS_TRACE_LEVEL_DEBUG, FL("set PMKSA for "MAC_ADDRESS_STR),
-           MAC_ADDR_ARRAY(pmksa->bssid));
+    if (!wlan_hdd_is_pmksa_valid(pmksa))
+        return -EINVAL;
 
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
@@ -25990,12 +26145,18 @@ static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device 
 
     halHandle = WLAN_HDD_GET_HAL_CTX(pAdapter);
 
-    vos_mem_copy(pmk_id.BSSID, pmksa->bssid, ETHER_ADDR_LEN);
-    vos_mem_copy(pmk_id.PMKID, pmksa->pmkid, CSR_RSN_PMKID_SIZE);
+    vos_mem_zero(&pmk_cache, sizeof(pmk_cache));
 
-    /* Add to the PMKSA ID Cache in CSR */
-    result = sme_RoamSetPMKIDCache(halHandle,pAdapter->sessionId,
-                                   &pmk_id, 1, FALSE);
+    hdd_update_pmksa_info(&pmk_cache, pmksa, false);
+
+    /* Add to the PMKSA ID Cache in CSR
+     * PMKSA cache will be having following
+     * 1. pmkid id
+     * 2. pmk 15733
+     * 3. bssid or cache identifier
+    */
+   result = sme_RoamSetPMKIDCache(halHandle,pAdapter->sessionId,
+                                   &pmk_cache, 1, FALSE);
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_SET_PMKSA,
@@ -26024,6 +26185,7 @@ static int __wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device 
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     tHalHandle halHandle;
     int status = 0;
+    tPmkidCacheInfo pmk_cache;
 
     ENTER();
 
@@ -26037,13 +26199,8 @@ static int __wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device 
         return -EINVAL;
     }
 
-    if (!pmksa->bssid) {
-        hddLog(LOGE, FL("pmksa->bssid is NULL"));
+    if (!wlan_hdd_is_pmksa_valid(pmksa))
         return -EINVAL;
-    }
-
-    hddLog(VOS_TRACE_LEVEL_DEBUG, FL("Deleting PMKSA for "MAC_ADDRESS_STR),
-           MAC_ADDR_ARRAY(pmksa->bssid));
 
     status = wlan_hdd_validate_context(pHddCtx);
     if (0 != status)
@@ -26054,10 +26211,14 @@ static int __wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD, TRACE_CODE_HDD_CFG80211_DEL_PMKSA,
                                       pAdapter->sessionId, 0));
 
+    vos_mem_zero(&pmk_cache, sizeof(pmk_cache));
+
+    hdd_update_pmksa_info(&pmk_cache, pmksa, true);
+
     /* Delete the PMKID CSR cache */
     if (eHAL_STATUS_SUCCESS !=
         sme_RoamDelPMKIDfromCache(halHandle,
-                                  pAdapter->sessionId, pmksa->bssid, FALSE)) {
+                                  pAdapter->sessionId, &pmk_cache, FALSE)) {
        hddLog(LOGE, FL("Failed to delete PMKSA for "MAC_ADDRESS_STR),
                       MAC_ADDR_ARRAY(pmksa->bssid));
        status = -EINVAL;
@@ -26833,6 +26994,7 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
     u32 peer_capability;
     peer_capability = 0;
 #endif
+    tdlsCtx_t *pHddTdlsCtx;
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                      TRACE_CODE_HDD_CFG80211_TDLS_MGMT,
@@ -26844,6 +27006,12 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
         return -EINVAL;
+    }
+
+    pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
+    if (!pHddTdlsCtx) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s: pHddTdlsCtx not valid.", __func__);
     }
 
     if (eTDLS_SUPPORT_NOT_ENABLED == pHddCtx->tdls_mode)
@@ -27019,7 +27187,9 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                           "%s: Sending frame action_code %u.Disable BMPS",
                           __func__, action_code);
-                hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+                status = hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
+                if (status == VOS_STATUS_SUCCESS)
+                    pHddTdlsCtx->is_tdls_disabled_bmps = true;
             }
         }
         if (SIR_MAC_TDLS_DIS_REQ != action_code)

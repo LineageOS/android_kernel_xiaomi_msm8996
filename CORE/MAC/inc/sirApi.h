@@ -93,6 +93,13 @@ typedef tANI_U8 tSirVersionString[SIR_VERSION_STRING_LEN];
 
 #define MAX_LEN_UDP_RESP_OFFLOAD 128
 
+/* Maximum number of realms present in fils indication element */
+#define SIR_MAX_REALM_COUNT 7
+/* Realm length */
+#define SIR_REALM_LEN 2
+/* Cache ID length */
+#define CACHE_ID_LEN 2
+
 #ifdef FEATURE_WLAN_EXTSCAN
 
 #define WLAN_EXTSCAN_MAX_CHANNELS                 36
@@ -710,6 +717,24 @@ typedef struct sSirSmeStartBssReq
 
 #define WSCIE_PROBE_RSP_LEN (317 + 2)
 
+#ifdef WLAN_FEATURE_FILS_SK
+/* struct fils_ind_elements: elements parsed from fils indication present
+ * in beacon/probe resp
+ * @realm_cnt: number of realm present
+ * @realm: realms
+ * @is_fils_sk_supported: if FILS SK supported
+ * @is_cache_id_present: if cache id present
+ * @cache_id: cache id
+ */
+struct fils_ind_elements {
+    uint16_t realm_cnt;
+    uint8_t realm[SIR_MAX_REALM_COUNT][SIR_REALM_LEN];
+    bool is_fils_sk_supported;
+    bool is_cache_id_present;
+    uint8_t cache_id[CACHE_ID_LEN];
+};
+#endif
+
 typedef struct sSirBssDescription
 {
     //offset of the ieFields from bssId.
@@ -754,6 +779,9 @@ typedef struct sSirBssDescription
     tANI_U8              reservedPadding4;
     tANI_U32             tsf_delta;
 
+#ifdef WLAN_FEATURE_FILS_SK
+    struct fils_ind_elements fils_info_element;
+#endif
     tANI_U32             ieFields[1];
 } tSirBssDescription, *tpSirBssDescription;
 

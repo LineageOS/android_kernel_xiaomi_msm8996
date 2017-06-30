@@ -4833,7 +4833,7 @@ eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tANI_U8 sessionId,
 }
 
 eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId,
-                                      const tANI_U8 *pBSSId,
+                                      tPmkidCacheInfo *pmksa,
                                       tANI_BOOLEAN flush_cache )
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -4846,7 +4846,7 @@ eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId,
       if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
       {
          status = csrRoamDelPMKIDfromCache( pMac, sessionId,
-                                            pBSSId, flush_cache );
+                                            pmksa, flush_cache );
       }
       else
       {

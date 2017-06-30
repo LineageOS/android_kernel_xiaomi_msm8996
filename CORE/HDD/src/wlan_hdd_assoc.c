@@ -106,6 +106,13 @@ v_U8_t ccpRSNOui07[ HDD_RSN_OUI_SIZE ] = { 0x00, 0x0F, 0xAC, 0x06 }; // RSN-PSK-
 v_U8_t ccpRSNOui08[ HDD_RSN_OUI_SIZE ] = { 0x00, 0x0F, 0xAC, 0x05 };
 #endif
 
+#ifdef WLAN_FEATURE_FILS_SK
+uint8_t ccp_rsn_oui_0e[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x0E};
+uint8_t ccp_rsn_oui_0f[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x0F};
+uint8_t ccp_rsn_oui_10[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x10};
+uint8_t ccp_rsn_oui_11[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x11};
+#endif
+
 #if defined(WLAN_FEATURE_VOWIFI_11R)
 // Offset where the EID-Len-IE, start.
 #define FT_ASSOC_RSP_IES_OFFSET 6 /* Capability(2) + AID(2) + Status Code(2)*/
@@ -4036,11 +4043,6 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
 #endif
             }
            break;
-	case eCSR_ROAM_LOSTLINK_DETECTED:
-            if((roamResult != eCSR_ROAM_RESULT_DISASSOC_IND) &&
-               (roamResult != eCSR_ROAM_RESULT_DEAUTH_IND)) {
-                break;
-            } /* else fall through */
         case eCSR_ROAM_LOSTLINK:
             if(roamResult == eCSR_ROAM_RESULT_LOSTLINK) {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -4310,9 +4312,37 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
     }
     return( halStatus );
 }
+
+#ifdef WLAN_FEATURE_FILS_SK
+/**
+ * hdd_translate_fils_rsn_to_csr_auth() - Translate FILS RSN to CSR auth type
+ * @auth_suite: auth suite
+ * @auth_type: pointer to eCsrAuthType
+ *
+ * Return: None
+ */
+static void hdd_translate_fils_rsn_to_csr_auth(u_int8_t auth_suite[4],
+					eCsrAuthType *auth_type)
+{
+	if (!memcmp(auth_suite, ccp_rsn_oui_0e, 4))
+		*auth_type = eCSR_AUTH_TYPE_FILS_SHA256;
+	else if (!memcmp(auth_suite, ccp_rsn_oui_0f, 4))
+		*auth_type = eCSR_AUTH_TYPE_FILS_SHA384;
+	else if (!memcmp(auth_suite, ccp_rsn_oui_10, 4))
+		*auth_type = eCSR_AUTH_TYPE_FT_FILS_SHA256;
+	else if (!memcmp(auth_suite, ccp_rsn_oui_11, 4))
+		*auth_type = eCSR_AUTH_TYPE_FT_FILS_SHA384;
+}
+#else
+static inline void hdd_translate_fils_rsn_to_csr_auth(u_int8_t auth_suite[4],
+					eCsrAuthType *auth_type)
+{
+}
+#endif
+
 eCsrAuthType hdd_TranslateRSNToCsrAuthType( u_int8_t auth_suite[4])
 {
-    eCsrAuthType auth_type;
+    eCsrAuthType auth_type = eCSR_AUTH_TYPE_UNKNOWN;
     // is the auth type supported?
     if ( memcmp(auth_suite , ccpRSNOui01, 4) == 0)
     {
@@ -4350,16 +4380,17 @@ eCsrAuthType hdd_TranslateRSNToCsrAuthType( u_int8_t auth_suite[4])
         auth_type = eCSR_AUTH_TYPE_RSN_8021X_SHA256;
     } else
 #endif
-    {
-        auth_type = eCSR_AUTH_TYPE_UNKNOWN;
-    }
+	/* If auth suite is of fils, auth_type will be
+	 * overwritten in hdd_translate_fils_rsn_to_csr_auth
+	 */
+	hdd_translate_fils_rsn_to_csr_auth(auth_suite, &auth_type);
     return auth_type;
 }
 
 eCsrAuthType
 hdd_TranslateWPAToCsrAuthType(u_int8_t auth_suite[4])
 {
-    eCsrAuthType auth_type;
+    eCsrAuthType auth_type = eCSR_AUTH_TYPE_UNKNOWN;
     // is the auth type supported?
     if ( memcmp(auth_suite , ccpWpaOui01, 4) == 0)
     {
@@ -4375,9 +4406,11 @@ hdd_TranslateWPAToCsrAuthType(u_int8_t auth_suite[4])
         auth_type = eCSR_AUTH_TYPE_CCKM_WPA;
     } else
 #endif /* FEATURE_WLAN_ESE */
-    {
-        auth_type = eCSR_AUTH_TYPE_UNKNOWN;
-    }
+	/* If auth suite is of fils, auth_type will be
+	 * overwritten in hdd_translate_fils_rsn_to_csr_auth
+	 */
+	hdd_translate_fils_rsn_to_csr_auth(auth_suite, &auth_type);
+
     hddLog(LOG1, FL("auth_type: %d"), auth_type);
     return auth_type;
 }
@@ -4668,6 +4701,32 @@ int hdd_SetGENIEToCsr( hdd_adapter_t *pAdapter, eCsrAuthType *RSNAuthType)
     }
     return 0;
 }
+
+#ifdef WLAN_FEATURE_FILS_SK
+/**
+ * hdd_check_fils_rsn_n_set_auth_type() - This API checks whether a give
+ * auth type is fils if yes, sets it in profile.
+ * @rsn_auth_type: auth type
+ *
+ * Return: true if FILS auth else false
+ */
+static bool hdd_check_fils_rsn_n_set_auth_type(tCsrRoamProfile *roam_profile,
+			    eCsrAuthType rsn_auth_type)
+{
+	bool is_fils_rsn = false;
+
+	if ((rsn_auth_type == eCSR_AUTH_TYPE_FILS_SHA256) ||
+	   (rsn_auth_type == eCSR_AUTH_TYPE_FILS_SHA384) ||
+	   (rsn_auth_type == eCSR_AUTH_TYPE_FT_FILS_SHA256) ||
+	   (rsn_auth_type == eCSR_AUTH_TYPE_FT_FILS_SHA384))
+		is_fils_rsn = true;
+	if (is_fils_rsn)
+		roam_profile->fils_con_info->akm_type = rsn_auth_type;
+
+	return is_fils_rsn;
+}
+#endif
+
 int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
 {
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
@@ -4749,7 +4808,12 @@ int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
                                             eCSR_AUTH_TYPE_RSN_8021X_SHA256;
             } else
 #endif
-
+#ifdef WLAN_FEATURE_FILS_SK
+            if (hdd_check_fils_rsn_n_set_auth_type(pRoamProfile, RSNAuthType)) {
+				pRoamProfile->AuthType.authType[0] = RSNAuthType;
+				hddLog(LOG1, "updated profile authtype as %d", RSNAuthType);
+            } else
+#endif
             if( (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)
                     == IW_AUTH_KEY_MGMT_802_1X) {
                pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_RSN;
