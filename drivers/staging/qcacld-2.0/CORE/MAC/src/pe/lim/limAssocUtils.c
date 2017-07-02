@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2647,13 +2647,6 @@ limAddSta(
     }
 #endif
 
-    //Disable BA. It will be set as part of ADDBA negotiation.
-    for( i = 0; i < STACFG_MAX_TC; i++ )
-    {
-          pAddStaParams->staTCParams[i].txUseBA = eBA_DISABLE;
-          pAddStaParams->staTCParams[i].rxUseBA = eBA_DISABLE;
-    }
-
 #ifdef FEATURE_WLAN_TDLS
     if(pStaDs->wmeEnabled &&
       (LIM_IS_AP_ROLE(psessionEntry) ||
@@ -3760,7 +3753,6 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     tSirMsgQ msgQ;
     tpAddBssParams pAddBssParams = NULL;
     tSirRetStatus retCode = eSIR_SUCCESS;
-    tANI_U8 i;
     tpDphHashNode pStaDs = NULL;
     tANI_U8 chanWidthSupp = 0;
     tANI_U32 shortGi20MhzSupport;
@@ -4199,15 +4191,6 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
 
     }
 
-    //Disable BA. It will be set as part of ADDBA negotiation.
-    for( i = 0; i < STACFG_MAX_TC; i++ )
-    {
-        pAddBssParams->staContext.staTCParams[i].txUseBA    = eBA_DISABLE;
-        pAddBssParams->staContext.staTCParams[i].rxUseBA    = eBA_DISABLE;
-        pAddBssParams->staContext.staTCParams[i].txBApolicy = eBA_POLICY_IMMEDIATE;
-        pAddBssParams->staContext.staTCParams[i].rxBApolicy = eBA_POLICY_IMMEDIATE;
-    }
-
     pAddBssParams->staContext.encryptType =  psessionEntry->encryptType;
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -4307,7 +4290,6 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     tSirMsgQ msgQ;
     tpAddBssParams pAddBssParams = NULL;
     tANI_U32 retCode;
-    tANI_U8 i;
     tSchBeaconStruct *pBeaconStruct;
     tANI_U8 chanWidthSupp = 0;
     tANI_U32 shortGi20MhzSupport;
@@ -4676,16 +4658,6 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
 #endif
         limFillSupportedRatesInfo(pMac, NULL, &pAddBssParams->staContext.supportedRates,psessionEntry);
 
-    }
-
-
-    //Disable BA. It will be set as part of ADDBA negotiation.
-    for( i = 0; i < STACFG_MAX_TC; i++ )
-    {
-        pAddBssParams->staContext.staTCParams[i].txUseBA    = eBA_DISABLE;
-        pAddBssParams->staContext.staTCParams[i].rxUseBA    = eBA_DISABLE;
-        pAddBssParams->staContext.staTCParams[i].txBApolicy = eBA_POLICY_IMMEDIATE;
-        pAddBssParams->staContext.staTCParams[i].rxBApolicy = eBA_POLICY_IMMEDIATE;
     }
 
     pAddBssParams->staContext.encryptType = psessionEntry->encryptType;

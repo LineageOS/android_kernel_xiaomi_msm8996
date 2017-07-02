@@ -95,12 +95,6 @@ typedef enum
 
 typedef enum
 {
-   WDA_DISABLE_BA,
-   WDA_ENABLE_BA
-}WDA_BaEnableFlags;
-
-typedef enum
-{
    WDA_INVALID_STA_INDEX,
    WDA_VALID_STA_INDEX
 }WDA_ValidStaIndex;
@@ -580,7 +574,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_HDD_ADDBA_REQ  SIR_HAL_HDD_ADDBA_REQ
 #define WDA_HDD_ADDBA_RSP  SIR_HAL_HDD_ADDBA_RSP
 #define WDA_DELETEBA_IND   SIR_HAL_DELETEBA_IND
-#define WDA_BA_FAIL_IND    SIR_HAL_BA_FAIL_IND
 #define WDA_TL_FLUSH_AC_REQ SIR_TL_HAL_FLUSH_AC_REQ
 #define WDA_TL_FLUSH_AC_RSP SIR_HAL_TL_FLUSH_AC_RSP
 
@@ -677,10 +670,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_SOFTMAC_BULKREGREAD_RESPONSE      SIR_HAL_SOFTMAC_BULKREGREAD_RESPONSE
 #define WDA_SOFTMAC_HOSTMESG_MSGPROCESSRESULT SIR_HAL_SOFTMAC_HOSTMESG_MSGPROCESSRESULT
 
-#define WDA_ADDBA_REQ                  SIR_HAL_ADDBA_REQ
-#define WDA_ADDBA_RSP                  SIR_HAL_ADDBA_RSP
-#define WDA_DELBA_IND                  SIR_HAL_DELBA_IND
-#define WDA_DEL_BA_IND                 SIR_HAL_DEL_BA_IND
 #define WDA_MIC_FAILURE_IND            SIR_HAL_MIC_FAILURE_IND
 
 //message from sme to initiate delete block ack session.

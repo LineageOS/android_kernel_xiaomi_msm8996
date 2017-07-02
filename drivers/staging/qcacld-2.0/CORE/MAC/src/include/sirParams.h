@@ -822,14 +822,8 @@ typedef struct sSirMbMsgP2p
 
 // Message from Hal to send out a DEL-TS indication
 #define SIR_LIM_DEL_TS_IND                  (SIR_LIM_ITC_MSG_TYPES_BEGIN + 0xE)
-//Message from HAL to send BA global timer timeout
-#define SIR_LIM_ADD_BA_IND                  (SIR_LIM_ITC_MSG_TYPES_BEGIN + 0xF)
-//Indication from HAL to delete all the BA sessions when the BA activity check timer is disabled
-#define SIR_LIM_DEL_BA_ALL_IND                  (SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x10)
 //Indication from HAL to delete Station context
 #define SIR_LIM_DELETE_STA_CONTEXT_IND          (SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x11)
-//Indication from HAL to delete BA
-#define SIR_LIM_DEL_BA_IND                      (SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x12)
 #define SIR_LIM_UPDATE_BEACON                   (SIR_LIM_ITC_MSG_TYPES_BEGIN + 0x13)
 
 
