@@ -641,6 +641,10 @@ static void cpufreq_stats_update_policy_cpu(struct cpufreq_policy *policy)
 	}
 
 	stat = per_cpu(cpufreq_stats_table, policy->last_cpu);
+	if (!stat) {
+		return;
+	}
+
 	per_cpu(cpufreq_stats_table, policy->cpu) = per_cpu(cpufreq_stats_table,
 			policy->last_cpu);
 	per_cpu(cpufreq_stats_table, policy->last_cpu) = NULL;
