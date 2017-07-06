@@ -11484,7 +11484,8 @@ hdd_adapter_t *hdd_open_adapter(hdd_context_t *hdd_ctx,
 
 	/* Enable FW logs based on INI configuration */
 	if ((VOS_FTM_MODE != vos_get_conparam()) &&
-	    (hdd_ctx->cfg_ini->enablefwlog)) {
+	    (hdd_ctx->cfg_ini->enablefwlog) &&
+	    (hdd_ctx->current_intf_count == 1)) {
 		uint8_t count = 0;
 		uint32_t value = 0;
 		uint8_t num_entries = 0;
