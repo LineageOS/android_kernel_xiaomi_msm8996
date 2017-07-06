@@ -53,6 +53,7 @@
 #include <wlan_hdd_ipa.h>
 #endif
 #include "adf_trace.h"
+#include <wlan_hdd_tsf.h>
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
@@ -275,6 +276,8 @@ int __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        wlan_hdd_classify_pkt(skb);
 
        pDestMacAddress = (v_MACADDR_t*)skb->data;
+
+       hdd_tsf_record_sk_for_skb(hddCtxt, skb);
 
 /*
 * The TCP TX throttling logic is changed a little after 3.19-rc1 kernel,

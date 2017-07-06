@@ -500,6 +500,8 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        pDestMacAddress = (v_MACADDR_t*)skb->data;
        STAId = HDD_WLAN_INVALID_STA_ID;
 
+       hdd_tsf_record_sk_for_skb(hddCtxt, skb);
+
 /*
 * The TCP TX throttling logic is changed a little after 3.19-rc1 kernel,
 * the TCP sending limit will be smaller, which will throttle the TCP packets
