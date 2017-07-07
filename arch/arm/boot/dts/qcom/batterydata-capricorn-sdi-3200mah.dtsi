@@ -8,6 +8,7 @@ qcom,capricorn_sdi {
 	qcom,chg-rslow-comp-c2 = <3287454>;
 	qcom,chg-rs-to-rslow = <1243927>;
 	qcom,chg-rslow-comp-thr = <0x99>;
+	qcom,cool-bat-decidegc = <100>;
 	qcom,checksum = <0xE54B>;
 	qcom,gui-version = "PMI8996GUI - 1.1.0.0";
 	qcom,fg-profile-data = [

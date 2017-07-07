@@ -8,6 +8,7 @@ qcom,a1_sdi_3000mah {
 	qcom,chg-rslow-comp-c2 = <3697420>;
 	qcom,chg-rs-to-rslow = <1176226>;
 	qcom,chg-rslow-comp-thr = <0x9C>;
+	qcom,cool-bat-decidegc = <150>;
 	qcom,checksum = <0x3BD6>;
 	qcom,gui-version = "PMI8994GUI - 2.1.6.9";
 	qcom,fg-profile-data = [

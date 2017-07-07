@@ -8,6 +8,7 @@ qcom,natrium_atl_3840mah {
 	qcom,chg-rslow-comp-c2 = <4971651>;
 	qcom,chg-rs-to-rslow = <1218506>;
 	qcom,chg-rslow-comp-thr = <0xA9>;
+	qcom,cool-bat-decidegc = <150>;
 	qcom,checksum = <0x03C6>;
 	qcom,gui-version = "PMI8996GUI - 1.1.0.0";
 	qcom,fg-profile-data = [
