@@ -4228,6 +4228,7 @@ static int fwu_start_reflash(void)
 				__func__, fw_entry->size);
 
 		fwu->image = fw_entry->data;
+		fwu->image_size = fw_entry->size;
 	}
 
 	retval = fwu_parse_image_info();
