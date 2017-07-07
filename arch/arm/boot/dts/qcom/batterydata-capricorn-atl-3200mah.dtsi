@@ -8,6 +8,7 @@ qcom,capricorn_atl {
 	qcom,chg-rslow-comp-c2 = <3094268>;
 	qcom,chg-rs-to-rslow = <981305>;
 	qcom,chg-rslow-comp-thr = <0x99>;
+	qcom,cool-bat-decidegc = <150>;
 	qcom,checksum = <0x2DBF>;
 	qcom,gui-version = "PMI8996GUI - 1.1.0.0";
 	qcom,fg-profile-data = [

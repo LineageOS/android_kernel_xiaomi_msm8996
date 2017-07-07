@@ -8,6 +8,7 @@ qcom,scorpio_coslight {
 	qcom,chg-rslow-comp-c2 = <7999330>;
 	qcom,chg-rs-to-rslow = <945560>;
 	qcom,chg-rslow-comp-thr = <0xBE>;
+	qcom,cool-bat-decidegc = <150>;
 	qcom,checksum = <0xB14D>;
 	qcom,gui-version = "PMI8996GUI - 1.1.0.4";
 	qcom,fg-profile-data = [

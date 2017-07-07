@@ -8,6 +8,7 @@ qcom,a1_atl_3000mah {
 	qcom,chg-rslow-comp-c2 = <3219933>;
 	qcom,chg-rs-to-rslow = <1102926>;
 	qcom,chg-rslow-comp-thr = <0x99>;
+	qcom,cool-bat-decidegc = <150>;
 	qcom,checksum = <0x1152>;
 	qcom,gui-version = "PMI8994GUI - 2.1.6.7";
 	qcom,fg-profile-data = [
