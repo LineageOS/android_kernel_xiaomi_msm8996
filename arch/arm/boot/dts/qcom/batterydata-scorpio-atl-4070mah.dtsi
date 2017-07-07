@@ -8,6 +8,7 @@ qcom,a4_atl {
 	qcom,chg-rslow-comp-c2 = <5194211>;
 	qcom,chg-rs-to-rslow = <962108>;
 	qcom,chg-rslow-comp-thr = <0xAF>;
+	qcom,cool-bat-decidegc = <150>;
 	qcom,checksum = <0xF204>;
 	qcom,gui-version = "PMI8996GUI - 1.1.0.0";
 	qcom,fg-profile-data = [
