@@ -2633,46 +2633,46 @@ IE fils_indication (EID_FILS_INDICATION)
    variable_data[3..255];
 }
 
-IE fils_assoc_delay_info (EID_EXTN_ID_ELEMENT) // OUI ( 0x01 )
+IE fils_assoc_delay_info (EID_EXTN_ID_ELEMENT) OUI ( 0x01 )
 {
     assoc_delay_info, 1;
 }
 
-IE fils_key_confirmation (EID_EXTN_ID_ELEMENT) // OUI ( 0x03 )
+IE fils_key_confirmation (EID_EXTN_ID_ELEMENT) OUI ( 0x03 )
 {
     key_auth[0..255];
 }
 
-IE fils_session (EID_EXTN_ID_ELEMENT) // OUI ( 0x04 )
+IE fils_session (EID_EXTN_ID_ELEMENT) OUI ( 0x04 )
 {
     session[8];
 }
 
-IE fils_hlp_container (EID_EXTN_ID_ELEMENT) // OUI ( 0x05 )
+IE fils_hlp_container (EID_EXTN_ID_ELEMENT) OUI ( 0x05 )
 {
     dest_mac[6];
     src_mac[6];
     hlp_packet[0..255];
 }
 
-IE fils_kde (EID_EXTN_ID_ELEMENT) // OUI ( 0x07 )
+IE fils_kde (EID_EXTN_ID_ELEMENT) OUI ( 0x07 )
 {
     key_rsc[8];
     kde_list[0..255];
 }
 
-IE fils_wrapped_data (EID_EXTN_ID_ELEMENT) // OUI ( 0x08 )
+IE fils_wrapped_data (EID_EXTN_ID_ELEMENT) OUI ( 0x08 )
 {
     wrapped_data[0..255];
 }
 
-IE fils_public_key (EID_EXTN_ID_ELEMENT) // OUI ( 0x0C )
+IE fils_public_key (EID_EXTN_ID_ELEMENT) OUI ( 0x0C )
 {
     key_type, 1;
     public_key[0..255];
 }
 
-IE fils_nonce (EID_EXTN_ID_ELEMENT) // OUI ( 0x0D )
+IE fils_nonce (EID_EXTN_ID_ELEMENT) OUI ( 0x0D )
 {
     nonce[16];
 }

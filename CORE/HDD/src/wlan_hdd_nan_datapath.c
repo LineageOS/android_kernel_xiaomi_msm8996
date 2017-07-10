@@ -2034,6 +2034,15 @@ int hdd_init_nan_data_mode(struct hdd_adapter_s *adapter)
 		goto error_sme_open;
 	}
 
+	ret_val = process_wma_set_command((int)adapter->sessionId,
+			(int)WMI_PDEV_PARAM_BURST_ENABLE,
+			(int)hdd_ctx->cfg_ini->enableSifsBurst,
+			PDEV_CMD);
+	if (0 != ret_val) {
+		hddLog(LOGE, FL("WMI_PDEV_PARAM_BURST_ENABLE set failed %d"),
+				ret_val);
+	}
+
 	/* open sme session for future use */
 	hal_status = sme_OpenSession(hdd_ctx->hHal, hdd_smeRoamCallback,
 			adapter, (uint8_t *)&adapter->macAddressCurrent,
@@ -2084,15 +2093,6 @@ int hdd_init_nan_data_mode(struct hdd_adapter_s *adapter)
 	}
 
 	set_bit(WMM_INIT_DONE, &adapter->event_flags);
-
-	ret_val = process_wma_set_command((int)adapter->sessionId,
-			(int)WMI_PDEV_PARAM_BURST_ENABLE,
-			(int)hdd_ctx->cfg_ini->enableSifsBurst,
-			PDEV_CMD);
-	if (0 != ret_val) {
-		hddLog(LOGE, FL("WMI_PDEV_PARAM_BURST_ENABLE set failed %d"),
-				ret_val);
-	}
 
 	ndp_ctx->state = NAN_DATA_NDI_CREATING_STATE;
 	return ret_val;

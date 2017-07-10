@@ -24504,11 +24504,9 @@ int wma_enable_wow_in_fw(WMA_HANDLE handle, int runtime_pm)
 				vos_trigger_recovery(false);
 			} else {
 				vos_force_fw_dump();
-				VOS_BUG(0);
 			}
 #else
 			vos_force_fw_dump();
-			VOS_BUG(0);
 #endif
 		} else {
 			WMA_LOGE("%s: LOGP is in progress, ignore!", __func__);
