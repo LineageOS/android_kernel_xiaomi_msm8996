@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014,2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -72,6 +72,11 @@
  * read might change
  */
 #define REGISTER_LOCATION       0x00000800
+#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+#ifdef HIF_SDIO
+#define REG_SIZE		0x0007F820
+#endif
+#endif
 
 #ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
 #define DRAM_LOCATION           0x00400000

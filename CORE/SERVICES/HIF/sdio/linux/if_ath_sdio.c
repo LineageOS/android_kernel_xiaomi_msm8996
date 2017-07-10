@@ -117,7 +117,7 @@ static inline void *hif_get_virt_ramdump_mem(unsigned long *size)
 	size_t length = 0;
 	int flags = GFP_KERNEL;
 
-	length = DRAM_SIZE + IRAM_SIZE + AXI_SIZE;
+	length = DRAM_SIZE + IRAM_SIZE + AXI_SIZE + REG_SIZE;
 
 	if (size != NULL)
 		*size = (unsigned long)length;
