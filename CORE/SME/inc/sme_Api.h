@@ -4576,6 +4576,10 @@ VOS_STATUS sme_set_btc_bt_wlan_interval_inquiry_p2p_sta(uint32_t bt_interval,
 
 VOS_STATUS sme_set_btc_wlan_coex_tx_power(uint32_t coex_tx_power);
 
+#ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
+VOS_STATUS sme_configure_pta_coex(uint8_t coex_pta_config_enable, uint32_t coex_pta_config_param);
+#endif
+
 uint8_t    sme_is_any_session_in_connected_state(tHalHandle h_hal);
 
 typedef void ( *tSmeSetThermalLevelCallback)(void *pContext, u_int8_t level);

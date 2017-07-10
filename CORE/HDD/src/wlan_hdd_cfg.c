@@ -5024,6 +5024,22 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_REDUCED_BEACON_INTERVAL_MIN,
                CFG_REDUCED_BEACON_INTERVAL_MAX),
 
+#ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
+  REG_VARIABLE(CFG_COEX_PTA_CONFIG_ENABLE, WLAN_PARAM_Integer,
+               hdd_config_t, coex_pta_config_enable,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_COEX_PTA_CONFIG_ENABLE_DEFAULT,
+               CFG_COEX_PTA_CONFIG_ENABLE_MIN,
+               CFG_COEX_PTA_CONFIG_ENABLE_MAX),
+
+  REG_VARIABLE(CFG_COEX_PTA_CONFIG_PARAM, WLAN_PARAM_Integer,
+               hdd_config_t, coex_pta_config_param,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_COEX_PTA_CONFIG_PARAM_DEFAULT,
+               CFG_COEX_PTA_CONFIG_PARAM_MIN,
+               CFG_COEX_PTA_CONFIG_PARAM_MAX),
+#endif
+
    REG_VARIABLE(CFG_ARP_AC_CATEGORY, WLAN_PARAM_Integer,
                 hdd_config_t, arp_ac_category,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -8604,6 +8620,14 @@ void hdd_set_btc_bt_wlan_interval(hdd_context_t *hdd_ctx)
 
 	if (VOS_STATUS_SUCCESS != status)
 		hddLog(LOGE, "Fail to set coex tx power");
+
+#ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
+       status = sme_configure_pta_coex(config->coex_pta_config_enable,config->coex_pta_config_param);
+
+        if (VOS_STATUS_SUCCESS != status)
+                hddLog(LOGE, "Fail to set pta coex");
+#endif
+
 }
 
 /**
