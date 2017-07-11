@@ -194,7 +194,6 @@ error:
 	return ret;
 }
 
-#if 0
 static void allocate_buf_for_compression(void)
 {
 	size_t size;
@@ -237,7 +236,6 @@ static void allocate_buf_for_compression(void)
 	}
 
 }
-#endif
 
 /*
  * Called when compression fails, since the printk buffer
@@ -355,53 +353,6 @@ static struct kmsg_dumper pstore_dumper = {
 	.dump = pstore_dump,
 };
 
-
-
-/* Export function to save device specific power up
- * data
- *
- */
-
-int  pstore_annotate(const char *buf)
-{
-	unsigned cnt = strlen(buf);
-	const char *end = buf + cnt;
-
-	if (!psinfo) {
-		pr_warn("device not present!\n");
-		return -ENODEV;
-	}
-
-	while (buf < end) {
-		unsigned long flags;
-		int ret;
-		u64 id;
-
-		if (cnt > psinfo->bufsize)
-			cnt = psinfo->bufsize;
-
-		if (oops_in_progress) {
-			if (!spin_trylock_irqsave(&psinfo->buf_lock, flags))
-				break;
-		} else {
-			spin_lock_irqsave(&psinfo->buf_lock, flags);
-		}
-		memcpy(psinfo->buf, buf, cnt);
-		ret = psinfo->write(PSTORE_TYPE_ANNOTATE, 0, &id, 0, 0, 0,
-			cnt, psinfo);
-		spin_unlock_irqrestore(&psinfo->buf_lock, flags);
-
-		pr_debug("ret %d wrote bytes %d\n", ret, cnt);
-		buf += cnt;
-		cnt = end - buf;
-	}
-
-	return 0;
-
-}
-EXPORT_SYMBOL_GPL(pstore_annotate);
-
-
 #ifdef CONFIG_PSTORE_CONSOLE
 static void pstore_console_write(struct console *con, const char *s, unsigned c)
 {
@@ -486,12 +437,7 @@ int pstore_register(struct pstore_info *psi)
 		return -EINVAL;
 	}
 
-	// FIX ME!
-	// Disable pstore compression/decompression for ramdom decompression fail
-	// will enable it when DDR is stable
-#if 0
 	allocate_buf_for_compression();
-#endif
 
 	if (pstore_is_mounted())
 		pstore_get_records(0);
@@ -534,7 +480,6 @@ void pstore_get_records(int quiet)
 	int			failed = 0, rc;
 	bool			compressed;
 	int			unzipped_len = -1;
-	int                     made_annotate_file = 0;
 
 	if (!psi)
 		return;
@@ -572,26 +517,7 @@ void pstore_get_records(int quiet)
 			unzipped_len = -1;
 		if (rc && (rc != -EEXIST || !quiet))
 			failed++;
-		pr_info("Found record type %d, psi name %s\n", type, psi->name);
-
-		if (type == PSTORE_TYPE_ANNOTATE)
-			made_annotate_file = 1;
 	}
-
-	/*
-	 * If there isn't annotation file created (e.g in cold reboot
-	 * or power up), create it now, since we need app to make annotation
-	 * during bootup.
-	 */
-	if (!made_annotate_file) {
-		rc = pstore_mkfile(PSTORE_TYPE_ANNOTATE, psi->name, 0, 0, NULL,
-					0, 0, time, psi);
-		if (rc)
-			pr_err("annotate-%s  can't be created\n", psi->name);
-		else
-			pr_info("Created annotate-%s\n", psi->name);
-	}
-
 	if (psi->close)
 		psi->close(psi);
 out:
