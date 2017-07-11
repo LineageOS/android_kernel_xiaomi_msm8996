@@ -1007,6 +1007,12 @@ struct txrx_pdev_cfg_param_t {
     uint16_t pkt_bundle_timer_value;
     uint16_t pkt_bundle_size;
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+    uint8_t  del_ack_enable;
+    uint16_t del_ack_timer_value;
+    uint16_t del_ack_pkt_count;
+#endif
+
     /*  PTP feature enabled\disable status */
 #ifdef WLAN_FEATURE_TSF_PLUS
     a_bool_t is_ptp_enabled;

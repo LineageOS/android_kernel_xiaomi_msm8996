@@ -2613,6 +2613,27 @@ static inline void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
 }
 #endif
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+static inline
+void hdd_set_driver_del_ack_enable(uint16_t session_id, hdd_context_t *hdd_ctx,
+				   uint64_t rx_packets)
+{
+	tlshim_set_driver_del_ack_enable(session_id, rx_packets,
+		hdd_ctx->cfg_ini->busBandwidthComputeInterval,
+		hdd_ctx->cfg_ini->del_ack_threshold_high,
+		hdd_ctx->cfg_ini->del_ack_threshold_low);
+
+}
+#else
+static inline
+void hdd_set_driver_del_ack_enable(uint16_t session_id, hdd_context_t *hdd_ctx,
+				   uint64_t rx_packets)
+{
+}
+#endif
+
+
+
 int hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
 		const tANI_U8 channel, const handoff_src src);
 

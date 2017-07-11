@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014,2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014,2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -165,4 +165,40 @@ static inline void tlshim_reset_bundle_require(void)
 
 	ol_tx_pdev_reset_bundle_require(pdev);
 }
+
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+static inline
+void tlshim_set_driver_del_ack_enable(uint8_t vdev_id, unsigned long rx_packets,
+			uint32_t time_in_ms, uint32_t high_th, uint32_t low_th)
+{
+	ol_tx_vdev_set_driver_del_ack_enable(vdev_id, rx_packets,
+				 time_in_ms, high_th, low_th);
+}
+
+static inline void tlshim_driver_del_ack_disable(void)
+{
+	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
+	void *pdev;
+
+	if (!vos_ctx)
+		return;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_ctx);
+	if (!pdev)
+		return;
+
+	ol_tx_pdev_reset_driver_del_ack(pdev);
+}
+#else
+static inline
+void tlshim_set_driver_del_ack_enable(uint8_t vdev_id, unsigned long rx_packets,
+			uint32_t time_in_ms, uint32_t high_th, uint32_t low_th)
+{
+}
+
+static inline void tlshim_driver_del_ack_disable(void)
+{
+}
+#endif
+
 #endif

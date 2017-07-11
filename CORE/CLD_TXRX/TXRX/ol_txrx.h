@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014,2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -38,6 +38,12 @@ ol_txrx_peer_unref_delete(struct ol_txrx_peer_t *peer);
 u_int16_t
 ol_tx_desc_pool_size_hl(ol_pdev_handle ctrl_pdev);
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+struct tcp_stream_node *ol_txrx_vdev_alloc_tcp_node(struct ol_txrx_vdev_t *vdev);
+void ol_txrx_vdev_free_tcp_node(struct ol_txrx_vdev_t *vdev,
+				struct tcp_stream_node *node);
+void ol_txrx_vdev_deinit_tcp_del_ack(struct ol_txrx_vdev_t *vdev);
+#endif
 
 #ifndef OL_TX_AVG_FRM_BYTES
 #define OL_TX_AVG_FRM_BYTES 1000

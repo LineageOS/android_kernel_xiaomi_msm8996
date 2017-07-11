@@ -14420,6 +14420,7 @@ static void hdd_set_bundle_require(uint16_t session_id, hdd_context_t *hdd_ctx,
 }
 #endif
 
+
 void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
         const uint64_t tx_packets, const uint64_t rx_packets)
 {
@@ -14594,6 +14595,7 @@ static void hdd_bus_bw_compute_cbk(void *priv)
         }
 
         hdd_set_bundle_require(pAdapter->sessionId, pHddCtx, tx_bytes);
+        hdd_set_driver_del_ack_enable(pAdapter->sessionId, pHddCtx, rx_packets);
 
         total_rx += pAdapter->stats.rx_packets;
         total_tx += pAdapter->stats.tx_packets;
@@ -18436,6 +18438,7 @@ void hdd_stop_bus_bw_compute_timer(hdd_adapter_t *pAdapter)
         hdd_ipa_set_perf_level(pHddCtx, 0, 0);
         hdd_rst_tcp_delack(pHddCtx);
         tlshim_reset_bundle_require();
+        tlshim_driver_del_ack_disable();
     }
 }
 #endif

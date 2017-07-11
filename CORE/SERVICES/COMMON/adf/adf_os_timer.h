@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011,2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -44,7 +44,10 @@
  * @brief Platform timer object
  */
 typedef __adf_os_timer_t           adf_os_timer_t;
+typedef __adf_os_hrtimer_t         adf_os_hrtimer_t;
+typedef __adf_os_enum_hrtimer_t    adf_os_enum_hrtimer_t;
 
+typedef adf_os_enum_hrtimer_t (*adf_os_hrtimer_func_t) (adf_os_hrtimer_t *);
 
 /**
  * @brief Initialize a timer
@@ -65,6 +68,21 @@ adf_os_timer_init(adf_os_handle_t      hdl,
 }
 
 /**
+ * @brief Initialize a high resolution timer
+ *
+ * @param[in] hdl       OS handle
+ * @param[in] timer     timer object pointer
+ * @param[in] func      timer function
+ */
+static inline void
+adf_os_hrtimer_init(adf_os_handle_t      hdl,
+                  adf_os_hrtimer_t      *timer,
+                  adf_os_hrtimer_func_t  func)
+{
+    __adf_os_hrtimer_init(hdl, timer, (__adf_os_hrtimer_func_t)func);
+}
+
+/**
  * @brief Start a one-shot timer
  *
  * @param[in] timer     timer object pointer
@@ -74,6 +92,18 @@ static inline void
 adf_os_timer_start(adf_os_timer_t *timer, int msec)
 {
     __adf_os_timer_start(timer, msec);
+}
+
+/**
+ * @brief Start a high resolution timer
+ *
+ * @param[in] timer     timer object pointer
+ * @param[in] msec      expiration period in nenoseconds
+ */
+static inline void
+adf_os_hrtimer_start(adf_os_hrtimer_t *timer, uint64_t nsec)
+{
+    __adf_os_hrtimer_start(timer, nsec);
 }
 
 /**
@@ -101,6 +131,20 @@ static inline a_bool_t
 adf_os_timer_cancel(adf_os_timer_t *timer)
 {
     return __adf_os_timer_cancel(timer);
+}
+
+/**
+ * @brief Cancel a high resolution timer
+ * The function will return after any running timer completes.
+ *
+ * @param[in] timer     timer object pointer
+ *
+ * @retval    TRUE      timer was cancelled and deactived
+ */
+static inline a_bool_t
+adf_os_hrtimer_cancel(adf_os_hrtimer_t *timer)
+{
+    return __adf_os_hrtimer_cancel(timer);
 }
 
 /**

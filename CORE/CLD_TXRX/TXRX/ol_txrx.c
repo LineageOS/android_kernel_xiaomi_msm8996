@@ -830,7 +830,6 @@ ol_txrx_pdev_attach(
         OL_TX_SCHED_WRR_ADV_CAT_MCAST_DATA;
     pdev->tid_to_ac[OL_TX_NUM_TIDS + OL_TX_VDEV_DEFAULT_MGMT] =
         OL_TX_SCHED_WRR_ADV_CAT_MCAST_MGMT;
-
     return pdev; /* success */
 
 pn_trace_attach_fail:
@@ -1018,9 +1017,119 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
 #ifdef QCA_COMPUTE_TX_DELAY
     adf_os_spinlock_destroy(&pdev->tx_delay.mutex);
 #endif
-
     adf_os_mem_free(pdev);
 }
+
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+
+/**
+ * ol_txrx_vdev_init_tcp_del_ack() - initialize tcp delayed ack structure
+ * @vdev: vdev handle
+ *
+ * Return: none
+ */
+void ol_txrx_vdev_init_tcp_del_ack(struct ol_txrx_vdev_t *vdev)
+{
+	int i = 0;
+
+	vdev->driver_del_ack_enabled = false;
+	adf_os_hrtimer_init(vdev->pdev->osdev,
+		&vdev->tcp_ack_hash.timer, ol_tx_hl_vdev_tcp_del_ack_timer);
+	adf_os_create_bh(vdev->pdev->osdev, &vdev->tcp_ack_hash.tcp_del_ack_tq,
+		 tcp_del_ack_tasklet, (unsigned long)vdev);
+	adf_os_atomic_init(&vdev->tcp_ack_hash.is_timer_running);
+	adf_os_atomic_init(&vdev->tcp_ack_hash.tcp_node_in_use_count);
+	adf_os_spinlock_init(&vdev->tcp_ack_hash.tcp_free_list_lock);
+	vdev->tcp_ack_hash.tcp_free_list = NULL;
+	for (i = 0; i < OL_TX_HL_DEL_ACK_HASH_SIZE; i++) {
+		adf_os_spinlock_init(&vdev->tcp_ack_hash.node[i].hash_node_lock);
+		vdev->tcp_ack_hash.node[i].no_of_entries = 0;
+		vdev->tcp_ack_hash.node[i].head = NULL;
+	}
+}
+
+/**
+ * ol_txrx_vdev_deinit_tcp_del_ack() - deinitialize tcp delayed ack structure
+ * @vdev: vdev handle
+ *
+ * Return: none
+ */
+void ol_txrx_vdev_deinit_tcp_del_ack(struct ol_txrx_vdev_t *vdev)
+{
+	struct tcp_stream_node *temp = NULL;
+
+	adf_os_destroy_bh(vdev->pdev->osdev, &vdev->tcp_ack_hash.tcp_del_ack_tq);
+
+	adf_os_spin_lock_bh(&vdev->tcp_ack_hash.tcp_free_list_lock);
+	while (vdev->tcp_ack_hash.tcp_free_list) {
+		temp = vdev->tcp_ack_hash.tcp_free_list;
+		vdev->tcp_ack_hash.tcp_free_list = temp->next;
+		adf_os_mem_free(temp);
+	}
+	adf_os_spin_unlock_bh(&vdev->tcp_ack_hash.tcp_free_list_lock);
+}
+
+/**
+ * ol_txrx_vdev_free_tcp_node() - add tcp node in free list
+ * @vdev: vdev handle
+ * @node: tcp stream node
+ *
+ * Return: none
+ */
+void ol_txrx_vdev_free_tcp_node(struct ol_txrx_vdev_t *vdev,
+				struct tcp_stream_node *node)
+{
+	adf_os_atomic_dec(&vdev->tcp_ack_hash.tcp_node_in_use_count);
+
+	adf_os_spin_lock_bh(&vdev->tcp_ack_hash.tcp_free_list_lock);
+	if (vdev->tcp_ack_hash.tcp_free_list) {
+		node->next = vdev->tcp_ack_hash.tcp_free_list;
+		vdev->tcp_ack_hash.tcp_free_list = node;
+	} else {
+		vdev->tcp_ack_hash.tcp_free_list = node;
+		node->next = NULL;
+	}
+	adf_os_spin_unlock_bh(&vdev->tcp_ack_hash.tcp_free_list_lock);
+}
+
+/**
+ * ol_txrx_vdev_alloc_tcp_node() - allocate tcp node
+ * @vdev: vdev handle
+ *
+ * Return: tcp stream node
+ */
+struct tcp_stream_node *ol_txrx_vdev_alloc_tcp_node(struct ol_txrx_vdev_t *vdev)
+{
+	struct tcp_stream_node *node = NULL;
+
+	adf_os_spin_lock_bh(&vdev->tcp_ack_hash.tcp_free_list_lock);
+	if (vdev->tcp_ack_hash.tcp_free_list) {
+		node = vdev->tcp_ack_hash.tcp_free_list;
+		vdev->tcp_ack_hash.tcp_free_list = node->next;
+	}
+	adf_os_spin_unlock_bh(&vdev->tcp_ack_hash.tcp_free_list_lock);
+
+	if (!node) {
+		node = adf_os_mem_alloc(vdev->pdev->osdev,
+				 sizeof(struct ol_txrx_vdev_t));
+		if (!node) {
+			TXRX_PRINT(TXRX_PRINT_LEVEL_FATAL_ERR, "Malloc failed");
+			return NULL;
+		}
+	}
+	adf_os_atomic_inc(&vdev->tcp_ack_hash.tcp_node_in_use_count);
+	return node;
+}
+#else
+static inline
+void ol_txrx_vdev_init_tcp_del_ack(struct ol_txrx_vdev_t *vdev)
+{
+}
+static inline
+void ol_txrx_vdev_deinit_tcp_del_ack(struct ol_txrx_vdev_t *vdev)
+{
+}
+#endif
 
 ol_txrx_vdev_handle
 ol_txrx_vdev_attach(
@@ -1123,6 +1232,8 @@ ol_txrx_vdev_attach(
             &vdev->bundle_queue.timer,
             ol_tx_hl_vdev_bundle_timer,
             vdev, ADF_DEFERRABLE_TIMER);
+
+    ol_txrx_vdev_init_tcp_del_ack(vdev);
 
     /* add this vdev into the pdev's list */
     TAILQ_INSERT_TAIL(&pdev->vdev_list, vdev, vdev_list_elem);

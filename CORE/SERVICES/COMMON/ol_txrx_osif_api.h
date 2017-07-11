@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2014, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -207,6 +207,28 @@ adf_nbuf_t ol_txrx_osif_tso_segment(
     ol_txrx_vdev_handle txrx_vdev,
     int max_seg_payload_bytes,
     adf_nbuf_t jumbo_tcp_frame);
+
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+void
+ol_tx_vdev_set_driver_del_ack_enable(uint8_t vdev_id, unsigned long tx_packets,
+			uint32_t time_in_ms, uint32_t high_th, uint32_t low_th);
+void
+ol_tx_pdev_reset_driver_del_ack(void *pdev);
+
+#else
+static inline void
+ol_tx_vdev_set_driver_del_ack_enable(uint8_t vdev_id, unsigned long tx_packets,
+			uint32_t time_in_ms, uint32_t high_th, uint32_t low_th)
+{
+	return;
+}
+static inline void
+ol_tx_pdev_reset_driver_del_ack(void *pdev)
+{
+	return;
+}
+
+#endif
 
 #ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
 void

@@ -296,6 +296,22 @@ static void vos_set_nan_enable(tMacOpenParameters *param,
 }
 #endif
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+static void vos_set_del_ack_params(tMacOpenParameters *param,
+					hdd_context_t *hdd_ctx)
+{
+	param->del_ack_enable =
+		hdd_ctx->cfg_ini->del_ack_enable;
+	param->del_ack_timer_value = hdd_ctx->cfg_ini->del_ack_timer_value;
+	param->del_ack_pkt_count = hdd_ctx->cfg_ini->del_ack_pkt_count;
+}
+#else
+static void vos_set_del_ack_params(tMacOpenParameters *param,
+					hdd_context_t *hdd_ctx)
+{
+}
+#endif
+
 #ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
 /**
  * vos_set_bundle_params() - set bundle params in mac open param
@@ -665,6 +681,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
    vos_set_nan_enable(&macOpenParms, pHddCtx);
    vos_set_bundle_params(&macOpenParms, pHddCtx);
+   vos_set_del_ack_params(&macOpenParms, pHddCtx);
    vos_set_ac_specs_params(&macOpenParms, pHddCtx);
    vos_set_ptp_enable(&macOpenParms, pHddCtx);
 

@@ -8622,6 +8622,31 @@ void wma_update_ptp_params(struct txrx_pdev_cfg_param_t *olCfg,
 }
 #endif
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+/**
+ * cfg_update_del_ack_params() - update del ack parameters
+ * @olCfg: cfg handle
+ * @mac_params: mac params
+ *
+ * Return: none
+ */
+static
+void cfg_update_del_ack_params(struct txrx_pdev_cfg_param_t *olCfg,
+				tMacOpenParameters *mac_params)
+{
+	olCfg->del_ack_enable = mac_params->del_ack_enable;
+	olCfg->del_ack_timer_value = mac_params->del_ack_timer_value;
+	olCfg->del_ack_pkt_count = mac_params->del_ack_pkt_count;
+}
+#else
+static
+void cfg_update_del_ack_params(struct txrx_pdev_cfg_param_t *olCfg,
+				tMacOpenParameters *mac_params)
+{
+}
+#endif
+
+
 #ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
 /**
  * ol_cfg_update_bundle_params() - update bundle params
@@ -8975,6 +9000,7 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 #endif
 
 	ol_cfg_update_bundle_params(&olCfg, mac_params);
+	cfg_update_del_ack_params(&olCfg, mac_params);
 	ol_cfg_update_ac_specs_params(&olCfg, mac_params);
  	wma_update_ptp_params(&olCfg, mac_params);
 	((pVosContextType) vos_context)->cfg_ctx =

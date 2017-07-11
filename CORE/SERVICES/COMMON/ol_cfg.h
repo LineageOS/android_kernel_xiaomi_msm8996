@@ -99,6 +99,12 @@ struct txrx_pdev_cfg_t {
 	uint16_t pkt_bundle_timer_value;
 	uint16_t pkt_bundle_size;
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+	uint8_t  del_ack_enable;
+	uint16_t del_ack_timer_value;
+	uint16_t del_ack_pkt_count;
+#endif
+
 	struct ol_tx_sched_wrr_ac_specs_t ac_specs[OL_TX_NUM_WMM_AC];
 };
 
@@ -560,6 +566,7 @@ unsigned int ol_cfg_ipa_uc_tx_partition_base(ol_pdev_handle pdev);
 
 #define DEFAULT_BUNDLE_TIMER_VALUE 100
 
+
 #ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
 int ol_cfg_get_bundle_timer_value(ol_pdev_handle pdev);
 int ol_cfg_get_bundle_size(ol_pdev_handle pdev);
@@ -577,6 +584,19 @@ int ol_cfg_get_bundle_size(ol_pdev_handle pdev)
 }
 #endif
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+int ol_cfg_get_del_ack_timer_value(ol_pdev_handle pdev);
+int ol_cfg_get_del_ack_enable_value(ol_pdev_handle pdev);
+int ol_cfg_get_del_ack_count_value(ol_pdev_handle pdev);
+void ol_cfg_update_del_ack_params(struct txrx_pdev_cfg_t *cfg_ctx,
+	struct txrx_pdev_cfg_param_t cfg_param);
+#else
+static inline
+void ol_cfg_update_del_ack_params(struct txrx_pdev_cfg_t *cfg_ctx,
+	struct txrx_pdev_cfg_param_t cfg_param)
+{
+}
+#endif
 
 int ol_cfg_get_wrr_skip_weight(ol_pdev_handle pdev, int ac);
 

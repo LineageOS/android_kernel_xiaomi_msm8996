@@ -48,7 +48,6 @@
 #include "ol_htt_rx_api.h"
 #include "wlan_qct_tl.h"
 #include <ol_txrx_ctrl_api.h>
-
 /*
  * The target may allocate multiple IDs for a peer.
  * In particular, the target may allocate one ID to represent the
@@ -866,6 +865,7 @@ struct ol_txrx_pdev_t {
 
 	struct ol_txrx_peer_t *self_peer;
 	uint32_t total_bundle_queue_length;
+	struct tasklet_struct tcp_ack_tq;
 
 #ifdef MAC_NOTIFICATION_FEATURE
 	/* Callback to indicate failure to user space */
@@ -879,6 +879,42 @@ struct ol_txrx_ocb_chan_info {
 	uint32_t bandwidth;
 	uint16_t disable_rx_stats_hdr:1;
 	uint8_t mac_address[6];
+};
+
+#define OL_TX_HL_DEL_ACK_HASH_SIZE    256
+
+enum ol_tx_hl_packet_type {
+	TCP_PKT_ACK,
+	TCP_PKT_NO_ACK,
+	NO_TCP_PKT
+};
+
+struct packet_info {
+	enum ol_tx_hl_packet_type type;
+	uint16_t stream_id;
+	uint32_t ack_number;
+	uint32_t dst_ip;
+	uint32_t src_ip;
+	uint16_t dst_port;
+	uint16_t src_port;
+};
+
+struct tcp_stream_node {
+	struct tcp_stream_node *next;
+	uint8_t no_of_ack_replaced;
+	uint16_t stream_id;
+	uint32_t dst_ip;
+	uint32_t src_ip;
+	uint16_t dst_port;
+	uint16_t src_port;
+	uint32_t ack_number;
+	adf_nbuf_t head;
+};
+
+struct tcp_del_ack_hash_node {
+	adf_os_spinlock_t hash_node_lock;
+	uint8_t no_of_entries;
+	struct tcp_stream_node *head;
 };
 
 struct ol_txrx_vdev_t {
@@ -978,6 +1014,19 @@ struct ol_txrx_vdev_t {
 		adf_os_spinlock_t mutex;
 		adf_os_timer_t timer;
 	} bundle_queue;
+
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+	bool driver_del_ack_enabled;
+	struct {
+		struct tcp_del_ack_hash_node node[OL_TX_HL_DEL_ACK_HASH_SIZE];
+		adf_os_hrtimer_t timer;
+		adf_os_atomic_t is_timer_running;
+		adf_os_atomic_t tcp_node_in_use_count;
+		adf_os_bh_t tcp_del_ack_tq;
+		struct tcp_stream_node *tcp_free_list;
+		adf_os_spinlock_t tcp_free_list_lock;
+	} tcp_ack_hash;
+#endif
 
 #if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
         union ol_txrx_align_mac_addr_t hl_tdls_ap_mac_addr;
