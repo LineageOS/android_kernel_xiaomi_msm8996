@@ -1778,10 +1778,10 @@
 			reg = <0x0 0x89c00000 0x0 0x6200000>;
 		};
 
-		ramoops_mem: ramoops_mem_region {
+		ramoops_mem: ramoops_region@92900000 {
+			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x92900000 0x0 0x80000>;
-			label = "ramoops_mem";
+			reg = <0x0 0x92900000 0x0 0x00100000>;
 		};
 	};
 };
@@ -1911,12 +1911,12 @@
 		status = "ok";
 
 		android,ramoops-buffer-start = <0x92900000>;
-		android,ramoops-buffer-size = <0x80000>;
-		android,ramoops-console-size = <0x40000>;
-		android,ramoops-record-size = <0x3F800>;
-		android,ramoops-annotate-size = <0x800>;
+		android,ramoops-buffer-size = <0x00100000>;
+		android,ramoops-console-size = <0x00080000>;
+		android,ramoops-pmsg-size = <0x00040000>;
+		android,ramoops-record-size = <0x00008000>;
+		android,ramoops-ftrace-size = <0x00020000>;
 		android,ramoops-dump-oops = <0x1>;
-
 		linux,contiguous-region = <&ramoops_mem>;
 	};
 };
