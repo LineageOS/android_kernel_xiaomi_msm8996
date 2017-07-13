@@ -5024,6 +5024,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_REDUCED_BEACON_INTERVAL_MIN,
                CFG_REDUCED_BEACON_INTERVAL_MAX),
 
+  REG_VARIABLE(CFG_NO_ACK_ENABLE, WLAN_PARAM_Integer,
+               hdd_config_t, gEnableNoAck,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_NO_ACK_DEFAULT,
+               CFG_NO_ACK_MIN,
+               CFG_NO_ACK_MAX),
+
 #ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
   REG_VARIABLE(CFG_COEX_PTA_CONFIG_ENABLE, WLAN_PARAM_Integer,
                hdd_config_t, coex_pta_config_enable,
@@ -5451,6 +5458,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
             "Name = [enable_tdls_scan] Value = [%u]",
             pHddCtx->cfg_ini->enable_tdls_scan);
 #endif
+
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableNoAck] Value = [%u] ",pHddCtx->cfg_ini->gEnableNoAck);
+
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVo] Value = [%u] ",pHddCtx->cfg_ini->InfraDirAcVo);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVo] Value = [0x%x] ",pHddCtx->cfg_ini->InfraNomMsduSizeAcVo);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVo] Value = [0x%x] ",pHddCtx->cfg_ini->InfraMeanDataRateAcVo);
