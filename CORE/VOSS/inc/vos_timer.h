@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -348,6 +348,19 @@ static inline vos_time_t vos_system_ticks(void)
 static inline uint32_t vos_system_ticks_to_msecs(vos_time_t ticks)
 {
 	return __vos_system_ticks_to_msecs(ticks);
+}
+
+/**
+ * vos_system_time_after() - Check if a is later than b
+ * @a: Time stamp value a
+ * @b: Time stamp value b
+ *
+ * Return:
+ * true if a is after b else false
+ */
+static inline bool vos_system_time_after(vos_time_t a, vos_time_t b)
+{
+	return (long)(b) - (long)(a) < 0;
 }
 
 unsigned long vos_get_time_of_the_day_ms(void);
