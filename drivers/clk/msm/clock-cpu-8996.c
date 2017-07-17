@@ -503,6 +503,7 @@ static struct mux_clk perfcl_hf_mux = {
 	.base = &vbases[APC1_BASE],
 	.c = {
 		.dbg_name = "perfcl_hf_mux",
+		.flags = CLKFLAG_NO_RATE_CACHE,
 		.ops = &clk_ops_gen_mux,
 		CLK_INIT(perfcl_hf_mux.c),
 	},
