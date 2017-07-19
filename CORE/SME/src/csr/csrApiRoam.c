@@ -6557,6 +6557,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
             sme_QosCsrEventInd(pMac, (tANI_U8)sessionId, SME_QOS_CSR_REASSOC_FAILURE, NULL);
 #endif
+            break;
         case eCsrJoinWdsFailure:
             smsLog(pMac, LOGW, FL("failed to join WDS"));
             csrFreeConnectBssDesc(pMac, sessionId);

@@ -6906,6 +6906,7 @@ static int __iw_setint_getnone(struct net_device *dev,
                  WLANTL_clear_datapath_stats(hdd_ctx->pvosContext, set_value);
                  break;
          }
+         break;
     }
 
     case WE_PPS_PAID_MATCH:
