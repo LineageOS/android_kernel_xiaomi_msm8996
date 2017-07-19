@@ -5235,6 +5235,7 @@ static inline int drv_cmd_get_antenna_mode(hdd_adapter_t *adapter,
 		return -EFAULT;
 	}
 
+	hddLog(LOG1, FL("Get antenna mode ret: 0 mode: %s"), extra);
 	return 0;
 }
 
@@ -7157,9 +7158,10 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                ret = -EFAULT;
                goto exit;
             }
-            priv_data.buf[numOfBytestoPrint] = '\0';
+            /* This overwrites the last space, which we already copied */
+            extra[numOfBytestoPrint - 1] = '\0';
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                      "%s", priv_data.buf);
+                      "%s", extra);
 
             if (length > numOfBytestoPrint)
             {
@@ -7173,7 +7175,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                     goto exit;
                 }
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                          "%s", &priv_data.buf[numOfBytestoPrint]);
+                          "%s", &extra[numOfBytestoPrint]);
             }
 
             /* Free temporary buffer */
@@ -7281,7 +7283,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
          /* Success ! */
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                   "%s", priv_data.buf);
+                   "%s", extra);
          ret = 0;
        }
        else if (strncmp(command, "SETRMCTXRATE", 12) == 0)
@@ -7924,8 +7926,6 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
 
            ret = drv_cmd_get_antenna_mode(pAdapter, pHddCtx, command,
                                           14, &priv_data);
-           hddLog(LOG1, FL("Get antenna mode ret: %d mode: %s"),
-                  ret, priv_data.buf);
        } else if (strncmp(command, "STOP", 4) == 0) {
           hddLog(LOG1, FL("STOP command"));
           pHddCtx->driver_being_stopped = true;
