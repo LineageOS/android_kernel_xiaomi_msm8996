@@ -8948,13 +8948,13 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
     tScanResultHandle hBSSList;
     tANI_BOOLEAN fCallCallback, fRemoveCmd;
     eHalStatus status;
-    tCsrRoamInfo roamInfo;
     tCsrScanResultFilter *pScanFilter = NULL;
     tANI_U32 roamId = 0;
     tCsrRoamProfile *pCurRoamProfile = NULL;
     tListElem *pEntry = NULL;
     tSmeCmd *pCommand = NULL;
 #endif
+    tCsrRoamInfo *roam_info;
     tANI_U32 sessionId;
     tCsrRoamSession *pSession;
     tpCsrNeighborRoamControlInfo pNeighborRoamInfo = NULL;
@@ -8967,6 +8967,10 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
     FL("csrRoamRoamingStateDisassocRspProcessor sessionId %d"), sessionId);
 
+    roam_info = vos_mem_malloc(sizeof(*roam_info));
+    if (!roam_info)
+        return;
+
     if ( csrIsConnStateInfra( pMac, sessionId ) )
     {
         pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
@@ -8976,6 +8980,7 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
     if(!pSession)
     {
         smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
+        vos_mem_free(roam_info);
         return;
     }
 
@@ -9084,13 +9089,13 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
         }
 
         /* Notify HDD about handoff and provide the BSSID too */
-        roamInfo.reasonCode = eCsrRoamReasonBetterAP;
+        roam_info->reasonCode = eCsrRoamReasonBetterAP;
 
-        vos_mem_copy(roamInfo.bssid,
+        vos_mem_copy(roam_info->bssid,
                      pNeighborRoamInfo->csrNeighborRoamProfile.BSSIDs.bssid,
                      sizeof(tSirMacAddr));
 
-        csrRoamCallCallback(pMac,sessionId, &roamInfo, 0,
+        csrRoamCallCallback(pMac,sessionId, roam_info, 0,
             eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_NONE);
 
         /* Copy the connected profile to apply the same for this connection as well */
@@ -9117,6 +9122,7 @@ void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisass
             vos_mem_free(pCurRoamProfile);
             csrFreeScanFilter(pMac, pScanFilter);
             vos_mem_free(pScanFilter);
+            vos_mem_free(roam_info);
             return;
         }
 
@@ -9133,9 +9139,9 @@ POST_ROAM_FAILURE:
         csrRoamSynchCleanUp(pMac, sessionId);
 #endif
         /* Inform the upper layers that the reassoc failed */
-        vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
+        vos_mem_zero(roam_info, sizeof(*roam_info));
         csrRoamCallCallback(pMac, sessionId,
-                &roamInfo, 0, eCSR_ROAM_FT_REASSOC_FAILED, eSIR_SME_SUCCESS);
+                roam_info, 0, eCSR_ROAM_FT_REASSOC_FAILED, eSIR_SME_SUCCESS);
 
         /*
          * Issue a disassoc request so that PE/LIM uses this to clean-up the FT session.
@@ -9185,6 +9191,7 @@ POST_ROAM_FAILURE:
         //We are not done yet. Get the data and continue roaming
         csrRoamReissueRoamCommand(pMac);
     }
+    vos_mem_free(roam_info);
 }
 
 static void csrRoamRoamingStateDeauthRspProcessor( tpAniSirGlobal pMac, tSirSmeDeauthRsp *pSmeRsp )
