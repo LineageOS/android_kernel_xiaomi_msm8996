@@ -4120,6 +4120,7 @@ sapFsm
                                         &sapContext->vht_channel_width,
                                         sapContext->ch_width_orig);
 
+                 cbMode = sme_GetCBPhyStateFromCBIniValue(cbMode);
 #ifdef WLAN_ENABLE_CHNL_MATRIX_RESTRICTION
                  temp_chan = sapContext->channel;
                  pNol = pMac->sap.SapDfsInfo.sapDfsChannelNolList;
