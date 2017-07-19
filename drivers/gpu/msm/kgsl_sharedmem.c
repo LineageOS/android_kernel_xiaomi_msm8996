@@ -14,6 +14,7 @@
 #include <linux/export.h>
 #include <linux/vmalloc.h>
 #include <asm/cacheflush.h>
+#include <asm/uaccess.h>
 #include <linux/slab.h>
 #include <linux/kmemleak.h>
 #include <linux/highmem.h>
@@ -664,8 +665,10 @@ int kgsl_cache_range_op(struct kgsl_memdesc *memdesc, uint64_t offset,
 			sg_offset = offset > pos ? offset - pos : 0;
 			sg_left = (sg->length - sg_offset > size) ? size :
 						sg->length - sg_offset;
+			uaccess_enable_not_uao();
 			ret = kgsl_do_cache_op(sg_page(sg), NULL, sg_offset,
 								sg_left, op);
+			uaccess_disable_not_uao();
 			size -= sg_left;
 			if (size == 0)
 				break;
@@ -681,7 +684,9 @@ int kgsl_cache_range_op(struct kgsl_memdesc *memdesc, uint64_t offset,
 		if (addr + ((size_t) offset + (size_t) size) < addr)
 			return -ERANGE;
 
+		uaccess_enable_not_uao();
 		ret = kgsl_do_cache_op(NULL, addr, offset, size, op);
+		uaccess_disable_not_uao();
 		vunmap(addr);
 	}
 	return ret;
