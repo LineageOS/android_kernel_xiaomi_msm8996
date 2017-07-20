@@ -1086,6 +1086,7 @@ static int __hdd_netdev_notifier_call(struct notifier_block * nb,
 
    //Make sure that this callback corresponds to our device.
    if ((strncmp(dev->name, "wlan", 4)) &&
+      (strncmp(dev->name, "softAP", 6)) &&
       (strncmp(dev->name, "p2p", 3)))
       return NOTIFY_DONE;
 
