@@ -13299,6 +13299,30 @@ fail:
 	return -EINVAL;
 }
 
+#ifdef FEATURE_WLAN_ESE
+/**
+ * hdd_check_cckm_auth_type() - check cckm auth type
+ * @auth_type: csr auth type
+ *
+ * Return: auth type
+ */
+static int hdd_check_cckm_auth_type(uint32_t auth_type)
+{
+	uint32_t ret_val = QCA_WLAN_AUTH_TYPE_INVALID;
+
+	if (auth_type == eCSR_AUTH_TYPE_CCKM_WPA)
+		ret_val = QCA_WLAN_AUTH_TYPE_CCKM_WPA;
+	else if (auth_type == eCSR_AUTH_TYPE_CCKM_RSN)
+		ret_val = QCA_WLAN_AUTH_TYPE_CCKM_RSN;
+	return ret_val;
+}
+#else
+static int hdd_check_cckm_auth_type(uint32_t auth_type)
+{
+	return QCA_WLAN_AUTH_TYPE_INVALID;
+}
+#endif
+
 /**
  * hdd_map_auth_type() - transform auth type specific to
  * vendor command
@@ -13309,6 +13333,10 @@ fail:
 static int hdd_convert_auth_type(uint32_t auth_type)
 {
 	uint32_t ret_val;
+
+	ret_val = hdd_check_cckm_auth_type(auth_type);
+	if (ret_val != QCA_WLAN_AUTH_TYPE_INVALID)
+		return ret_val;
 
 	switch (auth_type) {
 	case eCSR_AUTH_TYPE_OPEN_SYSTEM:
@@ -13346,12 +13374,6 @@ static int hdd_convert_auth_type(uint32_t auth_type)
 		break;
 	case eCSR_AUTH_TYPE_WAPI_WAI_PSK:
 		ret_val = QCA_WLAN_AUTH_TYPE_WAI_PSK;
-		break;
-	case eCSR_AUTH_TYPE_CCKM_WPA:
-		ret_val = QCA_WLAN_AUTH_TYPE_CCKM_WPA;
-		break;
-	case eCSR_AUTH_TYPE_CCKM_RSN:
-		ret_val = QCA_WLAN_AUTH_TYPE_CCKM_RSN;
 		break;
 	case eCSR_AUTH_TYPE_RSN_PSK_SHA256:
 		ret_val = QCA_WLAN_AUTH_TYPE_SHA256_PSK;
