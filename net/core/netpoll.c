@@ -668,7 +668,7 @@ int netpoll_setup(struct netpoll *np)
 	int err;
 
 	rtnl_lock();
-	if (np->dev_name)
+	if (np->dev_name[0])
 		ndev = __dev_get_by_name(net, np->dev_name);
 
 	if (!ndev) {
