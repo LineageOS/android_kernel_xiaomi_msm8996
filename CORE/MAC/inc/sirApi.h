@@ -4004,6 +4004,26 @@ typedef struct sSirSetRSSIFilterReq
 #define ALLOWED_ACTION_FRAMES_BITMAP5	0x0
 #define ALLOWED_ACTION_FRAMES_BITMAP6	0x0
 #define ALLOWED_ACTION_FRAMES_BITMAP7	0x0
+
+/*
+ * DROP_SPEC_MGMT_ACTION_FRAME_BITMAP
+ *
+ * Bitmask is based on the below. The frames with 1's
+ * set to their corresponding bit can be dropped in FW.
+ *
+ * ----------------------------------+-----+------+
+ *         Type                      | Bit | Drop |
+ * ----------------------------------+-----+------+
+ * SIR_MAC_ACTION_MEASURE_REQUEST_ID    0     1
+ * SIR_MAC_ACTION_TPC_REQUEST_ID        1     1
+ * ----------------------------------+-----+------+
+ */
+#define DROP_SPEC_MGMT_ACTION_FRAME_BITMAP \
+		((1 << SIR_MAC_ACTION_MEASURE_REQUEST_ID) |\
+		 (1 << SIR_MAC_ACTION_MEASURE_REPORT_ID) |\
+		 (1 << SIR_MAC_ACTION_TPC_REPORT_ID) |\
+		 (1 << SIR_MAC_ACTION_TPC_REQUEST_ID))
+
 /**
  * struct sir_allowed_action_frames - Parameters to set Allowed action frames
  * @operation: 0 reset to fw default, 1 set the bits,
@@ -4013,6 +4033,7 @@ typedef struct sSirSetRSSIFilterReq
 struct sir_allowed_action_frames {
 	uint32_t operation;
 	uint32_t action_category_map[SIR_MAC_ACTION_MAX / 32];
+	uint32_t action_per_category[SIR_MAC_ACTION_MAX];
 };
 
 // Update Scan Params

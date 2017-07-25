@@ -2973,7 +2973,8 @@ sap_OpenSession (tHalHandle hHal, ptSapContext sapContext,
         return VOS_STATUS_E_FAILURE;
     }
 
-    sme_set_allowed_action_frames(hHal, ALLOWED_ACTION_FRAMES_BITMAP0_SAP);
+    sme_set_allowed_action_frames(hHal,
+		ALLOWED_ACTION_FRAMES_BITMAP0_SAP, false);
     status = vos_wait_single_event(
             &sapContext->sap_session_opened_evt,
             SAP_OPEN_SESSION_TIMEOUT);
@@ -3727,7 +3728,7 @@ eHalStatus sap_CloseSession(tHalHandle hHal,
          * to FW
          */
         sme_set_allowed_action_frames(hHal,
-                           ALLOWED_ACTION_FRAMES_BITMAP0_STA);
+			ALLOWED_ACTION_FRAMES_BITMAP0_STA, true);
     }
 
     return halstatus;

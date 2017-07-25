@@ -2236,6 +2236,8 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
 /**
  * sme_set_allowed_action_frames() - Set allowed action frames to wma
  * @hal: Handler to HAL
+ * @bitmap0: bitmap to set
+ * @is_sta: boolean to indicate sta interface
  *
  * This function conveys the list of action frames that needs to be forwarded
  * to driver by FW. Rest of the action frames can be dropped in FW. Bitmask is
@@ -2243,7 +2245,8 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
  *
  * Return: None
  */
-void sme_set_allowed_action_frames(tHalHandle hal, uint32_t bitmap0)
+void sme_set_allowed_action_frames(tHalHandle hal,
+				   uint32_t bitmap0, bool is_sta)
 {
 	eHalStatus status;
 	tpAniSirGlobal mac = PMAC_STRUCT(hal);
@@ -2278,6 +2281,10 @@ void sme_set_allowed_action_frames(tHalHandle hal, uint32_t bitmap0)
 				(ALLOWED_ACTION_FRAMES_BITMAP6);
 	sir_allowed_action_frames->action_category_map[7] =
 				(ALLOWED_ACTION_FRAMES_BITMAP7);
+	if (is_sta)
+		sir_allowed_action_frames->
+			action_per_category[SIR_MAC_ACTION_SPECTRUM_MGMT] =
+			DROP_SPEC_MGMT_ACTION_FRAME_BITMAP;
 
 	status = sme_AcquireGlobalLock(&mac->sme);
 	if (status == eHAL_STATUS_SUCCESS) {
@@ -2355,7 +2362,7 @@ eHalStatus sme_Start(tHalHandle hHal)
       pMac->sme.state = SME_STATE_START;
    }while (0);
 
-   sme_set_allowed_action_frames(hHal, ALLOWED_ACTION_FRAMES_BITMAP0_STA);
+   sme_set_allowed_action_frames(hHal, ALLOWED_ACTION_FRAMES_BITMAP0_STA, true);
 
    return status;
 }
