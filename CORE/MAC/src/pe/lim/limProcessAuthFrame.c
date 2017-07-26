@@ -148,7 +148,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     tANI_U8                 *pBody, keyId, cfgPrivacyOptImp,
                             defaultKey[SIR_MAC_KEY_LENGTH],
                             *encrAuthFrame = NULL,
-                            plainBody[256];
+                            *plainBody = NULL;
     tANI_U16                frameLen;
     tANI_U32                maxNumPreAuth, val;
     tSirMacAuthFrameBody    *pRxAuthFrameBody,
@@ -161,7 +161,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     tANI_U8                 decryptResult;
     tANI_U8                 *pChallenge;
     tANI_U32                key_length=8;
-    tANI_U8                 challengeTextArray[SIR_MAC_AUTH_CHALLENGE_LENGTH];
+    tANI_U8                 *challengeTextArray = NULL;
     tpDphHashNode           pStaDs = NULL;
     tANI_U16                assocId = 0;
     tANI_U16                currSeqNum = 0;
@@ -228,9 +228,23 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
         goto free;
     }
 
+    plainBody = vos_mem_malloc(LIM_ENCR_AUTH_BODY_LEN);
+    if (!plainBody) {
+        limLog(pMac, LOGE, FL("failed to allocate memory"));
+        goto free;
+    }
+
+    challengeTextArray = vos_mem_malloc(SIR_MAC_AUTH_CHALLENGE_LENGTH);
+    if(!challengeTextArray) {
+        limLog(pMac, LOGE, FL("failed to allocate memory"));
+        goto free;
+    }
+
     vos_mem_set(rxAuthFrame, sizeof(tSirMacAuthFrameBody), 0);
     vos_mem_set(authFrame, sizeof(tSirMacAuthFrameBody), 0);
     vos_mem_set(encrAuthFrame, LIM_ENCR_AUTH_BODY_LEN, 0);
+    vos_mem_set(plainBody, LIM_ENCR_AUTH_BODY_LEN, 0);
+    vos_mem_set(challengeTextArray, SIR_MAC_AUTH_CHALLENGE_LENGTH, 0);
 
     /// Determine if WEP bit is set in the FC or received MAC header
     if (pHdr->fc.wep)
@@ -962,11 +976,13 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                             pAuthNode->fTimerStarted = 1;
 
-                            // get random bytes and use as
-                            // challenge text. If it fails we already have random stack bytes.
+                            /*
+                             * get random bytes and use as challenge text
+                             */
                             if( !VOS_IS_STATUS_SUCCESS( vos_rand_get_bytes( 0, (tANI_U8 *)challengeTextArray, SIR_MAC_AUTH_CHALLENGE_LENGTH ) ) )
                             {
                                limLog(pMac, LOGE,FL("Challenge text preparation failed in limProcessAuthFrame"));
+                               goto free;
                             }
 
                             pChallenge = pAuthNode->challengeText;
@@ -1761,6 +1777,10 @@ free:
         vos_mem_free(rxAuthFrame);
     if (encrAuthFrame)
         vos_mem_free(encrAuthFrame);
+    if (plainBody)
+        vos_mem_free(plainBody);
+    if (challengeTextArray)
+        vos_mem_free(challengeTextArray);
 
 } /*** end limProcessAuthFrame() ***/
 
