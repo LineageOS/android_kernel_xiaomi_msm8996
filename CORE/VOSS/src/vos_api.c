@@ -545,7 +545,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                   "%s: Failed to Create HTC", __func__);
            goto err_bmi_close;
-           goto err_sched_close;
    }
 
    if (bmi_done(scn)) {
