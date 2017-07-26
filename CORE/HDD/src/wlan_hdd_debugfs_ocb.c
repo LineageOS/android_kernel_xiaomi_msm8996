@@ -277,9 +277,10 @@ static int __wlan_hdd_read_dsrc_chan_stats_debugfs(struct file *file,
 	return ret_cnt;
 }
 
-static int wlan_hdd_write_dsrc_chan_stats_debugfs(struct file *file,
-						  const char __user *buf,
-						  size_t count, loff_t *ppos)
+static ssize_t wlan_hdd_write_dsrc_chan_stats_debugfs(struct file *file,
+						      const char __user *buf,
+						      size_t count,
+						      loff_t *ppos)
 {
 	ssize_t ret;
 
@@ -290,9 +291,9 @@ static int wlan_hdd_write_dsrc_chan_stats_debugfs(struct file *file,
 	return ret;
 }
 
-static int wlan_hdd_read_dsrc_chan_stats_debugfs(struct file *file,
-						 char __user *buf,
-						 size_t count, loff_t *pos)
+static ssize_t wlan_hdd_read_dsrc_chan_stats_debugfs(struct file *file,
+						     char __user *buf,
+						     size_t count, loff_t *pos)
 {
 	int ret;
 
