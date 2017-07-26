@@ -467,8 +467,8 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    void *vdev_handle = NULL, *vdev_temp;
    bool is_update_ac_stats = FALSE;
    v_MACADDR_t *pDestMacAddress = NULL;
-#ifdef QCA_PKT_PROTO_TRACE
    hdd_context_t *hddCtxt = WLAN_HDD_GET_CTX(pAdapter);
+#ifdef QCA_PKT_PROTO_TRACE
    v_U8_t proto_type = 0;
 #endif /* QCA_PKT_PROTO_TRACE */
 
@@ -499,6 +499,8 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
        pDestMacAddress = (v_MACADDR_t*)skb->data;
        STAId = HDD_WLAN_INVALID_STA_ID;
+
+       hdd_tsf_record_sk_for_skb(hddCtxt, skb);
 
 /*
 * The TCP TX throttling logic is changed a little after 3.19-rc1 kernel,
@@ -534,11 +536,10 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                goto drop_pkt;
            }
 
-           vdev_temp = tlshim_peer_validity(
-                   (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, STAId);
+           vdev_temp = tlshim_peer_validity(hddCtxt->pvosContext, STAId);
        } else {
            vdev_temp =
-               tlshim_selfpeer_vdev((WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
+               tlshim_selfpeer_vdev(hddCtxt->pvosContext);
        }
        if (!vdev_temp)
            goto drop_pkt;
@@ -548,10 +549,10 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 #ifdef QCA_LL_TX_FLOW_CT
        if ((pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused != TRUE) &&
             VOS_FALSE ==
-              WLANTL_GetTxResource((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                    pAdapter->sessionId,
-                                    pAdapter->tx_flow_low_watermark,
-                                    pAdapter->tx_flow_high_watermark_offset)) {
+              WLANTL_GetTxResource(hddCtxt->pvosContext,
+				   pAdapter->sessionId,
+				   pAdapter->tx_flow_low_watermark,
+				   pAdapter->tx_flow_high_watermark_offset)) {
            hddLog(LOG1, FL("Disabling queues"));
            wlan_hdd_netif_queue_control(pAdapter, WLAN_STOP_ALL_NETIF_QUEUE,
                     WLAN_DATA_FLOW_CONTROL);
@@ -721,8 +722,7 @@ drop_pkt:
    /*
     * TODO: Should we stop net queues when txrx returns non-NULL?.
     */
-   skb = WLANTL_SendSTA_DataFrame((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                   vdev_handle, list_head
+   skb = WLANTL_SendSTA_DataFrame(hddCtxt->pvosContext, vdev_handle, list_head
 #ifdef QCA_PKT_PROTO_TRACE
                                  , proto_type
 #endif /* QCA_PKT_PROTO_TRACE */

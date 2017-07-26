@@ -42,7 +42,9 @@
 #include "palTypes.h"
 #include "sirTypes.h"
 #include "wni_cfg.h"
-
+#ifdef WLAN_FEATURE_FILS_SK
+#include <lim_fils_defs.h>
+#endif
 
 ///Capability information related
 #define CAPABILITY_INFO_DELAYED_BA_BIT 14
@@ -2049,6 +2051,14 @@ typedef __ani_attr_pre_packed struct sSirMacAuthFrameBody
     tANI_U8      type;   // = SIR_MAC_CHALLENGE_TEXT_EID
     tANI_U8      length; // = SIR_MAC_AUTH_CHALLENGE_LENGTH
     tANI_U8      challengeText[SIR_MAC_AUTH_CHALLENGE_LENGTH];
+#ifdef WLAN_FEATURE_FILS_SK
+    tSirMacRsnInfo rsn_ie;
+    uint8_t assoc_delay_info;
+    uint8_t session[SIR_FILS_SESSION_LENGTH];
+    uint8_t wrapped_data_len;
+    uint8_t wrapped_data[SIR_FILS_WRAPPED_DATA_MAX_SIZE];
+    uint8_t nonce[SIR_FILS_NONCE_LENGTH];
+#endif
 } __ani_attr_packed tSirMacAuthFrameBody, *tpSirMacAuthFrameBody;
 
 typedef __ani_attr_pre_packed struct sSirMacAuthenticationFrame

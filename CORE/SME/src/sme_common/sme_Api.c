@@ -76,6 +76,7 @@
 #include "schApi.h"
 #include "sme_nan_datapath.h"
 #include "csrApi.h"
+#include "utilsApi.h"
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
@@ -1109,6 +1110,7 @@ sme_process_cmd:
                         case eSmeCommandNoAUpdate:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
                             p2pProcessNoAReq(pMac,pCommand);
+                            break;
                         case eSmeCommandEnterImps:
                         case eSmeCommandExitImps:
                         case eSmeCommandEnterBmps:
@@ -3410,6 +3412,17 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                }
                vos_mem_free(pMsg->bodyptr);
                break;
+          case eWNI_SME_RADIO_CHAN_STATS_IND:
+               if (pMac->sme.radio_chan_stats_callback) {
+                   pMac->sme.radio_chan_stats_callback(
+                       pMac->sme.radio_chan_stats_context, pMsg->bodyptr);
+               } else {
+                   smsLog(pMac, LOGE, FL(
+                       "Error processing message. The callback is NULL."));
+               }
+               vos_mem_free(pMsg->bodyptr);
+               break;
+
           case eWNI_SME_FW_DUMP_IND:
                sme_process_fw_mem_dump_rsp(pMac, pMsg);
                break;
@@ -13679,60 +13692,6 @@ void sme_set_dot11p_config(tHalHandle hal, bool enable_dot11p)
 }
 
 /**
- * copy_sir_ocb_config() - Performs deep copy of an OCB configuration
- * @src: the source configuration
- *
- * Return: pointer to the copied OCB configuration
- */
-static struct sir_ocb_config *sme_copy_sir_ocb_config(struct sir_ocb_config *src)
-{
-	struct sir_ocb_config *dst;
-	uint32_t length;
-	void *cursor;
-
-	length = sizeof(*src) +
-		src->channel_count * sizeof(*src->channels) +
-		src->schedule_size * sizeof(*src->schedule) +
-		src->dcc_ndl_chan_list_len +
-		src->dcc_ndl_active_state_list_len +
-		src->def_tx_param_size;
-
-	dst = vos_mem_malloc(length);
-	if (!dst)
-		return NULL;
-
-	*dst = *src;
-
-	cursor = dst;
-	cursor += sizeof(*dst);
-	dst->channels = cursor;
-	cursor += src->channel_count * sizeof(*src->channels);
-	vos_mem_copy(dst->channels, src->channels,
-		     src->channel_count * sizeof(*src->channels));
-	dst->schedule = cursor;
-	cursor += src->schedule_size * sizeof(*src->schedule);
-	vos_mem_copy(dst->schedule, src->schedule,
-		     src->schedule_size * sizeof(*src->schedule));
-	dst->dcc_ndl_chan_list = cursor;
-	cursor += src->dcc_ndl_chan_list_len;
-	vos_mem_copy(dst->dcc_ndl_chan_list, src->dcc_ndl_chan_list,
-		     src->dcc_ndl_chan_list_len);
-	dst->dcc_ndl_active_state_list = cursor;
-	cursor += src->dcc_ndl_active_state_list_len;
-	vos_mem_copy(dst->dcc_ndl_active_state_list,
-		     src->dcc_ndl_active_state_list,
-		     src->dcc_ndl_active_state_list_len);
-	cursor += src->dcc_ndl_active_state_list_len;
-	if (src->def_tx_param && src->def_tx_param_size) {
-		dst->def_tx_param = cursor;
-		vos_mem_copy(dst->def_tx_param, src->def_tx_param,
-			     src->def_tx_param_size);
-	}
-
-	return dst;
-}
-
-/**
  * sme_ocb_set_config() - Set the OCB configuration
  * @hHal: reference to the HAL
  * @context: the context of the call
@@ -13762,7 +13721,7 @@ eHalStatus sme_ocb_set_config(tHalHandle hHal, void *context,
 		goto end;
 	}
 
-	msg_body = sme_copy_sir_ocb_config(config);
+	msg_body = sir_copy_sir_ocb_config(config);
 
 	if (!msg_body) {
 		status = eHAL_STATUS_FAILED_ALLOC;
@@ -14178,6 +14137,102 @@ eHalStatus sme_register_for_dcc_stats_event(tHalHandle hHal, void *context,
 	sme_ReleaseGlobalLock(&pMac->sme);
 
 	return 0;
+}
+
+/**
+ * sme_register_radio_chan_stats_cb() - Register callback for DSRC radio
+ *	channel statistics event indication.
+ * @hal: reference to the HAL
+ * @context: the context of the call
+ * @callback: the callback to hdd
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_register_radio_chan_stats_cb(tHalHandle hal, void *context,
+					    ocb_callback callback)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		mac->sme.radio_chan_stats_callback = callback;
+		mac->sme.radio_chan_stats_context = context;
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock error"));
+	}
+
+	return status;
+}
+
+/**
+ * sme_unregister_radio_chan_stats_cb() - Unregister DSRC radio channel
+ *	statistics callback.
+ * @hal: reference to the HAL
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_unregister_radio_chan_stats_cb(tHalHandle hal)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (eHAL_STATUS_SUCCESS == status) {
+		mac->sme.radio_chan_stats_callback = NULL;
+		mac->sme.radio_chan_stats_context = NULL;
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock error"));
+	}
+
+	return status;
+}
+
+/**
+ * sme_request_radio_chan_stats() - Set request for DSRC
+ *	radio channel statistics.
+ * @hal: reference to the HAL
+ * @req: request parameters for radio channel stats.
+ *
+ * Return: eHAL_STATUS_SUCCESS on success, eHAL_STATUS_FAILURE on failure
+ */
+eHalStatus sme_request_radio_chan_stats(tHalHandle hal,
+					struct radio_chan_stats_req *req)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	struct radio_chan_stats_req *msg_body;
+	vos_msg_t msg = { 0 };
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (!HAL_STATUS_SUCCESS(status))
+		return status;
+
+	msg_body = vos_mem_malloc(sizeof(*msg_body));
+	if (!msg_body)
+		return eHAL_STATUS_FAILED_ALLOC;
+
+	vos_mem_copy(msg_body, req, sizeof(*msg_body));
+
+	msg.type = WDA_DSRC_RADIO_CHAN_STATS_REQ;
+	msg.bodyptr = msg_body;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA, &msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Error posting message to WDA: %d"), vos_status);
+		vos_mem_free(msg_body);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	sme_ReleaseGlobalLock(&mac->sme);
+
+	return eHAL_STATUS_SUCCESS;
 }
 #endif
 void sme_getRecoveryStats(tHalHandle hHal) {
@@ -19075,6 +19130,46 @@ eHalStatus sme_delete_all_tdls_peers(tHalHandle hal, uint8_t session_id)
 	return status;
 }
 
+#ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
+/**
+ * sme_configure_pta_coex() - Set coex PTA params
+ * @pta_enable: PTA enable or not
+ * @pta_param: PTA params
+ *
+ * Return: Return VOS_STATUS.
+ */
+VOS_STATUS sme_configure_pta_coex(uint8_t coex_pta_config_enable, uint32_t coex_pta_config_param)
+{
+	vos_msg_t msg = {0};
+	VOS_STATUS vos_status;
+	WMI_COEX_CONFIG_CMD_fixed_param *sme_pta_config;
+
+	sme_pta_config = vos_mem_malloc(sizeof(*sme_pta_config));
+	if (!sme_pta_config) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Malloc failed"));
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	sme_pta_config->config_type = WMI_COEX_CONFIG_PTA_CONFIG;
+	sme_pta_config->config_arg1 = coex_pta_config_enable;
+	sme_pta_config->config_arg2 = coex_pta_config_param;
+
+	msg.type = WDA_BTC_BT_WLAN_INTERVAL_CMD;
+	msg.reserved = 0;
+	msg.bodyptr = sme_pta_config;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,&msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to post message to WDA"));
+		vos_mem_free(sme_pta_config);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return vos_status;
+}
+#endif
 
 /**
  * sme_set_beacon_filter() - set the beacon filter configuration

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014,2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014,2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -36,6 +36,33 @@
 #include <adf_os_lock.h>
 #include <ol_txrx_api.h> /* ol_txrx_vdev_handle */
 #include <ol_txrx_types.h>  /* ol_tx_desc_t, ol_txrx_msdu_info_t */
+
+#ifdef WLAN_FEATURE_DSRC
+struct ol_tx_per_pkt_stats {
+	uint32_t seq_no;
+	uint32_t chan_freq;
+	uint32_t bandwidth;
+	uint8_t datarate;
+	uint8_t tx_power;
+	uint8_t mac_address[6];
+};
+
+void
+ol_per_pkt_tx_stats_enable(int enable);
+
+void
+ol_tx_stats_ring_enque(uint32_t msdu_id, uint32_t chan_freq,
+		       uint32_t bandwidth, uint8_t *mac_address,
+		       uint8_t datarate, uint8_t power);
+
+int
+ol_tx_stats_ring_deque(struct ol_tx_per_pkt_stats *stats);
+#else
+static inline void
+ol_per_pkt_tx_stats_enable(int enable)
+{
+}
+#endif /* WLAN_FEATURE_DSRC */
 
 adf_nbuf_t
 ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list);

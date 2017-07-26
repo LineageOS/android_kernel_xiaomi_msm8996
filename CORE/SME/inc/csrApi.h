@@ -35,6 +35,9 @@
 #ifndef CSRAPI_H__
 #define CSRAPI_H__
 
+#ifdef WLAN_FEATURE_FILS_SK
+#include "lim_fils_defs.h"
+#endif
 #include "sirApi.h"
 #include "sirMacProtDef.h"
 #include "csrLinkList.h"
@@ -442,6 +445,10 @@ typedef struct tagCsrScanResultFilter
      */
     uint8_t scan_filter_for_roam;
     tCsrBssid bssid_hint;
+#ifdef WLAN_FEATURE_FILS_SK
+    bool realm_check;
+    uint8_t fils_realm[2];
+#endif
 }tCsrScanResultFilter;
 
 
@@ -1044,6 +1051,10 @@ typedef struct tagCsrRoamProfile
     tSirMacRateSet  extended_rates;
     uint8_t sub20_channelwidth;
     tCsrBssid bssid_hint;
+#ifdef WLAN_FEATURE_FILS_SK
+    bool fils_connection;
+    struct cds_fils_connection_info *fils_con_info;
+#endif
 }tCsrRoamProfile;
 
 
@@ -1511,7 +1522,12 @@ typedef struct tagCsrRoamInfo
         struct ndi_delete_rsp ndi_delete_params;
     } ndp;
 #endif
-
+    tDot11fIEHTCaps ht_caps;
+    tDot11fIEVHTCaps vht_caps;
+    tDot11fIEhs20vendor_ie hs20vendor_ie;
+    tDot11fIEVHTOperation vht_operation;
+    tDot11fIEHTInfo ht_operation;
+    bool reassoc;
     /* Extended capabilities of STA */
     uint8_t ecsa_capable;
     bool                 ampdu;

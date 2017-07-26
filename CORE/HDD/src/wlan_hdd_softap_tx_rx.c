@@ -53,6 +53,7 @@
 #include <wlan_hdd_ipa.h>
 #endif
 #include "adf_trace.h"
+#include <wlan_hdd_tsf.h>
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
@@ -234,21 +235,20 @@ int __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    WLANTL_ACEnumType ac;
    hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
    hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   hdd_context_t *hddCtxt = WLAN_HDD_GET_CTX(pAdapter);
    v_MACADDR_t *pDestMacAddress;
    v_U8_t STAId;
    struct sk_buff *skb_next, *list_head = NULL, *list_tail = NULL;
    void *vdev_handle = NULL, *vdev_temp;
    bool is_update_ac_stats = FALSE;
 #ifdef QCA_PKT_PROTO_TRACE
-   hdd_context_t *hddCtxt = (hdd_context_t *)pAdapter->pHddCtx;
    v_U8_t proto_type = 0;
 #endif /* QCA_PKT_PROTO_TRACE */
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
    /* Prevent this function to be called during SSR since TL context may
       not be reinitialized at this time which will lead crash. */
-   if (pHddCtx->isLogpInProgress)
+   if (hddCtxt->isLogpInProgress)
    {
        VOS_TRACE(VOS_MODULE_ID_HDD_SAP_DATA, VOS_TRACE_LEVEL_INFO_HIGH,
                  "%s: LOGP in Progress. Ignore!!!", __func__);
@@ -275,6 +275,8 @@ int __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        wlan_hdd_classify_pkt(skb);
 
        pDestMacAddress = (v_MACADDR_t*)skb->data;
+
+       hdd_tsf_record_sk_for_skb(hddCtxt, skb);
 
 /*
 * The TCP TX throttling logic is changed a little after 3.19-rc1 kernel,
@@ -352,8 +354,7 @@ int __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
            }
        }
 
-       vdev_temp = tlshim_peer_validity(
-                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, STAId);
+       vdev_temp = tlshim_peer_validity(hddCtxt->pvosContext, STAId);
        if (!vdev_temp)
            goto drop_pkt;
 
@@ -362,10 +363,10 @@ int __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 #ifdef QCA_LL_TX_FLOW_CT
        if ((pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused != TRUE) &&
             VOS_FALSE ==
-              WLANTL_GetTxResource((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                    pAdapter->sessionId,
-                                    pAdapter->tx_flow_low_watermark,
-                                    pAdapter->tx_flow_high_watermark_offset)) {
+              WLANTL_GetTxResource(hddCtxt->pvosContext,
+				   pAdapter->sessionId,
+				   pAdapter->tx_flow_low_watermark,
+				   pAdapter->tx_flow_high_watermark_offset)) {
            if ((pAdapter->tx_flow_timer_initialized == TRUE) &&
                (VOS_TIMER_STATE_STOPPED ==
                 vos_timer_getCurrentState(&pAdapter->tx_flow_control_timer))) {
@@ -463,8 +464,7 @@ drop_pkt:
 
    list_tail->next = NULL;
 
-   skb = WLANTL_SendSTA_DataFrame((WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                                   vdev_handle, list_head
+   skb = WLANTL_SendSTA_DataFrame(hddCtxt->pvosContext, vdev_handle, list_head
 #ifdef QCA_PKT_PROTO_TRACE
                                  , proto_type
 #endif /* QCA_PKT_PROTO_TRACE */

@@ -22,7 +22,7 @@ KERNEL_TO_BUILD_ROOT_OFFSET := ../
 endif
 
 # Check for supported kernel
-ifeq ($(TARGET_KERNEL_VERSION),3.18)
+ifeq ($(TARGET_KERNEL_VERSION),$(filter $(TARGET_KERNEL_VERSION),4.4 3.18))
 $(info "WLAN: supported kernel detected, building qcacld-2.0")
 
 # If kernel path offset is not defined, assume old kernel structure

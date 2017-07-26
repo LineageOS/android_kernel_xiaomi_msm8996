@@ -28,6 +28,9 @@
 #if !defined( __LIM_SESSION_H )
 #define __LIM_SESSION_H
 
+#ifdef WLAN_FEATURE_FILS_SK
+#include "lim_fils_defs.h"
+#endif
 /**=========================================================================
 
   \file  limSession.h
@@ -495,6 +498,8 @@ typedef struct sPESession           // Added to Support BT-AMP
 #ifdef FEATURE_WLAN_ESE
     uint8_t is_ese_version_ie_present;
 #endif
+    /* HS 2.0 Indication */
+    tDot11fIEhs20vendor_ie hs20vendor_ie;
     /* flag to indicate country code in beacon */
     tANI_U8 countryInfoPresent;
     uint8_t vdev_nss;
@@ -503,6 +508,10 @@ typedef struct sPESession           // Added to Support BT-AMP
     /* Supported NSS is intersection of self and peer NSS */
     bool supported_nss_1x1;
     bool is_ext_caps_present;
+    tDot11fIEHTCaps ht_caps;
+    tDot11fIEVHTCaps vht_caps;
+    tDot11fIEHTInfo ht_operation;
+    tDot11fIEVHTOperation vht_operation;
     bool is_vendor_specific_vhtcaps;
     uint8_t vendor_specific_vht_ie_type;
     uint8_t vendor_specific_vht_ie_sub_type;
@@ -516,6 +525,9 @@ typedef struct sPESession           // Added to Support BT-AMP
     /* Number of STAs that do not support ECSA capability */
     uint8_t lim_non_ecsa_cap_num;
     uint32_t sta_auth_retries_for_code17;
+#ifdef WLAN_FEATURE_FILS_SK
+    struct pe_fils_session *fils_info;
+#endif
 } tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------

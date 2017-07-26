@@ -4487,7 +4487,8 @@ PREPACK struct htt_rx_ind_hdr_suffix_t
 {
     A_UINT32 /* word 0 */
         fw_rx_desc_bytes: 16,
-        reserved0: 16;
+        noise_floor_chain0: 8,
+        noise_floor_chain1: 8;
 } POSTPACK;
 
 #define HTT_RX_IND_HDR_SUFFIX_BYTES (sizeof(struct htt_rx_ind_hdr_suffix_t))
@@ -4593,7 +4594,7 @@ A_COMPILE_TIME_ASSERT(HTT_RX_IND_hdr_size_quantum,
  * |--------------------------------------------------------------------------|
  * |    service     |                    HT-SIG / VHT-SIG-A2                  |
  * |==========================================================================|
- * |             reserved               |          FW rx desc bytes           |
+ * |     chain1 NF  |   chain0 NF       |          FW rx desc bytes           |
  * |--------------------------------------------------------------------------|
  * |     MSDU Rx    |      MSDU Rx      |        MSDU Rx      |    MSDU Rx    |
  * |     desc B3    |      desc B2      |        desc B1      |    desc B0    |
@@ -4896,6 +4897,12 @@ A_COMPILE_TIME_ASSERT(HTT_RX_IND_hdr_size_quantum,
  *     Bits 15:0
  *     Purpose: Indicate how many bytes in the Rx indication are used for
  *         FW Rx descriptors
+ *   - chain0 noise floor
+ *     Bits 23:16
+ *     Purpose: Indicate chain0 noise floor to host
+ *   - chain1 noise floor
+ *     Bits 31:24
+ *     Purpose: Indicate chain1 noise floor to host
  *
  * Payload fields:
  *   - MPDU_COUNT
@@ -4974,6 +4981,11 @@ A_COMPILE_TIME_ASSERT(HTT_RX_IND_hdr_size_quantum,
 #define HTT_RX_IND_FW_RX_DESC_BYTES_M   0xffff
 #define HTT_RX_IND_FW_RX_DESC_BYTES_S   0
 
+#define HTT_RX_IND_NOISE_FLOOR_CHAIN0_M   0x00ff0000
+#define HTT_RX_IND_NOISE_FLOOR_CHAIN0_S   16
+#define HTT_RX_IND_NOISE_FLOOR_CHAIN1_M   0xff000000
+#define HTT_RX_IND_NOISE_FLOOR_CHAIN1_S   24
+
 /* payload fields */
 #define HTT_RX_IND_MPDU_COUNT_M    0xff
 #define HTT_RX_IND_MPDU_COUNT_S    0
@@ -5021,6 +5033,11 @@ A_COMPILE_TIME_ASSERT(HTT_RX_IND_hdr_size_quantum,
     } while (0)
 #define HTT_RX_IND_FW_RX_DESC_BYTES_GET(word) \
     (((word) & HTT_RX_IND_FW_RX_DESC_BYTES_M) >> HTT_RX_IND_FW_RX_DESC_BYTES_S)
+
+#define HTT_RX_IND_NOISE_FLOOR_CHAIN0_GET(word) \
+    (((word) & HTT_RX_IND_NOISE_FLOOR_CHAIN0_M) >> HTT_RX_IND_NOISE_FLOOR_CHAIN0_S)
+#define HTT_RX_IND_NOISE_FLOOR_CHAIN1_GET(word) \
+    (((word) & HTT_RX_IND_NOISE_FLOOR_CHAIN1_M) >> HTT_RX_IND_NOISE_FLOOR_CHAIN1_S)
 
 
 #define HTT_RX_IND_FLUSH_SEQ_NUM_START_SET(word, value)              \

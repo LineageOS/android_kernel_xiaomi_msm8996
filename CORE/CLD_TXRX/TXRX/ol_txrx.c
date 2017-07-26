@@ -905,6 +905,8 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
 
     OL_RX_REORDER_TIMEOUT_CLEANUP(pdev);
 
+    ol_per_pkt_tx_stats_enable(0);
+
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
         ol_tx_sched_detach(pdev);
     }
@@ -2633,21 +2635,37 @@ exit:
 bool ol_txrx_set_ocb_def_tx_param(ol_txrx_vdev_handle vdev,
 	void *_def_tx_param, uint32_t def_tx_param_size)
 {
+	int count, channel_nums = def_tx_param_size /
+		sizeof(struct ocb_tx_ctrl_hdr_t);
 	struct ocb_tx_ctrl_hdr_t *def_tx_param =
 		(struct ocb_tx_ctrl_hdr_t *)_def_tx_param;
 
-	if (def_tx_param) {
+	if (def_tx_param == NULL) {
 		/*
-		 * Default TX parameters are provided.
-		 * Validate the contents and
-		 * save them in the vdev.
+		 * Default TX parameters are not provided.
+		 * Delete the old defaults.
 		 */
-		if (def_tx_param_size != sizeof(struct ocb_tx_ctrl_hdr_t)) {
-			VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
-			    "Invalid size of OCB default TX params");
-			return false;
+		if (vdev->ocb_def_tx_param) {
+			vos_mem_free(vdev->ocb_def_tx_param);
+			vdev->ocb_def_tx_param = NULL;
 		}
+		return true;
+	}
 
+	/*
+	 * Default TX parameters are provided.
+	 * Validate the contents and
+	 * save them in the vdev.
+	 * Support up to two channel TX ctrl parameters.
+	 */
+	if (def_tx_param_size != channel_nums *
+		sizeof(struct ocb_tx_ctrl_hdr_t)) {
+		VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+			  "Invalid size of OCB default TX params");
+		return false;
+	}
+
+	for (count = 0; count < channel_nums; count++, def_tx_param++) {
 		if (def_tx_param->version != OCB_HEADER_VERSION) {
 			VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
 				  "Invalid version of OCB default TX params");
@@ -2669,35 +2687,37 @@ bool ol_txrx_set_ocb_def_tx_param(ol_txrx_vdev_handle vdev,
 			}
 		}
 
-		if (def_tx_param->valid_datarate &&
-			    def_tx_param->datarate > MAX_DATARATE) {
+		/* Default data rate is always valid set by dsrc_config app. */
+		if (!def_tx_param->valid_datarate ||
+			def_tx_param->datarate > MAX_DATARATE) {
 			VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
 				  "Invalid default datarate");
 			return false;
 		}
 
+		/* Default tx power is always valid set by dsrc_config. */
+		if (!def_tx_param->valid_pwr) {
+			VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+				  "Invalid default tx power");
+			return false;
+		}
+
 		if (def_tx_param->valid_tid &&
-			    def_tx_param->ext_tid > MAX_TID) {
+			def_tx_param->ext_tid > MAX_TID) {
 			VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
 				  "Invalid default TID");
 			return false;
 		}
-
-		if (vdev->ocb_def_tx_param == NULL)
-			vdev->ocb_def_tx_param =
-				vos_mem_malloc(sizeof(*vdev->ocb_def_tx_param));
-		vos_mem_copy(vdev->ocb_def_tx_param, def_tx_param,
-			     sizeof(*vdev->ocb_def_tx_param));
-	} else {
-		/*
-		 * Default TX parameters are not provided.
-		 * Delete the old defaults.
-		 */
-		if (vdev->ocb_def_tx_param) {
-			vos_mem_free(vdev->ocb_def_tx_param);
-			vdev->ocb_def_tx_param = NULL;
-		}
 	}
+
+	if (vdev->ocb_def_tx_param) {
+		vos_mem_free(vdev->ocb_def_tx_param);
+		vdev->ocb_def_tx_param = NULL;
+	}
+	vdev->ocb_def_tx_param = vos_mem_malloc(def_tx_param_size);
+	if (!vdev->ocb_def_tx_param)
+		return false;
+	vos_mem_copy(vdev->ocb_def_tx_param, _def_tx_param, def_tx_param_size);
 
 	return true;
 }

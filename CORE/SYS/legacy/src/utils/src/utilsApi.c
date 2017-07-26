@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -42,27 +42,6 @@
 
 #include "utilsApi.h"
 
-
-
-
-
-// -------------------------------------------------------------------
-/**
- * sirDumpBuf()
- *
- * FUNCTION:
- * This function is called to dump a buffer with a certain level
- *
- * LOGIC:
- *
- * ASSUMPTIONS:
- * None.
- *
- * NOTE:
- *
- * @param pBuf: buffer pointer
- * @return None.
- */
 void
 sirDumpBuf(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 level, tANI_U8 *buf, tANI_U32 size)
 {
@@ -97,3 +76,54 @@ sirDumpBuf(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 level, tANI_U8 *buf, tAN
     }
 
 }/*** end sirDumpBuf() ***/
+
+#ifdef WLAN_FEATURE_DSRC
+struct sir_ocb_config *
+sir_copy_sir_ocb_config(const struct sir_ocb_config *src)
+{
+	struct sir_ocb_config *dst;
+	uint32_t length;
+	void *cursor;
+
+	length = sizeof(*src) +
+		src->channel_count * sizeof(*src->channels) +
+		src->schedule_size * sizeof(*src->schedule) +
+		src->dcc_ndl_chan_list_len +
+		src->dcc_ndl_active_state_list_len +
+		src->def_tx_param_size;
+
+	dst = vos_mem_malloc(length);
+	if (!dst)
+		return NULL;
+
+	*dst = *src;
+
+	cursor = dst;
+	cursor += sizeof(*dst);
+	dst->channels = cursor;
+	cursor += src->channel_count * sizeof(*src->channels);
+	vos_mem_copy(dst->channels, src->channels,
+		     src->channel_count * sizeof(*src->channels));
+	dst->schedule = cursor;
+	cursor += src->schedule_size * sizeof(*src->schedule);
+	vos_mem_copy(dst->schedule, src->schedule,
+		     src->schedule_size * sizeof(*src->schedule));
+	dst->dcc_ndl_chan_list = cursor;
+	cursor += src->dcc_ndl_chan_list_len;
+	vos_mem_copy(dst->dcc_ndl_chan_list, src->dcc_ndl_chan_list,
+		     src->dcc_ndl_chan_list_len);
+	dst->dcc_ndl_active_state_list = cursor;
+	cursor += src->dcc_ndl_active_state_list_len;
+	vos_mem_copy(dst->dcc_ndl_active_state_list,
+		     src->dcc_ndl_active_state_list,
+		     src->dcc_ndl_active_state_list_len);
+
+	if (src->def_tx_param && src->def_tx_param_size) {
+		dst->def_tx_param = cursor;
+		vos_mem_copy(dst->def_tx_param, src->def_tx_param,
+			     src->def_tx_param_size);
+	}
+
+	return dst;
+}
+#endif /* WLAN_FEATURE_DSRC */

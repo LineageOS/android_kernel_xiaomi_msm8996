@@ -33,7 +33,7 @@
 
 #include "wma_ocb.h"
 #include "wmi_unified_api.h"
-#include "vos_utils.h"
+#include "utilsApi.h"
 
 /**
  * wma_ocb_resp() - send the OCB set config response via callback
@@ -49,48 +49,50 @@ int wma_ocb_set_config_resp(tp_wma_handle wma_handle, uint8_t status)
 	ol_txrx_vdev_handle vdev = (req ?
 		wma_handle->interfaces[req->session_id].handle : 0);
 
-	/*
-	 * If the command was successful, save the channel information in the
-	 * vdev.
-	 */
-	if (status == VOS_STATUS_SUCCESS) {
-		if (vdev && req) {
-			/* Save the channel info in the vdev */
-			if (vdev->ocb_channel_info)
-				vos_mem_free(vdev->ocb_channel_info);
-			vdev->ocb_channel_count =
-				req->channel_count;
-			if (req->channel_count) {
-				int i;
-				int buf_size = sizeof(*vdev->ocb_channel_info) *
-				    req->channel_count;
-				vdev->ocb_channel_info =
-					vos_mem_malloc(buf_size);
-				if (!vdev->ocb_channel_info)
-					return -ENOMEM;
-				vos_mem_zero(vdev->ocb_channel_info, buf_size);
-				for (i = 0; i < req->channel_count; i++) {
-					vdev->ocb_channel_info[i].chan_freq =
-						req->channels[i].chan_freq;
-					if (req->channels[i].flags &
-					  OCB_CHANNEL_FLAG_DISABLE_RX_STATS_HDR)
-						vdev->ocb_channel_info[i].
-						disable_rx_stats_hdr = 1;
-				}
-			} else {
-				vdev->ocb_channel_info = 0;
-			}
+	if (status != VOS_STATUS_SUCCESS)
+		goto out;
 
-			/* Default TX parameter */
-			if (!ol_txrx_set_ocb_def_tx_param(vdev,
-				req->def_tx_param, req->def_tx_param_size)) {
-				/* Setting the default param failed */
-				WMA_LOGE(FL("Invalid default TX parameters"));
-				status = VOS_STATUS_E_INVAL;
+	/* If config succeeded, save the channel information in the vdev. */
+	if (vdev && req) {
+		if (vdev->ocb_channel_info)
+			vos_mem_free(vdev->ocb_channel_info);
+		vdev->ocb_channel_count = req->channel_count;
+		if (req->channel_count) {
+			int i;
+			int buf_size = sizeof(*vdev->ocb_channel_info) *
+				req->channel_count;
+			vdev->ocb_channel_info = vos_mem_malloc(buf_size);
+			if (!vdev->ocb_channel_info)
+				return -ENOMEM;
+			vos_mem_zero(vdev->ocb_channel_info, buf_size);
+			for (i = 0; i < req->channel_count; i++) {
+				vdev->ocb_channel_info[i].chan_freq =
+					req->channels[i].chan_freq;
+				vdev->ocb_channel_info[i].bandwidth =
+					req->channels[i].bandwidth;
+				if (req->channels[i].flags &
+				    OCB_CHANNEL_FLAG_DISABLE_RX_STATS_HDR)
+					vdev->ocb_channel_info[i].
+						disable_rx_stats_hdr = 1;
+				vos_mem_copy(
+					vdev->ocb_channel_info[i].mac_address,
+					req->channels[i].mac_address,
+					sizeof(req->channels[i].mac_address));
 			}
+		} else {
+			vdev->ocb_channel_info = 0;
+		}
+
+		/* Default TX parameter */
+		if (!ol_txrx_set_ocb_def_tx_param(vdev,
+		    req->def_tx_param, req->def_tx_param_size)) {
+			/* Setting the default param failed */
+			WMA_LOGE(FL("Invalid default TX parameters"));
+			status = VOS_STATUS_E_INVAL;
 		}
 	}
 
+out:
 	/* Free the configuration that was saved in wma_ocb_set_config. */
 	vos_mem_free(wma_handle->ocb_config_req);
 	wma_handle->ocb_config_req = 0;
@@ -112,52 +114,6 @@ int wma_ocb_set_config_resp(tp_wma_handle wma_handle, uint8_t status)
 	}
 
 	return 0;
-}
-
-/**
- * copy_sir_ocb_config() - deep copy of an OCB config struct
- * @src: pointer to the source struct
- *
- * Return: pointer to the copied struct
- */
-static struct sir_ocb_config *copy_sir_ocb_config(struct sir_ocb_config *src)
-{
-	struct sir_ocb_config *dst;
-	uint32_t length;
-	void *cursor;
-
-	length = sizeof(*src) +
-		src->channel_count * sizeof(*src->channels) +
-		src->schedule_size * sizeof(*src->schedule) +
-		src->dcc_ndl_chan_list_len +
-		src->dcc_ndl_active_state_list_len;
-
-	dst = vos_mem_malloc(length);
-	if (!dst)
-		return NULL;
-
-	*dst = *src;
-
-	cursor = dst;
-	cursor += sizeof(*dst);
-	dst->channels = cursor;
-	cursor += src->channel_count * sizeof(*dst->channels);
-	vos_mem_copy(dst->channels, src->channels,
-		     src->channel_count * sizeof(*dst->channels));
-	dst->schedule = cursor;
-	cursor += src->schedule_size * sizeof(*dst->schedule);
-	vos_mem_copy(dst->schedule, src->schedule,
-		     src->schedule_size * sizeof(*dst->schedule));
-	dst->dcc_ndl_chan_list = cursor;
-	cursor += src->dcc_ndl_chan_list_len;
-	vos_mem_copy(dst->dcc_ndl_chan_list, src->dcc_ndl_chan_list,
-		     src->dcc_ndl_chan_list_len);
-	dst->dcc_ndl_active_state_list = cursor;
-	cursor += src->dcc_ndl_active_state_list_len;
-	vos_mem_copy(dst->dcc_ndl_active_state_list,
-		     src->dcc_ndl_active_state_list,
-		     src->dcc_ndl_active_state_list_len);
-	return dst;
 }
 
 /**
@@ -197,7 +153,7 @@ int wma_ocb_set_config_req(tp_wma_handle wma_handle,
 
 		if (wma_handle->ocb_config_req)
 			vos_mem_free(wma_handle->ocb_config_req);
-		wma_handle->ocb_config_req = copy_sir_ocb_config(config_req);
+		wma_handle->ocb_config_req = sir_copy_sir_ocb_config(config_req);
 
 		status = wma_vdev_start(wma_handle, &req, VOS_FALSE);
 		if (status != VOS_STATUS_SUCCESS) {
@@ -435,7 +391,7 @@ int wma_ocb_set_config(tp_wma_handle wma_handle, struct sir_ocb_config *config)
 	if (wma_handle->ocb_config_req != config) {
 		if (wma_handle->ocb_config_req)
 			vos_mem_free(wma_handle->ocb_config_req);
-		wma_handle->ocb_config_req = copy_sir_ocb_config(config);
+		wma_handle->ocb_config_req = sir_copy_sir_ocb_config(config);
 	}
 
 	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
@@ -1079,6 +1035,128 @@ int wma_dcc_stats_event_handler(void *handle, uint8_t *event_buf,
 }
 
 /**
+ * wma_process_radio_chan_stats_req() - Send request radio chan stats to FW
+ * @wma_handle: WMI handle
+ * @req: radio channel
+ *
+ * This function is used to reads the incoming @req and fill in the
+ * destination WMI structure, then send radio channel statistics request
+ * command to FW.
+ *
+ * Return: 0 on success; error number otherwise.
+ */
+int wma_process_radio_chan_stats_req(tp_wma_handle wma_handle,
+					struct radio_chan_stats_req *req)
+{
+	VOS_STATUS status;
+	wmi_buf_t buf;
+	wmi_request_radio_chan_stats_cmd_fixed_param *cmd;
+	int len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE(FL("%s: wmi_buf_alloc failed"), __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_request_radio_chan_stats_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_request_radio_chan_stats_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_request_radio_chan_stats_cmd_fixed_param));
+	cmd->request_type = req->req_type;
+	if (cmd->request_type == WMI_REQUEST_ONE_RADIO_CHAN_STATS)
+		cmd->chan_mhz = req->chan_freq;
+	cmd->reset_after_request = (A_UINT32)req->reset_after_req;
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				      WMI_REQUEST_RADIO_CHAN_STATS_CMDID);
+	if (status != EOK) {
+		WMA_LOGE("Failed to send WMI_REQUEST_RADIO_CHAN_STATS_CMDID");
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	WMA_LOGI("Sent WMI_REQUEST_RADIO_CHAN_STATS_CMDID to FW");
+	return 0;
+}
+
+/**
+ * wma_radio_chan_stats_event_handler() - handle radio channel statistics event
+ * @handle - pointer to wma handle.
+ * @event - pointer to TLV info received in the event.
+ * @evt_len - length of data in @event.
+ *
+ * This Function is a handler for firmware radio channel statistics event.
+ *
+ * Return: 0 on success, error number otherwise
+ */
+static int wma_radio_chan_stats_event_handler(void *handle, u_int8_t *event,
+					      u_int32_t evt_len)
+{
+	uint8_t *buf;
+	uint32_t i, len;
+	VOS_STATUS vos_status;
+	WMI_RADIO_CHAN_STATS_EVENTID_param_tlvs *param_tlvs;
+	wmi_radio_chan_stats_event_fixed_param *fix_param;
+	wmi_radio_chan_stats *chan_stats;
+	struct radio_chan_stats_rsp *resp;
+	vos_msg_t msg = { 0 };
+
+	param_tlvs = (WMI_RADIO_CHAN_STATS_EVENTID_param_tlvs *) event;
+	if (!param_tlvs) {
+		WMA_LOGE("Invalid radio_chan_stats event buffer");
+		return -EINVAL;
+	}
+
+	fix_param = param_tlvs->fixed_param;
+	chan_stats = param_tlvs->radio_chan_stats;
+	if (!chan_stats) {
+		WMA_LOGE("Invalid radio_chan_stats ptr");
+		return -EINVAL;
+	}
+
+	len = sizeof(*resp) +
+		fix_param->num_chans * sizeof(struct radio_chan_stats_info);
+	buf = vos_mem_malloc(len);
+	if (!buf)
+		return -ENOMEM;
+
+	resp = (struct radio_chan_stats_rsp *)buf;
+	buf += sizeof(struct radio_chan_stats_rsp);
+	resp->chan_stats = (struct radio_chan_stats_info *)buf;
+	resp->num_chans = fix_param->num_chans;
+	for (i = 0; i < resp->num_chans; i++) {
+		resp->chan_stats[i].chan_freq = chan_stats[i].chan_mhz;
+		resp->chan_stats[i].measurement_period =
+					(uint64_t)chan_stats[i].measurement_period_us;
+		resp->chan_stats[i].on_chan_us = (uint64_t)chan_stats[i].on_chan_us;
+		resp->chan_stats[i].on_chan_ratio = chan_stats[i].on_chan_ratio;
+		resp->chan_stats[i].tx_duration_us =
+					(uint64_t)chan_stats[i].tx_duration_us;
+		resp->chan_stats[i].rx_duration_us =
+					(uint64_t)chan_stats[i].rx_duration_us;
+		resp->chan_stats[i].chan_busy_ratio =
+					chan_stats[i].chan_busy_ratio;
+		resp->chan_stats[i].tx_mpdus = chan_stats[i].tx_mpdus;
+		resp->chan_stats[i].tx_msdus = chan_stats[i].tx_msdus;
+		resp->chan_stats[i].rx_succ_pkts = chan_stats[i].rx_succ_mpdus;
+		resp->chan_stats[i].rx_fail_pkts = chan_stats[i].rx_fail_mpdus;
+	}
+
+	msg.type = eWNI_SME_RADIO_CHAN_STATS_IND;
+	msg.bodyptr = resp;
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		WMA_LOGE("Fail to post message to SME");
+		vos_mem_free(resp);
+		return vos_status;
+	}
+
+	return 0;
+}
+
+/**
  * wma_ocb_register_event_handlers() - register handlers for the OCB WMI
  * events
  * @wma_handle: pointer to the WMA handle
@@ -1125,6 +1203,12 @@ int wma_ocb_register_event_handlers(tp_wma_handle wma_handle)
 	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
 			WMI_DCC_STATS_EVENTID,
 			wma_dcc_stats_event_handler);
+	if (status)
+		return status;
+
+	status = wmi_unified_register_event_handler(wma_handle->wmi_handle,
+			WMI_RADIO_CHAN_STATS_EVENTID,
+			wma_radio_chan_stats_event_handler);
 	if (status)
 		return status;
 

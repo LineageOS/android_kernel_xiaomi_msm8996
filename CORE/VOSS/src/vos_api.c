@@ -3153,10 +3153,18 @@ v_U64_t vos_get_monotonic_boottime_ns(void)
 	return timespec_to_ns(&ts);
 }
 
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 10, 0))
 v_U64_t vos_get_bootbased_boottime_ns(void)
 {
-       return ktime_get_boot_ns();
+	return ktime_get_boot_ns();
 }
+
+#else
+v_U64_t vos_get_bootbased_boottime_ns(void)
+{
+	return ktime_to_ns(ktime_get_boottime());
+}
+#endif
 
 /**
  * vos_do_div() - wrapper function for kernel macro(do_div).
@@ -3171,6 +3179,24 @@ uint64_t vos_do_div(uint64_t dividend, uint32_t divisor)
 	do_div(dividend, divisor);
 	/*do_div macro updates dividend with Quotient of dividend/divisor */
 	return dividend;
+}
+
+uint64_t vos_do_div64(uint64_t dividend, uint64_t divisor)
+{
+	uint64_t n = dividend;
+	uint64_t base = divisor;
+	if ((base & 0xffffffff00000000ULL) != 0) {
+		n >>= 16;
+		base >>= 16;
+
+		if ((base & 0xffff00000000ULL) != 0) {
+			n >>= 16;
+			base >>= 16;
+		}
+		return vos_do_div(n, (uint32_t)base);
+	} else {
+		return vos_do_div(n, base);
+	}
 }
 
 /**

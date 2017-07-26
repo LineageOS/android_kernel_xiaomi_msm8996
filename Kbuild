@@ -104,6 +104,11 @@ ifeq ($(KERNEL_BUILD), 0)
 	#Flag to enable Fast Transition (11r) feature
 	CONFIG_QCOM_VOWIFI_11R := y
 
+        ifneq ($(KERNELRELEASE), 4.9.11+)
+        #Flag to enable FILS Feature (11ai)
+        CONFIG_WLAN_FEATURE_FILS := n
+        endif
+
 	ifneq ($(CONFIG_QCA_CLD_WLAN),)
         ifeq ($(CONFIG_CNSS),y)
 		#Flag to enable Protected Managment Frames (11w) feature
@@ -364,6 +369,10 @@ ADF_OBJS :=     $(ADF_DIR)/adf_nbuf.o \
                 $(ADF_DIR)/linux/adf_os_defer_pvt.o \
                 $(ADF_DIR)/linux/adf_os_lock_pvt.o
 
+ifeq ($(CONFIG_WLAN_FEATURE_FILS), y)
+ADF_OBJS +=     $(ADF_DIR)/linux/qdf_crypto.o
+endif
+
 ifeq ($(CONFIG_DPTRACE_ENABLE), y)
 ADF_OBJS +=     $(ADF_DIR)/adf_trace.o
 endif
@@ -435,7 +444,8 @@ HDD_OBJS := 	$(HDD_SRC_DIR)/wlan_hdd_assoc.o \
 		$(HDD_SRC_DIR)/wlan_hdd_wowl.o
 
 ifeq ($(CONFIG_WLAN_FEATURE_DSRC), y)
-HDD_OBJS+=	$(HDD_SRC_DIR)/wlan_hdd_ocb.o
+HDD_OBJS+=	$(HDD_SRC_DIR)/wlan_hdd_ocb.o \
+		$(HDD_SRC_DIR)/wlan_hdd_debugfs_ocb.o
 endif
 
 ifeq ($(CONFIG_IPA_OFFLOAD), 1)
@@ -553,6 +563,10 @@ endif
 
 ifeq ($(CONFIG_QCOM_TDLS),y)
 MAC_LIM_OBJS += $(MAC_SRC_DIR)/pe/lim/limProcessTdls.o
+endif
+
+ifeq ($(CONFIG_WLAN_FEATURE_FILS),y)
+MAC_LIM_OBJS += $(MAC_SRC_DIR)/pe/lim/lim_process_fils.o
 endif
 
 ifeq ($(CONFIG_WLAN_FEATURE_NAN_DATAPATH),y)
@@ -1042,6 +1056,10 @@ ifeq ($(CONFIG_WLAN_POWER_DEBUGFS), y)
 CDEFINES += -DWLAN_POWER_DEBUGFS
 endif
 
+ifeq ($(CONFIG_WLAN_FEATURE_FILS),y)
+CDEFINES += -DWLAN_FEATURE_FILS_SK
+endif
+
 ifeq ($(CONFIG_SCPC_FEATURE), y)
 CDEFINES += -DWLAN_SCPC_FEATURE
 endif
@@ -1122,7 +1140,7 @@ ifeq ($(CONFIG_MDNS_OFFLOAD_SUPPORT), 1)
 CDEFINES += -DMDNS_OFFLOAD
 endif
 
-ifeq ($(CONFIG_ARCH_MSM), y)
+ifeq (y,$(findstring y,$(CONFIG_ARCH_MSM) $(CONFIG_ARCH_QCOM)))
 CDEFINES += -DMSM_PLATFORM
 ifeq ($(CONFIG_CNSS), y)
 ifeq ($(CONFIG_HIF_PCI), 1)
@@ -1602,6 +1620,7 @@ endif
 ifeq ($(CONFIG_ARCH_MSM8937), y)
 CDEFINES += -DTX_COMPLETION_THREAD
 CDEFINES += -DMSM8976_TCP_PERF
+CDEFINES += -DACS_FW_REPORT_PARAM
 endif
 
 ifdef CPTCFG_QCA_CLD_WLAN

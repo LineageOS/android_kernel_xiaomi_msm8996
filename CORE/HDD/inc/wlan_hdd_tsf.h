@@ -199,6 +199,20 @@ int hdd_tx_timestamp(adf_nbuf_t netbuf, uint64_t target_time);
  * Return: Describe the execute result of this routine
  */
 int hdd_rx_timestamp(adf_nbuf_t netbuf, uint64_t target_time);
+
+/**
+ * hdd_tsf_record_sk_for_skb() - save sk for skb
+ *
+ * @hdd_ctx: pointer to hdd context
+ * @nbuf: pointer to a TX netbuf
+ *
+ * This function record netbuf->sk in netbuf->tstamp,
+ * in case netbuf->sk will be set to NULL.
+ *
+ * Return: nothing
+ */
+void
+hdd_tsf_record_sk_for_skb(hdd_context_t *hdd_ctx, adf_nbuf_t nbuf);
 #else
 static inline int hdd_start_tsf_sync(hdd_adapter_t *adapter)
 {
@@ -227,6 +241,11 @@ static inline
 int hdd_rx_timestamp(adf_nbuf_t netbuf, uint64_t target_time)
 {
 	return -ENOTSUPP;
+}
+
+static inline void
+hdd_tsf_record_sk_for_skb(hdd_context_t *hdd_ctx, adf_nbuf_t nbuf)
+{
 }
 #endif
 

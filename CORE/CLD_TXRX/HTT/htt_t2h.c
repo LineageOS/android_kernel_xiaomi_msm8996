@@ -499,6 +499,7 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
                 break;
             }
         }
+        break;
     }
     case HTT_T2H_MSG_TYPE_RATE_REPORT:
         {
@@ -953,6 +954,49 @@ htt_rx_ind_rssi_dbm_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
     return (HTT_TGT_RSSI_INVALID == rssi) ?
         HTT_RSSI_INVALID :
         rssi;
+}
+
+/**
+ * htt_rx_ind_noise_floor_chain() - Return the nosie floor for a chain
+ *              provided in a rx indication message.
+ * @pdev:       the HTT instance the rx data was received on
+ * @rx_ind_msg: the netbuf containing the rx indication message
+ * @chain:      the index of the chain (0-1) for DSRC
+ *
+ * Return the noise floor for a chain from an rx indication message.
+ *
+ * Return: noise floor, or HTT_NOISE_FLOOR_INVALID
+ */
+int8_t
+htt_rx_ind_noise_floor_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
+			     int8_t chain)
+{
+	int8_t noise_floor;
+	u_int32_t *msg_word;
+
+	/* only chain0/1 used with 11p DSRC */
+	if (chain < 0 || chain > 1) {
+		return HTT_NOISE_FLOOR_INVALID;
+	}
+
+	msg_word = (u_int32_t *)
+		(adf_nbuf_data(rx_ind_msg) +
+		 HTT_RX_IND_FW_RX_PPDU_DESC_BYTE_OFFSET);
+
+	/* check if the RX_IND message contains valid rx PPDU start info */
+	if (!HTT_RX_IND_START_VALID_GET(*msg_word)) {
+		return HTT_NOISE_FLOOR_INVALID;
+	}
+
+	msg_word = (u_int32_t *)
+		(adf_nbuf_data(rx_ind_msg) + HTT_RX_IND_HDR_SUFFIX_BYTE_OFFSET);
+
+	if (chain == 0)
+		noise_floor = HTT_RX_IND_NOISE_FLOOR_CHAIN0_GET(*msg_word);
+	else if (chain == 1)
+		noise_floor = HTT_RX_IND_NOISE_FLOOR_CHAIN1_GET(*msg_word);
+
+	return noise_floor;
 }
 
 /**

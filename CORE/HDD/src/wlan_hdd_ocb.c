@@ -39,6 +39,7 @@
 #include "wlan_tgt_def_config.h"
 #include "schApi.h"
 #include "wma.h"
+#include "vos_types.h"
 
 /* Structure definitions for WLAN_SET_DOT11P_CHANNEL_SCHED */
 #define AIFSN_MIN		(2)
@@ -517,14 +518,33 @@ static void hdd_ocb_set_config_callback(void *context_ptr, void *response_ptr)
 static int hdd_ocb_set_config_req(hdd_adapter_t *adapter,
 				  struct sir_ocb_config *config)
 {
-	int rc;
+	int i, rc;
 	eHalStatus halStatus;
+	bool enable_chan_stats;
 	struct hdd_ocb_ctxt context = {0};
+	struct dsrc_radio_chan_stats_ctxt *ctx;
 
 	if (hdd_ocb_validate_config(adapter, config)) {
 		hddLog(LOGE, FL("The configuration is invalid"));
 		return -EINVAL;
 	}
+
+	/*
+	 * Save OCB configured channel information for
+	 * DSRC Radio channel statistics event processsor.
+	 */
+	ctx = &adapter->dsrc_chan_stats;
+	ctx->config_chans_num = config->channel_count;
+	for (i = 0; i < config->channel_count; i++)
+		ctx->config_chans_freq[i] = config->channels[i].chan_freq;
+	if (ctx->cur_req) {
+		vos_mem_free(ctx->cur_req);
+		ctx->cur_req = NULL;
+	}
+	/* Disable Channel Statistics */
+	enable_chan_stats = ctx->enable_chan_stats;
+	if (enable_chan_stats)
+		wlan_hdd_dsrc_config_radio_chan_stats(adapter, false);
 
 	init_completion(&context.completion_evt);
 	context.adapter = adapter;
@@ -532,7 +552,7 @@ static int hdd_ocb_set_config_req(hdd_adapter_t *adapter,
 
 	hddLog(LOG1, FL("Disabling queues"));
 	wlan_hdd_netif_queue_control(adapter, WLAN_NETIF_TX_DISABLE_N_CARRIER,
-				WLAN_CONTROL_PATH);
+				     WLAN_CONTROL_PATH);
 	/* Call the SME API to set the config */
 	halStatus = sme_ocb_set_config(
 		((hdd_context_t *)adapter->pHddCtx)->hHal, &context,
@@ -567,8 +587,16 @@ end:
 	spin_lock(&hdd_context_lock);
 	context.magic = 0;
 	spin_unlock(&hdd_context_lock);
-	if (rc)
+	if (rc) {
 		hddLog(LOGE, FL("Operation failed: %d"), rc);
+
+		/* Flush already saved configured channel frequence */
+		ctx->config_chans_num = 0;
+		vos_mem_zero(ctx->config_chans_freq, 2 * sizeof(uint32_t));
+	} else {
+		if (enable_chan_stats)
+			wlan_hdd_dsrc_config_radio_chan_stats(adapter, true);
+	}
 	return rc;
 }
 
@@ -850,6 +878,8 @@ struct wlan_hdd_ocb_config_channel {
 	sir_qos_params_t qos_params[MAX_NUM_AC];
 	uint32_t max_pwr;
 	uint32_t min_pwr;
+	uint32_t datarate;
+	uint8_t mac_address[6];
 };
 
 static void wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
@@ -876,6 +906,7 @@ static void wlan_hdd_ocb_config_channel_to_sir_ocb_config_channel(
 		dest[i].max_pwr = src[i].max_pwr / 2;
 		dest[i].min_pwr = (src[i].min_pwr + 1) / 2;
 		dest[i].flags = src[i].flags;
+		vos_mem_copy(dest[i].mac_address, src[i].mac_address, 6);
 	}
 }
 
@@ -1039,10 +1070,19 @@ static int __wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 	adapter->ocb_mac_addr_count = 0;
 
 	/*
-	 * Setup locally administered mac addresses for each channel.
-	 * First channel uses the adapter's address.
+	 * Setup locally managed mac addresses for each channel.
+	 * If no configured mac address set from userspace,
+	 * first channel uses the adapter's default address.
 	 */
 	for (i = 0; i < config->channel_count; i++) {
+		/*
+		 * If dsrc_config not set the mac address, then default mac
+		 * address from dsrc_config app is all zero and invalid.
+		 */
+		if (!vos_is_macaddr_zero(
+		    (v_MACADDR_t *)config->channels[i].mac_address))
+			continue;
+
 		if (i == 0) {
 			vos_mem_copy(config->channels[i].mac_address,
 				adapter->macAddressCurrent.bytes,
@@ -2183,4 +2223,289 @@ void wlan_hdd_dcc_register_for_dcc_stats_event(hdd_context_t *hdd_ctx)
 		wlan_hdd_dcc_stats_event_callback);
 	if (rc)
 		hddLog(LOGE, FL("Register callback failed: %d"), rc);
+}
+
+static void wlan_hdd_dsrc_update_radio_chan_stats(
+		struct dsrc_radio_chan_stats_ctxt *ctx,
+		struct radio_chan_stats_rsp *resp)
+{
+	int i, j;
+	struct radio_chan_stats_info *src, *dest;
+
+	if (!ctx || !resp)
+		return;
+
+	if (resp->num_chans > ctx->config_chans_num)
+		return;
+
+	src = resp->chan_stats;
+	dest = ctx->chan_stats;
+	/* Check if current event is for previous channel configuration. */
+	for (i = 0; i < resp->num_chans; i++, src++) {
+		if (!src) {
+			hddLog(LOGE, FL("Channel stats data is null"));
+			return;
+		}
+
+		for (j = 0; j < ctx->config_chans_num; j++) {
+			if (src->chan_freq == ctx->config_chans_freq[j])
+				break;
+		}
+		if (j == ctx->config_chans_num) {
+			/*
+			 * This DSRC Channel Radio channel statistics event
+			 * is for previous old channel configuration.
+			 * Now just Ignore this type event and clear saved
+			 * entry in driver. If possible, driver can post
+			 * the recorders to application.
+			 */
+			spin_lock(&ctx->chan_stats_lock);
+			ctx->chan_stats_num = 0;
+			vos_mem_zero(dest, 2 * sizeof(*dest));
+			spin_unlock(&ctx->chan_stats_lock);
+			hddLog(LOGE, FL("Old Chan Stats Data"));
+			return;
+		}
+	}
+
+	/* Save the first channels statistics event in adapter. */
+	src = resp->chan_stats;
+	if (!ctx->chan_stats_num) {
+		spin_lock(&ctx->chan_stats_lock);
+		vos_mem_copy(dest, src, resp->num_chans * sizeof(*src));
+		ctx->chan_stats_num = resp->num_chans;
+		spin_unlock(&ctx->chan_stats_lock);
+		return;
+	}
+
+	/* Merge new received channel statistics data to previous entry. */
+	spin_lock(&ctx->chan_stats_lock);
+	for (i = 0; i < resp->num_chans; i++, src++) {
+		struct radio_chan_stats_info *dest_entry = NULL;
+		struct radio_chan_stats_info *empty_entry = NULL;
+
+		/* Now only two channel stats supported. */
+		dest = ctx->chan_stats;
+		for (j = 0; j < DSRC_MAX_CHAN_STATS_CNT; j++, dest++) {
+			/* Get empty entry */
+			if (dest->chan_freq == 0) {
+				empty_entry = dest;
+				continue;
+			}
+			if (src->chan_freq == dest->chan_freq) {
+				dest_entry = dest;
+				break;
+			}
+		}
+
+		if (dest_entry) {
+			dest = dest_entry;
+		} else if (empty_entry) {
+			/* Copy new recorders to new entry*/
+			ctx->chan_stats_num++;
+			vos_mem_copy(empty_entry, src, sizeof(*src));
+			continue;
+		} else {
+			spin_unlock(&ctx->chan_stats_lock);
+			hddLog(LOGE, FL("No entry found."));
+			return;
+		}
+
+		/* Ignore Invalid statistics data. */
+		if (src->measurement_period == 0) {
+			hddLog(LOGE, FL("Invalid stats data."));
+			continue;
+		}
+
+		/* Merge Channel Statistics. */
+		dest->measurement_period += src->measurement_period;
+		dest->on_chan_us += src->on_chan_us;
+		dest->on_chan_ratio = (uint32_t)vos_do_div64(
+				dest->on_chan_us * 100,
+				dest->measurement_period);
+		dest->tx_duration_us += src->tx_duration_us;
+		dest->rx_duration_us += src->rx_duration_us;
+		if (dest->on_chan_us == 0) {
+			dest->chan_busy_ratio = 0;
+		} else {
+			dest->chan_busy_ratio = (uint32_t)vos_do_div64(
+				(dest->tx_duration_us +
+				 dest->rx_duration_us) * 100,
+				dest->on_chan_us);
+		}
+		dest->tx_mpdus += src->tx_mpdus;
+		dest->tx_msdus += src->tx_msdus;
+		dest->rx_succ_pkts += src->rx_succ_pkts;
+		dest->rx_fail_pkts += src->rx_fail_pkts;
+	}
+	spin_unlock(&ctx->chan_stats_lock);
+
+	return;
+}
+
+/**
+ * wlan_hdd_dsrc_radio_chan_stats_event_callback() - Callback function for
+ * WLAN DSRC Radio channel statistics event.
+ * @context_ptr: pointer to radio channel statistics context.
+ * @resp_ptr: pointer to radio channel statistics event buffer.
+ */
+static void wlan_hdd_dsrc_radio_chan_stats_event_callback(void *context_ptr,
+							  void *resp_ptr)
+{
+	int i;
+	struct radio_chan_stats_req *req;
+	struct radio_chan_stats_rsp *resp;
+	struct radio_chan_stats_info *chan_stats;
+	struct dsrc_radio_chan_stats_ctxt *ctx;
+
+	if (!context_ptr || !resp_ptr)
+		return;
+
+	ctx = (struct dsrc_radio_chan_stats_ctxt *)context_ptr;
+	resp = (struct radio_chan_stats_rsp *)resp_ptr;
+	chan_stats = resp->chan_stats;
+
+	if (!chan_stats) {
+		hddLog(LOGE, FL("No channel stats data"));
+		return;
+	}
+
+	wlan_hdd_dsrc_update_radio_chan_stats(ctx, resp);
+
+	/*
+	 * DSRC Radio channel statistics RADIO_CHAN_STATS event is reported
+	 * to HDD as following cases.
+	 * 1. FW randomly report event caused by overflow,
+	 *	configuration change....
+	 * 2. Firmware response to the request from Host APP.
+	 * Need check whether current event is response for request.
+	 */
+	spin_lock(&hdd_context_lock);
+	if ((ctx->magic != HDD_OCB_MAGIC) || (!ctx->cur_req)) {
+		spin_unlock(&hdd_context_lock);
+		return;
+	}
+	req = ctx->cur_req;
+	switch (req->req_type) {
+	case WLAN_DSRC_REQUEST_ONE_RADIO_CHAN_STATS:
+		if ((resp->num_chans == 1) &&
+		    (req->chan_freq == chan_stats->chan_freq)) {
+			complete(&ctx->completion_evt);
+			spin_unlock(&hdd_context_lock);
+			return;
+		}
+		break;
+	case WLAN_DSRC_REQUEST_ALL_RADIO_CHAN_STATS:
+		if (resp->num_chans != ctx->config_chans_num) {
+			spin_unlock(&hdd_context_lock);
+			return;
+		}
+		/* Check response channel is configured. */
+		for (i = 0; i < resp->num_chans; i++) {
+			if (chan_stats[i].chan_freq !=
+			    ctx->config_chans_freq[i]) {
+				spin_unlock(&hdd_context_lock);
+				return;
+			}
+		}
+		complete(&ctx->completion_evt);
+		break;
+	}
+	spin_unlock(&hdd_context_lock);
+
+	return;
+}
+
+int wlan_hdd_dsrc_config_radio_chan_stats(hdd_adapter_t *adapter,
+					  bool enable_chan_stats)
+{
+	int ret = 0;
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	struct dsrc_radio_chan_stats_ctxt *ctx;
+	struct radio_chan_stats_info *chan_stats;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return -EINVAL;
+
+	ctx = &adapter->dsrc_chan_stats;
+	if (ctx->enable_chan_stats == enable_chan_stats) {
+		hddLog(LOGE, FL("DSRC channel stats already %s\n"),
+			enable_chan_stats == true ? "enable" : "disable");
+		return ret;
+	}
+
+	ctx->chan_stats_num = 0;
+	chan_stats = ctx->chan_stats;
+	vos_mem_zero(chan_stats, DSRC_MAX_CHAN_STATS_CNT * sizeof(*chan_stats));
+
+	if (enable_chan_stats) {
+		spin_lock_init(&ctx->chan_stats_lock);
+		ret = sme_register_radio_chan_stats_cb(
+			((hdd_context_t *)adapter->pHddCtx)->hHal, (void *)ctx,
+			wlan_hdd_dsrc_radio_chan_stats_event_callback);
+	} else {
+		ret = sme_unregister_radio_chan_stats_cb(
+			((hdd_context_t *)adapter->pHddCtx)->hHal);
+	}
+
+	ret = process_wma_set_command((int)adapter->sessionId,
+			(int)WMI_PDEV_PARAM_RADIO_CHAN_STATS_ENABLE,
+			enable_chan_stats, PDEV_CMD);
+
+	if (!ret)
+		ctx->enable_chan_stats = enable_chan_stats;
+
+	return ret;
+}
+
+int wlan_hdd_dsrc_request_radio_chan_stats(hdd_adapter_t *adapter,
+					   struct radio_chan_stats_req *req)
+{
+	int ret = 0;
+	eHalStatus halStatus;
+	struct dsrc_radio_chan_stats_ctxt *ctx;
+
+	halStatus = sme_request_radio_chan_stats(
+			((hdd_context_t *)adapter->pHddCtx)->hHal, req);
+	if (halStatus != eHAL_STATUS_SUCCESS) {
+		hddLog(LOGE, FL("Error call dsrc chan stats req func."));
+		return -EINVAL;
+	}
+
+	ctx = &adapter->dsrc_chan_stats;
+	init_completion(&ctx->completion_evt);
+	spin_lock(&hdd_context_lock);
+	ctx->magic = HDD_OCB_MAGIC;
+	spin_unlock(&hdd_context_lock);
+	if (!wait_for_completion_timeout(&ctx->completion_evt,
+		msecs_to_jiffies(WLAN_WAIT_TIME_OCB_CMD))) {
+		hddLog(LOGE, FL("Wait for request completion timedout."));
+		ret = -ETIMEDOUT;
+	}
+
+	spin_lock(&hdd_context_lock);
+	ctx->magic = 0;
+	spin_unlock(&hdd_context_lock);
+	return ret;
+}
+
+void wlan_hdd_dsrc_deinit_chan_stats(hdd_adapter_t *adapter)
+{
+	struct dsrc_radio_chan_stats_ctxt *ctx;
+
+	if (!adapter)
+		return;
+
+	ctx = &adapter->dsrc_chan_stats;
+	if (ctx->cur_req) {
+		vos_mem_free(ctx->cur_req);
+		ctx->cur_req = NULL;
+	}
+
+	return;
 }

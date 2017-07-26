@@ -62,7 +62,7 @@
 #include "nan_datapath.h"
 #include "wma.h"
 #include "sapApi.h"
-
+#include "lim_process_fils.h"
 #if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
 #include "eseApi.h"
 #endif
@@ -2238,7 +2238,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->isFastRoamIniFeatureEnabled = pSmeJoinReq->isFastRoamIniFeatureEnabled;
 #endif
         psessionEntry->txLdpcIniFeatureEnabled = pSmeJoinReq->txLdpcIniFeatureEnabled;
-
+        lim_update_fils_config(psessionEntry, pSmeJoinReq);
         if (psessionEntry->bssType == eSIR_INFRASTRUCTURE_MODE)
         {
             psessionEntry->limSystemRole = eLIM_STA_ROLE;

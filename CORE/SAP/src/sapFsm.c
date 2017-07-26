@@ -3240,7 +3240,6 @@ sapSignalHDDevent
     /* Format the Start BSS Complete event to return... */
     if (NULL == sapContext->pfnSapEventCallback)
     {
-        VOS_ASSERT(0);
         return VOS_STATUS_E_FAILURE;
     }
     if (NULL == hHal)
@@ -4121,6 +4120,7 @@ sapFsm
                                         &sapContext->vht_channel_width,
                                         sapContext->ch_width_orig);
 
+                 cbMode = sme_GetCBPhyStateFromCBIniValue(cbMode);
 #ifdef WLAN_ENABLE_CHNL_MATRIX_RESTRICTION
                  temp_chan = sapContext->channel;
                  pNol = pMac->sap.SapDfsInfo.sapDfsChannelNolList;

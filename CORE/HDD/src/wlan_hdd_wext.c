@@ -6906,6 +6906,7 @@ static int __iw_setint_getnone(struct net_device *dev,
                  WLANTL_clear_datapath_stats(hdd_ctx->pvosContext, set_value);
                  break;
          }
+         break;
     }
 
     case WE_PPS_PAID_MATCH:
@@ -12849,6 +12850,16 @@ int hdd_set_wext(hdd_adapter_t *pAdapter)
     return VOS_STATUS_SUCCESS;
 }
 
+#ifdef WLAN_FEATURE_FILS_SK
+static void hdd_initialize_fils_info(hdd_wext_state_t *pwextBuf)
+{
+    pwextBuf->roamProfile.fils_con_info = NULL;
+}
+#else
+static void hdd_initialize_fils_info(hdd_wext_state_t *pwextBuf)
+{ }
+#endif
+
 /**
  * hdd_register_wext() - register wext context
  * @dev: net device handle
@@ -12890,7 +12901,7 @@ int hdd_register_wext(struct net_device *dev)
         hddLog(LOGE, ("ERROR: HDD scan event init failed!!"));
         return eHAL_STATUS_FAILURE;
     }
-
+    hdd_initialize_fils_info(pwextBuf);
     /* Register as a wireless device */
     dev->wireless_handlers = (struct iw_handler_def *)&we_handler_def;
 

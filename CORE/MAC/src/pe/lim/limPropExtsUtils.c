@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -238,6 +238,10 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
     if (pBeaconStruct->vendor_sub20_capability != 0)
         psessionEntry->sap_sub20_channelwidth =
                        pBeaconStruct->vendor_sub20_capability;
+
+    /* Update HS 2.0 Information Element */
+    sir_copy_hs20_ie(&psessionEntry->hs20vendor_ie,
+                     &pBeaconStruct->hs20vendor_ie);
 
     vos_mem_free(pBeaconStruct);
     return;

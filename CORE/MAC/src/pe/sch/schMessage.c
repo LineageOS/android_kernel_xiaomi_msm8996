@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -93,6 +93,17 @@ void schSetBeaconInterval(tpAniSirGlobal pMac,tpPESession psessionEntry)
     pMac->sch.schObject.gSchBeaconInterval = (tANI_U16)bi;
 }
 
+static void sch_edca_profile_update_all(tpAniSirGlobal pmac)
+{
+	tANI_U8 i;
+	tpPESession psession_entry;
+
+	for (i = 0; i < pmac->lim.maxBssId; i++) {
+		psession_entry = &pmac->lim.gpSession[i];
+		if (psession_entry->valid)
+			schEdcaProfileUpdate(pmac, psession_entry);
+	}
+}
 
 // --------------------------------------------------------------------
 /**
@@ -112,7 +123,6 @@ void schSetBeaconInterval(tpAniSirGlobal pMac,tpPESession psessionEntry)
 
 void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
 {
-    tANI_U32            val;
     tpPESession psessionEntry = &pMac->lim.gpSession[0];
     PELOG3(schLog(pMac, LOG3, FL("Received message (%x) "), pSchMsg->type);)
 
@@ -153,10 +163,6 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
             break;
 
         case SIR_CFG_PARAM_UPDATE_IND:
-
-            if (wlan_cfgGetInt(pMac, (tANI_U16) pSchMsg->bodyval, &val) != eSIR_SUCCESS)
-                schLog(pMac, LOGP, FL("failed to cfg get id %d"), pSchMsg->bodyval);
-
             switch (pSchMsg->bodyval)
             {
                 case WNI_CFG_BEACON_INTERVAL:
@@ -165,13 +171,17 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
                         schSetBeaconInterval(pMac,psessionEntry);
                     break;
 
-
                 case WNI_CFG_DTIM_PERIOD:
                     pMac->sch.schObject.gSchDTIMCount = 0;
                     break;
 
                 case WNI_CFG_CFP_PERIOD:
                     pMac->sch.schObject.gSchCFPCount = 0;
+                    break;
+
+                case WNI_CFG_COUNTRY_CODE:
+                    schLog(pMac, LOG3, FL("sch : WNI_CFG_COUNTRY_CODE"));
+                    sch_edca_profile_update_all(pMac);
                     break;
 
                 case WNI_CFG_EDCA_PROFILE:
@@ -228,18 +238,31 @@ schGetParams(
     tANI_U32 val;
     tANI_U32 i,idx;
     tANI_U32 *prf;
-
+    tANI_U8 country_code_str[WNI_CFG_COUNTRY_CODE_LEN];
+    tANI_U32 country_code_len = WNI_CFG_COUNTRY_CODE_LEN;
     tANI_U32 ani_l[] = { WNI_CFG_EDCA_ANI_ACBE_LOCAL,WNI_CFG_EDCA_ANI_ACBK_LOCAL,
                    WNI_CFG_EDCA_ANI_ACVI_LOCAL, WNI_CFG_EDCA_ANI_ACVO_LOCAL };
     tANI_U32 wme_l[] = {WNI_CFG_EDCA_WME_ACBE_LOCAL, WNI_CFG_EDCA_WME_ACBK_LOCAL,
                    WNI_CFG_EDCA_WME_ACVI_LOCAL, WNI_CFG_EDCA_WME_ACVO_LOCAL};
+    tANI_U32 etsi_l[] = {WNI_CFG_EDCA_ETSI_ACBE_LOCAL,
+                   WNI_CFG_EDCA_ETSI_ACBK_LOCAL,
+                   WNI_CFG_EDCA_ETSI_ACVI_LOCAL,
+                   WNI_CFG_EDCA_ETSI_ACVO_LOCAL};
     tANI_U32 ani_b[] = {WNI_CFG_EDCA_ANI_ACBE, WNI_CFG_EDCA_ANI_ACBK,
                    WNI_CFG_EDCA_ANI_ACVI, WNI_CFG_EDCA_ANI_ACVO};
     tANI_U32 wme_b[] = {WNI_CFG_EDCA_WME_ACBE, WNI_CFG_EDCA_WME_ACBK,
                    WNI_CFG_EDCA_WME_ACVI, WNI_CFG_EDCA_WME_ACVO};
+    tANI_U32 etsi_b[] = {WNI_CFG_EDCA_ETSI_ACBE, WNI_CFG_EDCA_ETSI_ACBK,
+                   WNI_CFG_EDCA_ETSI_ACVI, WNI_CFG_EDCA_ETSI_ACVO};
 
-    if (wlan_cfgGetInt(pMac, WNI_CFG_EDCA_PROFILE, &val) != eSIR_SUCCESS)
-    {
+    if ((wlan_cfgGetStr(pMac, WNI_CFG_COUNTRY_CODE, country_code_str,
+                        &country_code_len) == eSIR_SUCCESS) &&
+        vos_is_etsi_europe_country(country_code_str)) {
+        val = WNI_CFG_EDCA_PROFILE_ETSI_EUROPE;
+        schLog(pMac, LOG1, FL("swith to ETSI EUROPE profile cc:%c%c"),
+               country_code_str[0], country_code_str[1]);
+    } else if (wlan_cfgGetInt(pMac, WNI_CFG_EDCA_PROFILE, &val) !=
+               eSIR_SUCCESS) {
         schLog(pMac, LOGP, FL("failed to cfg get EDCA_PROFILE id %d"),
                WNI_CFG_EDCA_PROFILE);
         return eSIR_FAILURE;
@@ -262,6 +285,9 @@ schGetParams(
            case WNI_CFG_EDCA_PROFILE_WMM:
               prf = &wme_l[0];
               break;
+           case WNI_CFG_EDCA_PROFILE_ETSI_EUROPE:
+              prf = &etsi_l[0];
+              break;
            case WNI_CFG_EDCA_PROFILE_ANI:
            default:
               prf = &ani_l[0];
@@ -274,6 +300,9 @@ schGetParams(
         {
            case WNI_CFG_EDCA_PROFILE_WMM:
               prf = &wme_b[0];
+              break;
+           case WNI_CFG_EDCA_PROFILE_ETSI_EUROPE:
+              prf = &etsi_b[0];
               break;
            case WNI_CFG_EDCA_PROFILE_ANI:
            default:

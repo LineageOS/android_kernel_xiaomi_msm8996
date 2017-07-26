@@ -51,6 +51,8 @@
 #endif
 
 #include "regdomain_common.h"
+#include "qdf_crypto.h"
+#include "lim_process_fils.h"
 
 #define DOT11F_RSN_VERSION 1    /* current supported version */
 #define DOT11F_RSN_OUI_SIZE 4
@@ -2314,6 +2316,30 @@ tSirRetStatus sirvalidateandrectifyies(tpAniSirGlobal pMac,
     return eHAL_STATUS_SUCCESS;
 }
 
+/**
+ * sir_copy_hs20_ie() - Update HS 2.0 Information Element.
+ * @dest: dest HS IE buffer to be updated
+ * @src: src HS IE buffer
+ *
+ * Update HS2.0 IE info from src to dest
+ *
+ * Return: void
+ */
+void sir_copy_hs20_ie(tDot11fIEhs20vendor_ie *dest, tDot11fIEhs20vendor_ie *src)
+{
+	if (src->present) {
+		adf_os_mem_copy(dest,
+				src,
+				sizeof(tDot11fIEhs20vendor_ie) -
+					sizeof(src->hs_id));
+
+		if (src->hs_id_present)
+			adf_os_mem_copy(&dest->hs_id,
+					&src->hs_id,
+					sizeof(src->hs_id));
+	}
+}
+
 #ifdef WLAN_FEATURE_FILS_SK
 /**
  * update_fils_data: update fils params from beacon/probe response
@@ -2421,13 +2447,6 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
         PELOG2(sirDumpBuf(pMac, SIR_DBG_MODULE_ID, LOG2, pFrame, nFrame);)
         vos_mem_free(pr);
         return eSIR_FAILURE;
-    }
-    else if ( DOT11F_WARNED( status ) )
-    {
-      limLog(pMac, LOGW,
-             FL("Warnings while unpacking a Probe Response(0x%08x, %d bytes):"),
-             status, nFrame);
-        PELOG2(sirDumpBuf(pMac, SIR_DBG_MODULE_ID, LOG2, pFrame, nFrame);)
     }
 
     // & "transliterate" from a 'tDot11fProbeResponse' to a 'tSirProbeRespBeacon'...
@@ -2678,6 +2697,9 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
 #ifdef WLAN_FEATURE_FILS_SK
     sir_convert_fils_data_to_probersp_struct(pProbeResp, pr);
 #endif
+
+    sir_copy_hs20_ie(&pProbeResp->hs20vendor_ie, &pr->hs20vendor_ie);
+
     vos_mem_free(pr);
     return eSIR_SUCCESS;
 
@@ -3975,6 +3997,9 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
 #ifdef WLAN_FEATURE_FILS_SK
     sir_parse_fils_beacon_ie(pBeaconStruct, pBies);
 #endif
+
+    sir_copy_hs20_ie(&pBeaconStruct->hs20vendor_ie, &pBies->hs20vendor_ie);
+
     vos_mem_free(pBies);
     return eSIR_SUCCESS;
 } // End sirParseBeaconIE.
@@ -4051,13 +4076,6 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
         PELOG2(sirDumpBuf(pMac, SIR_DBG_MODULE_ID, LOG2, pPayload, nPayload);)
         vos_mem_free(pBeacon);
         return eSIR_FAILURE;
-    }
-    else if ( DOT11F_WARNED( status ) )
-    {
-      limLog(pMac, LOGW,
-                 FL("There were warnings while unpacking Beacon IEs (0x%08x, %d bytes):"),
-                 status, nPayload);
-        PELOG2(sirDumpBuf(pMac, SIR_DBG_MODULE_ID, LOG2, pPayload, nPayload);)
     }
 
     // & "transliterate" from a 'tDot11fBeacon' to a 'tSirProbeRespBeacon'...
@@ -4374,10 +4392,58 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
 #ifdef WLAN_FEATURE_FILS_SK
     sir_convert_fils_data_to_beacon_struct(pBeaconStruct, pBeacon);
 #endif
+
+    sir_copy_hs20_ie(&pBeaconStruct->hs20vendor_ie, &pBeacon->hs20vendor_ie);
+
     vos_mem_free(pBeacon);
     return eSIR_SUCCESS;
 
 } // End sirConvertBeaconFrame2Struct.
+
+#ifdef WLAN_FEATURE_FILS_SK
+/* sir_update_auth_frame2_struct_fils_conf: API to update fils info from auth
+ * packet type 2
+ * @auth: auth packet pointer received from AP
+ * @auth_frame: data structure needs to be updated
+ *
+ * Return: None
+ */
+static void sir_update_auth_frame2_struct_fils_conf(tDot11fAuthentication *auth,
+                tpSirMacAuthFrameBody auth_frame)
+{
+    if (auth->AuthAlgo.algo != eSIR_FILS_SK_WITHOUT_PFS)
+        return;
+
+    if (auth->fils_assoc_delay_info.present)
+        auth_frame->assoc_delay_info =
+            auth->fils_assoc_delay_info.assoc_delay_info;
+
+    if (auth->fils_session.present)
+        vos_mem_copy(auth_frame->session, auth->fils_session.session,
+            SIR_FILS_SESSION_LENGTH);
+
+    if (auth->fils_nonce.present)
+        vos_mem_copy(auth_frame->nonce, auth->fils_nonce.nonce,
+            SIR_FILS_NONCE_LENGTH);
+
+    if (auth->fils_wrapped_data.present) {
+        vos_mem_copy(auth_frame->wrapped_data,
+            auth->fils_wrapped_data.wrapped_data,
+            auth->fils_wrapped_data.num_wrapped_data);
+        auth_frame->wrapped_data_len =
+            auth->fils_wrapped_data.num_wrapped_data;
+    }
+    if (auth->RSNOpaque.present) {
+        vos_mem_copy(auth_frame->rsn_ie.info, auth->RSNOpaque.data,
+            auth->RSNOpaque.num_data);
+        auth_frame->rsn_ie.length = auth->RSNOpaque.num_data;
+    }
+}
+#else
+static void sir_update_auth_frame2_struct_fils_conf(tDot11fAuthentication *auth,
+                tpSirMacAuthFrameBody auth_frame)
+{ }
+#endif
 
 tSirRetStatus
 sirConvertAuthFrame2Struct(tpAniSirGlobal        pMac,
@@ -4419,6 +4485,7 @@ sirConvertAuthFrame2Struct(tpAniSirGlobal        pMac,
         pAuth->length = auth.ChallengeText.num_text;
         vos_mem_copy( pAuth->challengeText, auth.ChallengeText.text, auth.ChallengeText.num_text );
     }
+    sir_update_auth_frame2_struct_fils_conf(&auth, pAuth);
 
     return eSIR_SUCCESS;
 

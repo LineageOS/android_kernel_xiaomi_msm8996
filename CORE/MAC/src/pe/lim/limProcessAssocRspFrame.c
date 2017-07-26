@@ -544,16 +544,18 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
         psessionEntry->assocRspLen = 0;
     }
 
-    psessionEntry->assocRsp = vos_mem_malloc(frameLen);
-    if (NULL == psessionEntry->assocRsp)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc response, len = %d"), frameLen);)
-    }
-    else
-    {
-        //Store the Assoc response. This is sent to csr/hdd in join cnf response.
-        vos_mem_copy(psessionEntry->assocRsp, pBody, frameLen);
-        psessionEntry->assocRspLen = frameLen;
+    if (frameLen) {
+        psessionEntry->assocRsp = vos_mem_malloc(frameLen);
+        if (NULL == psessionEntry->assocRsp)
+        {
+            PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc response, len = %d"), frameLen);)
+        }
+        else
+        {
+            //Store the Assoc response. This is sent to csr/hdd in join cnf response.
+            vos_mem_copy(psessionEntry->assocRsp, pBody, frameLen);
+            psessionEntry->assocRspLen = frameLen;
+        }
     }
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
@@ -991,6 +993,17 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
       (tANI_U8 *) psessionEntry->pLimJoinReq->bssDescription.ieFields,
       GET_IE_LEN_IN_BSS(psessionEntry->pLimJoinReq->bssDescription.length),
       pBeaconStruct);
+
+    if (pBeaconStruct->VHTCaps.present)
+        psessionEntry->vht_caps = pBeaconStruct->VHTCaps;
+    if (pBeaconStruct->HTCaps.present)
+        psessionEntry->ht_caps = pBeaconStruct->HTCaps;
+    if (pBeaconStruct->hs20vendor_ie.present)
+        psessionEntry->hs20vendor_ie = pBeaconStruct->hs20vendor_ie;
+    if (pBeaconStruct->HTInfo.present)
+        psessionEntry->ht_operation = pBeaconStruct->HTInfo;
+    if (pBeaconStruct->VHTOperation.present)
+        psessionEntry->vht_operation = pBeaconStruct->VHTOperation;
 
     if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
         limDecideStaProtectionOnAssoc(pMac, pBeaconStruct, psessionEntry);

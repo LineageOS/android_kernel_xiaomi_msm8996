@@ -878,7 +878,8 @@ int hdd_stop_tsf_sync(hdd_adapter_t *adapter)
 
 int hdd_tx_timestamp(adf_nbuf_t netbuf, uint64_t target_time)
 {
-	struct sock *sk = netbuf->sk;
+	struct sock *sk =
+		(netbuf->sk ? netbuf->sk : (struct sock *)netbuf->tstamp.tv64);
 
 	if (!sk)
 		return -EINVAL;
@@ -1024,6 +1025,18 @@ void hdd_tsf_notify_wlan_state_change(hdd_adapter_t *adapter,
 	else if (old_state == eConnectionState_Associated &&
 		new_state != eConnectionState_Associated)
 		hdd_stop_tsf_sync(adapter);
+}
+
+void
+hdd_tsf_record_sk_for_skb(hdd_context_t *hdd_ctx, adf_nbuf_t nbuf)
+{
+	/* if TSF_TX is enabled, skb->sk is required when timestamping
+	 * the tx skb; at the same time, skb->tstamp is useless at this
+	 * point in such case, so record sk in tstamp, in case it will
+	 * be set to NULL in skb_orphan().
+	 */
+	if (HDD_TSF_IS_TX_SET(hdd_ctx))
+		nbuf->tstamp.tv64 = (s64)nbuf->sk;
 }
 #else
 static inline void hdd_update_tsf(hdd_adapter_t *adapter, uint64_t tsf)

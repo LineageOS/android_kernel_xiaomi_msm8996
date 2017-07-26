@@ -249,6 +249,8 @@ typedef struct tagSmeStruct
     ocb_callback dcc_update_ndl_callback;
     void *dcc_stats_event_context;
     ocb_callback dcc_stats_event_callback;
+    void *radio_chan_stats_context;
+    ocb_callback radio_chan_stats_callback;
 #ifdef WLAN_FEATURE_MEMDUMP
     void (*fw_dump_callback)(void *context, struct fw_dump_rsp *rsp);
 #endif

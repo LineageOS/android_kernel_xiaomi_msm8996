@@ -4612,6 +4612,51 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_REDUCED_BEACON_INTERVAL_MAX     (100)
 #define CFG_REDUCED_BEACON_INTERVAL_DEFAULT (0)
 
+#ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
+/*
+ * <ini>
+ * gCoexPtaConfigEnable - enable pta coex
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to enable the coexistence between QCA wifi and External BT.
+ * when val is 1, or the feature is disabled.
+ *
+ * Related: none
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_COEX_PTA_CONFIG_ENABLE         "gCoexPtaConfigEnable"
+#define CFG_COEX_PTA_CONFIG_ENABLE_MIN     (0)
+#define CFG_COEX_PTA_CONFIG_ENABLE_MAX     (1)
+#define CFG_COEX_PTA_CONFIG_ENABLE_DEFAULT (0)
+
+/*
+ * <ini>
+ * gCoexPtaConfigEnable - configure pta coex param
+ * @Min: 0x00000000
+ * @Max: 0xFFFFFFFF
+ * @Default: 0x00000000
+ *
+ * This ini is used to configure the coexistence param between QCA wifi and External BT.
+ *
+ * Related: none
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_COEX_PTA_CONFIG_PARAM         "gCoexPtaConfigParam"
+#define CFG_COEX_PTA_CONFIG_PARAM_MIN     (0x00000000)
+#define CFG_COEX_PTA_CONFIG_PARAM_MAX     (0xFFFFFFFF)
+#define CFG_COEX_PTA_CONFIG_PARAM_DEFAULT (0x00000000)
+#endif
+
 /*
  * <ini>
  * arp_ac_category - ARP access category
@@ -5382,6 +5427,10 @@ struct hdd_config {
    uint32_t                    coex_inquiry_p2p_sta_bt_interval;
    uint32_t                    coex_inquiry_p2p_sta_wlan_interval;
    uint32_t                    coex_tx_power;
+#ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
+   uint8_t                     coex_pta_config_enable;
+   uint32_t                    coex_pta_config_param;
+#endif
 
    uint8_t                     inform_bss_rssi_raw;
 #ifdef WLAN_FEATURE_TSF

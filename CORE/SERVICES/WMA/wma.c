@@ -291,6 +291,12 @@ enum extscan_report_events_type {
 
 #define WMA_EXTSCAN_CYCLE_WAKE_LOCK_DURATION    (5 * 1000) /* in msec */
 
+/*
+ * Maximum number of entires that could be present in the
+ * WMI_EXTSCAN_HOTLIST_MATCH_EVENT buffer from the firmware
+ */
+#define WMA_EXTSCAN_MAX_HOTLIST_ENTRIES 10
+
 #endif
 
 /* Data rate 100KBPS based on IE Index */
@@ -4242,7 +4248,8 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 	struct extscan_hotlist_match  *dest_hotlist;
 	tSirWifiScanResult      *dest_ap;
 	wmi_extscan_wlan_descriptor    *src_hotlist;
-	int numap, j, ap_found = 0;
+	uint32_t numap;
+	int j, ap_found = 0;
 
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
@@ -4267,6 +4274,11 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 	if (!src_hotlist || !numap) {
 		WMA_LOGE("%s: Hotlist AP's list invalid", __func__);
 		return -EINVAL;
+	}
+	if (numap > WMA_EXTSCAN_MAX_HOTLIST_ENTRIES) {
+		WMA_LOGE("%s: Total Entries %u greater than max",
+			  __func__, numap);
+		numap = WMA_EXTSCAN_MAX_HOTLIST_ENTRIES;
 	}
 	dest_hotlist = vos_mem_malloc(sizeof(*dest_hotlist) +
 					sizeof(*dest_ap) * numap);
@@ -17103,6 +17115,7 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_PDEV_PARAM_FORCE_CHAIN_ANT:
 		case WMI_PDEV_PARAM_ANT_DIV_SELFTEST:
 		case WMI_PDEV_PARAM_ANT_DIV_SELFTEST_INTVL:
+		case WMI_PDEV_PARAM_RADIO_CHAN_STATS_ENABLE:
 			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set pdev command/Not"
@@ -33811,6 +33824,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif /* WLAN_FEATURE_APFIND */
+		case WDA_DSRC_RADIO_CHAN_STATS_REQ:
+			wma_process_radio_chan_stats_req(wma_handle,
+				(struct radio_chan_stats_req *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		case WDA_OCB_SET_CONFIG_CMD:
 			wma_ocb_set_config_req(wma_handle,
 				(struct sir_ocb_config *)msg->bodyptr);

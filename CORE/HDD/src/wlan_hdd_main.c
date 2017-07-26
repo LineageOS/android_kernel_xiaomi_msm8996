@@ -1086,6 +1086,7 @@ static int __hdd_netdev_notifier_call(struct notifier_block * nb,
 
    //Make sure that this callback corresponds to our device.
    if ((strncmp(dev->name, "wlan", 4)) &&
+      (strncmp(dev->name, "softAP", 6)) &&
       (strncmp(dev->name, "p2p", 3)))
       return NOTIFY_DONE;
 
@@ -11484,7 +11485,8 @@ hdd_adapter_t *hdd_open_adapter(hdd_context_t *hdd_ctx,
 
 	/* Enable FW logs based on INI configuration */
 	if ((VOS_FTM_MODE != vos_get_conparam()) &&
-	    (hdd_ctx->cfg_ini->enablefwlog)) {
+	    (hdd_ctx->cfg_ini->enablefwlog) &&
+	    (hdd_ctx->current_intf_count == 1)) {
 		uint8_t count = 0;
 		uint32_t value = 0;
 		uint8_t num_entries = 0;
@@ -11954,6 +11956,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
          break;
 
       case WLAN_HDD_OCB:
+         wlan_hdd_dsrc_deinit_chan_stats(pAdapter);
          hdd_disconnect_tx_rx(pAdapter);
          WLANTL_ClearSTAClient(WLAN_HDD_GET_CTX(pAdapter)->pvosContext,
             WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)->conn_info.staId[0]);

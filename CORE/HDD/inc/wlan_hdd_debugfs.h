@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -29,15 +29,24 @@
 #define _WLAN_HDD_DEBUGFS_H
 
 #ifdef WLAN_OPEN_SOURCE
+#define MAX_USER_COMMAND_SIZE_FRAME 4096
+
 VOS_STATUS hdd_debugfs_init(hdd_adapter_t *pAdapter);
 void hdd_debugfs_exit(hdd_context_t *pHddCtx);
+int wlan_hdd_debugfs_open(struct inode *inode, struct file *file);
 #else
-inline VOS_STATUS hdd_debugfs_init(hdd_adapter_t *pAdapter)
+static inline VOS_STATUS hdd_debugfs_init(hdd_adapter_t *pAdapter)
 {
-    return VOS_STATUS_SUCCESS;
+	return VOS_STATUS_SUCCESS;
 }
-inline void hdd_debugfs_exit(hdd_context_t *pHddCtx)
+
+static inline void hdd_debugfs_exit(hdd_context_t *pHddCtx)
 {
+}
+
+static inline int wlan_hdd_debugfs_open(struct inode *inode, struct file *file)
+{
+	return 0;
 }
 #endif /* #ifdef WLAN_OPEN_SOURCE */
 #endif /* #ifndef _WLAN_HDD_DEBUGFS_H */

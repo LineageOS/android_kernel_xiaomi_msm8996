@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -29,6 +29,7 @@
 #define WLAN_HDD_ASSOC_H__
 #include <wlan_hdd_mib.h>
 #include <sme_Api.h>
+#include <linux/ieee80211.h>
 
 #define HDD_MAX_NUM_IBSS_STA          ( 32 )
 #ifdef FEATURE_WLAN_TDLS
@@ -75,6 +76,75 @@ typedef enum {
    eConnectionState_NdiDisconnected,
    eConnectionState_NdiConnected,
 }eConnectionState;
+
+/**
+ * struct hdd_conn_flag - connection flags
+ * @ht_present: ht element present or not
+ * @vht_present: vht element present or not
+ * @hs20_present: hs20 element present or not
+ * @ht_op_present: ht operation present or not
+ * @vht_op_present: vht operation present or not
+ */
+struct hdd_conn_flag {
+	uint8_t ht_present:1;
+	uint8_t vht_present:1;
+	uint8_t hs20_present:1;
+	uint8_t ht_op_present:1;
+	uint8_t vht_op_present:1;
+	uint8_t reserved:3;
+};
+
+/*defines for tx_BF_cap_info */
+#define TX_BF_CAP_INFO_TX_BF			0x00000001
+#define TX_BF_CAP_INFO_RX_STAG_RED_SOUNDING	0x00000002
+#define TX_BF_CAP_INFO_TX_STAG_RED_SOUNDING	0x00000004
+#define TX_BF_CAP_INFO_RX_ZFL			0x00000008
+#define TX_BF_CAP_INFO_TX_ZFL			0x00000010
+#define TX_BF_CAP_INFO_IMP_TX_BF		0x00000020
+#define TX_BF_CAP_INFO_CALIBRATION		0x000000c0
+#define TX_BF_CAP_INFO_CALIBRATION_SHIFT	6
+#define TX_BF_CAP_INFO_EXP_CSIT_BF		0x00000100
+#define TX_BF_CAP_INFO_EXP_UNCOMP_STEER_MAT	0x00000200
+#define TX_BF_CAP_INFO_EXP_BF_CSI_FB		0x00001c00
+#define TX_BF_CAP_INFO_EXP_BF_CSI_FB_SHIFT	10
+#define TX_BF_CAP_INFO_EXP_UNCMP_STEER_MAT	0x0000e000
+#define TX_BF_CAP_INFO_EXP_UNCMP_STEER_MAT_SHIFT 13
+#define TX_BF_CAP_INFO_EXP_CMP_STEER_MAT_FB	0x00070000
+#define TX_BF_CAP_INFO_EXP_CMP_STEER_MAT_FB_SHIFT 16
+#define TX_BF_CAP_INFO_CSI_NUM_BF_ANT		0x00180000
+#define TX_BF_CAP_INFO_CSI_NUM_BF_ANT_SHIFT	18
+#define TX_BF_CAP_INFO_UNCOMP_STEER_MAT_BF_ANT	0x00600000
+#define TX_BF_CAP_INFO_UNCOMP_STEER_MAT_BF_ANT_SHIFT 20
+#define TX_BF_CAP_INFO_COMP_STEER_MAT_BF_ANT	0x01800000
+#define TX_BF_CAP_INFO_COMP_STEER_MAT_BF_ANT_SHIFT 22
+#define TX_BF_CAP_INFO_RSVD			0xfe000000
+
+/* defines for antenna selection info */
+#define ANTENNA_SEL_INFO			0x01
+#define ANTENNA_SEL_INFO_EXP_CSI_FB_TX		0x02
+#define ANTENNA_SEL_INFO_ANT_ID_FB_TX		0x04
+#define ANTENNA_SEL_INFO_EXP_CSI_FB		0x08
+#define ANTENNA_SEL_INFO_ANT_ID_FB		0x10
+#define ANTENNA_SEL_INFO_RX_AS			0x20
+#define ANTENNA_SEL_INFO_TX_SOUNDING_PPDU	0x40
+#define ANTENNA_SEL_INFO_RSVD			0x80
+
+/**
+ * struct rate_info - bitrate information
+ *
+ * Information about a receiving or transmitting bitrate
+ *
+ * @flags: bitflag of flags from &enum rate_info_flags
+ * @mcs: mcs index if struct describes a 802.11n bitrate
+ * @legacy: bitrate in 100kbit/s for 802.11abg
+ * @nss: number of streams (VHT only)
+ */
+struct rate_info_ex {
+	uint8_t flags;
+	uint8_t mcs;
+	uint16_t legacy;
+	uint8_t nss;
+};
 
 /**This structure stores the connection information */
 typedef struct connection_info_s
@@ -123,6 +193,48 @@ typedef struct connection_info_s
    /** NSS and RateFlags used for this connection */
    uint8_t   nss;
    uint32_t  rate_flags;
+
+   /** Channel frequency */
+   uint32_t freq;
+
+   /** txrate structure holds nss & datarate info */
+   struct rate_info_ex txrate;
+
+   /** holds noise information */
+   int8_t noise;
+
+   /** holds ht capabilities info */
+   struct ieee80211_ht_cap ht_caps;
+
+   /** holds vht capabilities info */
+   struct ieee80211_vht_cap vht_caps;
+
+   /** flag conn info params is present or not */
+   struct hdd_conn_flag conn_flag;
+
+   /** holds passpoint/hs20 info */
+   tDot11fIEhs20vendor_ie hs20vendor_ie;
+
+   /** HT operation info */
+   struct ieee80211_ht_operation ht_operation;
+
+   /** VHT operation info */
+   struct ieee80211_vht_operation vht_operation;
+
+   /** roaming counter */
+   uint32_t roam_count;
+
+   /** holds rssi info */
+   int8_t signal;
+
+   /** holds assoc fail reason */
+   int32_t assoc_status_code;
+
+   /** holds last SSID info */
+   tCsrSSIDInfo last_ssid;
+
+   /** holds last auth type */
+   eCsrAuthType last_auth_type;
 
    /* ptk installed state */
    bool ptk_installed;

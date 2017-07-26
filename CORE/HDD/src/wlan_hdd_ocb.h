@@ -294,6 +294,14 @@ int wlan_hdd_cfg80211_dcc_update_ndl(struct wiphy *wiphy,
 				     int data_len);
 
 void wlan_hdd_dcc_register_for_dcc_stats_event(hdd_context_t *hdd_ctx);
+
+int wlan_hdd_dsrc_config_radio_chan_stats(hdd_adapter_t *adapter,
+					  bool enable_chan_stats);
+
+int wlan_hdd_dsrc_request_radio_chan_stats(hdd_adapter_t *adapter,
+					   struct radio_chan_stats_req *req);
+
+void wlan_hdd_dsrc_deinit_chan_stats(hdd_adapter_t *adapter);
 #else
 static inline void hdd_set_dot11p_config(hdd_context_t *hdd_ctx)
 {
@@ -373,6 +381,23 @@ static inline int wlan_hdd_cfg80211_dcc_update_ndl(struct wiphy *wiphy,
 
 static inline void wlan_hdd_dcc_register_for_dcc_stats_event(
 		hdd_context_t *hdd_ctx)
+{
+	return;
+}
+
+static inline int wlan_hdd_dsrc_config_radio_chan_stats(hdd_adapter_t *adapter,
+		bool enable_chan_stats)
+{
+	return 0;
+}
+
+static inline int wlan_hdd_dsrc_request_radio_chan_stats(hdd_adapter_t *adapter,
+		struct radio_chan_stats_req *req)
+{
+	return 0;
+}
+
+static inline void wlan_hdd_dsrc_deinit_chan_stats(hdd_adapter_t *adapter)
 {
 	return;
 }

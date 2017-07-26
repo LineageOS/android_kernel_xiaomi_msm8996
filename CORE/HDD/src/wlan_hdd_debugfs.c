@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -30,10 +30,10 @@
 #include <wlan_hdd_wowl.h>
 #include <vos_sched.h>
 #include "wlan_hdd_debugfs.h"
+#include "wlan_hdd_debugfs_ocb.h"
 
 #define MAX_USER_COMMAND_SIZE_WOWL_ENABLE 8
 #define MAX_USER_COMMAND_SIZE_WOWL_PATTERN 512
-#define MAX_USER_COMMAND_SIZE_FRAME 4096
 
 #ifdef MULTI_IF_NAME
 #define HDD_DEBUGFS_DIRNAME "wlan_wcnss" MULTI_IF_NAME
@@ -546,13 +546,13 @@ static ssize_t wcnss_patterngen_write(struct file *file,
 }
 
 /**
- * __wcnss_debugfs_open() - open debugfs
+ * __wlan_hdd_debugfs_open() - open debugfs
  * @inode: inode pointer
  * @file: file pointer
  *
  * Return: 0 on success, error number otherwise
  */
-static int __wcnss_debugfs_open(struct inode *inode, struct file *file)
+static int __wlan_hdd_debugfs_open(struct inode *inode, struct file *file)
 {
 	hdd_adapter_t *adapter;
 	hdd_context_t *hdd_ctx;
@@ -581,18 +581,18 @@ static int __wcnss_debugfs_open(struct inode *inode, struct file *file)
 }
 
 /**
- * wcnss_debugfs_open() - SSR wrapper for __wcnss_debugfs_open
+ * wlan_hdd_debugfs_open() - SSR wrapper for __wlan_hdd_debugfs_open
  * @inode: inode pointer
  * @file: file pointer
  *
  * Return: 0 on success, error number otherwise
  */
-static int wcnss_debugfs_open(struct inode *inode, struct file *file)
+int wlan_hdd_debugfs_open(struct inode *inode, struct file *file)
 {
 	int ret;
 
 	vos_ssr_protect(__func__);
-	ret = __wcnss_debugfs_open(inode, file);
+	ret = __wlan_hdd_debugfs_open(inode, file);
 	vos_ssr_unprotect(__func__);
 
 	return ret;
@@ -843,21 +843,21 @@ static int wlan_hdd_open_power_debugfs(struct inode *inode, struct file *file)
 
 static const struct file_operations fops_wowenable = {
     .write = wcnss_wowenable_write,
-    .open = wcnss_debugfs_open,
+    .open = wlan_hdd_debugfs_open,
     .owner = THIS_MODULE,
     .llseek = default_llseek,
 };
 
 static const struct file_operations fops_wowpattern = {
     .write = wcnss_wowpattern_write,
-    .open = wcnss_debugfs_open,
+    .open = wlan_hdd_debugfs_open,
     .owner = THIS_MODULE,
     .llseek = default_llseek,
 };
 
 static const struct file_operations fops_patterngen = {
     .write = wcnss_patterngen_write,
-    .open = wcnss_debugfs_open,
+    .open = wlan_hdd_debugfs_open,
     .owner = THIS_MODULE,
     .llseek = default_llseek,
 };
@@ -917,6 +917,12 @@ VOS_STATUS hdd_debugfs_init(hdd_adapter_t *pAdapter)
 
     if (VOS_STATUS_SUCCESS != wlan_hdd_create_power_stats_file(pAdapter,
                                                                 pHddCtx))
+        return VOS_STATUS_E_FAILURE;
+
+    if (wlan_hdd_create_dsrc_tx_stats_file(pAdapter, pHddCtx))
+        return VOS_STATUS_E_FAILURE;
+
+    if (wlan_hdd_create_dsrc_chan_stats_file(pAdapter, pHddCtx))
         return VOS_STATUS_E_FAILURE;
 
     return VOS_STATUS_SUCCESS;
