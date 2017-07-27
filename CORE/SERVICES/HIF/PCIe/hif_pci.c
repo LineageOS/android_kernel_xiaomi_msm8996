@@ -2619,7 +2619,8 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
 	          AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("ath: HIF_PCIDeviceProbed get chip id val (%d)\n", rv));
 		  goto done;
 	     }
-	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD) {
+	     if (CHIP_ID_VERSION_GET(chip_id) == 0xD ||
+                 CHIP_ID_VERSION_GET(chip_id) == 0xF) {
              scn->target_revision = CHIP_ID_REVISION_GET(chip_id);
              switch(CHIP_ID_REVISION_GET(chip_id)) {
              case 0x2: /* ROME 1.3 */
@@ -2633,6 +2634,7 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
              case 0x8: /* ROME 3.0 */
              case 0x9: /* ROME 3.1 */
              case 0xA: /* ROME 3.2 */
+             case 0xD: /* Naples */
                  banks_switched = 9;
                  break;
              case 0x0: /* ROME 1.0 */
