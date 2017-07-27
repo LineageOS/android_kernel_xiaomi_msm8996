@@ -2649,4 +2649,17 @@ void wlan_hdd_deinit_chan_info(hdd_context_t *hdd_ctx);
 void hdd_chip_pwr_save_fail_detected_cb(void *hddctx,
 				struct chip_pwr_save_fail_detected_params
 				*data);
+
+/**
+ * hdd_drv_cmd_validate() - Validates for space in hdd driver command
+ * @command: pointer to input data (its a NULL terminated string)
+ * @len: length of command name
+ *
+ * This function checks for space after command name and if no space
+ * is found returns error.
+ *
+ * Return: 0 for success non-zero for failure
+ */
+int hdd_drv_cmd_validate(tANI_U8 *command, int len);
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
