@@ -671,4 +671,13 @@ uint8_t pe_count_session_with_sme_session_id(tpAniSirGlobal mac_ctx,
 	uint8_t sme_session_id);
 
 int pe_get_active_session_count(tpAniSirGlobal mac_ctx);
+#ifdef WLAN_FEATURE_FILS_SK
+/**
+ * pe_delete_fils_info: API to delete fils session info
+ * @session: pe session
+ *
+ * Return: void
+ */
+void pe_delete_fils_info(tpPESession session);
+#endif
 #endif //#if !defined( __LIM_SESSION_H )

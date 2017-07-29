@@ -18285,8 +18285,9 @@ static void wma_add_bss_sta_mode(tp_wma_handle wma, tpAddBssParams add_bss)
 send_bss_resp:
 		ol_txrx_find_peer_by_addr(pdev, add_bss->bssId,
 					  &add_bss->staContext.staIdx);
-		add_bss->status = (add_bss->staContext.staIdx < 0) ?
-				VOS_STATUS_E_FAILURE : VOS_STATUS_SUCCESS;
+		add_bss->status =
+			(add_bss->staContext.staIdx == HAL_STA_INVALID_IDX) ?
+			VOS_STATUS_E_FAILURE : VOS_STATUS_SUCCESS;
 		add_bss->bssIdx = add_bss->staContext.smesessionId;
 		vos_mem_copy(add_bss->staContext.staMac, add_bss->bssId,
 				 sizeof(add_bss->staContext.staMac));
@@ -25074,8 +25075,12 @@ static VOS_STATUS wma_feed_allowed_action_frame_patterns(tp_wma_handle wma)
 	wmi_buf_t buf;
 	int ret;
 	int i;
+	uint8_t *buf_ptr;
+	uint32_t *cmd_args;
 
-	len = sizeof(WMI_WOW_SET_ACTION_WAKE_UP_CMD_fixed_param);
+	len = sizeof(WMI_WOW_SET_ACTION_WAKE_UP_CMD_fixed_param) +
+		WMI_TLV_HDR_SIZE + (MAX_SUPPORTED_ACTION_CATEGORY *
+		sizeof(A_UINT32));
 	buf = wmi_buf_alloc(wma->wmi_handle, len);
 	if (!buf) {
 		WMA_LOGE("%s: Failed to allocate buf for wow action frame map",
@@ -25084,6 +25089,7 @@ static VOS_STATUS wma_feed_allowed_action_frame_patterns(tp_wma_handle wma)
 	}
 
 	cmd = (WMI_WOW_SET_ACTION_WAKE_UP_CMD_fixed_param *) wmi_buf_data(buf);
+	buf_ptr = (uint8_t *)cmd;
 	WMITLV_SET_HDR(&cmd->tlv_header,
 		       WMITLV_TAG_STRUC_wmi_wow_set_action_wake_up_cmd_fixed_param,
 		       WMITLV_GET_STRUCT_TLVLEN(
@@ -25101,6 +25107,14 @@ static VOS_STATUS wma_feed_allowed_action_frame_patterns(tp_wma_handle wma)
 		WMA_LOGD("%s: %d action Wakeup pattern 0x%x in fw",
 			__func__, i, cmd->action_category_map[i]);
 	}
+
+	buf_ptr += sizeof(WMI_WOW_SET_ACTION_WAKE_UP_CMD_fixed_param);
+	WMITLV_SET_HDR(buf_ptr, WMITLV_TAG_ARRAY_UINT32,
+			(MAX_SUPPORTED_ACTION_CATEGORY * sizeof(A_UINT32)));
+	buf_ptr += WMI_TLV_HDR_SIZE;
+	cmd_args = (uint32_t *) buf_ptr;
+	for (i = 0; i < MAX_SUPPORTED_ACTION_CATEGORY; i++)
+		cmd_args[i] = wma->allowed_action_frames.action_per_category[i];
 
 	ret = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
 				   WMI_WOW_SET_ACTION_WAKE_UP_CMDID);
@@ -32596,6 +32610,14 @@ void wma_process_set_allowed_action_frames_ind(tp_wma_handle wma_handle,
 			i, allowed_action_frames->action_category_map[i]);
 	}
 
+	for (i = 0; i < SIR_MAC_ACTION_MAX; i++) {
+		wma_handle->allowed_action_frames.action_per_category[i] =
+				allowed_action_frames->action_per_category[i];
+	}
+
+	WMA_LOGD("Spectrum mgmt action frames drop pattern 0x%x",
+			wma_handle->allowed_action_frames.
+			action_per_category[SIR_MAC_ACTION_SPECTRUM_MGMT]);
 	return;
 }
 

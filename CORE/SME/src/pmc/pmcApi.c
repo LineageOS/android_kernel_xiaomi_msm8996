@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3148,6 +3148,8 @@ eHalStatus pmcGetFilterMatchCount
 #endif // WLAN_FEATURE_PACKET_FILTERING
 
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
+
+#define GTK_OFFLOAD_DISABLE 1
 /* ---------------------------------------------------------------------------
     \fn pmcSetGTKOffload
     \brief  Set GTK offload feature.
@@ -3187,6 +3189,11 @@ eHalStatus pmcSetGTKOffload (tHalHandle hHal, tpSirGtkOffloadParams pGtkOffload,
                  sizeof(tSirMacAddr));
 
     vos_mem_copy(pRequestBuf, pGtkOffload, sizeof(tSirGtkOffloadParams));
+
+#ifdef WLAN_FEATURE_FILS_SK
+    if (pSession->is_fils_connection)
+        pRequestBuf->ulFlags = GTK_OFFLOAD_DISABLE;
+#endif
 
     msg.type = WDA_GTK_OFFLOAD_REQ;
     msg.reserved = 0;

@@ -98,6 +98,20 @@ static inline void lim_increase_fils_sequence_number(tpPESession session_entry)
 }
 
 /**
+ * populate_fils_connect_params() - Populate FILS connect params to join rsp
+ * @mac_ctx: Mac context
+ * @session: PE session
+ * @sme_join_rsp: SME join rsp
+ *
+ * This API copies the FILS connect params from PE session to SME join rsp
+ *
+ * Return: None
+ */
+void populate_fils_connect_params(tpAniSirGlobal mac_ctx,
+				  tpPESession session,
+				  tpSirSmeJoinRsp sme_join_rsp);
+
+/**
  * aead_encrypt_assoc_req() - Encrypt FILS IE's in assoc request
  * @mac_ctx: mac context
  * @pe_session: PE session
@@ -201,6 +215,11 @@ static inline bool lim_is_fils_connection(tpPESession pe_session)
 {
 	return false;
 }
+
+static inline void populate_fils_connect_params(tpAniSirGlobal mac_ctx,
+						tpPESession session,
+						tpSirSmeJoinRsp sme_join_rsp)
+{ }
 
 static inline VOS_STATUS aead_encrypt_assoc_req(tpAniSirGlobal mac_ctx,
 						tpPESession pe_session,

@@ -386,6 +386,20 @@ typedef enum eSirResultCodes
     eSIR_DONOT_USE_RESULT_CODE = SIR_MAX_ENUM_SIZE
 } tSirResultCodes;
 
+#ifdef WLAN_FEATURE_FILS_SK
+struct fils_join_rsp_params {
+    uint8_t *fils_pmk;
+    uint8_t fils_pmk_len;
+    uint8_t fils_pmkid[PMKID_LEN];
+    uint8_t kek[MAX_KEK_LEN];
+    uint8_t kek_len;
+    uint8_t tk[MAX_TK_LEN];
+    uint8_t tk_len;
+    uint8_t gtk_len;
+    uint8_t gtk[MAX_GTK_LEN];
+};
+#endif
+
 #define RMENABLEDCAP_MAX_LEN 5
 
 struct rrm_config_param
@@ -1252,6 +1266,11 @@ typedef struct sSirSmeJoinRsp
     tDot11fIEHTInfo ht_operation;
     tDot11fIEVHTOperation vht_operation;
     tDot11fIEhs20vendor_ie hs20vendor_ie;
+#ifdef WLAN_FEATURE_FILS_SK
+    bool is_fils_connection;
+    uint16_t fils_seq_num;
+    struct fils_join_rsp_params *fils_join_rsp;
+#endif
     /* Add new members before 'frames' to avoid memory corruption of 'frames' */
     tANI_U8         frames[ 1 ];
 } tSirSmeJoinRsp, *tpSirSmeJoinRsp;
@@ -3985,6 +4004,26 @@ typedef struct sSirSetRSSIFilterReq
 #define ALLOWED_ACTION_FRAMES_BITMAP5	0x0
 #define ALLOWED_ACTION_FRAMES_BITMAP6	0x0
 #define ALLOWED_ACTION_FRAMES_BITMAP7	0x0
+
+/*
+ * DROP_SPEC_MGMT_ACTION_FRAME_BITMAP
+ *
+ * Bitmask is based on the below. The frames with 1's
+ * set to their corresponding bit can be dropped in FW.
+ *
+ * ----------------------------------+-----+------+
+ *         Type                      | Bit | Drop |
+ * ----------------------------------+-----+------+
+ * SIR_MAC_ACTION_MEASURE_REQUEST_ID    0     1
+ * SIR_MAC_ACTION_TPC_REQUEST_ID        1     1
+ * ----------------------------------+-----+------+
+ */
+#define DROP_SPEC_MGMT_ACTION_FRAME_BITMAP \
+		((1 << SIR_MAC_ACTION_MEASURE_REQUEST_ID) |\
+		 (1 << SIR_MAC_ACTION_MEASURE_REPORT_ID) |\
+		 (1 << SIR_MAC_ACTION_TPC_REPORT_ID) |\
+		 (1 << SIR_MAC_ACTION_TPC_REQUEST_ID))
+
 /**
  * struct sir_allowed_action_frames - Parameters to set Allowed action frames
  * @operation: 0 reset to fw default, 1 set the bits,
@@ -3994,6 +4033,7 @@ typedef struct sSirSetRSSIFilterReq
 struct sir_allowed_action_frames {
 	uint32_t operation;
 	uint32_t action_category_map[SIR_MAC_ACTION_MAX / 32];
+	uint32_t action_per_category[SIR_MAC_ACTION_MAX];
 };
 
 // Update Scan Params

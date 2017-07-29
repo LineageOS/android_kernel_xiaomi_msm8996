@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -5798,7 +5798,6 @@ eHalStatus sme_QosProcessAddTsSuccessRsp(tpAniSirGlobal pMac,
       log_ptr->nominal_msdu_size = pACInfo->curr_QoSInfo[tspec_pending - 1].nominal_msdu_size;
       log_ptr->peak_data_rate = pACInfo->curr_QoSInfo[tspec_pending - 1].peak_data_rate;
       log_ptr->surplus_bw_allowance = pACInfo->curr_QoSInfo[tspec_pending - 1].surplus_bw_allowance;
-      log_ptr->suspension_interval = pACInfo->curr_QoSInfo[tspec_pending - 1].surplus_bw_allowance;
       log_ptr->suspension_interval = pACInfo->curr_QoSInfo[tspec_pending - 1].suspension_interval;
       log_ptr->svc_start_time = pACInfo->curr_QoSInfo[tspec_pending - 1].svc_start_time;
       log_ptr->tsinfo[0] = pACInfo->curr_QoSInfo[tspec_pending - 1].ts_info.direction << 5 |

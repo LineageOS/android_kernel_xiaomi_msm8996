@@ -1056,6 +1056,10 @@ typedef struct tagCsrRoamSession
     bool supported_nss_1x1;
     bool disable_hi_rssi;
     bool dhcp_done;
+#ifdef WLAN_FEATURE_FILS_SK
+    bool is_fils_connection;
+    uint16_t fils_seq_num;
+#endif
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct
