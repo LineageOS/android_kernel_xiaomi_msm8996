@@ -312,6 +312,13 @@ htt_rx_ring_fill_n(struct htt_pdev_t *pdev, int num)
     }
 
 fail:
+    /*
+     * Make sure alloc index write is reflected correctly before FW polls
+     * remote ring write index as compiler can reorder the instructions
+     * based on optimizations.
+     */
+
+    adf_os_mb();
     *(pdev->rx_ring.alloc_idx.vaddr) = idx;
     return;
 }
