@@ -269,6 +269,8 @@ typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 #define MAX_PROBE_REQ_OUIS 16
 
 #define SCAN_REJECT_THRESHOLD_TIME 300000 /* Time is in msec, equal to 5 mins */
+#define SCAN_REJECT_THRESHOLD 15
+
 
 /*
  * @eHDD_SCAN_REJECT_DEFAULT: default value
@@ -2110,6 +2112,7 @@ struct hdd_context_s
     v_U8_t last_scan_reject_session_id;
     scan_reject_states last_scan_reject_reason;
     v_TIME_t last_scan_reject_timestamp;
+    uint8_t scan_reject_cnt;
     uint8_t hdd_dfs_regdomain;
 #ifdef WLAN_FEATURE_TSF
     /* indicate whether tsf has been initialized */

@@ -908,6 +908,9 @@ wlan_hdd_pno_config_policy[QCA_WLAN_VENDOR_ATTR_PNO_MAX + 1] = {
     [QCA_WLAN_VENDOR_ATTR_EPNO_BAND5GHZ_BONUS] = {
         .type = NLA_U32
     },
+    [QCA_WLAN_VENDOR_ATTR_PNO_CONFIG_REQUEST_ID] = {
+         .type = NLA_U32
+    },
 };
 
 static const struct nla_policy
@@ -4772,12 +4775,12 @@ static int __wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
 	req_msg->num_networks = num_networks;
 
 	/* Parse and fetch request Id */
-	if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_REQUEST_ID]) {
+	if (!tb[QCA_WLAN_VENDOR_ATTR_PNO_CONFIG_REQUEST_ID]) {
 		hddLog(LOGE, FL("attr request id failed"));
 		goto fail;
 	}
 	req_msg->request_id = nla_get_u32(
-	    tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_REQUEST_ID]);
+	    tb[QCA_WLAN_VENDOR_ATTR_PNO_CONFIG_REQUEST_ID]);
 
 	req_msg->session_id = adapter->sessionId;
 	hddLog(LOG1, FL("Req Id %u Session Id %d"),
@@ -21539,16 +21542,22 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
             !pHddCtx->last_scan_reject_timestamp) {
             pHddCtx->last_scan_reject_session_id = curr_session_id;
             pHddCtx->last_scan_reject_reason = curr_reason;
-            pHddCtx->last_scan_reject_timestamp = jiffies_to_msecs(jiffies);
+            pHddCtx->last_scan_reject_timestamp =
+              jiffies_to_msecs(jiffies) + SCAN_REJECT_THRESHOLD_TIME;
+            pHddCtx->scan_reject_cnt = 0;
         } else {
-            hddLog(LOGE, FL("curr_session id %d curr_reason %d time delta %lu"),
+            pHddCtx->scan_reject_cnt++;
+            hddLog(LOGE, FL("curr_session id %d curr_reason %d threshold time has elapsed? %d count %d"),
                    curr_session_id, curr_reason,
-                   (jiffies_to_msecs(jiffies) -
-                    pHddCtx->last_scan_reject_timestamp));
-            if ((jiffies_to_msecs(jiffies) -
-                 pHddCtx->last_scan_reject_timestamp) >=
-                SCAN_REJECT_THRESHOLD_TIME) {
+                   vos_system_time_after(jiffies_to_msecs(jiffies),
+                   pHddCtx->last_scan_reject_timestamp),
+                   pHddCtx->scan_reject_cnt);
+            if ((pHddCtx->scan_reject_cnt >=
+               SCAN_REJECT_THRESHOLD) &&
+               vos_system_time_after(jiffies_to_msecs(jiffies),
+               pHddCtx->last_scan_reject_timestamp)) {
                 pHddCtx->last_scan_reject_timestamp = 0;
+                pHddCtx->scan_reject_cnt = 0;
                 if (pHddCtx->cfg_ini->enable_fatal_event) {
                     vos_flush_logs(WLAN_LOG_TYPE_FATAL,
                           WLAN_LOG_INDICATOR_HOST_DRIVER,
@@ -21565,6 +21574,7 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
     pHddCtx->last_scan_reject_timestamp = 0;
     pHddCtx->last_scan_reject_session_id = 0xFF;
     pHddCtx->last_scan_reject_reason = 0;
+    pHddCtx->scan_reject_cnt = 0;
 
     /* Check whether SAP scan can be skipped or not */
     if (pAdapter->device_mode == WLAN_HDD_SOFTAP &&
@@ -29722,11 +29732,6 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         pAdapter = pAdapterNode->pAdapter;
         pScanInfo = &pAdapter->scan_info;
 
-        if (sme_staInMiddleOfRoaming(pHddCtx->hHal, pAdapter->sessionId)) {
-            hddLog(LOG1, FL("Roaming in progress, do not allow suspend"));
-            return -EAGAIN;
-        }
-
         if (pScanInfo->mScanPending && pAdapter->request)
         {
            INIT_COMPLETION(pScanInfo->abortscan_event_var);
@@ -29743,6 +29748,11 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                          __func__);
               return -ETIME;
            }
+        }
+
+        if (sme_staInMiddleOfRoaming(pHddCtx->hHal, pAdapter->sessionId)) {
+            hddLog(LOG1, FL("Roaming in progress, don't allow suspend"));
+            return -EAGAIN;
         }
 
         if (pAdapter->is_roc_inprogress)
