@@ -26033,6 +26033,9 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
             else if (rate_flags & eHAL_TX_RATE_VHT20)
             {
                 sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+                sinfo->txrate.bw = RATE_INFO_BW_20;
+#endif
             }
             else
                 sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
