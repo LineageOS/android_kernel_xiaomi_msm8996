@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -312,6 +312,8 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
 
     rf->rf_numpulses = numpulses;
     rf->rf_patterntype = dfs_radars[p].rp_patterntype;
+    rf->rf_sidx_spread = dfs_radars[p].rp_sidx_spread;
+    rf->rf_check_delta_peak = dfs_radars[p].rp_check_delta_peak;
     rf->rf_pulseid = dfs_radars[p].rp_pulseid;
     rf->rf_mindur = dfs_radars[p].rp_mindur;
     rf->rf_maxdur = dfs_radars[p].rp_maxdur;
@@ -405,6 +407,8 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
 
         rf->rf_numpulses = numpulses;
         rf->rf_patterntype = dfs_radars[p].rp_patterntype;
+        rf->rf_sidx_spread = dfs_radars[p].rp_sidx_spread;
+        rf->rf_check_delta_peak = dfs_radars[p].rp_check_delta_peak;
         rf->rf_pulseid = dfs_radars[p].rp_pulseid;
         rf->rf_mindur = dfs_radars[p].rp_mindur;
         rf->rf_maxdur = dfs_radars[p].rp_maxdur;

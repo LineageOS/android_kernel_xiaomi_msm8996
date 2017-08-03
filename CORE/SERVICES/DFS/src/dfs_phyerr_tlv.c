@@ -714,6 +714,8 @@ dfs_process_phyerr_bb_tlv(struct ath_dfs *dfs, void *buf, u_int16_t datalen,
    e->is_ext = 0;
    e->is_dc = 0;
    e->is_early = 0;
+   e->pulse_delta_peak = rs.delta_peak;
+   e->pulse_delta_diff = rs.delta_diff;
    /*
     * XXX TODO: add a "chirp detection enabled" capability or config
     * bit somewhere, in case for some reason the hardware chirp
