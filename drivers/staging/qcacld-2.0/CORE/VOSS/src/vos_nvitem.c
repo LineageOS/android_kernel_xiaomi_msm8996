@@ -1750,7 +1750,7 @@ int vos_update_band(v_U8_t  band_capability)
 		return VOS_STATUS_E_FAULT;
 	}
 
-	for (i = 0; i < NUM_NL80211_BANDS; i++) {
+	for (i = 0; i < HDD_NUM_NL80211_BANDS; i++) {
 		if (NULL == wiphy->bands[i])
 			continue;
 
@@ -1959,7 +1959,7 @@ static int create_linux_regulatory_entry(v_REGDOMAIN_t temp_reg_domain,
     vos_mem_zero(pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels,
 		 NUM_RF_CHANNELS * sizeof(sRegulatoryChannel));
 
-    for (i = 0, m = 0; i<NUM_NL80211_BANDS; i++)
+    for (i = 0, m = 0; i<HDD_NUM_NL80211_BANDS; i++)
     {
         if (wiphy->bands[i] == NULL)
             continue;
@@ -2269,7 +2269,7 @@ static void restore_custom_reg_settings(struct wiphy *wiphy)
 	struct ieee80211_channel *chan;
 	int i;
 
-	for (band = 0; band < NUM_NL80211_BANDS; band++) {
+	for (band = 0; band < HDD_NUM_NL80211_BANDS; band++) {
 		sband = wiphy->bands[band];
 		if (!sband)
 			continue;
@@ -2685,7 +2685,7 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
 #endif
     }
     m = 0;
-    for (i = 0; i < NUM_NL80211_BANDS; i++)
+    for (i = 0; i < HDD_NUM_NL80211_BANDS; i++)
     {
 
         if (wiphy->bands[i] == NULL)

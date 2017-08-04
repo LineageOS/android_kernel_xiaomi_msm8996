@@ -3668,7 +3668,7 @@ static int __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
         !strncmp(hdd_get_fwpath(), "ap", 2)) {
         num_chan_new = 0;
         for (i = 0; i < num_channels; i++)
-            for (j = 0; j < NUM_NL80211_BANDS; j++) {
+            for (j = 0; j < HDD_NUM_NL80211_BANDS; j++) {
                 if (wiphy->bands[j] == NULL)
                     continue;
                 for (k = 0; k < wiphy->bands[j]->n_channels; k++) {
@@ -16629,7 +16629,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
         }
     }
 
-   for (i = 0; i < NUM_NL80211_BANDS; i++)
+   for (i = 0; i < HDD_NUM_NL80211_BANDS; i++)
    {
 
        if (NULL == wiphy->bands[i])
@@ -16718,7 +16718,7 @@ void wlan_hdd_cfg80211_deinit(struct wiphy *wiphy)
 {
 	int i;
 
-	for (i = 0; i < NUM_NL80211_BANDS; i++) {
+	for (i = 0; i < HDD_NUM_NL80211_BANDS; i++) {
 		if (NULL != wiphy->bands[i] &&
 		   (NULL != wiphy->bands[i]->channels)) {
 			vos_mem_free(wiphy->bands[i]->channels);
@@ -31218,7 +31218,7 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
     mutex_lock(&pHddCtx->chan_info_lock);
     freq = pHddCtx->chan_info[idx].freq;
 
-    for (i = 0; i < NUM_NL80211_BANDS && !filled; i++)
+    for (i = 0; i < HDD_NUM_NL80211_BANDS && !filled; i++)
     {
         if (NULL == wiphy->bands[i])
            continue;
