@@ -3987,6 +3987,7 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
     tHalHandle hHal = NULL;
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
     tpAniSirGlobal pMac = NULL;
+    tWLAN_SAPEvent sapEvent; /* State machine event */
 
     sapContext = VOS_GET_SAP_CB( pvosGCtx );
     if (NULL == sapContext) {
@@ -4045,7 +4046,7 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
          * the results pre start BSS.
          */
         vosStatus = sapGotoChannelSel(sapContext,
-                                      NULL,
+                                      &sapEvent,
                                       sapContext->sapsMachine == eSAP_STARTED ?
                                       VOS_FALSE : VOS_TRUE);
 
