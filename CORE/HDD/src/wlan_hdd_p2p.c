@@ -455,16 +455,17 @@ static int32_t hdd_set_action_frame_random_mac(hdd_adapter_t *adapter,
 		return 0;
 	}
 
-	if (in_use_cnt == MAX_RANDOM_MAC_ADDRS) {
-		spin_unlock(&adapter->random_mac_lock);
-		hddLog(LOGE, FL("Reached the limit of Max random addresses"));
-		return -EBUSY;
-	}
-
 	/* get the first unused buf and store new random mac */
 	for (i = 0; i < MAX_RANDOM_MAC_ADDRS; i++) {
 		if (!adapter->random_mac[i].in_use)
 			break;
+	}
+
+	if ((in_use_cnt == MAX_RANDOM_MAC_ADDRS)
+		|| (i == MAX_RANDOM_MAC_ADDRS)) {
+		spin_unlock(&adapter->random_mac_lock);
+		hddLog(LOGE, FL("Reached the limit of Max random addresses"));
+		return -EBUSY;
 	}
 
 	INIT_LIST_HEAD(&adapter->random_mac[i].cookie_list);
