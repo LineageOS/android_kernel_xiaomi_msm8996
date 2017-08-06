@@ -3231,7 +3231,6 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
                     pHddCtx->tdlsConnInfo[staIdx].sessionId = 255;
                     vos_mem_zero(&pHddCtx->tdlsConnInfo[staIdx].peerMac,
                                                sizeof(v_MACADDR_t)) ;
-                    wlan_hdd_tdls_check_bmps(pAdapter);
                     status = eHAL_STATUS_SUCCESS ;
                     break ;
                 }
@@ -3239,6 +3238,12 @@ hdd_RoamTdlsStatusUpdateHandler(hdd_adapter_t *pAdapter,
             complete(&pAdapter->tdls_del_station_comp);
         }
         break ;
+        case  eCSR_ROAM_TDLS_CHECK_BMPS:
+        {
+            wlan_hdd_tdls_check_bmps(pAdapter);
+            status = eHAL_STATUS_SUCCESS ;
+            break;
+        }
         case eCSR_ROAM_RESULT_TEARDOWN_TDLS_PEER_IND:
         {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -4185,6 +4190,7 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
         case eCSR_ROAM_RESULT_MGMT_TX_COMPLETE_IND:
             wlan_hdd_tdls_mgmt_completion_callback(pAdapter, pRoamInfo->reasonCode);
             break;
+
 #endif
 #ifdef WLAN_FEATURE_11W
        case eCSR_ROAM_UNPROT_MGMT_FRAME_IND:
