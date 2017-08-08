@@ -339,6 +339,8 @@ v_VOID_t vos_fwDumpReq(tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2,
 
 v_BOOL_t vos_is_packet_log_enabled(void);
 
+v_BOOL_t vos_config_is_no_ack(void);
+
 #ifdef WLAN_FEATURE_TSF_PLUS
 bool vos_is_ptp_rx_opt_enabled(void);
 bool vos_is_ptp_tx_opt_enabled(void);

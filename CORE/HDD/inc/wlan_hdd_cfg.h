@@ -4612,6 +4612,11 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_REDUCED_BEACON_INTERVAL_MAX     (100)
 #define CFG_REDUCED_BEACON_INTERVAL_DEFAULT (0)
 
+#define CFG_NO_ACK_ENABLE         "gEnableNoAck"
+#define CFG_NO_ACK_MIN     (0)
+#define CFG_NO_ACK_MAX     (1)
+#define CFG_NO_ACK_DEFAULT (0)
+
 #ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
 /*
  * <ini>
@@ -5427,6 +5432,9 @@ struct hdd_config {
    uint32_t                    coex_inquiry_p2p_sta_bt_interval;
    uint32_t                    coex_inquiry_p2p_sta_wlan_interval;
    uint32_t                    coex_tx_power;
+
+   v_BOOL_t                    gEnableNoAck;
+
 #ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
    uint8_t                     coex_pta_config_enable;
    uint32_t                    coex_pta_config_param;
