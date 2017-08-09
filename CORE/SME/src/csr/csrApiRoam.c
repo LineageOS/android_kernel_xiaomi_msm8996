@@ -5183,6 +5183,10 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 {
                     smsLog(pMac, LOGE, FL("csrRoamIssueReassociate failed with status %d"), status);
                     csrReleaseCommandRoam( pMac, pCommand );
+                } else {
+                    csr_neighbor_roam_state_transition(pMac,
+                        eCSR_NEIGHBOR_ROAM_STATE_REASSOCIATING,
+                        sessionId);
                 }
 
                 vos_mem_free(pIes);
