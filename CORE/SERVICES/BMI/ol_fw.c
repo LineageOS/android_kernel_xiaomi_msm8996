@@ -1131,12 +1131,12 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	ol_fw_axi_addr = (void *)(byte_ptr + DRAM_SIZE);
 	ol_fw_iram_addr = (void *)(byte_ptr + DRAM_SIZE + AXI_SIZE);
 
-	pr_err("%s: DRAM => mem = %#08x, len = %d\n", __func__,
-			(u_int32_t)ol_fw_dram_addr, DRAM_SIZE);
-	pr_err("%s: AXI  => mem = %#08x, len = %d\n", __func__,
-			(u_int32_t)ol_fw_axi_addr, AXI_SIZE);
-	pr_err("%s: IRAM => mem = %#08x, len = %d\n", __func__,
-			(u_int32_t)ol_fw_iram_addr, IRAM_SIZE);
+	pr_err("%s: DRAM => mem = %p, len = %d\n", __func__,
+				ol_fw_dram_addr, DRAM_SIZE);
+	pr_err("%s: AXI  => mem = %p, len = %d\n", __func__,
+				ol_fw_axi_addr, AXI_SIZE);
+	pr_err("%s: IRAM => mem = %p, len = %d\n", __func__,
+				ol_fw_iram_addr, IRAM_SIZE);
 #endif
 
 	if (ol_copy_ramdump(ramdump_scn))
