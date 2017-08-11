@@ -765,20 +765,15 @@ unsigned int
 min_max_possible_capacity = 1024; /* min(rq->max_possible_capacity) */
 
 /* Min window size (in ns) = 10ms */
-#ifdef CONFIG_HZ_300
-/*
- * Tick interval becomes to 3333333 due to
- * rounding error when HZ=300.
- */
-#define MIN_SCHED_RAVG_WINDOW (3333333 * 6)
-#else
-#define MIN_SCHED_RAVG_WINDOW 10000000
-#endif
+#define MIN_SCHED_RAVG_WINDOW ((10000000 / TICK_NSEC) * TICK_NSEC)
 
 /* Max window size (in ns) = 1s */
-#define MAX_SCHED_RAVG_WINDOW 1000000000
+#define MAX_SCHED_RAVG_WINDOW ((1000000000 / TICK_NSEC) * TICK_NSEC)
 
-/* Window size (in ns) */
+/*
+ * Window size (in ns). Adjust for the tick size so that the window
+ * rollover occurs just before the tick boundary.
+ */
 __read_mostly unsigned int sched_ravg_window = MIN_SCHED_RAVG_WINDOW;
 
 /* Maximum allowed threshold before freq aggregation must be enabled */
@@ -1624,17 +1619,20 @@ static inline int exiting_task(struct task_struct *p)
 
 static int __init set_sched_ravg_window(char *str)
 {
+	unsigned int adj_window;
 	unsigned int window_size;
 
 	get_option(&str, &window_size);
 
-	if (window_size < MIN_SCHED_RAVG_WINDOW ||
-			window_size > MAX_SCHED_RAVG_WINDOW) {
-		WARN_ON(1);
-		return -EINVAL;
-	}
+	/* Adjust for CONFIG_HZ */
+	adj_window = (window_size / TICK_NSEC) * TICK_NSEC;
 
-	sched_ravg_window = window_size;
+	/* Warn if we're a bit too far away from the expected window size */
+	WARN(adj_window < window_size - NSEC_PER_MSEC,
+	     "tick-adjusted window size %u, original was %u\n", adj_window,
+	     window_size);
+
+	sched_ravg_window = adj_window;
 	return 0;
 }
 
