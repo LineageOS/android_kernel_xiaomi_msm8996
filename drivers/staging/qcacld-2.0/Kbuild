@@ -696,6 +696,8 @@ endif
 
 EXTRA_CFLAGS += $(INCS)
 
+EXTRA_CFLAGS += -Wno-unused-function -Wno-unused-variable
+
 CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_LITTLE_BIT_ENDIAN \
 		-DQC_WLAN_CHIPSET_QCA_CLD \
