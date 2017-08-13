@@ -191,7 +191,7 @@ endif
 # Feature flags which are not (currently) configurable via Kconfig
 
 #Whether to build debug version
-BUILD_DEBUG_VERSION := 1
+BUILD_DEBUG_VERSION := 0
 
 #Enable this flag to build driver in diag version
 BUILD_DIAG_VERSION := 1
@@ -1003,6 +1003,8 @@ OBJS +=		$(PKTLOG_OBJS)
 endif
 
 EXTRA_CFLAGS += $(INCS)
+
+EXTRA_CFLAGS += -Wno-unused-function -Wno-unused-variable
 
 CDEFINES :=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_LITTLE_BIT_ENDIAN \
