@@ -485,13 +485,13 @@ static void configure_bark_dump(struct msm_watchdog_data *wdog_dd)
 				   num_present_cpus(), GFP_KERNEL);
 		if (!cpu_data) {
 			pr_err("cpu dump data structure allocation failed\n");
-			goto out0;
+			return;
 		}
 		cpu_buf = kzalloc(MAX_CPU_CTX_SIZE * num_present_cpus(),
 				  GFP_KERNEL);
 		if (!cpu_buf) {
 			pr_err("cpu reg context space allocation failed\n");
-			goto out1;
+			goto out0;
 		}
 
 		for_each_cpu(cpu, cpu_present_mask) {
@@ -509,12 +509,14 @@ static void configure_bark_dump(struct msm_watchdog_data *wdog_dd)
 			if (ret)
 				pr_err("cpu %d reg dump setup failed\n", cpu);
 		}
+
+		kfree(cpu_data);
+		kfree(cpu_buf);
 	}
 
 	return;
-out1:
-	kfree(cpu_data);
 out0:
+	kfree(cpu_data);
 	return;
 }
 
