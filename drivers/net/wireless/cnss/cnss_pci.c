@@ -1788,6 +1788,8 @@ static int cnss_wlan_pci_suspend(struct device *dev)
 	}
 	penv->monitor_wake_intr = false;
 
+	kfree(penv->saved_state)
+
 out:
 	return ret;
 }
