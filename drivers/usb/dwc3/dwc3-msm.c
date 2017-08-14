@@ -3248,6 +3248,9 @@ static int dwc3_otg_start_host(struct dwc3_msm *mdwc, int on)
 			pm_runtime_put_sync(mdwc->dev);
 			dbg_event(0xFF, "pdeverr psync",
 				atomic_read(&mdwc->dev->power.usage_count));
+			// Unregister device
+			platform_set_drvdata(dwc->xhci, NULL);
+			platform_device_unregister(dwc->xhci);
 			return ret;
 		}
 
