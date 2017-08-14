@@ -514,6 +514,7 @@ static void configure_bark_dump(struct msm_watchdog_data *wdog_dd)
 	return;
 out1:
 	kfree(cpu_data);
+	kfree(cpu_buf);
 out0:
 	return;
 }
