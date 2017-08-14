@@ -204,4 +204,33 @@ static inline const char *kbasename(const char *path)
 	return tail ? tail + 1 : path;
 }
 
+/**
+ * memcpy_and_pad - Copy one buffer to another with padding
+ * @dest: Where to copy to
+ * @dest_len: The destination buffer size
+ * @src: Where to copy from
+ * @count: The number of bytes to copy
+ * @pad: Character to use for padding if space is left in destination.
+ */
+__FORTIFY_INLINE void memcpy_and_pad(void *dest, size_t dest_len,
+				     const void *src, size_t count, int pad)
+{
+	size_t dest_size = __builtin_object_size(dest, 0);
+	size_t src_size = __builtin_object_size(src, 0);
+
+	if (__builtin_constant_p(dest_len) && __builtin_constant_p(count)) {
+		if (dest_size < dest_len && dest_size < count)
+			__write_overflow();
+		else if (src_size < dest_len && src_size < count)
+			__read_overflow3();
+	}
+	if (dest_size < dest_len)
+		fortify_panic(__func__);
+	if (dest_len > count) {
+		memcpy(dest, src, count);
+		memset(dest + count, pad,  dest_len - count);
+	} else
+		memcpy(dest, src, dest_len);
+}
+
 #endif /* _LINUX_STRING_H_ */
