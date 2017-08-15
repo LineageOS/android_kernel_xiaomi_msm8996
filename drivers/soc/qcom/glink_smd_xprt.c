@@ -1680,6 +1680,7 @@ static int tx_cmd_local_rx_intent(struct glink_transport_if *if_ptr,
 	if (!intent) {
 		SMDXPRT_ERR(einfo, "%s: no memory for intent\n", __func__);
 		srcu_read_unlock(&einfo->ssr_sync, rcu_id);
+		kfree(intent);
 		return -ENOMEM;
 	}
 
