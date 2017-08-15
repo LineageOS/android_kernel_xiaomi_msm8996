@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "383edcbe_ec93de7c",
+        "filename": "drivers/soc/qcom/watchdog_v2.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 495,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-08-15T08:14:07Z",
+      "side": 1,
+      "message": "In this case kfree is wrong as cpu_buf isn\u0027t allocated",
+      "range": {
+        "startLine": 490,
+        "startChar": 0,
+        "endLine": 495,
+        "endChar": 3
+      },
+      "revId": "b6c966dd379f77b26ebbab3271b40cf94f77cc25",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c00332b5_a020a4bc",
+        "filename": "drivers/soc/qcom/watchdog_v2.c",
+        "patchSetId": 3
+      },
+      "lineNbr": 517,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-08-15T08:14:07Z",
+      "side": 1,
+      "message": "out1:\n\tkfree(cpu_buf);\nout2:\n\tkfree(cpu_data);",
+      "revId": "b6c966dd379f77b26ebbab3271b40cf94f77cc25",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
