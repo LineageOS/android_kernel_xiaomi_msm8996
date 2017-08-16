@@ -535,7 +535,7 @@ extern void free_kmem_pages(unsigned long addr, unsigned int order);
 void page_alloc_init(void);
 void drain_zone_pages(struct zone *zone, struct per_cpu_pages *pcp);
 void drain_all_pages(struct zone *zone);
-void drain_local_pages(struct zone *zone);
+void drain_local_pages(void *zone);
 
 #ifdef CONFIG_DEFERRED_STRUCT_PAGE_INIT
 void page_alloc_init_late(void);
