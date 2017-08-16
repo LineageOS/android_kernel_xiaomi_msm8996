@@ -1005,18 +1005,17 @@ static void vos_wd_detect_thread_stuck(void)
 			flags);
 	}
 
-	if (!gpVosWatchdogContext->mc_thread_stuck_count) {
-		spin_unlock_irqrestore(&gpVosWatchdogContext->thread_stuck_lock,
-				flags);
-		vos_probe_threads();
-		spin_lock_irqsave(&gpVosWatchdogContext->thread_stuck_lock,
-				flags);
-	}
-
 	/* Increment the thread stuck count for all threads */
 	gpVosWatchdogContext->mc_thread_stuck_count++;
 
-	spin_unlock_irqrestore(&gpVosWatchdogContext->thread_stuck_lock, flags);
+	if (gpVosWatchdogContext->mc_thread_stuck_count <=
+				THREAD_STUCK_THRESHOLD) {
+		spin_unlock_irqrestore(&gpVosWatchdogContext->thread_stuck_lock,
+				flags);
+		vos_probe_threads();
+	} else
+		spin_unlock_irqrestore(&gpVosWatchdogContext->thread_stuck_lock,
+				flags);
 
 	/* Restart the timer */
 	if (VOS_STATUS_SUCCESS !=

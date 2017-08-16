@@ -3173,6 +3173,36 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 
 #endif /* QCA_SUPPORT_TXRX_HL_BUNDLE */
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+
+#define CFG_DEL_ACK_THRESHOLD_HIGH              "gDriverDelAckHighThreshold"
+#define CFG_DEL_ACK_THRESHOLD_HIGH_DEFAULT      (300)
+#define CFG_DEL_ACK_THRESHOLD_HIGH_MIN          (0)
+#define CFG_DEL_ACK_THRESHOLD_HIGH_MAX          (70000)
+
+#define CFG_DEL_ACK_THRESHOLD_LOW               "gDriverDelAckLowThreshold"
+#define CFG_DEL_ACK_THRESHOLD_LOW_DEFAULT       (100)
+#define CFG_DEL_ACK_THRESHOLD_LOW_MIN           (0)
+#define CFG_DEL_ACK_THRESHOLD_LOW_MAX           (70000)
+
+#define CFG_DEL_ACK_TIMER_IN_MS                 "gDriverDelAckTimerValue"
+#define CFG_DEL_ACK_TIMER_IN_MS_DEFAULT         (3)
+#define CFG_DEL_ACK_TIMER_IN_MS_MIN             (1)
+#define CFG_DEL_ACK_TIMER_IN_MS_MAX             (15)
+
+#define CFG_DEL_ACK_PKT_COUNT                   "gDriverDelAckPktCount"
+#define CFG_DEL_ACK_PKT_COUNT_DEFAULT           (20)
+#define CFG_DEL_ACK_PKT_COUNT_MIN               (0)
+#define CFG_DEL_ACK_PKT_COUNT_MAX               (50)
+
+#define CFG_DEL_ACK_ENABLE                      "gDriverDelAckEnable"
+#define CFG_DEL_ACK_ENABLE_DEFAULT              (1)
+#define CFG_DEL_ACK_ENABLE_MIN                  (0)
+#define CFG_DEL_ACK_ENABLE_MAX                  (1)
+
+#endif /* QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK */
+
+
 #ifdef WLAN_FEATURE_11W
 #define CFG_PMF_SA_QUERY_MAX_RETRIES_NAME          "pmfSaQueryMaxRetries"
 #define CFG_PMF_SA_QUERY_MAX_RETRIES_DEFAULT       ( 5 )
@@ -4637,7 +4667,7 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 
 #define CFG_COEX_PTA_CONFIG_ENABLE         "gCoexPtaConfigEnable"
 #define CFG_COEX_PTA_CONFIG_ENABLE_MIN     (0)
-#define CFG_COEX_PTA_CONFIG_ENABLE_MAX     (1)
+#define CFG_COEX_PTA_CONFIG_ENABLE_MAX     (2)
 #define CFG_COEX_PTA_CONFIG_ENABLE_DEFAULT (0)
 
 /*
@@ -5273,6 +5303,15 @@ struct hdd_config {
    uint16_t                    pkt_bundle_timer_value;
    uint16_t                    pkt_bundle_size;
 #endif
+
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+   uint8_t                     del_ack_enable;
+   uint32_t                    del_ack_threshold_high;
+   uint32_t                    del_ack_threshold_low;
+   uint16_t                    del_ack_timer_value;
+   uint16_t                    del_ack_pkt_count;
+#endif
+
    /* FW debug log parameters */
    v_U32_t     enableFwLogType;
    v_U32_t     enableFwLogLevel;

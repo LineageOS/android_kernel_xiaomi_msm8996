@@ -3633,6 +3633,43 @@ REG_TABLE_ENTRY g_registry_table[] =
 
 #endif
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+
+    REG_VARIABLE(CFG_DEL_ACK_THRESHOLD_HIGH, WLAN_PARAM_Integer,
+                 hdd_config_t, del_ack_threshold_high,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DEL_ACK_THRESHOLD_HIGH_DEFAULT,
+                 CFG_DEL_ACK_THRESHOLD_HIGH_MIN,
+                 CFG_DEL_ACK_THRESHOLD_HIGH_MAX),
+
+    REG_VARIABLE(CFG_DEL_ACK_THRESHOLD_LOW, WLAN_PARAM_Integer,
+                 hdd_config_t, del_ack_threshold_low,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DEL_ACK_THRESHOLD_LOW_DEFAULT,
+                 CFG_DEL_ACK_THRESHOLD_LOW_MIN,
+                 CFG_DEL_ACK_THRESHOLD_LOW_MAX),
+
+    REG_VARIABLE(CFG_DEL_ACK_TIMER_IN_MS, WLAN_PARAM_Integer,
+                 hdd_config_t, del_ack_timer_value,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DEL_ACK_TIMER_IN_MS_DEFAULT,
+                 CFG_DEL_ACK_TIMER_IN_MS_MIN,
+                 CFG_DEL_ACK_TIMER_IN_MS_MAX),
+
+    REG_VARIABLE(CFG_DEL_ACK_PKT_COUNT, WLAN_PARAM_Integer,
+                 hdd_config_t, del_ack_pkt_count,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DEL_ACK_PKT_COUNT_DEFAULT,
+                 CFG_DEL_ACK_PKT_COUNT_MIN,
+                 CFG_DEL_ACK_PKT_COUNT_MAX),
+
+    REG_VARIABLE(CFG_DEL_ACK_ENABLE, WLAN_PARAM_Integer,
+                 hdd_config_t, del_ack_enable,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_DEL_ACK_ENABLE_DEFAULT,
+                 CFG_DEL_ACK_ENABLE_MIN,
+                 CFG_DEL_ACK_ENABLE_MAX),
+#endif
 
    REG_VARIABLE( CFG_ENABLE_FW_LOG_TYPE , WLAN_PARAM_Integer,
                 hdd_config_t, enableFwLogType,

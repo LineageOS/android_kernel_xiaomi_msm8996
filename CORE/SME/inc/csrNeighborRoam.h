@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -367,6 +367,8 @@ csrNeighborRoamOffloadUpdatePreauthList(tpAniSirGlobal pMac,
         tpSirRoamOffloadSynchInd pSmeRoamOffloadSynchInd,
                    tANI_U8 sessionId);
 #endif
+void csr_neighbor_roam_state_transition(tpAniSirGlobal mac_ctx,
+		uint8_t newstate, uint8_t session);
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
 
 #endif /* CSR_NEIGHBOR_ROAM_H */

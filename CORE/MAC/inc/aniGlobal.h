@@ -1142,6 +1142,11 @@ typedef struct sMacOpenParameters
     bool force_target_assert_enabled;
     uint16_t pkt_bundle_timer_value;
     uint16_t pkt_bundle_size;
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+    uint8_t  del_ack_enable;
+    uint16_t del_ack_timer_value;
+    uint16_t del_ack_pkt_count;
+#endif
     bool bpf_packet_filter_enable;
 
     struct ol_tx_sched_wrr_ac_specs_t ac_specs[OL_TX_NUM_WMM_AC];

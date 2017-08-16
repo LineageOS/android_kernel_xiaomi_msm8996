@@ -70,9 +70,25 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list);
 adf_nbuf_t
 ol_tx_ll_queue(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list);
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+adf_os_enum_hrtimer_t
+ol_tx_hl_vdev_tcp_del_ack_timer(adf_os_hrtimer_t *timer);
+
+void tcp_del_ack_tasklet(unsigned long data);
+
+void ol_tx_hl_del_ack_queue_flush_all(struct ol_txrx_vdev_t *vdev);
+#else
+static inline
+void ol_tx_hl_del_ack_queue_flush_all(struct ol_txrx_vdev_t *vdev)
+{
+	return;
+}
+#endif
+
 #ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
 void
 ol_tx_hl_vdev_bundle_timer(void *vdev);
+
 
 void
 ol_tx_hl_queue_flush_all(struct ol_txrx_vdev_t* vdev);

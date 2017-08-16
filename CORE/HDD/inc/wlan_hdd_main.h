@@ -2613,6 +2613,27 @@ static inline void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
 }
 #endif
 
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+static inline
+void hdd_set_driver_del_ack_enable(uint16_t session_id, hdd_context_t *hdd_ctx,
+				   uint64_t rx_packets)
+{
+	tlshim_set_driver_del_ack_enable(session_id, rx_packets,
+		hdd_ctx->cfg_ini->busBandwidthComputeInterval,
+		hdd_ctx->cfg_ini->del_ack_threshold_high,
+		hdd_ctx->cfg_ini->del_ack_threshold_low);
+
+}
+#else
+static inline
+void hdd_set_driver_del_ack_enable(uint16_t session_id, hdd_context_t *hdd_ctx,
+				   uint64_t rx_packets)
+{
+}
+#endif
+
+
+
 int hdd_reassoc(hdd_adapter_t *pAdapter, const tANI_U8 *bssid,
 		const tANI_U8 channel, const handoff_src src);
 
@@ -2628,4 +2649,17 @@ void wlan_hdd_deinit_chan_info(hdd_context_t *hdd_ctx);
 void hdd_chip_pwr_save_fail_detected_cb(void *hddctx,
 				struct chip_pwr_save_fail_detected_params
 				*data);
+
+/**
+ * hdd_drv_cmd_validate() - Validates for space in hdd driver command
+ * @command: pointer to input data (its a NULL terminated string)
+ * @len: length of command name
+ *
+ * This function checks for space after command name and if no space
+ * is found returns error.
+ *
+ * Return: 0 for success non-zero for failure
+ */
+int hdd_drv_cmd_validate(tANI_U8 *command, int len);
+
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

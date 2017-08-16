@@ -110,6 +110,9 @@ ol_tx_queue_vdev_flush(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
     /* flush bundling queue */
     ol_tx_hl_queue_flush_all(vdev);
 
+    /* flush del_ack queue */
+    ol_tx_hl_del_ack_queue_flush_all(vdev);
+
     /* flush VDEV TX queues */
     for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
         txq = &vdev->txqs[i];
