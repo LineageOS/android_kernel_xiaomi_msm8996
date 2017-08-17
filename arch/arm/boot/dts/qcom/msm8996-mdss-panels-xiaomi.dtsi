@@ -259,3 +259,30 @@
 		23 20 06 09 05 03 04 a0
 		23 2e 06 08 05 03 04 a0];
 };
+
+&dsi_lgd_sw43101_fhd_video {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [
+		23 1F 07 09 50 30 4A 00
+		23 1F 07 09 50 30 4A 00
+		23 1F 07 09 50 30 4A 00
+		23 1F 07 09 50 30 4A 00
+		23 19 08 08 50 30 4A 00];
+};
+
+&dsi_dual_samsung_s6e3hf3x01_command {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [
+		23 20 06 09 50 30 4A 00
+		23 20 06 09 50 30 4A 00
+		23 20 06 09 50 30 4A 00
+		23 20 06 09 50 30 4A 00
+		23 2E 06 08 50 30 4A 00];
+};
+
+&dsi_dual_samsung_youm_s6e3hf3x01_command {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [
+		23 20 06 09 50 30 4A 00
+		23 20 06 09 50 30 4A 00
+		23 20 06 09 50 30 4A 00
+		23 20 06 09 50 30 4A 00
+		23 2E 06 08 50 30 4A 00];
+};

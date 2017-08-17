@@ -156,7 +156,6 @@
 		qcom,esd-check-enabled;
 
 		qcom,mdss-dsi-panel-status-check-mode = "te_signal_check";
-		qcom,video-panel-esd-te-check;
 
 		qcom,cont-splash-enabled;
 		qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;

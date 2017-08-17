@@ -211,7 +211,6 @@
 		qcom,mdss-dsi-max-refresh-rate = <60>;
 		qcom,mdss-dsi-tx-eot-append;
 		qcom,esd-check-enabled;
-
 		qcom,mdss-dsi-panel-status-check-mode = "te_signal_check";
 
 		qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
