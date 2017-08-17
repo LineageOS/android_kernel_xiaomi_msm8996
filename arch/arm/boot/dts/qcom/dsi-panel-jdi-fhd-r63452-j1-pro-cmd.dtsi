@@ -102,5 +102,6 @@
 		qcom,mdss-dsi-te-using-te-pin;
 		qcom,mdss-dsi-tx-eot-append;
 		qcom,esd-err-irq-gpio = <&tlmm 14 0x2001>;
+		qcom,mdss-panel-on-dimming-delay = <120>;
 	};
 };
