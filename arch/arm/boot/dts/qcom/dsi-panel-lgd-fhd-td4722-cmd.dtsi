@@ -115,5 +115,21 @@
 				E0 08 DB F8 00 02 90 10 00
 				00 02 B0 03];
 		cm,mdss-livedisplay-cabc-post-cmd = [39 01 00 00 01 00 02 55 00];
+		cm,mdss-livedisplay-srgb-off-cmd = [
+				39 00 00 00 00 00 02 84 00
+				29 00 00 00 00 00 02 C8 11
+				29 00 00 00 00 00 02 CA 1C
+				29 00 00 00 00 00 02 EA 0F
+				29 01 00 00 00 00 02 B0 03];
+		cm,mdss-livedisplay-srgb-on-cmd = [
+				50 10 00 00 10 00 02 11 29
+				01 00 02 B0 00 29 01 00 28
+				40 02 90 10 00 00 02 C8 00
+				02 90 10 00 02 CC A0 1D FC
+				BC 7D D4 E5 D7 0E 0F 5D 23
+				FF FF F0 F8 34 E7 00 EC 29
+				FF 00 0E B3 91 EF F0 0F F0
+				00 71 F9 42 FF FF 00 03 5C
+				6F F2 91 00 00 00 02 B0 03];
 	};
 };
