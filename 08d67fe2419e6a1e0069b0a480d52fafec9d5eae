@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a2276479_cce24540",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-08-17T11:27:06Z",
+      "side": 1,
+      "message": "ARM",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 4
+      },
+      "revId": "08d67fe2419e6a1e0069b0a480d52fafec9d5eae",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d84fc799_76f7228b",
+        "filename": "arch/arm/boot/dts/qcom/msm8996-mdss-panels-xiaomi.dtsi",
+        "patchSetId": 2
+      },
+      "lineNbr": 288,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-08-17T11:27:06Z",
+      "side": 1,
+      "message": "This is already above. Not sure if the commands have changed, tho.",
+      "range": {
+        "startLine": 263,
+        "startChar": 0,
+        "endLine": 288,
+        "endChar": 2
+      },
+      "revId": "08d67fe2419e6a1e0069b0a480d52fafec9d5eae",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
