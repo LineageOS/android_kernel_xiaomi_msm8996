@@ -160,5 +160,10 @@
 
 		qcom,cont-splash-enabled;
 		qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+		cm,mdss-livedisplay-cabc-ui-value = <0x01>;
+		cm,mdss-livedisplay-cabc-image-value = <0x02>;
+		cm,mdss-livedisplay-cabc-video-value = <0x03>;
+		cm,mdss-livedisplay-cabc-cmd = [15 01 00 00 01 00 02 55 01];
+		cm,mdss-livedisplay-cabc-post-cmd = [15 01 00 00 01 00 02 55 00];
 	};
 };
