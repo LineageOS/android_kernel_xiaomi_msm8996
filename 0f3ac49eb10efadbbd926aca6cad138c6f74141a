@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6d1a3cea_9b53efe9",
+        "filename": "arch/arm/boot/dts/qcom/dsi-panel-lgd-sw43101-fhd-video.dtsi",
+        "patchSetId": 6
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2017-08-17T12:08:19Z",
+      "side": 1,
+      "message": "just change this file, keep the rest",
+      "revId": "0f3ac49eb10efadbbd926aca6cad138c6f74141a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
