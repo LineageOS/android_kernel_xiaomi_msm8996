@@ -102,5 +102,21 @@
 		qcom,mdss-dsi-te-using-te-pin;
 		qcom,mdss-dsi-tx-eot-append;
 		qcom,esd-err-irq-gpio = <&tlmm 14 0x2001>;
+		cm,mdss-livedisplay-cabc-ui-value = <0x01>;
+		cm,mdss-livedisplay-cabc-image-value = <0x02>;
+		cm,mdss-livedisplay-cabc-video-value = <0x03>;
+		cm,mdss-livedisplay-cabc-cmd = [
+				29 01 00 00 00 00 02 B0 04
+				39 01 00 00 00 00 02 55 83
+				29 01 00 00 00 00 08 BA AB
+				51 09 00 10 00 00 29 01 00
+				00 00 00 1A CE 55 40 56 6E
+				87 A0 B6 CF E8 E9 EA EB EC
+				ED EE EF FF 04 00 04 04 42
+				00 69 5A 29 01 00 00 00 00
+				0A F9 64 FF E0 BE 00 8D BF
+				80 00 29 01 00 00 00 00 02
+				B0 03];
+		cm,mdss-livedisplay-cabc-post-cmd = [39 01 00 00 01 00 02 55 00];
 	};
 };
