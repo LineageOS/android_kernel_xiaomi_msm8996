@@ -11632,13 +11632,14 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	if (scan_req->sessionId > wma_handle->max_bssid) {
 		WMA_LOGE("%s: Invalid vdev_id %d, msg_type : 0x%x", __func__,
 			scan_req->sessionId, msg_type);
+		vos_status = VOS_STATUS_E_FAILURE;
 		goto error1;
 	}
 
 	/* Sanity check to find whether vdev id active or not */
-	if (msg_type != WDA_START_SCAN_OFFLOAD_REQ &&
-            !wma_handle->interfaces[scan_req->sessionId].handle) {
-		WMA_LOGA("vdev id [%d] is not active", scan_req->sessionId);
+	if (!wma_handle->interfaces[scan_req->sessionId].handle) {
+		WMA_LOGE("vdev id [%d] is not active", scan_req->sessionId);
+		vos_status = VOS_STATUS_E_FAILURE;
 		goto error1;
 	}
         if (msg_type == WDA_START_SCAN_OFFLOAD_REQ) {
@@ -11662,6 +11663,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 
 	if (NULL == buf) {
 		WMA_LOGE("Failed to get buffer for saving current scan info");
+		vos_status = VOS_STATUS_E_NOMEM;
 		goto error0;
 	}
 
