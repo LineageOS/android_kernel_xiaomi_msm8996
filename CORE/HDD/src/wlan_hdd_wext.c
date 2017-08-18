@@ -671,7 +671,11 @@ int hdd_priv_get_data(struct iw_point *p_priv_data,
    }
 
 #ifdef CONFIG_COMPAT
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,6,0)) && defined(CONFIG_X86_64)
+   if (in_compat_syscall()) {
+#else
    if (is_compat_task()) {
+#endif
       struct compat_iw_point *p_compat_priv_data;
 
       /* Compat task: typecast to compat structure and copy the members. */
@@ -8613,7 +8617,11 @@ static int __iw_setnone_getnone(struct net_device *dev,
      * different between 32-bit and 64-bit user space, and the standard
      * compat support in the kernel does not handle this case.  so we
      * need to explicitly handle it here. */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,6,0)) && defined(CONFIG_X86_64)
+    if (in_compat_syscall()) {
+#else
     if (is_compat_task()) {
+#endif
         struct compat_iw_point *compat_iw_point =
             (struct compat_iw_point *) &wrqu->data;
         sub_cmd = compat_iw_point->flags;
