@@ -146,7 +146,7 @@ void hdd_softap_tx_resume_timer_expired_handler(void *adapter_context)
 
    hddLog(LOG1, FL("Enabling queues"));
    wlan_hdd_netif_queue_control(pAdapter, WLAN_WAKE_ALL_NETIF_QUEUE,
-                 WLAN_CONTROL_PATH);
+                 WLAN_DATA_FLOW_CONTROL);
    return;
 }
 

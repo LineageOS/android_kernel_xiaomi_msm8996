@@ -392,6 +392,20 @@ ol_tx_target_credit_update(struct ol_txrx_pdev_t *pdev, int credit_delta)
     adf_os_atomic_add(credit_delta, &pdev->target_tx_credit);
 }
 
+int
+ol_tx_target_credit_dec(struct ol_txrx_pdev_t *pdev, int credit)
+{
+    adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
+    if(adf_os_atomic_read(&pdev->target_tx_credit) < credit) {
+        /* Lack of tx credits, return */
+        adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
+        return A_ERROR;
+    }
+    ol_tx_target_credit_update(pdev, -credit);
+    adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
+    return A_OK;
+}
+
 #ifdef QCA_COMPUTE_TX_DELAY
 
 static void

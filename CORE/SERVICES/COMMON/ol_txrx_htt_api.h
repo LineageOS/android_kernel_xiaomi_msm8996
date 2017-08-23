@@ -318,6 +318,18 @@ ol_tx_single_completion_handler(
 void
 ol_tx_target_credit_update(struct ol_txrx_pdev_t *pdev, int credit_delta);
 
+/**
+ * @brief Decrement target credit value
+ * @details
+ *  Function to read the target credit value atomically and decrement
+ *  if valid credit is available.
+ *
+ * @param pdev - the data physical device that sent the tx frames
+ * @param credit - value to be decremented
+ * @return success if decremented, else error
+ */
+int
+ol_tx_target_credit_dec(struct ol_txrx_pdev_t *pdev, int credit);
 
 /**
  * @brief Process an rx indication message sent by the target.
