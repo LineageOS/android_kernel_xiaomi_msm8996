@@ -4613,6 +4613,11 @@ static int hdd_extscan_passpoint_fill_network_list(
 
 	expected_networks = req_msg->num_networks;
 	index = 0;
+
+	if (!tb[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_LIST_PARAM_NETWORK_ARRAY]) {
+		hddLog(LOGE, FL("attr network array failed"));
+		return -EINVAL;
+	}
 	nla_for_each_nested(networks,
 		tb[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_LIST_PARAM_NETWORK_ARRAY],
 		rem1) {
@@ -11056,6 +11061,11 @@ static int wlan_hdd_cfg80211_fast_roaming(struct wiphy *wiphy,
 	return ret;
 }
 
+static const struct nla_policy
+txpower_scale_policy[QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_MAX + 1] = {
+	[QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE] = { .type = NLA_U8 },
+};
+
 /**
  * __wlan_hdd_cfg80211_txpower_scale () - txpower scaling
  * @wiphy: Pointer to wireless phy
@@ -11087,7 +11097,7 @@ static int __wlan_hdd_cfg80211_txpower_scale(struct wiphy *wiphy,
 	adapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_TXPOWER_SCALE_MAX,
-		      data, data_len, NULL)) {
+		      data, data_len, txpower_scale_policy)) {
 		hddLog(LOGE, "Invalid ATTR");
 		return -EINVAL;
 	}
@@ -23419,6 +23429,7 @@ static int __wlan_hdd_cfg80211_testmode(struct wiphy *wiphy,
                 return -ENOMEM;
             }
 
+            vos_mem_zero(hb_params, sizeof(tSirLPHBReq));
             vos_mem_copy(hb_params, buf, buf_len);
             smeStatus = sme_LPHBConfigReq((tHalHandle)(pHddCtx->hHal),
                                hb_params,
