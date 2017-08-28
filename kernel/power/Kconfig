@@ -336,3 +336,8 @@ config QUICK_THAW_FINGERPRINTD
 	depends on SUSPEND
 	default y
 
+config	BOEFFLA_WL_BLOCKER
+		bool "Boeffla generic wakelock blocker driver"
+		depends on PM
+		default N
+
