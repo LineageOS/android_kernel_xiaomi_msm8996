@@ -306,7 +306,7 @@ static void pe_init_fils_info(tpPESession session)
         return;
     }
 
-    vos_mem_set(session->fils_info, 0, sizeof(sizeof(struct pe_fils_session)));
+    vos_mem_set(session->fils_info, sizeof(struct pe_fils_session), 0);
     fils_info->keyname_nai_data = NULL;
     fils_info->fils_erp_reauth_pkt = NULL;
     fils_info->fils_r_rk = NULL;
