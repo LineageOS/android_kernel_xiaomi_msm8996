@@ -4650,6 +4650,13 @@ void limUpdateStaRunTimeHTSwitchChnlParams( tpAniSirGlobal   pMac,
    if( !limGetHTCapability( pMac, eHT_SUPPORTED_CHANNEL_WIDTH_SET, psessionEntry ))
         return;
 
+   if ((RF_CHAN_14 >= psessionEntry->currentOperChannel) &&
+       psessionEntry->force_24ghz_in_ht20) {
+        limLog(pMac, LOG1,
+               FL("force_24_gh_in_ht20 is set and channel is 2.4 Ghz"));
+        return;
+   }
+
 #if !defined WLAN_FEATURE_VOWIFI
     if(wlan_cfgGetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, &localPwrConstraint) != eSIR_SUCCESS) {
         limLog( pMac, LOGP, FL( "Unable to get Local Power Constraint from cfg" ));

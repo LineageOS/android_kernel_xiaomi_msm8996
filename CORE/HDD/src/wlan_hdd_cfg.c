@@ -573,6 +573,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_CHANNEL_BONDING_MODE_MIN,
                  CFG_CHANNEL_BONDING_MODE_MAX),
 
+   REG_VARIABLE(CFG_OVERRIDE_HT40_20_24GHZ_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, override_ht20_40_24g,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_OVERRIDE_HT40_20_24GHZ_DEFAULT,
+                CFG_OVERRIDE_HT40_20_24GHZ_MIN,
+                CFG_OVERRIDE_HT40_20_24GHZ_MAX),
+
    REG_VARIABLE( CFG_CHANNEL_BONDING_MODE_5GHZ_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, nChannelBondingMode5GHz,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
@@ -5442,6 +5449,8 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gACSBandSwitchThreshold] value = [%u]", pHddCtx->cfg_ini->acsBandSwitchThreshold);
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%u]",pHddCtx->cfg_ini->nChannelBondingMode24GHz);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [%s] Value = [%u] ",
+            CFG_OVERRIDE_HT40_20_24GHZ_NAME, pHddCtx->cfg_ini->override_ht20_40_24g);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%u]",pHddCtx->cfg_ini->nChannelBondingMode5GHz);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [dot11Mode] Value = [%u]",pHddCtx->cfg_ini->dot11Mode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WmmMode] Value = [%u] ",pHddCtx->cfg_ini->WmmMode);

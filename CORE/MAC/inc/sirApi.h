@@ -1203,6 +1203,7 @@ typedef struct sSirSmeJoinReq
     tAniBool            spectrumMgtIndicator;
     tSirMacPowerCapInfo powerCap;
     tSirSupChnl         supportedChannels;
+    bool                force_24ghz_in_ht20;
     uint8_t             sub20_channelwidth;
 #ifdef WLAN_FEATURE_FILS_SK
     struct cds_fils_connection_info fils_con_info;

@@ -1051,6 +1051,7 @@ typedef struct tagCsrRoamProfile
     tSirMacRateSet  supported_rates;
     tSirMacRateSet  extended_rates;
     uint8_t sub20_channelwidth;
+    bool force_24ghz_in_ht20;
     tCsrBssid bssid_hint;
 #ifdef WLAN_FEATURE_FILS_SK
     bool fils_connection;
