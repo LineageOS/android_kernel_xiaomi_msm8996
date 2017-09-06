@@ -2290,8 +2290,8 @@ static VOS_STATUS sap_check_mcc_valid(
 	session_info_t *info;
 	session_info_t sessions[VOS_MAX_CONCURRENCY_PERSONA + 1];
 	v_U8_t	i, j;
-	v_U8_t session_cnt[VOS_MAX_CONCURRENCY_PERSONA];
-	v_U32_t channels[VOS_MAX_CONCURRENCY_PERSONA];
+	v_U8_t session_cnt[VOS_MAX_CONCURRENCY_PERSONA + 1];
+	v_U32_t channels[VOS_MAX_CONCURRENCY_PERSONA + 1];
 	v_U8_t chan_cnt = 0;
 
 	if (session_count <= 0)
@@ -2319,7 +2319,8 @@ static VOS_STATUS sap_check_mcc_valid(
 				break;
 			}
 		}
-		if (j >= chan_cnt) {
+		if ((j >= chan_cnt) &&
+		    (chan_cnt < (VOS_MAX_CONCURRENCY_PERSONA + 1))) {
 			channels[chan_cnt] = info->och;
 			session_cnt[chan_cnt] = 1;
 			chan_cnt++;
