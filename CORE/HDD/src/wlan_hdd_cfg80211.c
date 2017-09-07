@@ -238,6 +238,11 @@
 /* (30 Mins) */
 #define MIN_TIME_REQUIRED_FOR_NEXT_BUG_REPORT (30 * 60 * 1000)
 
+/*
+ * Count to ratelimit the HDD logs during Scan and connect
+ */
+#define HDD_SCAN_REJECT_RATE_LIMIT 5
+
 static const u32 hdd_cipher_suites[] =
 {
     WLAN_CIPHER_SUITE_WEP40,
@@ -21072,7 +21077,7 @@ static bool hdd_is_sta_in_middle_of_eapol(hdd_adapter_t *adapter,
 	if ((eConnectionState_Associated == hdd_sta_ctx->conn_info.connState) &&
 	    (VOS_FALSE == hdd_sta_ctx->conn_info.uIsAuthenticated)) {
 		sta_mac = (v_U8_t *) &(adapter->macAddressCurrent.bytes[0]);
-		hddLog(LOGE, FL("client " MAC_ADDRESS_STR " is in the middle of WPS/EAPOL exchange."),
+		hddLog(LOG1, FL("client " MAC_ADDRESS_STR " is in the middle of WPS/EAPOL exchange."),
 			MAC_ADDR_ARRAY(sta_mac));
 		if (session_id && reason) {
 			*session_id = adapter->sessionId;
@@ -21106,7 +21111,7 @@ static bool hdd_is_sap_in_middle_of_eapol(hdd_adapter_t *adapter,
 			sta_mac = (v_U8_t *) &(adapter->aStaInfo[sta_id].
 				macAddrSTA.bytes[0]);
 
-			hddLog(LOGE, FL("client " MAC_ADDRESS_STR " of SoftAP/P2P-GO is in the middle of WPS/EAPOL exchange."),
+			hddLog(LOG1, FL("client " MAC_ADDRESS_STR " of SoftAP/P2P-GO is in the middle of WPS/EAPOL exchange."),
 				MAC_ADDR_ARRAY(sta_mac));
 			if (session_id && reason) {
 				*session_id = adapter->sessionId;
@@ -21139,7 +21144,7 @@ static bool hdd_check_connection_status(hdd_adapter_t *adapter,
 	     (WLAN_HDD_P2P_DEVICE == adapter->device_mode)) &&
 	    (eConnectionState_Connecting ==
 	     (WLAN_HDD_GET_STATION_CTX_PTR(adapter))->conn_info.connState)) {
-		hddLog(LOGE, FL("%p(%d) Connection is in progress"),
+		hddLog(LOG1, FL("%p(%d) Connection is in progress"),
 			WLAN_HDD_GET_STATION_CTX_PTR(adapter),
 			adapter->sessionId);
 		if (session_id && reason) {
@@ -21151,7 +21156,7 @@ static bool hdd_check_connection_status(hdd_adapter_t *adapter,
 	if ((WLAN_HDD_INFRA_STATION == adapter->device_mode) &&
 	    smeNeighborMiddleOfRoaming(WLAN_HDD_GET_HAL_CTX(adapter),
 					adapter->sessionId)) {
-		hddLog(LOGE, FL("%p(%d) Reassociation is in progress"),
+		hddLog(LOG1, FL("%p(%d) Reassociation is in progress"),
 			WLAN_HDD_GET_STATION_CTX_PTR(adapter),
 			adapter->sessionId);
 		if (session_id && reason) {
@@ -21534,8 +21539,9 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
      */
     if (hdd_isConnectionInProgress(pHddCtx, &curr_session_id, &curr_reason)) {
         scan_ebusy_cnt++;
-        hddLog(LOGE, FL("Scan not allowed, scan_ebusy_cnt: %u"),
-               scan_ebusy_cnt);
+	if (!(pHddCtx->scan_reject_cnt % HDD_SCAN_REJECT_RATE_LIMIT))
+	    hddLog(LOGE, FL("Scan not allowed Session %d reason %d"),
+		curr_session_id, curr_reason);
 
         if (pHddCtx->last_scan_reject_session_id != curr_session_id ||
             pHddCtx->last_scan_reject_reason != curr_reason ||
@@ -21547,15 +21553,12 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
             pHddCtx->scan_reject_cnt = 0;
         } else {
             pHddCtx->scan_reject_cnt++;
-            hddLog(LOGE, FL("curr_session id %d curr_reason %d threshold time has elapsed? %d count %d"),
-                   curr_session_id, curr_reason,
-                   vos_system_time_after(jiffies_to_msecs(jiffies),
-                   pHddCtx->last_scan_reject_timestamp),
-                   pHddCtx->scan_reject_cnt);
             if ((pHddCtx->scan_reject_cnt >=
                SCAN_REJECT_THRESHOLD) &&
                vos_system_time_after(jiffies_to_msecs(jiffies),
                pHddCtx->last_scan_reject_timestamp)) {
+		hddLog(LOGE, FL("scan reject threshold reached Session %d reason %d reject cnt %d"),
+			curr_session_id, curr_reason, pHddCtx->scan_reject_cnt);
                 pHddCtx->last_scan_reject_timestamp = 0;
                 pHddCtx->scan_reject_cnt = 0;
                 if (pHddCtx->cfg_ini->enable_fatal_event) {
