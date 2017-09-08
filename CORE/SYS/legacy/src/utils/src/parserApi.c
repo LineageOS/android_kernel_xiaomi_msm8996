@@ -743,6 +743,7 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
 
     uHTCapabilityInfo.nCfgValue16 = nCfgValue & 0xFFFF;
 
+    pDot11f->advCodingCap             = uHTCapabilityInfo.htCapInfo.advCodingCap;
     pDot11f->mimoPowerSave            = uHTCapabilityInfo.htCapInfo.mimoPowerSave;
     pDot11f->greenField               = uHTCapabilityInfo.htCapInfo.greenField;
     pDot11f->delayedBA                = uHTCapabilityInfo.htCapInfo.delayedBA;
@@ -756,7 +757,6 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     if (psessionEntry == NULL) // Only in case of NO session
     {
         pDot11f->supportedChannelWidthSet = uHTCapabilityInfo.htCapInfo.supportedChannelWidthSet;
-        pDot11f->advCodingCap = uHTCapabilityInfo.htCapInfo.advCodingCap;
         pDot11f->txSTBC = uHTCapabilityInfo.htCapInfo.txSTBC;
         pDot11f->rxSTBC = uHTCapabilityInfo.htCapInfo.rxSTBC;
         pDot11f->shortGI20MHz             = uHTCapabilityInfo.htCapInfo.shortGI20MHz;
@@ -764,7 +764,6 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     }
     else
     {
-        pDot11f->advCodingCap             = psessionEntry->htConfig.ht_rx_ldpc;
         pDot11f->supportedChannelWidthSet = psessionEntry->htSupportedChannelWidthSet;
         pDot11f->txSTBC                   = psessionEntry->htConfig.ht_tx_stbc;
         pDot11f->rxSTBC                   = psessionEntry->htConfig.ht_rx_stbc;
