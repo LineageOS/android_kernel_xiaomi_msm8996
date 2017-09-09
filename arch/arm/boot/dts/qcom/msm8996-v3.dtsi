@@ -971,6 +971,17 @@
 			< 2073600 1525 >,
 			< 2150400 5195 >;
 	};
+	memlat_cpu0-cpufreq {
+		target-dev = <&memlat_cpu0>;
+		cpu-to-dev-map =
+			< 1728000 1525 >;
+	};
+	memlat_cpu2-cpufreq {
+		target-dev = <&memlat_cpu2>;
+		cpu-to-dev-map =
+			< 2073600 1525 >,
+			< 2265600 5195 >;
+	};
 };
 
 &soc {
