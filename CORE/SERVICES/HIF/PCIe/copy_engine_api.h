@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -376,6 +376,13 @@ bool CE_get_rx_pending(struct hif_pci_softc *sc);
 
 int get_next_record_index(atomic_t *table_index, int array_size);
 
+/**
+ * ce_target_reset() - Trigger SSR
+ * @sc: hif layer handle
+ *
+ * Once hw error is hit, SSR would be triggered.
+ */
+void ce_target_reset(struct hif_pci_softc *sc);
 
 /* CE_attr.flags values */
 #define CE_ATTR_NO_SNOOP                0x01  /* Use NonSnooping PCIe accesses? */

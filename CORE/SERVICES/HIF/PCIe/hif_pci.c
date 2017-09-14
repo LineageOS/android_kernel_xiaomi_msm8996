@@ -467,7 +467,7 @@ HIF_PCI_CE_send_done(struct CE_handle *copyeng, void *ce_context, void *transfer
                              "pipe_num:%d num_send_allowed:%d pipe_info:0x%p sw_index:%d hw_index:%d nbytes:%d\n",
                             pipe_info->pipe_num, pipe_info->num_sends_allowed,
                             pipe_info, sw_idx, hw_idx, nbytes));
-            ASSERT(0);
+            ce_target_reset(hif_state->sc);
             break;
         }
         pipe_info->completion_freeq_head = compl_state->next;
@@ -538,7 +538,10 @@ HIF_PCI_CE_recv_data(struct CE_handle *copyeng, void *ce_context, void *transfer
         hif_pm_runtime_mark_last_busy(sc->dev);
         adf_os_spin_lock(&pipe_info->completion_freeq_lock);
         compl_state = pipe_info->completion_freeq_head;
-        ASSERT(compl_state != NULL);
+
+        if (!compl_state)
+            ce_target_reset(sc);
+
         pipe_info->completion_freeq_head = compl_state->next;
         adf_os_spin_unlock(&pipe_info->completion_freeq_lock);
 
@@ -2862,9 +2865,15 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                     hif_msm_pcie_debug_info(sc);
                     if (!sc->ol_sc->enable_self_recovery)
                             VOS_BUG(0);
-                    sc->recovery = true;
-                    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-                    vos_wlan_pci_link_down();
+
+                    if (!vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+                        sc->recovery = true;
+                        vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+                        vos_wlan_pci_link_down();
+                    } else {
+                        adf_os_print("%s- %d: SSR is in progress!!!!\n",
+                                     __func__, __LINE__);
+                    }
                     return -EACCES;
                 }
 
