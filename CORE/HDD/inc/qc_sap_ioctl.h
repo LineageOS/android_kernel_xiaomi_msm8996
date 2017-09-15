@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -270,6 +270,8 @@ enum {
     QCSAP_PARAM_CHAN_WIDTH,
     QCSAP_SET_DEFAULT_AMPDU,
     QCSAP_ENABLE_RTS_BURSTING,
+    QCSAP_ENABLE_DYNAMIC_BW,
+    QCSAP_GET_DYNAMIC_BW,
 };
 
 int iw_get_channel_list(struct net_device *dev,
