@@ -734,7 +734,7 @@ htt_tx_desc_display(void *tx_desc)
     htt_tx_desc = (struct htt_tx_msdu_desc_t *) tx_desc;
 
     /* only works for little-endian */
-    adf_os_print("HTT tx desc (@ %p):\n", htt_tx_desc);
+    adf_os_print("HTT tx desc (@ %pK):\n", htt_tx_desc);
     adf_os_print("  msg type = %d\n", htt_tx_desc->msg_type);
     adf_os_print("  pkt subtype = %d\n", htt_tx_desc->pkt_subtype);
     adf_os_print("  pkt type = %d\n", htt_tx_desc->pkt_type);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -366,7 +366,7 @@ ol_tx_classify(
             peer = ol_txrx_assoc_peer_find(vdev);
             if (!peer) {
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
-                    "Error: STA %p (%02x:%02x:%02x:%02x:%02x:%02x) "
+                    "Error: STA %pK (%02x:%02x:%02x:%02x:%02x:%02x) "
                     "trying to send bcast DA tx data frame "
                     "w/o association\n",
                     vdev,
@@ -400,7 +400,7 @@ ol_tx_classify(
             peer = ol_txrx_peer_find_hash_find(pdev, vdev->mac_addr.raw, 0, 1);
             if (!peer) {
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
-                    "Error: vdev %p (%02x:%02x:%02x:%02x:%02x:%02x) "
+                    "Error: vdev %pK (%02x:%02x:%02x:%02x:%02x:%02x) "
                     "trying to send bcast/mcast, but no self-peer found\n",
                     vdev,
                     vdev->mac_addr.raw[0], vdev->mac_addr.raw[1],
@@ -489,7 +489,7 @@ ol_tx_classify(
              * to send it to.
              */
             VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                "Error: vdev %p (%02x:%02x:%02x:%02x:%02x:%02x) "
+                "Error: vdev %pK (%02x:%02x:%02x:%02x:%02x:%02x) "
                 "trying to send unicast tx data frame to an unknown peer\n",
                 vdev,
                 vdev->mac_addr.raw[0], vdev->mac_addr.raw[1],
@@ -532,7 +532,7 @@ ol_tx_classify(
         if (tx_msdu_info->htt.info.peer_id == HTT_INVALID_PEER_ID) {
             if (peer) {
                 TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
-                      "%s: remove the peer for invalid peer_id %p\n",
+                      "%s: remove the peer for invalid peer_id %pK\n",
                       __func__, peer);
                 /* remove the peer reference added above */
                 ol_txrx_peer_unref_delete(peer);
@@ -556,7 +556,7 @@ ol_tx_classify(
         tx_msdu_info->peer != NULL) {
 
         TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
-                      "%s: remove the peer reference %p\n", __func__, peer);
+                      "%s: remove the peer reference %pK\n", __func__, peer);
         /* remove the peer reference added above */
         ol_txrx_peer_unref_delete(tx_msdu_info->peer);
         /* Making peer NULL in case if multicast non STA mode */

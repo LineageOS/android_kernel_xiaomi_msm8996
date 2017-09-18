@@ -2150,7 +2150,7 @@ uint16_t tl_shim_get_sta_id_by_addr(void *vos_context, uint8_t *mac_addr)
 	uint8_t peer_id;
 
 	if (vos_context == NULL || mac_addr == NULL) {
-		TLSHIM_LOGE("Invalid argument %p, %p", vos_context, mac_addr);
+		TLSHIM_LOGE("Invalid argument %pK, %pK", vos_context, mac_addr);
 		return 0;
 	}
 
@@ -2181,7 +2181,7 @@ void *tl_shim_get_vdev_by_addr(void *vos_context, uint8_t *mac_addr)
 	uint8_t peer_id;
 
 	if (vos_context == NULL || mac_addr == NULL) {
-		TLSHIM_LOGE("Invalid argument %p, %p", vos_context, mac_addr);
+		TLSHIM_LOGE("Invalid argument %pK, %pK", vos_context, mac_addr);
 		return NULL;
 	}
 

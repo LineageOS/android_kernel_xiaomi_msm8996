@@ -305,7 +305,7 @@ ol_txrx_peer_find_hash_erase(struct ol_txrx_pdev_t *pdev)
                  */
                 adf_os_atomic_init(&peer->ref_cnt); /* set to zero */
                 adf_os_atomic_inc(&peer->ref_cnt);  /* incr to one */
-                TXRX_PRINT(TXRX_PRINT_LEVEL_ERR, "%s: Delete Peer %p\n", __func__, peer);
+                TXRX_PRINT(TXRX_PRINT_LEVEL_ERR, "%s: Delete Peer %pK\n", __func__, peer);
                 ol_txrx_peer_unref_delete(peer);
             }
         }
@@ -356,7 +356,7 @@ ol_txrx_peer_find_add_id(
     /* check if there's already a peer object with this MAC address */
     peer = ol_txrx_peer_find_hash_find(pdev, peer_mac_addr, 1 /* is aligned */, 0);
     TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
-        "%s: peer %p ID %d\n", __func__, peer, peer_id);
+        "%s: peer %pK ID %d\n", __func__, peer, peer_id);
     if (peer) {
         /* peer's ref count was already incremented by peer_find_hash_find */
         pdev->peer_id_to_obj_map[peer_id] = peer;
@@ -475,7 +475,7 @@ ol_rx_peer_unmap_handler(
     peer = (peer_id == HTT_INVALID_PEER) ? NULL :
         pdev->peer_id_to_obj_map[peer_id];
     TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
-        "%s: peer %p with ID %d to be unmapped.\n", __func__, peer, peer_id);
+        "%s: peer %pK with ID %d to be unmapped.\n", __func__, peer, peer_id);
     pdev->peer_id_to_obj_map[peer_id] = NULL;
     /*
      * Currently peer IDs are assigned for vdevs as well as peers.
@@ -488,7 +488,7 @@ ol_rx_peer_unmap_handler(
      * If there are no more references, delete the peer object.
      */
     TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
-        "%s: Remove the ID %d reference to peer %p\n",
+        "%s: Remove the ID %d reference to peer %pK\n",
         __func__, peer_id, peer);
     ol_txrx_peer_unref_delete(peer);
 }
@@ -528,7 +528,7 @@ ol_txrx_peer_find_display(ol_txrx_pdev_handle pdev, int indent)
     for (i = 0; i < max_peers; i++) {
         if (pdev->peer_id_to_obj_map[i]) {
             VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
-                "%*sid %d -> %p\n",
+                "%*sid %d -> %pK\n",
                 indent+4, " ", i, pdev->peer_id_to_obj_map[i]);
         }
     }
@@ -539,7 +539,7 @@ ol_txrx_peer_find_display(ol_txrx_pdev_handle pdev, int indent)
             struct ol_txrx_peer_t *peer;
             TAILQ_FOREACH(peer, &pdev->peer_hash.bins[i], hash_list_elem) {
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
-                    "%*shash idx %d -> %p (%02x:%02x:%02x:%02x:%02x:%02x)\n",
+                    "%*shash idx %d -> %pK (%02x:%02x:%02x:%02x:%02x:%02x)\n",
                     indent+4, " ", i, peer,
                     peer->mac_addr.raw[0], peer->mac_addr.raw[1],
                     peer->mac_addr.raw[2], peer->mac_addr.raw[3],

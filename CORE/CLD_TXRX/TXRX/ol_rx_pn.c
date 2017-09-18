@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2015, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2015-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -190,7 +190,7 @@ ol_rx_pn_check_base(
             }
 
             TXRX_PRINT(log_level,
-                "PN check failed - TID %d, peer %p "
+                "PN check failed - TID %d, peer %pK "
                 "(%02x:%02x:%02x:%02x:%02x:%02x) %s\n"
                 "    old PN (u64 x2)= 0x%08llx %08llx (LSBs = %lld)\n"
                 "    new PN (u64 x2)= 0x%08llx %08llx (LSBs = %lld)\n"
@@ -365,7 +365,7 @@ ol_rx_pn_trace_display(ol_txrx_pdev_handle pdev, int just_once)
         "   count  idx    peer   tid uni  num    LSBs\n");
     do {
         VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-            "  %6lld %4d  %p %2d   %d %4d %8d\n",
+            "  %6lld %4d  %pK %2d   %d %4d %8d\n",
             cnt, i,
             pdev->rx_pn_trace.data[i].peer,
             pdev->rx_pn_trace.data[i].tid,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -487,7 +487,7 @@ OL_TXRX_FRMS_DUMP(
                 tcp_offset = l2_hdr_size + IPV6_HDR_LEN;
             } else {
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                    "frame %p non-IP ethertype (%x)\n", frm, ethertype);
+                    "frame %pK non-IP ethertype (%x)\n", frm, ethertype);
                 goto NOT_IP_TCP;
             }
             if (ip_prot == IP_PROTOCOL_TCP) {
@@ -501,10 +501,10 @@ OL_TXRX_FRMS_DUMP(
                     (tcp_hdr->seq_num[1] <<  8) |
                     (tcp_hdr->seq_num[1] <<  0);
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                    "frame %p: TCP seq num = %d\n", frm, tcp_seq_num);
+                    "frame %pK: TCP seq num = %d\n", frm, tcp_seq_num);
 #else
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                     "frame %p: TCP seq num = %d\n", frm,
+                     "frame %pK: TCP seq num = %d\n", frm,
                     ((*(p + tcp_offset + 4)) << 24) |
                     ((*(p + tcp_offset + 5)) << 16) |
                     ((*(p + tcp_offset + 6)) <<  8) |
@@ -512,7 +512,7 @@ OL_TXRX_FRMS_DUMP(
 #endif
             } else {
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                    "frame %p non-TCP IP protocol (%x)\n", frm, ip_prot);
+                    "frame %pK non-TCP IP protocol (%x)\n", frm, ip_prot);
             }
         }
 NOT_IP_TCP:
@@ -547,7 +547,7 @@ NOT_IP_TCP:
             }
 
             VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
-                "frame %p data (%p), hex dump of bytes 0-%d of %d:\n",
+                "frame %pK data (%pK), hex dump of bytes 0-%d of %d:\n",
                 frm, p, len_lim-1, (int) adf_nbuf_len(frm));
             p = local_buf;
             while (len_lim > 16) {
