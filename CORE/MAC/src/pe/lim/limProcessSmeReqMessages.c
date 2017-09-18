@@ -6826,7 +6826,7 @@ limUpdateIBssPropAddIEs(tpAniSirGlobal pMac, tANI_U8 **pDstData_buff,
 
     if ((0 == oui_length) || (NULL == ibss_ie)) {
         VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
-                  FL("Invalid set IBSS vendor IE comamnd length %d ibss_ie %p"),
+                  FL("Invalid set IBSS vendor IE comamnd length %d ibss_ie %pK"),
                   oui_length, ibss_ie);
         return FALSE;
     }
@@ -6942,7 +6942,7 @@ limProcessModifyAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
         }
         else
         {
-            limLog(pMac, LOGE, FL("Invalid request pIEBuffer %p ieBufferlength"
+            limLog(pMac, LOGE, FL("Invalid request pIEBuffer %pK ieBufferlength"
                             " %d ieIDLen %d ieID %d. update Type %d"),
                             pModifyAddIEs->modifyIE.pIEBuffer,
                             pModifyAddIEs->modifyIE.ieBufferlength,

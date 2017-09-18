@@ -6956,7 +6956,7 @@ void lim_set_ht_caps(tpAniSirGlobal p_mac, tpPESession p_session_entry,
     PopulateDot11fHTCaps(p_mac, p_session_entry, &dot11_ht_cap);
     p_ie = limGetIEPtr(p_mac, p_ie_start, num_bytes, DOT11F_EID_HTCAPS,
                                                     ONE_BYTE);
-    limLog( p_mac, LOG2, FL("p_ie %p dot11_ht_cap.supportedMCSSet[0]=0x%x"),
+    limLog( p_mac, LOG2, FL("p_ie %pK dot11_ht_cap.supportedMCSSet[0]=0x%x"),
             p_ie, dot11_ht_cap.supportedMCSSet[0]);
 
     if(p_ie)
@@ -7450,7 +7450,7 @@ lim_pop_sap_deferred_msg(tpAniSirGlobal pmac, tpPESession sessionentry)
 			TAILQ_REMOVE(&pmac->lim.glim_sap_deferred_msgq.tq_head,
 				pdefermsg, list_elem);
 
-			limLog(pmac, LOGE, FL("pop def msg(H %p T %p)."
+			limLog(pmac, LOGE, FL("pop def msg(H %pK T %pK)."
 			"assid= %d,  %pM"),
 			TAILQ_FIRST(&pmac->lim.glim_sap_deferred_msgq.tq_head),
 			TAILQ_LAST(&pmac->lim.glim_sap_deferred_msgq.tq_head,
@@ -7480,7 +7480,7 @@ lim_push_sap_deferred_msg(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
 
 	pdefermsg = vos_mem_malloc(sizeof(*pdefermsg));
 	if (pdefermsg == NULL) {
-		limLog(pmac, LOGE, FL("No mem for push msg %p!"), lim_msgq);
+		limLog(pmac, LOGE, FL("No mem for push msg %pK!"), lim_msgq);
 		vos_mem_free(lim_msgq->bodyptr);
 		return;
 	}
@@ -7490,7 +7490,7 @@ lim_push_sap_deferred_msg(tpAniSirGlobal pmac, tpSirMsgQ lim_msgq)
 	TAILQ_INSERT_TAIL(&pmac->lim.glim_sap_deferred_msgq.tq_head, pdefermsg,
 		list_elem);
 
-	limLog(pmac, LOGW, FL("push def msg(H %p T %p): P %p."),
+	limLog(pmac, LOGW, FL("push def msg(H %pK T %pK): P %pK."),
 			TAILQ_FIRST(&pmac->lim.glim_sap_deferred_msgq.tq_head),
 			TAILQ_LAST(&pmac->lim.glim_sap_deferred_msgq.tq_head,
 			t_slim_deferred_sap_msg_head),

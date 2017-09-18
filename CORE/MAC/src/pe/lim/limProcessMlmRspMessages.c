@@ -974,7 +974,7 @@ limProcessMlmReassocCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
      * allowed following any change in HT params.
      */
     if (psessionEntry->ftPEContext.pFTPreAuthReq) {
-        limLog(pMac, LOG1, FL("Freeing pFTPreAuthReq= %p"),
+        limLog(pMac, LOG1, FL("Freeing pFTPreAuthReq= %pK"),
                psessionEntry->ftPEContext.pFTPreAuthReq);
         if (psessionEntry->ftPEContext.pFTPreAuthReq->pbssDescription) {
             vos_mem_free(

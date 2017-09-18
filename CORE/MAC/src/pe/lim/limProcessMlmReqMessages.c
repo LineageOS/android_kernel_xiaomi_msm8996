@@ -265,7 +265,7 @@ limSuspendLink(tpAniSirGlobal pMac, tSirLinkTrafficCheck trafficCheck,  SUSPEND_
    if( pMac->lim.gpLimSuspendCallback ||
        pMac->lim.gLimSystemInScanLearnMode )
    {
-      limLog( pMac, LOGE, FL("Something is wrong, SuspendLinkCbk:%p "
+      limLog( pMac, LOGE, FL("Something is wrong, SuspendLinkCbk:%pK "
               "IsSystemInScanLearnMode:%d"), pMac->lim.gpLimSuspendCallback,
                pMac->lim.gLimSystemInScanLearnMode );
       callback( pMac, eHAL_STATUS_FAILURE, data );
@@ -922,7 +922,7 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
 
     rc = wdaPostCtrlMsg(pMac, &msg);
     if (rc == eSIR_SUCCESS) {
-        PELOG3(limLog(pMac, LOG3, FL("wdaPostCtrlMsg() return eSIR_SUCCESS pMac=%p nextState=%d"),
+        PELOG3(limLog(pMac, LOG3, FL("wdaPostCtrlMsg() return eSIR_SUCCESS pMac=%pK nextState=%d"),
                     pMac, pMac->lim.gLimHalScanState);)
             return;
     }
