@@ -1208,7 +1208,7 @@ VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 	adapter = adapter_node->pAdapter;
 	if ((NULL == adapter) || (WLAN_HDD_ADAPTER_MAGIC != adapter->magic)) {
 		VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-			  "invalid adapter %p for sta Id %d", adapter, sta_id);
+			  "invalid adapter %pK for sta Id %d", adapter, sta_id);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -1354,7 +1354,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
 
    pAdapter = pHddCtx->sta_to_adapter[staId];
    if ((NULL == pAdapter) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)) {
-      hddLog(LOGE, FL("invalid adapter %p for sta Id %d"), pAdapter, staId);
+      hddLog(LOGE, FL("invalid adapter %pK for sta Id %d"), pAdapter, staId);
       return VOS_STATUS_E_FAILURE;
    }
 

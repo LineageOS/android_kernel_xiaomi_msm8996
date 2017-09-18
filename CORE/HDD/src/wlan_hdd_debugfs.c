@@ -629,7 +629,7 @@ static void hdd_power_debugstats_cb(struct power_stats_response *response,
 	    (NULL == adapter) ||
 	    (WLAN_HDD_ADAPTER_MAGIC != adapter->magic)) {
 		spin_unlock(&hdd_context_lock);
-		hddLog(LOGE, FL("Invalid context, adapter [%p] magic [%08x]"),
+		hddLog(LOGE, FL("Invalid context, adapter [%pK] magic [%08x]"),
 			adapter, stats_context->magic);
 		return;
 	}

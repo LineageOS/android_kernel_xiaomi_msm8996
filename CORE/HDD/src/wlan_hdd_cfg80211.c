@@ -6124,7 +6124,7 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx, int indType,
     case SIR_HAL_LL_STATS_RESULTS_RSP:
         {
             hddLog(VOS_TRACE_LEVEL_INFO,
-                 "LL_STATS RESP paramID = 0x%x, ifaceId = %u respId = %u, moreResultToFollow = %u, num radio = %u result = %p",
+                 "LL_STATS RESP paramID = 0x%x, ifaceId = %u respId = %u, moreResultToFollow = %u, num radio = %u result = %pK",
                  linkLayerStatsResults->paramId, linkLayerStatsResults->ifaceId,
                  linkLayerStatsResults->rspId,
                  linkLayerStatsResults->moreResultToFollow,
@@ -7300,7 +7300,7 @@ static void wlan_hdd_cfg80211_ll_stats_ext_callback(tSirLLStatsResults *rsp)
 	results = rsp->results;
 	param_id = rsp->paramId;
 	hddLog(LOG1,
-	       FL("LL_STATS RESP paramID = 0x%x, ifaceId = %u, result = %p"),
+	       FL("LL_STATS RESP paramID = 0x%x, ifaceId = %u, result = %pK"),
 	       rsp->paramId, rsp->ifaceId, rsp->results);
 	if (param_id & WMI_LL_STATS_EXT_PS_CHG) {
 		peer_stats = (tSirWifiPeerStat *)results;
@@ -13736,7 +13736,7 @@ static void hdd_get_peer_txrx_rate_cb(struct sir_peer_info_ext_resp *peer_info,
 	if ((NULL == peer_info) || (NULL == context)) {
 
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-			"%s: Bad param, peer_info [%p] context [%p]",
+			"%s: Bad param, peer_info [%pK] context [%pK]",
 			__func__, peer_info, context);
 		return;
 	}
@@ -18240,7 +18240,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         return -EINVAL;
     }
 
-    hddLog(LOG2, FL("pAdapter = %p, device mode %s(%d)"),
+    hddLog(LOG2, FL("pAdapter = %pK, device mode %s(%d)"),
            pAdapter, hdd_device_mode_to_string(pAdapter->device_mode),
            pAdapter->device_mode);
 
@@ -20897,7 +20897,7 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
 #endif
 
     hddLog(VOS_TRACE_LEVEL_INFO,
-            "%s called with halHandle = %p, pContext = %p,"
+            "%s called with halHandle = %pK, pContext = %pK,"
             "scanID = %d, returned status = %d",
             __func__, halHandle, pContext, (int) scanId, (int) status);
 
@@ -21144,7 +21144,7 @@ static bool hdd_check_connection_status(hdd_adapter_t *adapter,
 	     (WLAN_HDD_P2P_DEVICE == adapter->device_mode)) &&
 	    (eConnectionState_Connecting ==
 	     (WLAN_HDD_GET_STATION_CTX_PTR(adapter))->conn_info.connState)) {
-		hddLog(LOG1, FL("%p(%d) Connection is in progress"),
+		hddLog(LOG1, FL("%pK(%d) Connection is in progress"),
 			WLAN_HDD_GET_STATION_CTX_PTR(adapter),
 			adapter->sessionId);
 		if (session_id && reason) {
@@ -21156,7 +21156,7 @@ static bool hdd_check_connection_status(hdd_adapter_t *adapter,
 	if ((WLAN_HDD_INFRA_STATION == adapter->device_mode) &&
 	    smeNeighborMiddleOfRoaming(WLAN_HDD_GET_HAL_CTX(adapter),
 					adapter->sessionId)) {
-		hddLog(LOG1, FL("%p(%d) Reassociation is in progress"),
+		hddLog(LOG1, FL("%pK(%d) Reassociation is in progress"),
 			WLAN_HDD_GET_STATION_CTX_PTR(adapter),
 			adapter->sessionId);
 		if (session_id && reason) {
@@ -24854,7 +24854,7 @@ void wlan_hdd_get_peer_info_cb(struct sir_peer_info_ext_resp *sta_info,
 
 	if ((NULL == sta_info) || (NULL == context)) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-			"%s: Bad param, sta_info [%p] context [%p]",
+			"%s: Bad param, sta_info [%pK] context [%pK]",
 			__func__, sta_info, context);
 		return;
 	}
@@ -26767,7 +26767,7 @@ static inline bool wlan_hdd_is_pmksa_valid(struct cfg80211_pmksa *pmksa)
     }
     else
     {
-        hddLog(LOGE, FL(" Either of  bssid (%p) ssid (%p) or cache_id (%p) are NULL"),
+        hddLog(LOGE, FL(" Either of  bssid (%pK) ssid (%pK) or cache_id (%pK) are NULL"),
                 pmksa->bssid, pmksa->ssid, pmksa->cache_id);
         return false;
     }
@@ -26818,7 +26818,7 @@ static void hdd_update_pmksa_info(tPmkidCacheInfo *pmk_cache,
 static inline bool wlan_hdd_is_pmksa_valid(struct cfg80211_pmksa *pmksa)
 {
     if (!pmksa->bssid) {
-        hddLog(LOGE,FL("both bssid is NULL %p"), pmksa->bssid);
+        hddLog(LOGE,FL("both bssid is NULL %pK"), pmksa->bssid);
         return false;
     }
     return true;
@@ -26870,7 +26870,7 @@ static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device 
     }
 
     if (!pmksa->pmkid) {
-        hddLog(LOGE, FL("pmksa->pmkid(%p) is NULL"),
+        hddLog(LOGE, FL("pmksa->pmkid(%pK) is NULL"),
                pmksa->pmkid);
         return -EINVAL;
     }
@@ -27299,7 +27299,7 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: %p(%d) Connection in progress: sched_scan_start denied (EBUSY)",
+                "%s: %pK(%d) Connection in progress: sched_scan_start denied (EBUSY)",
                __func__,
                 WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), pAdapter->sessionId);
         return -EBUSY;
@@ -29179,7 +29179,7 @@ void wlan_hdd_testmode_rx_event(void *buf, size_t buf_len)
 
     if (!buf || !buf_len) {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: buf or buf_len invalid, buf = %p buf_len = %zu",
+                  "%s: buf or buf_len invalid, buf = %pK buf_len = %zu",
                   __func__, buf, buf_len);
         return;
     }
