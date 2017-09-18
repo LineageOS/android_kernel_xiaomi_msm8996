@@ -479,6 +479,10 @@ static int hdd_hostapd_driver_command(hdd_adapter_t *pAdapter,
    else if (strncmp(command, "MIRACAST", 8) == 0)
    {
        hddLog(VOS_TRACE_LEVEL_INFO, "%s: Received MIRACAST command", __func__);
+       ret = hdd_drv_cmd_validate(command, 8);
+       if (ret)
+           goto exit;
+
        ret = hdd_set_miracast_mode(pAdapter, command);
    }
 exit:
