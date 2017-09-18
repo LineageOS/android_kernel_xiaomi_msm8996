@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -205,14 +205,14 @@ void epping_tx_timer_expire(epping_adapter_t *pAdapter)
       HTCSetNodropPkt(pAdapter->pEpping_ctx->HTCHandle, TRUE);
       if (epping_tx_send_int(nodrop_skb, pAdapter)) {
          EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
-            "%s: nodrop: %p xmit fail in timer\n", __func__, nodrop_skb);
+            "%s: nodrop: %pK xmit fail in timer\n", __func__, nodrop_skb);
          /* fail to xmit so put the nodrop packet to the nodrop queue */
          adf_nbuf_queue_insert_head(&pAdapter->nodrop_queue, nodrop_skb);
          break;
       } else {
          HTCSetNodropPkt(pAdapter->pEpping_ctx->HTCHandle, FALSE);
          EPPING_LOG(VOS_TRACE_LEVEL_INFO,
-            "%s: nodrop: %p xmit ok in timer\n", __func__, nodrop_skb);
+            "%s: nodrop: %pK xmit ok in timer\n", __func__, nodrop_skb);
       }
    }
 
@@ -272,7 +272,7 @@ int epping_tx_send(adf_nbuf_t skb, epping_adapter_t *pAdapter)
       HTCSetNodropPkt(pAdapter->pEpping_ctx->HTCHandle, TRUE);
       if (epping_tx_send_int(nodrop_skb, pAdapter)) {
          EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
-            "%s: nodrop: %p xmit fail\n", __func__, nodrop_skb);
+            "%s: nodrop: %pK xmit fail\n", __func__, nodrop_skb);
          /* fail to xmit so put the nodrop packet to the nodrop queue */
          adf_nbuf_queue_insert_head(&pAdapter->nodrop_queue, nodrop_skb);
          /* no cookie so free the current skb */
@@ -280,7 +280,7 @@ int epping_tx_send(adf_nbuf_t skb, epping_adapter_t *pAdapter)
       } else {
          HTCSetNodropPkt(pAdapter->pEpping_ctx->HTCHandle, FALSE);
          EPPING_LOG(VOS_TRACE_LEVEL_INFO,
-            "%s: nodrop: %p xmit ok\n", __func__, nodrop_skb);
+            "%s: nodrop: %pK xmit ok\n", __func__, nodrop_skb);
       }
    }
 
@@ -296,12 +296,12 @@ tx_fail:
       adf_nbuf_free(skb);
       ++pAdapter->stats.tx_dropped;
       EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
-         "%s: Tx skb %p dropped, stats.tx_dropped = %ld\n",
+         "%s: Tx skb %pK dropped, stats.tx_dropped = %ld\n",
          __func__, skb, pAdapter->stats.tx_dropped);
       return -ENOMEM;
    } else {
       EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
-                 "%s: nodrop: %p queued\n", __func__, skb);
+                 "%s: nodrop: %pK queued\n", __func__, skb);
       adf_nbuf_queue_add(&pAdapter->nodrop_queue, skb);
       adf_os_spin_lock_bh(&pAdapter->data_lock);
       if (pAdapter->epping_timer_state != EPPING_TX_TIMER_RUNNING) {
@@ -375,7 +375,7 @@ void epping_tx_complete_multiple(void *ctx,
       }
 
       EPPING_LOG(VOS_TRACE_LEVEL_INFO,
-         "%s skb=%p data=%p len=0x%x eid=%d ",
+         "%s skb=%pK data=%pK len=0x%x eid=%d ",
          __func__, pktSkb, htc_pkt->pBuffer,
          htc_pkt->ActualLength, eid);
 

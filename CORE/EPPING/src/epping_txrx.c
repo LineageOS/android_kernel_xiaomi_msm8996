@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -270,7 +270,7 @@ static int epping_start_adapter(epping_adapter_t *pAdapter)
       pAdapter->started = true;
    } else {
       EPPING_LOG(VOS_TRACE_LEVEL_WARN,
-         "%s: pAdapter %p already started\n", __func__, pAdapter);
+         "%s: pAdapter %pK already started\n", __func__, pAdapter);
    }
    return 0;
 }
