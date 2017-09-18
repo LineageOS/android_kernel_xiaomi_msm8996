@@ -3226,7 +3226,7 @@ eHalStatus csrNeighborRoamIssueBgScanRequest(tpAniSirGlobal pMac,
     vos_mem_free(scanReq.SSIDs.SSIDList);
     if (1 == pBgScanParams->ChannelInfo.numOfChannels)
         NEIGHBOR_ROAM_DEBUG(pMac, LOG1,
-                FL("Channel List Address = %p, Actual index = %d"),
+                FL("Channel List Address = %pK, Actual index = %d"),
                 &pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[0],
                 pNeighborRoamInfo->roamChannelInfo.currentChanIndex);
 
@@ -3277,7 +3277,7 @@ eHalStatus csrNeighborRoamPerformBgScan(tpAniSirGlobal pMac, tANI_U8 sessionId)
     if (pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList
         &&
      pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.numOfChannels) {
-        NEIGHBOR_ROAM_DEBUG(pMac, LOG1, FL("Channel List Address = %p"), &pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[0]);
+        NEIGHBOR_ROAM_DEBUG(pMac, LOG1, FL("Channel List Address = %pK"), &pNeighborRoamInfo->roamChannelInfo.currentChannelListInfo.ChannelList[0]);
     }
     else
     {
