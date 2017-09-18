@@ -231,7 +231,7 @@ void hdd_tx_resume_timer_expired_handler(void *adapter_context)
 
    hddLog(LOG1, FL("Enabling queues"));
    wlan_hdd_netif_queue_control(pAdapter, WLAN_WAKE_ALL_NETIF_QUEUE,
-            WLAN_CONTROL_PATH);
+            WLAN_DATA_FLOW_CONTROL);
    pAdapter->hdd_stats.hddTxRxStats.txflow_unpause_cnt++;
    pAdapter->hdd_stats.hddTxRxStats.is_txflow_paused = FALSE;
 
@@ -1641,6 +1641,7 @@ void wlan_hdd_netif_queue_control(hdd_adapter_t *adapter,
 		hddLog(LOGE, FL("adapter is invalid"));
 		return;
 	}
+	hddLog(LOG1, FL("action is %d reason is %d"),action,reason);
 
 	switch (action) {
 	case WLAN_NETIF_CARRIER_ON:

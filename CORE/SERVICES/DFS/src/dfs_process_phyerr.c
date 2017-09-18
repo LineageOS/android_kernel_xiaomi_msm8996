@@ -861,6 +861,8 @@ dfs_process_phyerr(struct ieee80211com *ic, void *buf, u_int16_t datalen,
          event->re_ts = (e.rs_tstamp) & DFS_TSMASK;
          event->re_rssi = e.rssi;
          event->sidx = e.sidx;
+         event->re_delta_diff = e.pulse_delta_diff;
+         event->re_delta_peak = e.pulse_delta_peak;
 
          /*
           * Handle chirp flags.

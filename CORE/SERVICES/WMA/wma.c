@@ -7895,8 +7895,15 @@ static int wma_unified_dfs_radar_rx_event_handler(void *handle,
 	event->re_full_ts = (((uint64_t)radar_event->upload_fullts_high) << 32)
 			| radar_event->upload_fullts_low;
 
-	/* Index of peak magnitude */
-	event->sidx = radar_event->peak_sidx;
+	/**
+	 * Index of peak magnitude
+	 * To do
+	 * Need change interface of WMI_DFS_RADAR_EVENTID to get delta_diff and
+	 * delta_peak when DFS Phyerr filtering offload is enabled.
+	 */
+	event->sidx = radar_event->peak_sidx & 0x0000ffff;
+	event->re_delta_diff = 0;
+	event->re_delta_peak = 0;
 	event->re_flags = 0;
 
 	/*
@@ -17350,6 +17357,7 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case WMI_PDEV_PARAM_ANT_DIV_SELFTEST:
 		case WMI_PDEV_PARAM_ANT_DIV_SELFTEST_INTVL:
 		case WMI_PDEV_PARAM_RADIO_CHAN_STATS_ENABLE:
+		case WMI_PDEV_PARAM_RADIO_DIAGNOSIS_ENABLE:
 			break;
 		default:
 			WMA_LOGE("Invalid wda_cli_set pdev command/Not"

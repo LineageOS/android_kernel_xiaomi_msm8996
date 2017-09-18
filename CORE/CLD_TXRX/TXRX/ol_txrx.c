@@ -496,12 +496,13 @@ ol_txrx_pdev_attach(
         void *htt_tx_desc;
         u_int32_t paddr_lo;
 
-        if (i == (desc_pool_size - 1))
+        if (i == (desc_pool_size - 1)) {
             c_element->next = NULL;
-        else
+            pdev->tx_desc.last = c_element;
+        } else {
             c_element->next = (union ol_tx_desc_list_elem_t *)
                 ol_tx_desc_find(pdev, i + 1);
-
+        }
         htt_tx_desc = htt_tx_desc_alloc(pdev->htt_pdev, &paddr_lo);
         if (! htt_tx_desc) {
             VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_FATAL,

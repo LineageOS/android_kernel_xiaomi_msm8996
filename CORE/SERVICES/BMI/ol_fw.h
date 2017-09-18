@@ -78,7 +78,7 @@
 #endif
 #endif
 
-#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+#if defined(TARGET_DUMP_FOR_NON_QC_PLATFORM) && !defined(HIF_PCI)
 #define DRAM_LOCATION           0x00400000
 #ifdef HIF_USB
 #define DRAM_SIZE               0x00098000

@@ -302,6 +302,11 @@ enum
 #define CFG_CHANNEL_BONDING_MODE_MAX           WNI_CFG_CHANNEL_BONDING_MODE_STAMAX
 #define CFG_CHANNEL_BONDING_MODE_DEFAULT       WNI_CFG_CHANNEL_BONDING_MODE_STADEF
 
+#define CFG_OVERRIDE_HT40_20_24GHZ_NAME    "override_ht20_40_24g"
+#define CFG_OVERRIDE_HT40_20_24GHZ_MIN           0
+#define CFG_OVERRIDE_HT40_20_24GHZ_MAX           1
+#define CFG_OVERRIDE_HT40_20_24GHZ_DEFAULT       0
+
 #define CFG_CHANNEL_BONDING_MODE_5GHZ_NAME     "gChannelBondingMode5GHz"
 #define CFG_CHANNEL_BONDING_MODE_MIN           WNI_CFG_CHANNEL_BONDING_MODE_STAMIN
 #define CFG_CHANNEL_BONDING_MODE_MAX           WNI_CFG_CHANNEL_BONDING_MODE_STAMAX
@@ -4786,6 +4791,7 @@ struct hdd_config {
    v_U32_t       nAutoBmpsTimerValue;
    eHddDot11Mode dot11Mode;
    v_U32_t       nChannelBondingMode24GHz;
+   bool          override_ht20_40_24g;
    v_U32_t       nChannelBondingMode5GHz;
    v_U32_t       MaxRxAmpduFactor;
    v_U16_t       TxRate;

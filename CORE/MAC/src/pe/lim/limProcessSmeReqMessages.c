@@ -2125,13 +2125,14 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             psessionEntry->vdev_nss = vdev_type_nss->sta;
 
         limLog(pMac, LOG1,
-              FL("persona: %d, nss: %d cbMode: %d enableHtSmps: %d htSmps: %d supported NSS 1x1: %d"),
+              FL("persona: %d, nss: %d cbMode: %d enableHtSmps: %d htSmps: %d supported NSS 1x1: %d force_24ghz_in_ht20 %d"),
                         psessionEntry->pePersona,
                         psessionEntry->vdev_nss,
                         pSmeJoinReq->cbMode,
                         psessionEntry->enableHtSmps,
                         psessionEntry->htSmpsvalue,
-                        psessionEntry->supported_nss_1x1);
+                        psessionEntry->supported_nss_1x1,
+                        pSmeJoinReq->force_24ghz_in_ht20);
 
 #ifdef WLAN_FEATURE_11AC
         psessionEntry->vhtCapability = IS_DOT11_MODE_VHT(psessionEntry->dot11mode);
@@ -2179,6 +2180,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->gLimPhyMode = pSmeJoinReq->bssDescription.nwType;
         handleHTCapabilityandHTInfo(pMac, psessionEntry);
         psessionEntry->htSupportedChannelWidthSet = (pSmeJoinReq->cbMode > 0)?1:0; // This is already merged value of peer and self - done by csr in csrGetCBModeFromIes
+        psessionEntry->force_24ghz_in_ht20 = pSmeJoinReq->force_24ghz_in_ht20;
         psessionEntry->htRecommendedTxWidthSet = psessionEntry->htSupportedChannelWidthSet;
         psessionEntry->htSecondaryChannelOffset = pSmeJoinReq->cbMode;
 

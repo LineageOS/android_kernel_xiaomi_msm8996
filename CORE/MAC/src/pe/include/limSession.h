@@ -525,6 +525,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     /* Number of STAs that do not support ECSA capability */
     uint8_t lim_non_ecsa_cap_num;
     uint32_t sta_auth_retries_for_code17;
+    bool force_24ghz_in_ht20;
 #ifdef WLAN_FEATURE_FILS_SK
     struct pe_fils_session *fils_info;
 #endif
