@@ -3796,7 +3796,7 @@ VOS_STATUS sap_CacStartNotify(tHalHandle hHal)
              (VOS_FALSE == pSapContext->isCacStartNotified))
          {
               VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
-              "sapdfs: Signaling eSAP_DFS_CAC_START to HDD for sapctx[%p]",
+              "sapdfs: Signaling eSAP_DFS_CAC_START to HDD for sapctx[%pK]",
               pSapContext);
 
               vosStatus = sapSignalHDDevent(pSapContext, NULL,
@@ -3863,7 +3863,7 @@ VOS_STATUS sap_CacEndNotify(tHalHandle hHal, tCsrRoamInfo *roamInfo)
                 pSapContext->isCacEndNotified = VOS_TRUE;
                 pMac->sap.SapDfsInfo.sap_radar_found_status = VOS_FALSE;
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
-                          "sapdfs: Start beacon request on sapctx[%p]",
+                          "sapdfs: Start beacon request on sapctx[%pK]",
                           pSapContext);
 
                 /* Start beaconing on the new channel */
@@ -4012,7 +4012,7 @@ sapFsm
     }
     pMac = PMAC_STRUCT( hHal );
 
-    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG, "%s: sapContext=%p, stateVar=%d, msg=0x%x", __func__, sapContext, stateVar, msg);
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG, "%s: sapContext=%pK, stateVar=%d, msg=0x%x", __func__, sapContext, stateVar, msg);
 
     switch (stateVar)
     {
@@ -4076,7 +4076,7 @@ sapFsm
                if ( pMac->sap.SapDfsInfo.is_dfs_cac_timer_running != VOS_TRUE)
                {
                    VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
-                             "sapdfs: starting dfs cac timer on sapctx[%p]",
+                             "sapdfs: starting dfs cac timer on sapctx[%pK]",
                              sapContext);
                    sapStartDfsCacTimer(sapContext);
                }
@@ -4514,7 +4514,7 @@ sapFsm
                             pSapContext = pMac->sap.sapCtxList [intf].pSapContext;
                             VOS_TRACE(VOS_MODULE_ID_SAP,
                                       VOS_TRACE_LEVEL_INFO_MED,
-                                      "sapdfs: Sending CSAIE for sapctx[%p]",
+                                      "sapdfs: Sending CSAIE for sapctx[%pK]",
                                       pSapContext);
 
                             vosStatus =
@@ -4589,7 +4589,7 @@ sapFsm
             else if (msg == eWNI_SME_CHANNEL_CHANGE_REQ)
             {
                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
-                         "sapdfs: Send channel change request on sapctx[%p]",
+                         "sapdfs: Send channel change request on sapctx[%pK]",
                          sapContext);
                /* Most likely, radar has been detected and SAP wants to
                 * change the channel
@@ -5400,7 +5400,7 @@ void sapDfsCacTimerCallback(void *data)
          * CAC Complete, post eSAP_DFS_CHANNEL_CAC_END to sapFsm
          */
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_MED,
-        "sapdfs: Sending eSAP_DFS_CHANNEL_CAC_END for target_channel = %d on sapctx[%p]",
+        "sapdfs: Sending eSAP_DFS_CHANNEL_CAC_END for target_channel = %d on sapctx[%pK]",
         sapContext->channel, sapContext);
 
         sapEvent.event = eSAP_DFS_CHANNEL_CAC_END;
@@ -5644,11 +5644,11 @@ tANI_BOOLEAN is_concurrent_sap_ready_for_channel_change(tHalHandle hHal,
                     (ptSapContext)pMac->sap.sapCtxList [intf].pSapContext;
              if (pSapContext == sapContext) {
                  VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                           FL("sapCtx matched [%p]"), sapContext);
+                           FL("sapCtx matched [%pK]"), sapContext);
                  continue;
              } else {
                  VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                           FL("concurrent sapCtx[%p] didn't matche with [%p]"),
+                           FL("concurrent sapCtx[%pK] didn't matche with [%pK]"),
                            pSapContext, sapContext);
                  is_ready_for_chng = is_ready_for_chng &&
                      pSapContext->is_sap_ready_for_chnl_chng;
