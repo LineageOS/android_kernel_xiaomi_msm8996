@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -290,7 +290,7 @@ do { \
 do { \
 if (!spin_is_locked(x)) { \
 WARN_ON(1); \
-printk(KERN_EMERG " %s:%d unlock addr=%p, %s \n", __func__, __LINE__, x, \
+printk(KERN_EMERG " %s:%d unlock addr=%pK, %s \n", __func__, __LINE__, x, \
 !spin_is_locked(x)? "Not locked":""); \
 } \
 spin_unlock_bh(x);\

@@ -1,5 +1,5 @@
 /*
- * copyright (c) 2012, 2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -168,7 +168,7 @@ BMIDone(HIF_DEVICE *device, struct ol_softc *scn)
         return A_OK;
     }
 
-    AR_DEBUG_PRINTF(ATH_DEBUG_BMI, ("BMI Done: Enter (device: 0x%p)\n", device));
+    AR_DEBUG_PRINTF(ATH_DEBUG_BMI, ("BMI Done: Enter (device: 0x%pK)\n", device));
 
 #if defined(A_SIMOS_DEVHOST)
     /* Let HIF layer know that BMI phase is done.
@@ -351,7 +351,7 @@ BMIReadMemory(HIF_DEVICE *device,
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
-                ("BMI Read Memory: Enter (device: 0x%p, address: 0x%x, length: %d)\n",
+                ("BMI Read Memory: Enter (device: 0x%pK, address: 0x%x, length: %d)\n",
                     device, address, length));
 
     cid = BMI_READ_MEMORY;
@@ -422,7 +422,7 @@ BMIWriteMemory(HIF_DEVICE *device,
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
-         ("BMI Write Memory: Enter (device: 0x%p, address: 0x%x, length: %d)\n",
+         ("BMI Write Memory: Enter (device: 0x%pK, address: 0x%x, length: %d)\n",
          device, address, length));
 
     cid = BMI_WRITE_MEMORY;
@@ -487,7 +487,7 @@ BMIExecute(HIF_DEVICE *device,
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
-       ("BMI Execute: Enter (device: 0x%p, address: 0x%x, param: %d)\n",
+       ("BMI Execute: Enter (device: 0x%pK, address: 0x%x, param: %d)\n",
         device, address, *param));
 
     cid = BMI_EXECUTE;
@@ -531,7 +531,7 @@ BMISetAppStart(HIF_DEVICE *device,
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
-       ("BMI Set App Start: Enter (device: 0x%p, address: 0x%x)\n",
+       ("BMI Set App Start: Enter (device: 0x%pK, address: 0x%x)\n",
         device, address));
 
     cid = BMI_SET_APP_START;
@@ -574,7 +574,7 @@ BMIReadSOCRegister(HIF_DEVICE *device,
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
-       ("BMI Read SOC Register: Enter (device: 0x%p, address: 0x%x)\n",
+       ("BMI Read SOC Register: Enter (device: 0x%pK, address: 0x%x)\n",
        device, address));
 
     cid = BMI_READ_SOC_REGISTER;
@@ -616,7 +616,7 @@ BMIWriteSOCRegister(HIF_DEVICE *device,
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
-     ("BMI Write SOC Register: Enter (device: 0x%p, address: 0x%x, param: %d)\n",
+     ("BMI Write SOC Register: Enter (device: 0x%pK, address: 0x%x, param: %d)\n",
      device, address, param));
 
     cid = BMI_WRITE_SOC_REGISTER;
@@ -660,7 +660,7 @@ BMILZData(HIF_DEVICE *device,
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
-         ("BMI Send LZ Data: Enter (device: 0x%p, length: %d)\n",
+         ("BMI Send LZ Data: Enter (device: 0x%pK, length: %d)\n",
          device, length));
 
     cid = BMI_LZ_DATA;
@@ -715,7 +715,7 @@ BMISignStreamStart(HIF_DEVICE *device,
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
-         ("BMI SIGN Stream Start: Enter (device: 0x%p, address: 0x%x, length: %d)\n",
+         ("BMI SIGN Stream Start: Enter (device: 0x%pK, address: 0x%x, length: %d)\n",
          device, address, length));
 
     cid = BMI_SIGN_STREAM_START;
@@ -778,7 +778,7 @@ BMILZStreamStart(HIF_DEVICE *device,
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
-         ("BMI LZ Stream Start: Enter (device: 0x%p, address: 0x%x)\n",
+         ("BMI LZ Stream Start: Enter (device: 0x%pK, address: 0x%x)\n",
          device, address));
 
     cid = BMI_LZ_STREAM_START;
@@ -857,7 +857,7 @@ BMInvramProcess(HIF_DEVICE *device, A_UCHAR *seg_name, A_UINT32 *retval,
     }
 
     AR_DEBUG_PRINTF(ATH_DEBUG_BMI,
-         ("BMI NVRAM Process: Enter (device: 0x%p, name: %s)\n",
+         ("BMI NVRAM Process: Enter (device: 0x%pK, name: %s)\n",
            device, seg_name));
 
     cid = BMI_NVRAM_PROCESS;

@@ -234,7 +234,7 @@ ath_hif_sdio_probe(void *context, void *hif_handle)
             __func__);
     } else {
         VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_INFO,
-            "%s: ramdump base 0x%p size %d\n",
+            "%s: ramdump base 0x%pK size %d\n",
             __func__, ol_sc->ramdump_base, (int)ol_sc->ramdump_size);
     }
     init_waitqueue_head(&ol_sc->sc_osdev->event_queue);

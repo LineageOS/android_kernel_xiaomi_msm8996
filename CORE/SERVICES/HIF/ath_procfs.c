@@ -100,7 +100,7 @@ static ssize_t ath_procfs_diag_read(struct file *file, char __user *buf,
 		return -EINVAL;
 	}
 
-	pr_debug("rd buff 0x%p cnt %zu offset 0x%x buf 0x%p\n",
+	pr_debug("rd buff 0x%pK cnt %zu offset 0x%x buf 0x%pK\n",
 			read_buffer,count,
 			(int)*pos, buf);
 
@@ -145,7 +145,7 @@ static ssize_t ath_procfs_diag_write(struct file *file, const char __user *buf,
 		return -EFAULT;
 	}
 
-	pr_debug("wr buff 0x%p buf 0x%p cnt %zu offset 0x%x value 0x%x\n",
+	pr_debug("wr buff 0x%pK buf 0x%pK cnt %zu offset 0x%x value 0x%x\n",
 			write_buffer, buf, count,
 			(int)*pos, *((A_UINT32 *)write_buffer));
 
