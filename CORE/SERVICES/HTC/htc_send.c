@@ -406,6 +406,7 @@ static A_STATUS HTCSendBundledNetbuf(HTC_TARGET *target,
             HTC_TX_PACKET_TAG_BUNDLED);
     LOCK_HTC_TX(target);
     HTC_PACKET_ENQUEUE(&pEndpoint->TxLookupQueue, pPacketTx);
+    pEndpoint->ul_outstanding_cnt++;
     UNLOCK_HTC_TX(target);
 #if DEBUG_BUNDLE
     adf_os_print(" Send bundle EP%d buffer size:0x%x, total:0x%x, count:%d.\n",
