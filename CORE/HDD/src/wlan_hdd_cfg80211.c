@@ -29950,7 +29950,7 @@ __wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
     hdd_context_t *pHddCtx;
     VOS_STATUS status;
     tSmeConfigParams smeConfig;
-    bool cbModeChange;
+    bool cbModeChange = false;
 
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     status = wlan_hdd_validate_context(pHddCtx);
