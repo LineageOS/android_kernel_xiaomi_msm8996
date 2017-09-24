@@ -241,11 +241,7 @@ static int __devinit pwm_ir_tx_probe(struct pwm_ir_dev *dev)
 	}
 
 	if (data->low_active) {
-#if 0 /* need the latest kernel */
 		rc = pwm_set_polarity(dev->pwm, PWM_POLARITY_INVERSED);
-#else
-		rc = -ENOSYS;
-#endif
 		if (rc != 0) {
 			dev_err(&dev->pdev->dev, "failed to change polarity\n");
 			goto err_pwm_free;
