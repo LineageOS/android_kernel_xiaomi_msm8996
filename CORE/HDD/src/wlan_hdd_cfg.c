@@ -5317,7 +5317,8 @@ VOS_STATUS hdd_parse_config_ini(hdd_context_t* pHddCtx)
 
    hddLog(LOG1, "%s: qcom_cfg.ini Size %zu", __func__, fw->size);
 
-   buffer = (char*)vos_mem_malloc(fw->size);
+   buffer = (char*)vos_mem_malloc(fw->size + 1);
+   buffer[fw->size] = '\0';
 
    if(NULL == buffer) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: kmalloc failure",__func__);
@@ -6221,7 +6222,7 @@ VOS_STATUS hdd_update_mac_config(hdd_context_t *pHddCtx)
 {
    int status, i = 0;
    const struct firmware *fw = NULL;
-   char *line, *buffer = NULL;
+   char *line, *buffer = NULL, *temp = NULL;
    char *name, *value;
    tCfgIniEntry macTable[VOS_MAX_CONCURRENCY_PERSONA];
    tSirMacAddr customMacAddr;
@@ -6245,7 +6246,15 @@ VOS_STATUS hdd_update_mac_config(hdd_context_t *pHddCtx)
       goto config_exit;
    }
 
-   buffer = (char *)fw->data;
+   temp = buffer = (char *) vos_mem_malloc(fw->size + 1);
+   if (NULL == buffer) {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: unable to allocate memory",__func__);
+      release_firmware(fw);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   vos_mem_copy((void*)buffer,(void *)fw->data, fw->size);
+   buffer[fw->size] = '\0';
 
    /* data format:
     * Intf0MacAddress=00AA00BB00CC
@@ -6301,6 +6310,7 @@ VOS_STATUS hdd_update_mac_config(hdd_context_t *pHddCtx)
 
 config_exit:
    release_firmware(fw);
+   vos_mem_free(temp);
    return vos_status;
 }
 
