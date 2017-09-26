@@ -27,6 +27,10 @@ obj-$(CONFIG_IOSCHED_MAPLE)     += maple-iosched.o
 obj-$(CONFIG_IOSCHED_SIOPLUS)	+= sioplus-iosched.o
 obj-$(CONFIG_IOSCHED_TRIPNDROID)+= tripndroid-iosched.o
 obj-$(CONFIG_IOSCHED_VR)	+= vr-iosched.o
+obj-$(CONFIG_IOSCHED_ZEN)       += zen-iosched.o
+obj-$(CONFIG_IOSCHED_SWITCHER) += iosched_switcher.o
+
+>>>>>>> c102b3c... block: Add driver to change the I/O scheduler when the screen turns off
 obj-$(CONFIG_BLOCK_COMPAT)	+= compat_ioctl.o
 obj-$(CONFIG_BLK_CMDLINE_PARSER)	+= cmdline-parser.o
 obj-$(CONFIG_BLK_DEV_INTEGRITY) += bio-integrity.o blk-integrity.o t10-pi.o
