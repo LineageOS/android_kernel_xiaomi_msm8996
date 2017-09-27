@@ -1085,7 +1085,7 @@ ol_tx_hl_base(
     struct ocb_tx_ctrl_hdr_t tx_ctrl;
 
     htt_pdev_handle htt_pdev = pdev->htt_pdev;
-    uint8_t rtap[MAX_RADIOTAP_LEN];
+    uint8_t rtap[MAX_RADIOTAP_LEN] = {0};
     uint8_t rtap_len = 0;
     tx_msdu_info.peer = NULL;
 

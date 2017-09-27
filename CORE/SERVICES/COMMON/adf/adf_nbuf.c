@@ -1564,7 +1564,7 @@ void adf_net_buf_debug_add_node(adf_nbuf_t net_buf, size_t size,
 	p_node = adf_net_buf_debug_look_up(net_buf);
 
 	if (p_node) {
-		adf_print("Double allocation of skb ! Already allocated from %p %s %d current alloc from %p %s %d",
+		adf_print("Double allocation of skb ! Already allocated from %pK %s %d current alloc from %pK %s %d",
 			  p_node->net_buf, p_node->file_name, p_node->line_num,
 			  net_buf, file_name, line_num);
 		adf_os_warn(1);
@@ -1639,7 +1639,7 @@ done:
 	spin_unlock_irqrestore(&g_adf_net_buf_track_lock[i], irq_flag);
 
 	if (!found) {
-		adf_print("Unallocated buffer ! Double free of net_buf %p ?",
+		adf_print("Unallocated buffer ! Double free of net_buf %pK ?",
 			  net_buf);
 		adf_os_warn(1);
 	} else {

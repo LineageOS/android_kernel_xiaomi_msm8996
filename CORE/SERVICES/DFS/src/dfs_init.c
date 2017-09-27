@@ -86,13 +86,13 @@ void dfs_reset_alldelaylines(struct ath_dfs *dfs)
 
         if (pl == NULL) {
             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-                            "%s[%d]:  pl==NULL, dfs=%p", __func__, __LINE__, dfs);
+                            "%s[%d]:  pl==NULL, dfs=%pK", __func__, __LINE__, dfs);
             return;
         }
 
         if (dfs->dfs_b5radars == NULL) {
             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
-            "%s[%d]: pl==NULL, b5radars=%p", __func__, __LINE__, dfs->dfs_b5radars);
+            "%s[%d]: pl==NULL, b5radars=%pK", __func__, __LINE__, dfs->dfs_b5radars);
             return;
         }
 

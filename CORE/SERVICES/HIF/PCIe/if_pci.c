@@ -2680,8 +2680,8 @@ static void hif_dump_crash_debug_info(struct hif_pci_softc *sc)
 
 	/*
 	 * When kernel panic happen, if WiFi FW is still active,
-	 * it may cause NOC errors/memory corruption, to avoid
-	 * this, inject a fw crash first.
+	 * it may cause NOC errors/memory corruption when dumping
+	 * target DRAM/IRAM, to avoid this, inject a fw crash first.
 	 * send crash_inject to FW directly, because we are now
 	 * in an atomic context, and preempt has been disabled,
 	 * MCThread won't be scheduled at the moment, at the same
@@ -2689,15 +2689,15 @@ static void hif_dump_crash_debug_info(struct hif_pci_softc *sc)
 	 * crash due to the same reason
 	 */
 	ret = wma_crash_inject(wma_handle, 1, 0);
-	if (ret) {
-		pr_err("%s: failed to send crash inject - %d\n",
-				__func__, ret);
-		return;
-	}
 
 	adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
 	hif_irq_record(HIF_CRASH, sc);
 	hif_dump_soc_and_ce_registers(sc);
+	if (ret) {
+		pr_err("%s: failed to send crash inject - %d\n",
+				__func__, ret);
+		goto out;
+	}
 
 	ret = ol_copy_ramdump(scn);
 

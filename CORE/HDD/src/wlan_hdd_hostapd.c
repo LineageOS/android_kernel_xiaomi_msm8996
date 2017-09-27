@@ -1101,7 +1101,7 @@ void hdd_hostapd_inactivity_timer_cb(v_PVOID_t usrDataForCallback)
         if ((NULL == pHostapdAdapter) ||
             (WLAN_HDD_ADAPTER_MAGIC != pHostapdAdapter->magic))
         {
-            hddLog(LOGE, FL("invalid adapter: %p"), pHostapdAdapter);
+            hddLog(LOGE, FL("invalid adapter: %pK"), pHostapdAdapter);
             return;
         }
         pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);
@@ -2153,7 +2153,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             }
 
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
-                      "The value of dfs_cac_block_tx[%d] for ApCtx[%p]",
+                      "The value of dfs_cac_block_tx[%d] for ApCtx[%pK]",
                       pHddApCtx->dfs_cac_block_tx, pHddApCtx);
 
             if ((NV_CHANNEL_DFS ==
@@ -6578,7 +6578,7 @@ void hdd_get_rssi_cb(struct sir_peer_info_resp *sta_rssi, void *context)
 	if ((NULL == sta_rssi) || (NULL == context)) {
 
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-			"%s: Bad param, sta_rssi [%p] context [%p]",
+			"%s: Bad param, sta_rssi [%pK] context [%pK]",
 			__func__, sta_rssi, context);
 		return;
 	}
@@ -7612,8 +7612,8 @@ hdd_adapter_t* hdd_wlan_create_ap_dev(hdd_context_t *pHddCtx,
         pHostapdAdapter->pHddCtx = pHddCtx;
         pHostapdAdapter->magic = WLAN_HDD_ADAPTER_MAGIC;
 
-        hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: pWlanHostapdDev = %p, "
-                                      "pHostapdAdapter = %p, "
+        hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: pWlanHostapdDev = %pK, "
+                                      "pHostapdAdapter = %pK, "
                                       "concurrency_mode=0x%x", __func__,
                                       pWlanHostapdDev,
                                       pHostapdAdapter,
@@ -7760,7 +7760,7 @@ void hdd_sap_indicate_disconnect_for_sta(hdd_adapter_t *adapter)
 
 	for (staId = 0; staId < WLAN_MAX_STA_COUNT; staId++) {
 		if (adapter->aStaInfo[staId].isUsed) {
-			hddLog(LOG1, FL("staId: %d isUsed: %d %p"),
+			hddLog(LOG1, FL("staId: %d isUsed: %d %pK"),
 				staId, adapter->aStaInfo[staId].isUsed,
 				sap_ctx);
 

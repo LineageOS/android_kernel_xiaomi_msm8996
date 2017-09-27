@@ -804,7 +804,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                             goto free;
                         }
 
-                        PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %p peer"), pAuthNode);
+                        PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %pK peer"), pAuthNode);
                         limPrintMacAddr(pMac, pHdr->sa, LOG1);)
 
                         vos_mem_copy((tANI_U8 *) pAuthNode->peerMacAddr,
@@ -930,7 +930,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                             pAuthNode->timestamp = vos_timer_get_system_ticks();
                             limAddPreAuthNode(pMac, pAuthNode);
 
-                            PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %p id %d peer "),
+                            PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %pK id %d peer "),
                                           pAuthNode, pAuthNode->authNodeIdx);)
                             PELOG1(limPrintMacAddr(pMac, pHdr->sa, LOG1);)
 
@@ -1202,7 +1202,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                         goto free;
                     }
 
-                    PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %p peer "), pAuthNode);)
+                    PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %pK peer "), pAuthNode);)
                     PELOG1(limPrintMacAddr(pMac, pHdr->sa, LOG1);)
 
                     vos_mem_copy((tANI_U8 *) pAuthNode->peerMacAddr,
@@ -1733,7 +1733,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                     goto free;
                 }
-                PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %p peer "), pAuthNode);
+                PELOG1(limLog(pMac, LOG1, FL("Alloc new data: %pK peer "), pAuthNode);
                 limPrintMacAddr(pMac, pHdr->sa, LOG1);)
 
                 vos_mem_copy((tANI_U8 *) pAuthNode->peerMacAddr,
@@ -1904,14 +1904,14 @@ tSirRetStatus limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd, vo
          * pre-auth.
          */
         PELOGE(limLog(pMac,LOG1,"Auth rsp already posted to SME"
-               " (session %p, FT session %p)", psessionEntry,
+               " (session %pK, FT session %pK)", psessionEntry,
                psessionEntry););
         return eSIR_SUCCESS;
     }
     else
     {
         PELOGE(limLog(pMac,LOGW,"Auth rsp not yet posted to SME"
-               " (session %p, FT session %p)", psessionEntry,
+               " (session %pK, FT session %pK)", psessionEntry,
                psessionEntry););
         psessionEntry->ftPEContext.pFTPreAuthReq->bPreAuthRspProcessed =
             eANI_BOOLEAN_TRUE;

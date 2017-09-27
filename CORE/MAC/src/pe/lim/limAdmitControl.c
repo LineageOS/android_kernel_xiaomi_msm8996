@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -404,7 +404,7 @@ void limTspecDelete(tpAniSirGlobal pMac, tpLimTspecInfo pInfo)
         return;
         //pierre
     limLog(pMac, ADMIT_CONTROL_LOGLEVEL, FL("tspec entry = %d"), pInfo->idx);
-    limLog(pMac, ADMIT_CONTROL_LOGLEVEL, FL("delete tspec %p"), pInfo);
+    limLog(pMac, ADMIT_CONTROL_LOGLEVEL, FL("delete tspec %pK"), pInfo);
     pInfo->inuse = 0;
 
     return;

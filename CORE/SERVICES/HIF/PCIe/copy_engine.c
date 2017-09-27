@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014,2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014,2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -67,6 +67,48 @@ enum hif_ce_event_type {
 	HIF_TX_DESC_POST,
 	HIF_TX_DESC_COMPLETION,
 };
+
+static struct hif_pci_softc *hif_sc = NULL;
+/**
+ * target_reset_work_handler() - Work queue handler to reset target
+ * @sc: work queue handle
+ */
+void target_reset_work_handler(struct work_struct *sc)
+{
+	if (hif_sc)
+		vos_device_crashed(hif_sc->dev);
+}
+
+static DECLARE_WORK(target_reset_work, target_reset_work_handler);
+
+/**
+ * ce_target_reset() - Trigger SSR
+ * @sc: hif layer handle
+ *
+ * Once hw error is hit, SSR would be triggered.
+ */
+void ce_target_reset(struct hif_pci_softc *sc)
+{
+	hif_sc = sc;
+	adf_os_warn(1);
+	adf_os_print("Trigger SSR.\n");
+	schedule_work(&target_reset_work);
+}
+
+/**
+ * ce_idx_invalid() - check whether a CE index is valid
+ * @ring: ring handle
+ * @idx: CE idx
+ */
+static bool ce_idx_invalid(struct CE_ring_state *ring, unsigned int idx)
+{
+	if (ring->nentries <= idx) {
+		adf_os_print("hw index %d is not correct.\n", idx);
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
 
 #ifdef CONFIG_SLUB_DEBUG_ON
 
@@ -831,6 +873,9 @@ CE_completed_send_next_nolock(struct CE_state *CE_state,
         A_TARGET_ACCESS_BEGIN_RET(targid);
         src_ring->hw_index = CE_SRC_RING_READ_IDX_GET(targid, ctrl_addr);
         A_TARGET_ACCESS_END_RET(targid);
+
+        if (ce_idx_invalid(src_ring, src_ring->hw_index))
+            return status;
     }
     read_index = src_ring->hw_index;
 
@@ -1060,7 +1105,7 @@ static inline bool ce_is_valid_entries(struct hif_pci_softc *sc,
 	} else {
 		adf_os_print("%s:Potential infinite loop detected during rx processing for CE%d\n",
 			__func__, ce_state->id);
-		VOS_BUG(0);
+		ce_target_reset(sc);
 		status = false;
 	}
 

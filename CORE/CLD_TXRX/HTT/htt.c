@@ -536,12 +536,12 @@ htt_display(htt_pdev_handle pdev, int indent)
         indent+4, " ",
         pdev->rx_ring.size,
         pdev->rx_ring.fill_level);
-    adf_os_print("%*sat %p (%#x paddr)\n", indent+8, " ",
+    adf_os_print("%*sat %pK (%#x paddr)\n", indent+8, " ",
         pdev->rx_ring.buf.paddrs_ring,
         pdev->rx_ring.base_paddr);
-    adf_os_print("%*snetbuf ring @ %p\n", indent+8, " ",
+    adf_os_print("%*snetbuf ring @ %pK\n", indent+8, " ",
         pdev->rx_ring.buf.netbufs_ring);
-    adf_os_print("%*sFW_IDX shadow register: vaddr = %p, paddr = %#x\n",
+    adf_os_print("%*sFW_IDX shadow register: vaddr = %pK, paddr = %#x\n",
         indent+8, " ",
         pdev->rx_ring.alloc_idx.vaddr,
         pdev->rx_ring.alloc_idx.paddr);

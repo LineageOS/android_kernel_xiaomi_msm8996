@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -248,7 +248,7 @@ static A_STATUS HIFSend_internal(HIF_DEVICE *hifDevice, a_uint8_t PipeID,
 	int frag_count = 0, head_data_len, tmp_frag_count = 0;
 	unsigned char *pData;
 
-	AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_OUT, ("+%s pipe : %d, buf:0x%p\n",
+	AR_DEBUG_PRINTF(USB_HIF_DEBUG_BULK_OUT, ("+%s pipe : %d, buf:0x%pK\n",
 			__func__, PipeID, buf));
 
 	a_mem_trace(buf);
@@ -905,7 +905,7 @@ void HIFDumpInfo(HIF_DEVICE *hif)
 		ep_desc = &iface_desc->endpoint[i].desc;
 		if (ep_desc) {
 			pr_info(
-			     "ep_desc : %p Index : %d: DescType : %d Addr : %d Maxp : %d Atrrib : %d\n",
+			     "ep_desc : %pK Index : %d: DescType : %d Addr : %d Maxp : %d Atrrib : %d\n",
 			     ep_desc, i,
 			     ep_desc->bDescriptorType,
 			     ep_desc->bEndpointAddress, ep_desc->wMaxPacketSize,

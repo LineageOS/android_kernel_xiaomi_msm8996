@@ -291,9 +291,10 @@ int __hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 */
 #ifdef QCA_LL_TX_FLOW_CT
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,19,0))
-       if (pAdapter->tx_flow_low_watermark > 0) {
+        //remove if condition for improving SCC TCP TX KPI
+       //if (pAdapter->tx_flow_low_watermark > 0) {
            skb_orphan(skb);
-       }
+       //}
 #endif
 #else
       /*

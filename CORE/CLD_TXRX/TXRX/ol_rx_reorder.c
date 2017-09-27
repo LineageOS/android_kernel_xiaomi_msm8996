@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -752,7 +752,7 @@ ol_rx_pn_ind_handler(
                     log_level = TXRX_PRINT_LEVEL_INFO2;
                 }
                 TXRX_PRINT(log_level,
-                    "Tgt PN check failed - TID %d, peer %p "
+                    "Tgt PN check failed - TID %d, peer %pK "
                     "(%02x:%02x:%02x:%02x:%02x:%02x)\n"
                     "    PN (u64 x2)= 0x%08llx %08llx (LSBs = %lld)\n"
                     "    new seq num = %d\n",

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -236,7 +236,7 @@ static int epping_tx_thread_fn(void *data)
     int i;
    epping_poll_t *epping_poll = data;
 
-   EPPING_LOG(VOS_TRACE_LEVEL_FATAL, "%s: arg = %p", __func__, data);
+   EPPING_LOG(VOS_TRACE_LEVEL_FATAL, "%s: arg = %pK", __func__, data);
    while (!epping_poll->done) {
       down(&epping_poll->sem);
       adf_os_atomic_dec(&epping_poll->atm);
@@ -258,7 +258,7 @@ void epping_register_tx_copier(HTC_ENDPOINT_ID eid, epping_context_t *pEpping_ct
    epping_poll->eid = eid;
    epping_poll->arg = pEpping_ctx->epping_adapter;
    epping_poll->done = false;
-   EPPING_LOG(VOS_TRACE_LEVEL_FATAL, "%s: eid = %d, arg = %p",
+   EPPING_LOG(VOS_TRACE_LEVEL_FATAL, "%s: eid = %d, arg = %pK",
               __func__, eid, pEpping_ctx->epping_adapter);
    sema_init(&epping_poll->sem, 0);
    adf_os_atomic_init(&epping_poll->atm);

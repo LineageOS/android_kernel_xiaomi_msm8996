@@ -464,10 +464,10 @@ HIF_PCI_CE_send_done(struct CE_handle *copyeng, void *ce_context, void *transfer
             adf_os_spin_unlock(&pipe_info->completion_freeq_lock);
             AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
                             ("Out of free buf in hif send completion list, potential hw_index corruption"
-                             "pipe_num:%d num_send_allowed:%d pipe_info:0x%p sw_index:%d hw_index:%d nbytes:%d\n",
+                             "pipe_num:%d num_send_allowed:%d pipe_info:0x%pK sw_index:%d hw_index:%d nbytes:%d\n",
                             pipe_info->pipe_num, pipe_info->num_sends_allowed,
                             pipe_info, sw_idx, hw_idx, nbytes));
-            ASSERT(0);
+            ce_target_reset(hif_state->sc);
             break;
         }
         pipe_info->completion_freeq_head = compl_state->next;
@@ -538,7 +538,10 @@ HIF_PCI_CE_recv_data(struct CE_handle *copyeng, void *ce_context, void *transfer
         hif_pm_runtime_mark_last_busy(sc->dev);
         adf_os_spin_lock(&pipe_info->completion_freeq_lock);
         compl_state = pipe_info->completion_freeq_head;
-        ASSERT(compl_state != NULL);
+
+        if (!compl_state)
+            ce_target_reset(sc);
+
         pipe_info->completion_freeq_head = compl_state->next;
         adf_os_spin_unlock(&pipe_info->completion_freeq_lock);
 
@@ -657,7 +660,7 @@ hif_completion_thread_startup(struct HIF_CE_state *hif_state)
         attr = host_CE_config[pipe_num];
         completions_needed = 0;
         if (attr.src_nentries) { /* pipe used to send to target */
-            AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("pipe_num:%d pipe_info:0x%p\n",
+            AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("pipe_num:%d pipe_info:0x%pK\n",
                             pipe_num, pipe_info));
             CE_send_cb_register(pipe_info->ce_hdl, HIF_PCI_CE_send_done, pipe_info, attr.flags & CE_ATTR_DISABLE_INTR);
             completions_needed += attr.src_nentries;
@@ -857,13 +860,13 @@ hif_completion_thread(struct HIF_CE_state *hif_state)
 				To see the following debug output, enable the HIF_PCI_DEBUG flag in
 				the debug module declaration in this source file
 				*/
-				AR_DEBUG_PRINTF(HIF_PCI_DEBUG,("HIF_PCI_CE_recv_data netbuf=%p  nbytes=%d\n", netbuf, nbytes));
+				AR_DEBUG_PRINTF(HIF_PCI_DEBUG,("HIF_PCI_CE_recv_data netbuf=%pK  nbytes=%d\n", netbuf, nbytes));
                 if (nbytes <= pipe_info->buf_sz) {
                     adf_nbuf_set_pktlen(netbuf, nbytes);
                     msg_callbacks->rxCompletionHandler(msg_callbacks->Context,
                                                        netbuf, pipe_info->pipe_num);
                 } else {
-                    AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Invalid Rx message netbuf:%p nbytes:%d\n",
+                    AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Invalid Rx message netbuf:%pK nbytes:%d\n",
                                                     netbuf, nbytes));
                     adf_nbuf_free(netbuf);
                 }
@@ -2862,9 +2865,15 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                     hif_msm_pcie_debug_info(sc);
                     if (!sc->ol_sc->enable_self_recovery)
                             VOS_BUG(0);
-                    sc->recovery = true;
-                    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-                    vos_wlan_pci_link_down();
+
+                    if (!vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
+                        sc->recovery = true;
+                        vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+                        vos_wlan_pci_link_down();
+                    } else {
+                        adf_os_print("%s- %d: SSR is in progress!!!!\n",
+                                     __func__, __LINE__);
+                    }
                     return -EACCES;
                 }
 
@@ -3016,7 +3025,7 @@ HIFTargetDumpAccessLog(void)
     for(idx = 0; idx < len; idx++)
     {
         cur_idx = (start_idx + idx) % PCIE_ACCESS_LOG_NUM;
-        printk("idx:%d\t sn:%u wr:%d addr:%p val:%u.\n",
+        printk("idx:%d\t sn:%u wr:%d addr:%pK val:%u.\n",
                idx,
                pcie_access_log[cur_idx].seqnum,
                pcie_access_log[cur_idx].is_write,

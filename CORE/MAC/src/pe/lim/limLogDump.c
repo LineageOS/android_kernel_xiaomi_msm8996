@@ -1814,7 +1814,7 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
             p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x\n", __func__,
                   psessionEntry->bssId[0],
                   psessionEntry->bssId[1], psessionEntry->bssId[2]);
-            p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x %p\n",
+            p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x %pK\n",
                   __func__,
                   pftPreAuthReq->currbssId[0],
                   pftPreAuthReq->currbssId[1],

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1091,7 +1091,7 @@ static inline void
     char *p;
     int i;
 
-    adf_os_print("Tx BD (%p)\n", tx_bd);
+    adf_os_print("Tx BD (%pK)\n", tx_bd);
 
     adf_os_print("structured view:\n");
     adf_os_print("  BD type: %d\n", tx_bd->bd_type);
@@ -1140,7 +1140,7 @@ static inline void
     char *p;
     int i;
 
-    adf_os_print("Rx BD (%p)\n", rx_bd);
+    adf_os_print("Rx BD (%pK)\n", rx_bd);
 
     adf_os_print("structured view:\n");
     adf_os_print("  BD type: %d\n", rx_bd->bd_type);

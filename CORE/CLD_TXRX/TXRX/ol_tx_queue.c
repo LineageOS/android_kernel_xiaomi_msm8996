@@ -157,7 +157,7 @@ ol_tx_queue_vdev_flush(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
                 }
             }
             TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
-                      "%s: Delete Peer %p\n", __func__, peer);
+                      "%s: Delete Peer %pK\n", __func__, peer);
             ol_txrx_peer_unref_delete(peers[i]);
         }
     } while (peer_count >= PEER_ARRAY_COUNT);
@@ -1857,7 +1857,7 @@ ol_tx_queue_display(struct ol_tx_frms_queue_t *txq, int indent)
 
     state = (txq->flag == ol_tx_queue_active) ? "active" : "paused";
     VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
-        "%*stxq %p (%s): %d frms, %d bytes\n",
+        "%*stxq %pK (%s): %d frms, %d bytes\n",
         indent, " ", txq, state, txq->frms, txq->bytes);
 }
 
@@ -1867,7 +1867,7 @@ ol_tx_queues_display(struct ol_txrx_pdev_t *pdev)
     struct ol_txrx_vdev_t *vdev;
 
     VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
-        "pdev %p tx queues:\n", pdev);
+        "pdev %pK tx queues:\n", pdev);
     TAILQ_FOREACH(vdev, &pdev->vdev_list, vdev_list_elem) {
         struct ol_txrx_peer_t *peer;
         int i;
@@ -1876,7 +1876,7 @@ ol_tx_queues_display(struct ol_txrx_pdev_t *pdev)
                 continue;
             }
             VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
-                "  vdev %d (%p), txq %d\n", vdev->vdev_id, vdev, i);
+                "  vdev %d (%pK), txq %d\n", vdev->vdev_id, vdev, i);
             ol_tx_queue_display(&vdev->txqs[i], 4);
         }
         TAILQ_FOREACH(peer, &vdev->peer_list, peer_list_elem) {
@@ -1885,7 +1885,7 @@ ol_tx_queues_display(struct ol_txrx_pdev_t *pdev)
                     continue;
                 }
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO_LOW,
-                    "    peer %d (%p), txq %d\n",
+                    "    peer %d (%pK), txq %d\n",
                     peer->peer_ids[0], vdev, i);
                 ol_tx_queue_display(&peer->txqs[i], 6);
             }

@@ -238,7 +238,7 @@ schGetParams(
     tANI_U32 val;
     tANI_U32 i,idx;
     tANI_U32 *prf;
-    tANI_U8 country_code_str[WNI_CFG_COUNTRY_CODE_LEN];
+    tANI_U8 country_code_str[WNI_CFG_COUNTRY_CODE_LEN] = {0};
     tANI_U32 country_code_len = WNI_CFG_COUNTRY_CODE_LEN;
     tANI_U32 ani_l[] = { WNI_CFG_EDCA_ANI_ACBE_LOCAL,WNI_CFG_EDCA_ANI_ACBK_LOCAL,
                    WNI_CFG_EDCA_ANI_ACVI_LOCAL, WNI_CFG_EDCA_ANI_ACVO_LOCAL };

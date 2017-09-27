@@ -515,9 +515,10 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 */
 #ifdef QCA_LL_TX_FLOW_CT
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,19,0))
-      if (pAdapter->tx_flow_low_watermark > 0) {
+       //remove if condition for improving SCC TCP TX KPI
+      //if (pAdapter->tx_flow_low_watermark > 0) {
           skb_orphan(skb);
-      }
+     // }
 #endif
 #else
       /*
@@ -1208,7 +1209,7 @@ VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 	adapter = adapter_node->pAdapter;
 	if ((NULL == adapter) || (WLAN_HDD_ADAPTER_MAGIC != adapter->magic)) {
 		VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
-			  "invalid adapter %p for sta Id %d", adapter, sta_id);
+			  "invalid adapter %pK for sta Id %d", adapter, sta_id);
 		return VOS_STATUS_E_FAILURE;
 	}
 
@@ -1354,7 +1355,7 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
 
    pAdapter = pHddCtx->sta_to_adapter[staId];
    if ((NULL == pAdapter) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)) {
-      hddLog(LOGE, FL("invalid adapter %p for sta Id %d"), pAdapter, staId);
+      hddLog(LOGE, FL("invalid adapter %pK for sta Id %d"), pAdapter, staId);
       return VOS_STATUS_E_FAILURE;
    }
 

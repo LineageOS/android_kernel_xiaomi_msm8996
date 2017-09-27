@@ -1600,9 +1600,9 @@ static int fils_aead_encrypt(const uint8_t *kek, unsigned int kek_len,
 			anonce == NULL || data_len == 0 || plain_text_len == 0 ||
 			out == NULL) {
 		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
-				FL("Error missing params mac:%p bssid:%p snonce:%p"
-				    "anonce:%p data_len:%zu"
-				    "plain_text_len:%zu out:%p"),
+				FL("Error missing params mac:%pK bssid:%pK snonce:%pK"
+				    "anonce:%pK data_len:%zu"
+				    "plain_text_len:%zu out:%pK"),
 				own_mac, bssid, snonce, anonce, data_len,
 				plain_text_len, out);
 		return -EINVAL;
@@ -1755,9 +1755,9 @@ static int fils_aead_decrypt(const uint8_t *kek, unsigned int kek_len,
 			anonce == NULL || data_len == 0 || ciphered_text_len == 0 ||
 			plain_text == NULL) {
 		VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
-				FL("Error missing params mac:%p bssid:%p snonce:%p"
-				    "anonce:%p data_len:%zu ciphered_text_len:%zu"
-				    "plain_text:%p"),
+				FL("Error missing params mac:%pK bssid:%pK snonce:%pK"
+				    "anonce:%pK data_len:%zu ciphered_text_len:%zu"
+				    "plain_text:%pK"),
 				own_mac, bssid, snonce, anonce, data_len,
 				ciphered_text_len, plain_text);
 		return -EINVAL;

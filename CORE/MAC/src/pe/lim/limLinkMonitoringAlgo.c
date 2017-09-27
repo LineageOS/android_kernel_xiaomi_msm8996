@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -281,7 +281,7 @@ limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession pse
         pStaDs->sta_deletion_in_progress) {
         /* Already in the process of deleting context for the peer */
         limLog(pMac, LOG1,
-            FL("Deletion is in progress (%d) for peer:%p in mlmState %d"),
+            FL("Deletion is in progress (%d) for peer:%pK in mlmState %d"),
             pStaDs->sta_deletion_in_progress, pStaDs->staAddr,
             pStaDs->mlmStaContext.mlmState);
         return;

@@ -1042,10 +1042,6 @@ static int __wlan_hdd_cfg80211_ocb_set_config(struct wiphy *wiphy,
 	config->def_tx_param_size = def_tx_param_size;
 
 	/* Read the channel array */
-	if (!tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_CHANNEL_ARRAY]) {
-		hddLog(LOGE, FL("CHANNEL_ARRAY is not present"));
-		return -EINVAL;
-	}
 	channel_array = tb[QCA_WLAN_VENDOR_ATTR_OCB_SET_CONFIG_CHANNEL_ARRAY];
 	if (!channel_array) {
 		hddLog(LOGE, FL("No channel present"));
