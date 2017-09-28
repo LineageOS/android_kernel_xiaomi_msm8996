@@ -2311,7 +2311,8 @@ static VOS_STATUS sap_check_mcc_valid(
 	info->con_mode = VOS_STA_SAP_MODE;
 	info->och = chan;
 	session_count++;
-	for (i = 0; i < session_count; i++) {
+	for (i = 0; i < session_count &&
+		chan_cnt < VOS_MAX_CONCURRENCY_PERSONA; i++) {
 		info = &sessions[i];
 		for (j = 0; j < chan_cnt; j++) {
 			if (info->och == channels[j]) {
