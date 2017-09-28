@@ -19209,13 +19209,16 @@ static int wlan_hdd_tdls_add_station(struct wiphy *wiphy,
 
     rc = wait_for_completion_timeout(&pAdapter->tdls_add_station_comp,
            msecs_to_jiffies(WAIT_TIME_TDLS_ADD_STA));
+    if (rc <= 0) {
+        hddLog(LOGE, FL("timeout waiting for tdls add station indication %ld"), ret);
+        goto error;
+    }
+
     mutex_lock(&pHddCtx->tdls_lock);
     pTdlsPeer = wlan_hdd_tdls_find_peer(pAdapter, mac, FALSE);
 
-    if (rc <= 0 || (pTdlsPeer &&
-                   (pTdlsPeer->link_status == eTDLS_LINK_TEARING))) {
-        hddLog(LOGE, FL("timeout waiting for tdls add station indication %ld  peer link status %u"),
-                     ret, pTdlsPeer->link_status);
+    if (pTdlsPeer && (pTdlsPeer->link_status == eTDLS_LINK_TEARING)) {
+        hddLog(LOGE, FL("peer link status %u"), pTdlsPeer->link_status);
         mutex_unlock(&pHddCtx->tdls_lock);
         goto error;
     }
@@ -27942,7 +27945,7 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
                           "%s: Sending frame action_code %u.Disable BMPS",
                           __func__, action_code);
                 status = hdd_disable_bmps_imps(pHddCtx, WLAN_HDD_INFRA_STATION);
-                if (status == VOS_STATUS_SUCCESS)
+                if ((status == VOS_STATUS_SUCCESS) && (pHddTdlsCtx != NULL))
                     pHddTdlsCtx->is_tdls_disabled_bmps = true;
             }
         }
