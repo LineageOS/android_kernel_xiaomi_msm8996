@@ -321,7 +321,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
              */
             limSendAssocRspMgmtFrame(pMac, eSIR_SUCCESS,
                     pStaDs->assocId, pStaDs->staAddr,
-                    pStaDs->mlmStaContext.subType, pStaDs,
+                    subType, pStaDs,
                     psessionEntry);
             limLog(pMac, LOGE,
                    FL("DUT already received an assoc request frame "
