@@ -35,6 +35,29 @@
 
 DEFINE_LED_TRIGGER(bl_led_trigger);
 
+static bool mdss_panel_reset_skip;
+
+bool mdss_prim_panel_is_dead(void)
+{
+	return false;
+}
+
+void mdss_panel_reset_skip_enable(bool enable)
+{
+	mdss_panel_reset_skip = enable;
+}
+EXPORT_SYMBOL(mdss_panel_reset_skip_enable);
+
+void mdss_dsi_ulps_enable(bool enable)
+{
+}
+EXPORT_SYMBOL(mdss_dsi_ulps_enable);
+
+void mdss_dsi_ulps_suspend_enable(bool enable)
+{
+}
+EXPORT_SYMBOL(mdss_dsi_ulps_suspend_enable);
+
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
 {
 	if (ctrl->pwm_pmi)
@@ -354,6 +377,10 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 				panel_data);
 
 	pinfo = &(ctrl_pdata->panel_data.panel_info);
+	if (mdss_panel_reset_skip && !pinfo->panel_dead) {
+		pr_info("%s: panel reset skip\n", __func__);
+		return rc;
+	}
 
 	/* need to configure intf mux only for external interface */
 	if (pinfo->is_dba_panel) {
