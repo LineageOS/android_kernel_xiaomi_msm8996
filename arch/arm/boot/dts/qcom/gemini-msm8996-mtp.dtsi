@@ -51,7 +51,7 @@
 
 	i2c@75ba000 {
 		synaptics_dsi_i2c@20 {
-			compatible = "synaptics,dsx-i2c";
+			compatible = "synaptics,dsx-i2c-force";
 			reg = <0x20>;
 			interrupt-parent = <&tlmm>;
 			interrupts = <125 0x2008>;
