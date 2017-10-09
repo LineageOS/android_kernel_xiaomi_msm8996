@@ -2419,11 +2419,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 staId = event->staId;
                 hdd_fill_station_info(&pHostapdAdapter->aStaInfo[staId],
                                       event);
+                pHostapdAdapter->aStaInfo[staId].ecsa_capable =
+                    pSapEvent->
+                    sapevt.sapStationAssocReassocCompleteEvent.ecsa_capable;
             }
-
-            pHostapdAdapter->aStaInfo[staId].ecsa_capable =
-                pSapEvent->
-                sapevt.sapStationAssocReassocCompleteEvent.ecsa_capable;
 
 #ifdef IPA_OFFLOAD
             if (hdd_ipa_is_enabled(pHddCtx))
