@@ -4323,6 +4323,13 @@ static __iw_softap_setparam(struct net_device *dev,
                                    set_value, PDEV_CMD);
             break;
 
+        case QCSAP_ENABLE_DYNAMIC_BW:
+           hddLog(LOG1, "QCSAP_ENABLE_DYNAMIC_BW val %d", set_value);
+           ret = process_wma_set_command((int)pHostapdAdapter->sessionId,
+                                         (int)WMI_PDEV_PARAM_DYNAMIC_BW,
+                                         set_value, PDEV_CMD);
+            break;
+
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
                     sub_cmd, set_value);
@@ -4601,6 +4608,14 @@ static __iw_softap_getparam(struct net_device *dev,
                         (int)pHostapdAdapter->sessionId,
                         (int)WMI_VDEV_PARAM_NSS,
                         VDEV_CMD);
+            break;
+        }
+    case QCSAP_GET_DYNAMIC_BW:
+        {
+            *value = wma_cli_get_command(pHddCtx->pvosContext,
+                                        (int)pHostapdAdapter->sessionId,
+                                        (int)WMI_PDEV_PARAM_DYNAMIC_BW,
+                                        PDEV_CMD);
             break;
         }
     case QCASAP_GET_TEMP_CMD:
@@ -7102,6 +7117,12 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "rts_bursting" },
 
+    {   QCSAP_ENABLE_DYNAMIC_BW,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "cwmenable" },
+
+
   { QCSAP_IOCTL_GETPARAM, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
   { QCSAP_IOCTL_GETPARAM, 0,
@@ -7158,6 +7179,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_txchainmask" },
   { QCASAP_RX_CHAINMASK_CMD, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_rxchainmask" },
+  { QCSAP_GET_DYNAMIC_BW, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_cwmenable" },
   { QCASAP_NSS_CMD, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "get_nss" },
   { QCASAP_GET_TEMP_CMD, 0,

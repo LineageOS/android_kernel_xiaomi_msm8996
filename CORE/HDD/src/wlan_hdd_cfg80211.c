@@ -20830,6 +20830,15 @@ static inline bool wlan_hdd_cfg80211_validate_scan_req(struct
                 return false;
         }
         if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HDD, NULL)) {
+                /* As per CR1059683, not invoking cfg80211_scan_done when module
+                   load/unload is in progress, but this is causing assertion in
+                   cfg80211 in kernel. Hence setting scan_req->notified to avoid
+                   assertion. Kernel will take care of memory cleanup.
+                */
+                scan_req->notified = true;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
+                scan_req->info.aborted = true;
+#endif
                 hddLog(VOS_TRACE_LEVEL_ERROR, "Load/Unload in progress");
                 return false;
         }
