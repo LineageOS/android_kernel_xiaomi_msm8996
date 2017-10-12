@@ -4879,6 +4879,7 @@ typedef enum {
     WMI_REQUEST_MIB_STAT       = 0x80,
     WMI_REQUEST_RSSI_PER_CHAIN_STAT = 0x100,
     WMI_REQUEST_CONGESTION_STAT = 0x200,
+    WMI_REQUEST_PEER_EXTD_STAT = 0x400,
 } wmi_stats_id;
 
 /*
