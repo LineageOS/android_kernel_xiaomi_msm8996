@@ -827,6 +827,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_oem_indirect_data,
     WMITLV_TAG_STRUC_wmi_oem_dma_buf_release_fixed_param,
     WMITLV_TAG_STRUC_wmi_oem_dma_buf_release_entry,
+    WMITLV_TAG_STRUC_wmi_pdev_bss_chan_info_request_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_bss_chan_info_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*

@@ -370,6 +370,8 @@ typedef enum {
     WMI_PDEV_SET_DIVERSITY_GAIN_CMDID,
     /** Get chain RSSI and antena index command */
     WMI_PDEV_DIV_GET_RSSI_ANTID_CMDID,
+    /* get bss chan info */
+    WMI_PDEV_BSS_CHAN_INFO_REQUEST_CMDID,
 
     /* VDEV (virtual device) specific commands */
     /** vdev create */
