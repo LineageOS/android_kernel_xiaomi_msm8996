@@ -156,6 +156,9 @@ void ol_per_pkt_tx_stats_enable(bool enable)
 {
 	int ret = 0;
 
+	if (!vos_is_ocb_tx_per_pkt_stats_enabled())
+		return;
+
 	if (__ol_per_pkt_tx_stats_enabled == enable)
 		return;
 
