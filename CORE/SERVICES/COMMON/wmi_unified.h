@@ -934,6 +934,7 @@ typedef enum {
     WMI_OEM_REQUEST_CMDID, /* UNUSED */
     /* OEM related cmd used for Low Power ranging */
     WMI_LPI_OEM_REQ_CMDID,
+    WMI_OEM_DMA_RING_CFG_REQ_CMDID,
 
     /** Nan Request */
     WMI_NAN_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_NAN),
