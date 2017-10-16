@@ -1563,6 +1563,30 @@ static inline void
 hif_pci_pm_runtime_ssr_post_exit(struct hif_pci_softc *sc) { }
 #endif
 
+#ifdef CONFIG_NON_QC_PLATFORM_PCI
+static inline void *hif_pci_get_virt_ramdump_mem(unsigned long *size)
+{
+	size_t length = 0;
+	int flags = GFP_KERNEL;
+
+	length = DRAM_SIZE + IRAM1_SIZE + IRAM2_SIZE + AXI_SIZE + REG_SIZE;
+
+	if (size != NULL)
+		*size = (unsigned long)length;
+
+	if (in_interrupt() || irqs_disabled() || in_atomic())
+		flags = GFP_ATOMIC;
+
+	return kzalloc(length, flags);
+}
+
+static inline void hif_pci_release_ramdump_mem(unsigned long *address)
+{
+	if (address != NULL)
+		kfree(address);
+}
+#endif
+
 int
 hif_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
@@ -1816,10 +1840,14 @@ again:
 #endif
     ol_sc->max_no_of_peers = 1;
 
+#ifdef CONFIG_NON_QC_PLATFORM_PCI
+    ol_sc->ramdump_base = hif_pci_get_virt_ramdump_mem(&ol_sc->ramdump_size);
+#else
     /* Get RAM dump memory address and size */
     ol_sc->ramdump_base = vos_get_virt_ramdump_mem(&pdev->dev,
                                              &ol_sc->ramdump_size);
 
+#endif
     if (ol_sc->ramdump_base == NULL || !ol_sc->ramdump_size) {
         pr_info("%s: Failed to get RAM dump memory address or size!\n",
                 __func__);
@@ -1856,6 +1884,10 @@ again:
     return 0;
 
 err_config:
+#ifdef CONFIG_NON_QC_PLATFORM_PCI
+    if (sc && sc->ol_sc && sc->ol_sc->ramdump_base)
+        hif_pci_release_ramdump_mem(sc->ol_sc->ramdump_base);
+#endif
     hif_deinit_adf_ctx(ol_sc);
     A_FREE(ol_sc);
 err_attach:
@@ -2155,9 +2187,13 @@ again:
     ol_sc->max_no_of_peers = 1;
 
     /* Get RAM dump memory address and size */
+#ifdef CONFIG_NON_QC_PLATFORM_PCI
+    ol_sc->ramdump_base = hif_pci_get_virt_ramdump_mem(&ol_sc->ramdump_size);
+#else
     ol_sc->ramdump_base = vos_get_virt_ramdump_mem(&pdev->dev,
                                              &ol_sc->ramdump_size);
 
+#endif
     if (ol_sc->ramdump_base == NULL || !ol_sc->ramdump_size) {
         pr_info("%s: Failed to get RAM dump memory address or size!\n",
                 __func__);
@@ -2197,6 +2233,10 @@ again:
     return 0;
 
 err_config:
+#ifdef CONFIG_NON_QC_PLATFORM_PCI
+    if (sc && sc->ol_sc && sc->ol_sc->ramdump_base)
+        hif_pci_release_ramdump_mem(sc->ol_sc->ramdump_base);
+#endif
     hif_deinit_adf_ctx(ol_sc);
     A_FREE(ol_sc);
 err_attach:
@@ -2508,6 +2548,10 @@ hif_pci_remove(struct pci_dev *pdev)
 
     scn = sc->ol_sc;
 
+#ifdef CONFIG_NON_QC_PLATFORM_PCI
+    if (sc && sc->ol_sc && sc->ol_sc->ramdump_base)
+        hif_pci_release_ramdump_mem(sc->ol_sc->ramdump_base);
+#endif
 #ifndef REMOVE_PKT_LOG
     if (vos_get_conparam() != VOS_FTM_MODE &&
         !WLAN_IS_EPPING_ENABLED(vos_get_conparam()))
