@@ -8446,6 +8446,12 @@ static int wma_unified_bcntx_status_event_handler(void *handle, u_int8_t *cmd_pa
 
    resp_event = param_buf->fixed_param;
 
+   if (resp_event->vdev_id >= wma->max_bssid) {
+        WMA_LOGE("%s: received invalid vdev_id %d",
+                __func__, resp_event->vdev_id);
+        return -EINVAL;
+   }
+
    /* Check for valid handle to ensure session is not deleted in any race */
    if (!wma->interfaces[resp_event->vdev_id].handle) {
       WMA_LOGE("%s: The session does not exist", __func__);
