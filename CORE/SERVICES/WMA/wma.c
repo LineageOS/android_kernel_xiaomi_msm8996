@@ -25925,6 +25925,8 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	int32_t len;
 	int ret;
+	struct ol_softc *scn =
+		vos_get_context(VOS_MODULE_ID_HIF, wma->vos_context);
 #ifdef CONFIG_CNSS
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
@@ -25979,7 +25981,10 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 				wmi_tag_crash_inject(wma->wmi_handle, true);
 				vos_trigger_recovery(false);
 			} else {
-				VOS_BUG(0);
+				if (scn && scn->adf_dev)
+					vos_device_crashed(scn->adf_dev->dev);
+				else
+					VOS_BUG(0);
 			}
 #else
 			VOS_BUG(0);
