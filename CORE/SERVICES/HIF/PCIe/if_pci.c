@@ -62,6 +62,7 @@
 #define AR9888_DEVICE_ID (0x003c)
 #define AR6320_DEVICE_ID (0x003e)
 #define QCA9379_DEVICE_ID (0x0042)
+#define QCA9379_DEVICE_REV_ID (0x0043)
 #define AR6320_FW_1_1  (0x11)
 #define AR6320_FW_1_3  (0x13)
 #define AR6320_FW_2_0  (0x20)
@@ -130,6 +131,7 @@ static struct pci_device_id hif_pci_id_table[] = {
 	{ 0x168c, 0x003c, PCI_ANY_ID, PCI_ANY_ID },
 	{ 0x168c, 0x003e, PCI_ANY_ID, PCI_ANY_ID },
 	{ 0x168c, 0x0042, PCI_ANY_ID, PCI_ANY_ID },
+	{ 0x168c, 0x0043, PCI_ANY_ID, PCI_ANY_ID },
 	{ 0 }
 };
 
@@ -1727,6 +1729,7 @@ again:
 
     case AR6320_DEVICE_ID:
     case QCA9379_DEVICE_ID:
+    case QCA9379_DEVICE_REV_ID:
         switch(revision_id) {
         case AR6320_FW_1_1:
         case AR6320_FW_1_3:
@@ -2075,6 +2078,7 @@ again:
 
     case AR6320_DEVICE_ID:
     case QCA9379_DEVICE_ID:
+    case QCA9379_DEVICE_REV_ID:
         switch(revision_id) {
         case AR6320_FW_1_1:
         case AR6320_FW_1_3:
