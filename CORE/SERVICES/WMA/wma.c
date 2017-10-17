@@ -36983,6 +36983,12 @@ v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, void *cmd_param_info)
 	}
 
 	WMA_LOGA("WMA <-- WMI_SERVICE_READY_EVENTID");
+	if (ev->num_dbs_hw_modes > param_buf->num_wlan_dbs_hw_mode_list) {
+		WMA_LOGE("FW dbs_hw_mode entry %d more than value %d in TLV hdr",
+			ev->num_dbs_hw_modes,
+			param_buf->num_wlan_dbs_hw_mode_list);
+		return;
+	}
 
 	wma_handle->phy_capability = ev->phy_capability;
 	wma_handle->max_frag_entry = ev->max_frag_entry;
