@@ -269,7 +269,7 @@ error:
 	return ret;
 }
 
-static int phram_param_call(const char *val, struct kernel_param *kp)
+static int phram_param_call(const char *val, const struct kernel_param *kp)
 {
 #ifdef MODULE
 	return phram_setup(val);

@@ -100,7 +100,7 @@ _base_get_ioc_facts(struct MPT3SAS_ADAPTER *ioc, int sleep_flag);
  *
  */
 static int
-_scsih_set_fwfault_debug(const char *val, struct kernel_param *kp)
+_scsih_set_fwfault_debug(const char *val, const struct kernel_param *kp)
 {
 	int ret = param_set_int(val, kp);
 	struct MPT3SAS_ADAPTER *ioc;
