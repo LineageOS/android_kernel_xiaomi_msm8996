@@ -4080,9 +4080,14 @@ static int wma_extscan_operations_event_handler(void *handle,
 		return -EINVAL;
 	}
 	event = param_buf->fixed_param;
+	if (event->num_buckets > param_buf->num_bucket_id) {
+		WMA_LOGE("FW mesg num_buk %d more than TLV hdr %d",
+			event->num_buckets,
+			param_buf->num_bucket_id);
+		return -EINVAL;
+	}
 	buf_len = sizeof(*buf);
 	buf = vos_mem_malloc(buf_len);
-
 	if (!buf) {
 		WMA_LOGE("%s: extscan memory allocation failed", __func__);
 		return -ENOMEM;

@@ -1022,8 +1022,16 @@ int wma_dcc_stats_event_handler(void *handle, uint8_t *event_buf,
 		VOS_ASSERT(0);
 		return -EINVAL;
 	}
+
+	if (fix_param->num_channels > param_tlvs->num_stats_per_channel_list) {
+		WMA_LOGE("FW message num_chan %d more than TLV hdr %d",
+			fix_param->num_channels,
+			param_tlvs->num_stats_per_channel_list);
+		return -EINVAL;
+	}
+
 	response = vos_mem_malloc(sizeof(*response) +
-	    fix_param->num_channels * sizeof(wmi_dcc_ndl_stats_per_channel));
+		fix_param->num_channels * sizeof(wmi_dcc_ndl_stats_per_channel));
 	if (response == NULL)
 		return -ENOMEM;
 	response->vdev_id = fix_param->vdev_id;
