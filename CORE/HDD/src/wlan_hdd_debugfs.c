@@ -709,6 +709,8 @@ static ssize_t __wlan_hdd_read_power_debugfs(struct file *file,
 	if (0 != ret_cnt)
 		return ret_cnt;
 
+	mutex_lock(&hdd_ctx->power_stats_lock);
+
 	if (adapter->chip_power_stats)
 		vos_mem_free(adapter->chip_power_stats);
 
@@ -723,7 +725,8 @@ static ssize_t __wlan_hdd_read_power_debugfs(struct file *file,
 					hdd_power_debugstats_cb,
 					&context)) {
 		hddLog(LOGE, FL("chip power stats request failed"));
-		return -EINVAL;
+		ret_cnt = -EINVAL;
+		goto out;
 	}
 
 	rc = wait_for_completion_timeout(&context.completion,
@@ -734,13 +737,15 @@ static ssize_t __wlan_hdd_read_power_debugfs(struct file *file,
 		spin_lock(&hdd_context_lock);
 		context.magic = 0;
 		spin_unlock(&hdd_context_lock);
-		return -ETIMEDOUT;
+		ret_cnt = -ETIMEDOUT;
+		goto out;
 	}
 
 	chip_power_stats = adapter->chip_power_stats;
 	if (!chip_power_stats) {
 		hddLog(LOGE, FL("Power stats retrieval fails!"));
-		return -EINVAL;
+		ret_cnt = -EINVAL;
+		goto out;
 	}
 
 	power_debugfs_buf = vos_mem_malloc(POWER_DEBUGFS_BUFFER_MAX_LEN);
@@ -748,7 +753,8 @@ static ssize_t __wlan_hdd_read_power_debugfs(struct file *file,
 		hddLog(LOGE, FL("Power stats buffer alloc fails!"));
 		vos_mem_free(chip_power_stats);
 		adapter->chip_power_stats = NULL;
-		return -EINVAL;
+		ret_cnt = -EINVAL;
+		goto out;
 	}
 
 	len += scnprintf(power_debugfs_buf, POWER_DEBUGFS_BUFFER_MAX_LEN,
@@ -782,6 +788,9 @@ static ssize_t __wlan_hdd_read_power_debugfs(struct file *file,
 	ret_cnt = simple_read_from_buffer(buf, count, pos,
 					power_debugfs_buf, len);
 	vos_mem_free(power_debugfs_buf);
+
+out:
+	mutex_unlock(&hdd_ctx->power_stats_lock);
 	return ret_cnt;
 }
 
@@ -871,12 +880,12 @@ static const struct file_operations fops_powerdebugs = {
 };
 
 /**
- * wlan_hdd_create_power_stats_file() - API to create power stats file
+ * wlan_hdd_init_power_stats_debugfs() - API to init power stats debugfs
  *
  * Return: VOS_STATUS
  */
-static VOS_STATUS wlan_hdd_create_power_stats_file(hdd_adapter_t *adapter,
-						hdd_context_t *hdd_ctx)
+static VOS_STATUS wlan_hdd_init_power_stats_debugfs(hdd_adapter_t *adapter,
+						    hdd_context_t *hdd_ctx)
 {
 	if (NULL == debugfs_create_file("power_stats",
 				S_IRUSR | S_IRGRP | S_IROTH,
@@ -884,14 +893,30 @@ static VOS_STATUS wlan_hdd_create_power_stats_file(hdd_adapter_t *adapter,
 				&fops_powerdebugs))
 		return VOS_STATUS_E_FAILURE;
 
+	mutex_init(&hdd_ctx->power_stats_lock);
+
 	return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * wlan_hdd_deinit_power_stats_debugfs() - API to deinit power stats debugfs
+ *
+ * Return: None
+ */
+static void wlan_hdd_deinit_power_stats_debugfs(hdd_context_t *hdd_ctx)
+{
+	mutex_destroy(&hdd_ctx->power_stats_lock);
+}
 #else
-static VOS_STATUS wlan_hdd_create_power_stats_file(hdd_adapter_t *adapter,
-						hdd_context_t *hdd_ctx)
+static VOS_STATUS wlan_hdd_init_power_stats_debugfs(hdd_adapter_t *adapter,
+						    hdd_context_t *hdd_ctx)
 {
 	return VOS_STATUS_SUCCESS;
+}
+
+static void wlan_hdd_deinit_power_stats_debugfs(hdd_context_t *hdd_ctx)
+{
+	return;
 }
 #endif
 
@@ -915,7 +940,7 @@ VOS_STATUS hdd_debugfs_init(hdd_adapter_t *pAdapter)
         pHddCtx->debugfs_phy, pAdapter, &fops_patterngen))
         return VOS_STATUS_E_FAILURE;
 
-    if (VOS_STATUS_SUCCESS != wlan_hdd_create_power_stats_file(pAdapter,
+    if (VOS_STATUS_SUCCESS != wlan_hdd_init_power_stats_debugfs(pAdapter,
                                                                 pHddCtx))
         return VOS_STATUS_E_FAILURE;
 
@@ -930,6 +955,7 @@ VOS_STATUS hdd_debugfs_init(hdd_adapter_t *pAdapter)
 
 void hdd_debugfs_exit(hdd_context_t *pHddCtx)
 {
+    wlan_hdd_deinit_power_stats_debugfs(pHddCtx);
     debugfs_remove_recursive(pHddCtx->debugfs_phy);
 }
 #endif /* #ifdef WLAN_OPEN_SOURCE */
