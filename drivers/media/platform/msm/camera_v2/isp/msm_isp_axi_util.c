@@ -1558,6 +1558,10 @@ void msm_isp_halt_send_error(struct vfe_device *vfe_dev, uint32_t event)
 		/* Recovery is already in Progress */
 		return;
 
+	/* if there are no active streams - do not start recovery */
+	if (!vfe_dev->axi_data.num_active_stream)
+		return;
+
 	if (ISP_EVENT_PING_PONG_MISMATCH == event &&
 		vfe_dev->axi_data.recovery_count < MAX_RECOVERY_THRESHOLD) {
 		vfe_dev->hw_info->vfe_ops.irq_ops.
