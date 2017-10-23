@@ -23852,6 +23852,11 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	if ((wake_info->wake_reason != WOW_REASON_UNSPECIFIED) ||
 	    (wake_info->wake_reason == WOW_REASON_UNSPECIFIED &&
 	     !wmi_get_runtime_pm_inprogress(wma->wmi_handle))) {
+		if (wake_info->vdev_id >= wma->max_bssid) {
+			WMA_LOGE("%s: received invalid vdev_id %d",
+				__func__, wake_info->vdev_id);
+			return -EINVAL;
+		}
 		WMA_LOGA("WOW wakeup host event received (reason: %s(%d)) for vdev %d",
 			wma_wow_wake_reason_str(wake_info->wake_reason, wma),
 			wake_info->wake_reason,
