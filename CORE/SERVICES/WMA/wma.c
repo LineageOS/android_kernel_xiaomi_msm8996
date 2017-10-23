@@ -1761,7 +1761,9 @@ void wma_remove_peer(tp_wma_handle wma, u_int8_t *bssid,
 
 	wmi_unified_peer_delete_send(wma->wmi_handle, peer_addr, vdev_id);
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
 peer_detach:
+#endif
 	if (peer)
 		ol_txrx_peer_detach(peer);
 	wma->interfaces[vdev_id].peer_count--;
