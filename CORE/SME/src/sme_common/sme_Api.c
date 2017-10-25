@@ -5177,6 +5177,7 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
               pMac->roam.configParam.sta_roam_policy.dfs_mode;
       pParam->csrConfig.sta_roam_policy_params.skip_unsafe_channels =
               pMac->roam.configParam.sta_roam_policy.skip_unsafe_channels;
+      pParam->snr_monitor_enabled = pMac->snr_monitor_enabled;
       pParam->sub20_config_info = pMac->sub20_config_info;
       pParam->sub20_channelwidth = pMac->sub20_channelwidth;
       pParam->sub20_dynamic_channelwidth = pMac->sub20_dynamic_channelwidth;
