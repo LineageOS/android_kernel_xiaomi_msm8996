@@ -9233,6 +9233,7 @@ wlan_hdd_set_mcc_to_scc_switch(hdd_adapter_t *adapter)
 
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
 	sap_config->cc_switch_mode = cfg_ini->WlanMccToSccSwitchMode;
+	sap_config->band_switch_enable = cfg_ini->wlan_band_switch_enable;
 }
 #else
 static void
@@ -17390,8 +17391,10 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
      */
     if ((0 == pHddCtx->cfg_ini->conc_custom_rule1) ||
         (pHddCtx->cfg_ini->conc_custom_rule1 &&
-         WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode))
-    pConfig->cc_switch_mode = iniConfig->WlanMccToSccSwitchMode;
+         WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)) {
+        pConfig->cc_switch_mode = iniConfig->WlanMccToSccSwitchMode;
+        pConfig->band_switch_enable = iniConfig->wlan_band_switch_enable;
+    }
 #endif
 
     pIe = wlan_hdd_get_vendor_oui_ie_ptr(BLACKLIST_OUI_TYPE, WPA_OUI_TYPE_SIZE,

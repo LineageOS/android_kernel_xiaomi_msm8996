@@ -693,6 +693,7 @@ typedef struct tagCsrConfig
     tANI_U8 isCoalesingInIBSSAllowed;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     tANI_U8 cc_switch_mode;
+    bool    band_switch_enable;
 #endif
     tANI_U8 allowDFSChannelRoam;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD

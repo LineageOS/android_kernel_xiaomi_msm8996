@@ -977,10 +977,13 @@ v_U16_t csrCheckConcurrentChannelOverlap(tpAniSirGlobal pMac, v_U16_t sap_ch,
              intf_ch = 0;
          }
     }
-    else if (intf_ch && sap_ch!= intf_ch &&
+    else if (!pMac->roam.configParam.band_switch_enable &&
+             intf_ch && sap_ch!= intf_ch &&
              cc_switch_mode == VOS_MCC_TO_SCC_SWITCH_FORCE) {
-         if (!((intf_ch < 14 && sap_ch < 14) || (intf_ch > 14 && sap_ch > 14)))
-             intf_ch = 0;
+             if (!((intf_ch < 14 && sap_ch < 14) ||
+                 (intf_ch > 14 && sap_ch > 14))) {
+                 intf_ch = 0;
+             }
     }else if (intf_ch == sap_ch)
          intf_ch = 0;
 

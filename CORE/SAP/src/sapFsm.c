@@ -2387,6 +2387,9 @@ static VOS_STATUS sap_check_mcc_valid(
 *    same band.
 * gWlanMccToSccSwitchMode = 2: force to SCC in same band.
 *
+* gWlanBandSwitchEnable = false: disabled.
+* gWlanBandSwitchEnable = true:  enable band switch for MCC to SCC
+*
 * Return: VOS_STATUS_SUCCESS: Success
 *             other value will fail the sap start request
 */
@@ -2448,8 +2451,10 @@ sap_concurrency_chan_override(
 		    "%s: mode %d band %d och %d lf %d hf %d cf %d hbw %d",
 		    __func__, info->con_mode, info->band, info->och,
 		    info->lfreq, info->hfreq, info->cfreq, info->hbw);
-		if (info->band != target_band)
+		if (!sap_context->band_switch_enable &&
+			info->band != target_band) {
 			continue;
+		}
 		if (cc_switch_mode == VOS_MCC_TO_SCC_SWITCH_ENABLE
 			&& target_chan != 0
 			&& sap_overlap_check(&target_info, info))
@@ -2468,8 +2473,10 @@ sap_concurrency_chan_override(
 			    __func__, info->con_mode, info->band,
 			    info->och, info->lfreq, info->hfreq,
 			    info->cfreq, info->hbw);
-			if (info->band != target_band)
+			if (!sap_context->band_switch_enable &&
+				info->band != target_band) {
 				continue;
+			}
 			candidate[candidate_count++] = info->och;
 		}
 	}

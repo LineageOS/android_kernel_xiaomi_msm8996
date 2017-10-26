@@ -2074,6 +2074,7 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
                                pParam->isCoalesingInIBSSAllowed;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
         pMac->roam.configParam.cc_switch_mode = pParam->cc_switch_mode;
+        pMac->roam.configParam.band_switch_enable = pParam->band_switch_enable;
 #endif
         pMac->roam.configParam.allowDFSChannelRoam = pParam->allowDFSChannelRoam;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
@@ -2258,6 +2259,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
         pParam->cc_switch_mode = pMac->roam.configParam.cc_switch_mode;
+        pParam->band_switch_enable = pMac->roam.configParam.band_switch_enable;
 #endif
         pParam->enableTxLdpc = pMac->roam.configParam.txLdpcEnable;
 
