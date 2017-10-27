@@ -2396,6 +2396,8 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
     tANI_U8 automotive_support_enable =
         (pMac->roam.configParam.conc_custom_rule1 |
          pMac->roam.configParam.conc_custom_rule2);
+    bool ap_p2pgo_concurrency_enable =
+         pMac->roam.configParam.ap_p2pgo_concurrency_enable;
     tVOS_CON_MODE bss_persona;
     eCsrConnectState connect_state;
 
@@ -2417,13 +2419,24 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                      return eHAL_STATUS_SUCCESS;
 
              case VOS_STA_SAP_MODE:
-                     if (((bss_persona == VOS_P2P_GO_MODE) && (connect_state !=
-                                eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) &&
-                                (0 == automotive_support_enable)) ||
-                         ((bss_persona == VOS_IBSS_MODE) && (connect_state !=
+                     if ((VOS_MCC_TO_SCC_SWITCH_FORCE ==
+                             pMac->roam.configParam.cc_switch_mode) &&
+                         (ap_p2pgo_concurrency_enable) &&
+                         (bss_persona == VOS_P2P_GO_MODE) &&
+                         (connect_state !=
+                                eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) {
+                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                             FL("Start AP session concurrency with P2P-GO"));
+                         return eHAL_STATUS_SUCCESS;
+                     } else if (((bss_persona == VOS_P2P_GO_MODE) &&
+                             (0 == automotive_support_enable) &&
+                             (connect_state !=
+                                    eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) ||
+                             ((bss_persona == VOS_IBSS_MODE) &&
+                             (connect_state !=
                                 eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED))) {
-                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                                   FL("Can't start multiple beaconing role"));
+                             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                                 FL("Can't start multiple beaconing role"));
                          return eHAL_STATUS_FAILURE;
                      }
                      break;
@@ -2434,7 +2447,15 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                                 FL(" ****P2P GO mode already exists ****"));
                          return eHAL_STATUS_FAILURE;
-
+                     } else if ((VOS_MCC_TO_SCC_SWITCH_FORCE ==
+                                    pMac->roam.configParam.cc_switch_mode) &&
+                                (ap_p2pgo_concurrency_enable) &&
+                                (bss_persona == VOS_STA_SAP_MODE) &&
+                                (connect_state !=
+                                       eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) {
+                         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                                FL("Start P2P-GO session concurrency with AP"));
+                         return eHAL_STATUS_SUCCESS;
                      } else if (((bss_persona == VOS_STA_SAP_MODE) &&
                                  (connect_state !=
                                   eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) &&

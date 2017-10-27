@@ -475,6 +475,11 @@ enum
 #define CFG_WLAN_BAND_SWITCH_ENABLE_MIN          ( 0 )
 #define CFG_WLAN_BAND_SWITCH_ENABLE_MAX          ( 1 )
 #define CFG_WLAN_BAND_SWITCH_ENABLE_DEFAULT      ( 0 )
+
+#define CFG_WLAN_AP_P2PGO_CONC_ENABLE            "gWlanApP2pGOConcurrencyEnable"
+#define CFG_WLAN_AP_P2PGO_CONC_ENABLE_MIN        ( 0 )
+#define CFG_WLAN_AP_P2PGO_CONC_ENABLE_MAX        ( 1 )
+#define CFG_WLAN_AP_P2PGO_CONC_ENABLE_DEFAULT    ( 0 )
 #endif
 
 
@@ -5255,6 +5260,7 @@ struct hdd_config {
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
    v_U32_t                     WlanMccToSccSwitchMode;
    bool                        wlan_band_switch_enable;
+   bool                        wlan_ap_p2pgo_conc_enable;
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
    v_U32_t                     WlanAutoShutdown;
