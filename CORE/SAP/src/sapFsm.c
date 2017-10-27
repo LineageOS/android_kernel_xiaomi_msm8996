@@ -2983,6 +2983,7 @@ sap_OpenSession (tHalHandle hHal, ptSapContext sapContext,
     if (!VOS_IS_STATUS_SUCCESS(status)) {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                   "wait for sap open session event timed out");
+        sme_CloseSession(hHal, sapContext->sessionId, NULL, FALSE);
         return VOS_STATUS_E_FAILURE;
     }
 
