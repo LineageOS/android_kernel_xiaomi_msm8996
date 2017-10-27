@@ -55,6 +55,8 @@
 
 #ifdef WLAN_FEATURE_DSRC
 #include "ol_tx.h"
+#include "wlan_hdd_main.h"
+#include "wlan_hdd_ocb.h"
 #include "adf_os_lock.h"
 #include "adf_os_util.h"
 #include "queue.h"
@@ -1059,6 +1061,23 @@ ol_collect_per_pkt_tx_stats(ol_txrx_vdev_handle vdev,
 				   chan_info->bandwidth, chan_info->mac_address,
 				   tx_ctrl->datarate);
 }
+
+static inline bool
+ol_tx_select_sch_for_ip_pkt(ol_txrx_vdev_handle vdev,
+			    struct ocb_tx_ctrl_hdr_t *tx_ctrl)
+{
+	struct ol_txrx_ocb_chan_info *chan_info = vdev->ocb_channel_info;
+	int i;
+
+	for (i = 0; i < vdev->ocb_channel_count; i++) {
+		if (chan_info[i].chan_freq != DOT11P_CONTROL_CHANNEL) {
+			tx_ctrl->channel_freq = chan_info[i].chan_freq;
+			return true;
+		}
+	}
+
+	return false;
+}
 #else
 static void dsrc_update_broadcast_frame_sa(ol_txrx_vdev_handle vdev,
 					   struct ocb_tx_ctrl_hdr_t *tx_ctrl,
@@ -1071,7 +1090,26 @@ ol_collect_per_pkt_tx_stats(ol_txrx_vdev_handle vdev,
 			    struct ocb_tx_ctrl_hdr_t *tx_ctrl, uint32_t msdu_id)
 {
 }
+
+static inline bool
+ol_tx_select_sch_for_ip_pkt(ol_txrx_vdev_handle vdev,
+			    struct ocb_tx_ctrl_hdr_t *tx_ctrl)
+{
+	return false;
+}
 #endif /* WLAN_FEATURE_DSRC */
+
+static void
+ol_tx_drop_list_add(adf_nbuf_t *list, adf_nbuf_t msdu, adf_nbuf_t *tail)
+{
+	adf_nbuf_set_next(msdu, NULL);
+	if (!*list)
+		*list = msdu;
+	else
+		adf_nbuf_set_next(*tail, msdu);
+
+	*tail = msdu;
+}
 
 static inline adf_nbuf_t
 ol_tx_hl_base(
@@ -1083,7 +1121,7 @@ ol_tx_hl_base(
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     adf_nbuf_t msdu = msdu_list;
     adf_nbuf_t msdu_drop_list = NULL;
-    adf_nbuf_t prev_drop = NULL;
+    adf_nbuf_t drop_tail = NULL;
     struct ol_txrx_msdu_info_t tx_msdu_info;
     struct ocb_tx_ctrl_hdr_t tx_ctrl;
 
@@ -1123,12 +1161,7 @@ ol_tx_hl_base(
                 TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
                            "radiotap length exceeds %d, drop it!\n",
                            MAX_RADIOTAP_LEN);
-                adf_nbuf_set_next(msdu, NULL);
-                if (!msdu_drop_list)
-                    msdu_drop_list = msdu;
-                else
-                    adf_nbuf_set_next(prev_drop, msdu);
-                prev_drop = msdu;
+                ol_tx_drop_list_add(&msdu_drop_list, msdu, &drop_tail);
                 msdu = next;
                 continue;
             }
@@ -1157,7 +1190,7 @@ ol_tx_hl_base(
             if (!msdu_drop_list)
                 msdu_drop_list = msdu;
             else
-                adf_nbuf_set_next(prev_drop, msdu);
+                adf_nbuf_set_next(drop_tail, msdu);
             return msdu_drop_list; /* the list of unaccepted MSDUs */
         }
 
@@ -1198,7 +1231,8 @@ ol_tx_hl_base(
 
             if (!parse_ocb_tx_header(msdu, &tx_ctrl, &tx_ctrl_header_found)) {
                 /* There was an error parsing the header. Skip this packet. */
-                goto MSDU_LOOP_BOTTOM;
+                ol_tx_drop_list_add(&msdu_drop_list, msdu, &drop_tail);
+                goto free_tx_desc;
             }
             /*
              * For dsrc tx frame, the TX control header MUST be provided by
@@ -1223,6 +1257,16 @@ ol_tx_hl_base(
 
                 /* only collect dsrc tx packet stats.*/
                 ol_collect_per_pkt_tx_stats(vdev, &tx_ctrl, tx_desc->id);
+            } else {
+                /*
+                 * IEEE 1609.4-2016 5.3.4 mandates that IP datagrams can
+                 * transmit only on SCH (Service Channel) and can't goes on CCH.
+                 * If SCH not exists, then drop the IP datagram.
+                 */
+                if (!ol_tx_select_sch_for_ip_pkt(vdev, &tx_ctrl)) {
+                    ol_tx_drop_list_add(&msdu_drop_list, msdu, &drop_tail);
+                    goto free_tx_desc;
+                }
             }
         }
 
@@ -1237,7 +1281,8 @@ ol_tx_hl_base(
                 /* remove the peer reference added above */
                 ol_txrx_peer_unref_delete(tx_msdu_info.peer);
             }
-            goto MSDU_LOOP_BOTTOM;
+            msdu = next;
+            continue;
         }
 
         if(tx_msdu_info.peer) {
@@ -1306,7 +1351,12 @@ ol_tx_hl_base(
             /* remove the peer reference added above */
             ol_txrx_peer_unref_delete(tx_msdu_info.peer);
         }
-MSDU_LOOP_BOTTOM:
+        msdu = next;
+        continue;
+
+free_tx_desc:
+        adf_os_atomic_inc(&pdev->tx_queue.rsrc_cnt);
+        ol_tx_desc_free(pdev, tx_desc);
         msdu = next;
     }
 
