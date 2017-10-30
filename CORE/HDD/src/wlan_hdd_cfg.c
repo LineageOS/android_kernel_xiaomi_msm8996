@@ -1484,6 +1484,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_WLAN_AP_P2PGO_CONC_ENABLE_DEFAULT,
                  CFG_WLAN_AP_P2PGO_CONC_ENABLE_MIN,
                  CFG_WLAN_AP_P2PGO_CONC_ENABLE_MAX ),
+
+   REG_VARIABLE( CFG_WLAN_AP_P2PGC_CONC_ENABLE , WLAN_PARAM_Integer,
+                 hdd_config_t, wlan_ap_p2pclient_conc_enable,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_WLAN_AP_P2PGC_CONC_ENABLE_DEFAULT,
+                 CFG_WLAN_AP_P2PGC_CONC_ENABLE_MIN,
+                 CFG_WLAN_AP_P2PGC_CONC_ENABLE_MAX ),
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
    REG_VARIABLE( CFG_WLAN_AUTO_SHUTDOWN , WLAN_PARAM_Integer,
@@ -5442,6 +5449,7 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gWlanMccToSccSwitchMode] Value = [%u]", pHddCtx->cfg_ini->WlanMccToSccSwitchMode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gWlanBandSwitchEnable] Value = [%u]", pHddCtx->cfg_ini->wlan_band_switch_enable);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gWlanApP2pGOConcurrencyEnable] Value = [%u]", pHddCtx->cfg_ini->wlan_ap_p2pgo_conc_enable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gWlanApP2pClientConcurEnable] Value = [%u]", pHddCtx->cfg_ini->wlan_ap_p2pclient_conc_enable);
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gWlanAutoShutdown] Value = [%u]", pHddCtx->cfg_ini->WlanAutoShutdown);

@@ -665,6 +665,8 @@ WLANSAP_SetScanAcsChannelParams(tsap_Config_t *pConfig,
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     pSapCtx->cc_switch_mode = pConfig->cc_switch_mode;
     pSapCtx->band_switch_enable = pConfig->band_switch_enable;
+    pSapCtx->ap_p2pclient_concur_enable =
+            pConfig->ap_p2pclient_concur_enable;
 #endif
     pSapCtx->scanBandPreference = pConfig->scanBandPreference;
     pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;
@@ -787,6 +789,8 @@ WLANSAP_StartBss
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
         pSapCtx->cc_switch_mode = pConfig->cc_switch_mode;
         pSapCtx->band_switch_enable = pConfig->band_switch_enable;
+        pSapCtx->ap_p2pclient_concur_enable =
+                pConfig->ap_p2pclient_concur_enable;
 #endif
         pSapCtx->scanBandPreference = pConfig->scanBandPreference;
         pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;

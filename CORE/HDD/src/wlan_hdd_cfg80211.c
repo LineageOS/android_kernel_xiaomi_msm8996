@@ -9234,6 +9234,8 @@ wlan_hdd_set_mcc_to_scc_switch(hdd_adapter_t *adapter)
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
 	sap_config->cc_switch_mode = cfg_ini->WlanMccToSccSwitchMode;
 	sap_config->band_switch_enable = cfg_ini->wlan_band_switch_enable;
+	sap_config->ap_p2pclient_concur_enable =
+		cfg_ini->wlan_ap_p2pgo_conc_enable;
 }
 #else
 static void
@@ -17394,6 +17396,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
          WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)) {
         pConfig->cc_switch_mode = iniConfig->WlanMccToSccSwitchMode;
         pConfig->band_switch_enable = iniConfig->wlan_band_switch_enable;
+        pConfig->ap_p2pclient_concur_enable =
+                iniConfig->wlan_ap_p2pclient_conc_enable;
     }
 #endif
 

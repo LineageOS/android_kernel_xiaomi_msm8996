@@ -585,6 +585,7 @@ typedef struct sap_Config {
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     v_U8_t          cc_switch_mode;
     bool            band_switch_enable;
+    bool            ap_p2pclient_concur_enable;
 #endif
 
     v_U16_t    probeRespIEsBufferLen;

@@ -2700,7 +2700,9 @@ sapGotoChannelSel
 #endif
     }
 
-    if (vos_get_concurrency_mode() == VOS_STA_SAP)
+    if (vos_get_concurrency_mode() == VOS_STA_SAP ||
+        (sapContext->ap_p2pclient_concur_enable &&
+        vos_get_concurrency_mode() == (VOS_SAP|VOS_P2P_CLIENT)))
     {
 #ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
         if (sapContext->channel == AUTO_CHANNEL_SELECT)
