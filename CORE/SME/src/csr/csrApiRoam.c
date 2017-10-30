@@ -2077,6 +2077,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.band_switch_enable = pParam->band_switch_enable;
         pMac->roam.configParam.ap_p2pgo_concurrency_enable =
                                pParam->ap_p2pgo_concurrency_enable;
+        pMac->roam.configParam.ap_p2pclient_concur_enable =
+                               pParam->ap_p2pclient_concur_enable;
 #endif
         pMac->roam.configParam.allowDFSChannelRoam = pParam->allowDFSChannelRoam;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
@@ -2264,6 +2266,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->band_switch_enable = pMac->roam.configParam.band_switch_enable;
         pParam->ap_p2pgo_concurrency_enable =
                      pMac->roam.configParam.ap_p2pgo_concurrency_enable;
+        pParam->ap_p2pclient_concur_enable =
+                     pMac->roam.configParam.ap_p2pclient_concur_enable;
 #endif
         pParam->enableTxLdpc = pMac->roam.configParam.txLdpcEnable;
 

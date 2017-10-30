@@ -2718,8 +2718,17 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                         if (pMac->roam.roamSession[sessionId].bssParams.operationChn
                                                         != channelId )
                         {
-                            smsLog(pMac, LOGE, FL("***MCC is not enabled for SAP + CLIENT****"));
-                            return eHAL_STATUS_FAILURE;
+                            if (VOS_MCC_TO_SCC_SWITCH_FORCE ==
+                                            pMac->roam.configParam.cc_switch_mode &&
+                                pMac->roam.configParam.ap_p2pclient_concur_enable)
+                            {
+                                smsLog(pMac, LOG1, FL("SAP + CLIENT for MCC to SCC"));
+                                return eHAL_STATUS_SUCCESS;
+                            } else {
+                                smsLog(pMac, LOGE,
+                                        FL("***MCC is not enabled for SAP + CLIENT****"));
+                                return eHAL_STATUS_FAILURE;
+                            }
                         }
                     }
                     else if (pMac->roam.roamSession[sessionId].bssParams.bssPersona

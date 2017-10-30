@@ -8039,6 +8039,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig->csrConfig.band_switch_enable = pConfig->wlan_band_switch_enable;
    smeConfig->csrConfig.ap_p2pgo_concurrency_enable =
                         pConfig->wlan_ap_p2pgo_conc_enable;
+   smeConfig->csrConfig.ap_p2pclient_concur_enable =
+                        pConfig->wlan_ap_p2pclient_conc_enable;
 #endif
 
    smeConfig->csrConfig.max_amsdu_num = pConfig->max_amsdu_num;
