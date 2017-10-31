@@ -2700,9 +2700,7 @@ sapGotoChannelSel
 #endif
     }
 
-    if (vos_get_concurrency_mode() == VOS_STA_SAP ||
-        (sapContext->ap_p2pclient_concur_enable &&
-        vos_get_concurrency_mode() == (VOS_SAP|VOS_P2P_CLIENT)))
+    if (vos_get_concurrency_mode() == VOS_STA_SAP)
     {
 #ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
         if (sapContext->channel == AUTO_CHANNEL_SELECT)
@@ -2742,6 +2740,31 @@ sapGotoChannelSel
         }
 #endif
     }
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    else if (sapContext->ap_p2pclient_concur_enable &&
+             vos_get_concurrency_mode() == (VOS_SAP|VOS_P2P_CLIENT)) {
+#ifdef FEATURE_WLAN_STA_AP_MODE_DFS_DISABLE
+        if (sapContext->channel == AUTO_CHANNEL_SELECT)
+            sapContext->dfs_ch_disable = VOS_TRUE;
+        else if (VOS_IS_DFS_CH(sapContext->channel)) {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_WARN,
+                       "In %s, DFS not supported in STA_AP Mode, chan=%d",
+                       __func__, sapContext->channel);
+            return VOS_STATUS_E_ABORTED;
+        }
+#endif
+        vosStatus = sap_concurrency_chan_override(
+                sapContext,
+                sapContext->cc_switch_mode,
+                &con_ch);
+        if (vosStatus != VOS_STATUS_SUCCESS) {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                "%s: invalid SAP channel(%d) configuration",
+                __func__,sapContext->channel);
+            return VOS_STATUS_E_ABORTED;
+        }
+    }
+#endif
 
     if (sapContext->channel == AUTO_CHANNEL_SELECT)
     {

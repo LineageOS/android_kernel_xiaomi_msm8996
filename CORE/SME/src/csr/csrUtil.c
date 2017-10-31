@@ -2396,8 +2396,10 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
     tANI_U8 automotive_support_enable =
         (pMac->roam.configParam.conc_custom_rule1 |
          pMac->roam.configParam.conc_custom_rule2);
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     bool ap_p2pgo_concurrency_enable =
-         pMac->roam.configParam.ap_p2pgo_concurrency_enable;
+                 pMac->roam.configParam.ap_p2pgo_concurrency_enable;
+#endif
     tVOS_CON_MODE bss_persona;
     eCsrConnectState connect_state;
 
@@ -2419,6 +2421,7 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                      return eHAL_STATUS_SUCCESS;
 
              case VOS_STA_SAP_MODE:
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
                      if ((VOS_MCC_TO_SCC_SWITCH_FORCE ==
                              pMac->roam.configParam.cc_switch_mode) &&
                          (ap_p2pgo_concurrency_enable) &&
@@ -2428,7 +2431,9 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                              FL("Start AP session concurrency with P2P-GO"));
                          return eHAL_STATUS_SUCCESS;
-                     } else if (((bss_persona == VOS_P2P_GO_MODE) &&
+                     } else
+#endif
+                     if (((bss_persona == VOS_P2P_GO_MODE) &&
                              (0 == automotive_support_enable) &&
                              (connect_state !=
                                     eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) ||
@@ -2447,16 +2452,20 @@ csrIsconcurrentsessionValid(tpAniSirGlobal pMac,tANI_U32 cursessionId,
                          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                                 FL(" ****P2P GO mode already exists ****"));
                          return eHAL_STATUS_FAILURE;
-                     } else if ((VOS_MCC_TO_SCC_SWITCH_FORCE ==
-                                    pMac->roam.configParam.cc_switch_mode) &&
-                                (ap_p2pgo_concurrency_enable) &&
-                                (bss_persona == VOS_STA_SAP_MODE) &&
-                                (connect_state !=
+                     }
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+                     else if ((VOS_MCC_TO_SCC_SWITCH_FORCE ==
+                                   pMac->roam.configParam.cc_switch_mode) &&
+                               (ap_p2pgo_concurrency_enable) &&
+                               (bss_persona == VOS_STA_SAP_MODE) &&
+                               (connect_state !=
                                        eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED)) {
                          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                                 FL("Start P2P-GO session concurrency with AP"));
                          return eHAL_STATUS_SUCCESS;
-                     } else if (((bss_persona == VOS_STA_SAP_MODE) &&
+                     }
+#endif
+                     else if (((bss_persona == VOS_STA_SAP_MODE) &&
                                  (connect_state !=
                                   eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED) &&
                                  (0 == automotive_support_enable)) ||
@@ -2718,13 +2727,16 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                         if (pMac->roam.roamSession[sessionId].bssParams.operationChn
                                                         != channelId )
                         {
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
                             if (VOS_MCC_TO_SCC_SWITCH_FORCE ==
                                             pMac->roam.configParam.cc_switch_mode &&
                                 pMac->roam.configParam.ap_p2pclient_concur_enable)
                             {
                                 smsLog(pMac, LOG1, FL("SAP + CLIENT for MCC to SCC"));
                                 return eHAL_STATUS_SUCCESS;
-                            } else {
+                            } else
+#endif
+                            {
                                 smsLog(pMac, LOGE,
                                         FL("***MCC is not enabled for SAP + CLIENT****"));
                                 return eHAL_STATUS_FAILURE;
