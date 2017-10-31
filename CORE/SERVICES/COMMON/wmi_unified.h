@@ -370,6 +370,8 @@ typedef enum {
     WMI_PDEV_SET_DIVERSITY_GAIN_CMDID,
     /** Get chain RSSI and antena index command */
     WMI_PDEV_DIV_GET_RSSI_ANTID_CMDID,
+    /* get bss chan info */
+    WMI_PDEV_BSS_CHAN_INFO_REQUEST_CMDID,
 
     /* VDEV (virtual device) specific commands */
     /** vdev create */
@@ -934,6 +936,7 @@ typedef enum {
     WMI_OEM_REQUEST_CMDID, /* UNUSED */
     /* OEM related cmd used for Low Power ranging */
     WMI_LPI_OEM_REQ_CMDID,
+    WMI_OEM_DMA_RING_CFG_REQ_CMDID,
 
     /** Nan Request */
     WMI_NAN_CMDID=WMI_CMD_GRP_START_ID(WMI_GRP_NAN),
@@ -4333,6 +4336,18 @@ typedef enum {
 	 *	refer to WMI_PDEV_PKT_PWR_SAVE_LEVEL
 	 */
 	WMI_PDEV_PARAM_PACKET_POWER_SAVE_LEVEL,
+      /** Define IOT pattern to be enabled/disabled
+      * bit values: 0 - disable, 1 - enable
+      * BIT[0..31]: each bit represents an IOT pattern
+      * -----
+      * Bit 0 - avoid SMPS with certain APs
+      * Bits 31:1 - reserved
+      */
+    WMI_PDEV_PARAM_SET_IOT_PATTERN,
+    /** ACK timeout - change wireless packet ack timeout configuration,
+     *  units are microseconds
+     */
+    WMI_PDEV_PARAM_ACK_TIMEOUT,
 
 } WMI_PDEV_PARAM;
 
@@ -4870,6 +4885,7 @@ typedef enum {
     WMI_REQUEST_MIB_STAT       = 0x80,
     WMI_REQUEST_RSSI_PER_CHAIN_STAT = 0x100,
     WMI_REQUEST_CONGESTION_STAT = 0x200,
+    WMI_REQUEST_PEER_EXTD_STAT = 0x400,
 } wmi_stats_id;
 
 /*
@@ -6843,6 +6859,12 @@ typedef struct {
     A_UINT32 vdev_assoc_id;
     /** bssid of the BSS the VDEV is joining  */
     wmi_mac_addr vdev_bssid;
+    /** bssid of transmitted AP (mbssid case) */
+    wmi_mac_addr trans_bssid;
+    /** the profile index of the connected non-trans ap (mbssid case). 0 means invalid */
+    A_UINT32 profile_idx;
+    /** the total profile numbers of non-trans aps (mbssid case). 0 means legacy AP */
+    A_UINT32 profile_num;
 } wmi_vdev_up_cmd_fixed_param;
 
 typedef struct {
@@ -8996,6 +9018,8 @@ typedef struct {
     A_UINT32 tx_frame_cnt;
     /** mac clock */
     A_UINT32 mac_clk_mhz;
+    /** unique id identifying the VDEV */
+    A_UINT32 vdev_id;
 } wmi_chan_info_event_fixed_param;
 
 /**
@@ -13841,6 +13865,8 @@ typedef struct {
     A_UINT32 nan_csid;
     /** Actual number of bytes in TLV nan_scid */
     A_UINT32 nan_scid_len;
+    /** Self NDI mac address */
+    wmi_mac_addr self_ndi_mac_addr;
     /**
      * TLV (tag length value ) parameters follow the ndp_indication
      * structure. The TLV's are:
@@ -17974,6 +18000,7 @@ typedef enum wmi_coex_config_type {
                                                  arg5 PTA algorithm (WMI_COEX_ALGO_TYPE),
                                                  arg6 PTA priority */
     WMI_COEX_CONFIG_BTC_DUTYCYCLE       = 18, /* config interval (ms units) (arg1 WLAN pause duration, arg2 WLAN unpause duration) for WLAN UL + BT Rx */
+    WMI_COEX_CONFIG_HANDOVER_RSSI       = 19, /* config to set WLAN RSSI (dBm units) at which device switches from Hybrid to TDD coex mode */
 #ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
     /* config BT info to FW when coexistence enable */
     WMI_COEX_CONFIG_PTA_BT_INFO         = 20,

@@ -821,6 +821,14 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_therm_throt_stats_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_therm_throt_level_stats_info,
     WMITLV_TAG_STRUC_wmi_pdev_div_rssi_antid_event_fixed_param,
+    WMITLV_TAG_STRUC_WMI_OEM_DMA_RING_CAPABILITIES,
+    WMITLV_TAG_STRUC_wmi_oem_dma_ring_cfg_req_fixed_param,
+    WMITLV_TAG_STRUC_wmi_oem_dma_ring_cfg_rsp_fixed_param,
+    WMITLV_TAG_STRUC_wmi_oem_indirect_data,
+    WMITLV_TAG_STRUC_wmi_oem_dma_buf_release_fixed_param,
+    WMITLV_TAG_STRUC_wmi_oem_dma_buf_release_entry,
+    WMITLV_TAG_STRUC_wmi_pdev_bss_chan_info_request_fixed_param,
+    WMITLV_TAG_STRUC_wmi_pdev_bss_chan_info_event_fixed_param,
 } WMITLV_TAG_ID;
 
 /*

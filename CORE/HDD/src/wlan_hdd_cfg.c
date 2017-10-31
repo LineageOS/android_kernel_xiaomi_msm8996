@@ -5118,6 +5118,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_SKIP_MAC_CONFIG_DEFAULT,
                CFG_SKIP_MAC_CONFIG_MIN,
                CFG_SKIP_MAC_CONFIG_MAX),
+#ifdef WLAN_FEATURE_DSRC
+  REG_VARIABLE(CFG_OCB_TX_PER_PKT_STATS_ENABLE_NAME, WLAN_PARAM_Integer,
+               hdd_config_t, ocb_tx_per_pkt_stats_enabled,
+               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+               CFG_OCB_TX_PER_PKT_STATS_ENABLE_DEFAULT,
+               CFG_OCB_TX_PER_PKT_STATS_ENABLE_MIN,
+               CFG_OCB_TX_PER_PKT_STATS_ENABLE_MAX),
+#endif
 };
 
 

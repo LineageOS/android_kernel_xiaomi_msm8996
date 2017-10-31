@@ -3768,6 +3768,7 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     tSirRetStatus retCode = eSIR_SUCCESS;
     tpDphHashNode pStaDs = NULL;
     tANI_U8 chanWidthSupp = 0;
+    tANI_U8 isVHTCapInVendorIE = 0;
     tANI_U32 shortGi20MhzSupport;
     tANI_U32 shortGi40MhzSupport;
     tANI_U32 enableTxBF20MHz;
@@ -4011,7 +4012,7 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
                               &pAssocRsp->vendor2_ie.VHTCaps;
                       limLog(pMac, LOG1,
                               FL("VHT Caps is present in vendor Specfic IE"));
-
+                      isVHTCapInVendorIE = 1;
                 }
                 if ((vht_caps != NULL) && (vht_caps->suBeamFormerCap ||
                       vht_caps->muBeamformerCap) &&
@@ -4136,11 +4137,16 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
                             (tANI_U8)pAssocRsp->HTCaps.advCodingCap;
                 else
                     pAddBssParams->staContext.htLdpcCapable = 0;
-                if (psessionEntry->txLdpcIniFeatureEnabled & 0x2)
-                    pAddBssParams->staContext.vhtLdpcCapable =
-                        (tANI_U8)pAssocRsp->VHTCaps.ldpcCodingCap;
-                else
+                if (psessionEntry->txLdpcIniFeatureEnabled & 0x2) {
+                    if (!isVHTCapInVendorIE)
+                        pAddBssParams->staContext.vhtLdpcCapable =
+                            (tANI_U8)pAssocRsp->VHTCaps.ldpcCodingCap;
+                    else
+                        pAddBssParams->staContext.vhtLdpcCapable =
+                            (tANI_U8)vht_caps->ldpcCodingCap;
+                } else {
                     pAddBssParams->staContext.vhtLdpcCapable = 0;
+                }
             }
 
             if( pBeaconStruct->HTInfo.present )

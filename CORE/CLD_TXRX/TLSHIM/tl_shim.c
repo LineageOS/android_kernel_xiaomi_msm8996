@@ -501,7 +501,7 @@ static bool tlshim_is_pkt_drop_candidate(tp_wma_handle wma_handle,
 
 	peer = ol_txrx_find_peer_by_addr(pdev_ctx, peer_addr, &peer_id);
 	if (!peer) {
-		if (SIR_MAC_MGMT_ASSOC_REQ != subtype) {
+		if (IEEE80211_FC0_SUBTYPE_ASSOC_REQ != subtype) {
 			TLSHIM_LOGE(FL("Received mgmt frame: %0x from unknow peer: %pM"),
 				subtype, peer_addr);
 			should_drop = TRUE;
@@ -510,7 +510,7 @@ static bool tlshim_is_pkt_drop_candidate(tp_wma_handle wma_handle,
 	}
 
 	switch (subtype) {
-	case SIR_MAC_MGMT_ASSOC_REQ:
+	case IEEE80211_FC0_SUBTYPE_ASSOC_REQ:
 		if (peer->last_assoc_rcvd) {
 			if (adf_os_gettimestamp() - peer->last_assoc_rcvd <
 			    TLSHIM_MGMT_FRAME_DETECT_DOS_TIMER) {
@@ -520,7 +520,7 @@ static bool tlshim_is_pkt_drop_candidate(tp_wma_handle wma_handle,
 		}
 		peer->last_assoc_rcvd = adf_os_gettimestamp();
 		break;
-	case SIR_MAC_MGMT_DISASSOC:
+	case IEEE80211_FC0_SUBTYPE_DISASSOC:
 		if (peer->last_disassoc_rcvd) {
 			if (adf_os_gettimestamp() -
 			    peer->last_disassoc_rcvd <
@@ -531,7 +531,7 @@ static bool tlshim_is_pkt_drop_candidate(tp_wma_handle wma_handle,
 		}
 		peer->last_disassoc_rcvd = adf_os_gettimestamp();
 		break;
-	case SIR_MAC_MGMT_DEAUTH:
+	case IEEE80211_FC0_SUBTYPE_DEAUTH:
 		if (peer->last_deauth_rcvd) {
 			if (adf_os_gettimestamp() -
 			    peer->last_deauth_rcvd <

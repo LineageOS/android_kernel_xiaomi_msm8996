@@ -4753,6 +4753,29 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_SKIP_MAC_CONFIG_MAX     (1)
 #define CFG_SKIP_MAC_CONFIG_DEFAULT (0)
 
+#ifdef WLAN_FEATURE_DSRC
+ /*
+ * <ini>
+ * gOcbTxPerPktStatsEnable - enable/disable OCB/DSRC tx per packet stats
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to avoid KPI throughput regression by disabling tx
+ * per packet stats that would degrade throughput.
+ *
+ * Related: HI_ACS_FLAGS_SDIO_REDUCE_TX_COMPL_SET
+ *
+ * Usage: Internal/External
+ *
+ * </ini>
+ */
+#define CFG_OCB_TX_PER_PKT_STATS_ENABLE_NAME    "gOcbTxPerPktStatsEnable"
+#define CFG_OCB_TX_PER_PKT_STATS_ENABLE_MIN     ( 0 )
+#define CFG_OCB_TX_PER_PKT_STATS_ENABLE_MAX     ( 1 )
+#define CFG_OCB_TX_PER_PKT_STATS_ENABLE_DEFAULT ( 0 )
+#endif /* WLAN_FEATURE_DSRC */
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -5624,6 +5647,9 @@ struct hdd_config {
    bool                        sap_probe_resp_offload;
    uint32_t                    sta_auth_retries_for_code17;
    uint8_t                     skip_mac_config;
+#ifdef WLAN_FEATURE_DSRC
+   bool                        ocb_tx_per_pkt_stats_enabled;
+#endif
 };
 
 typedef struct hdd_config hdd_config_t;
