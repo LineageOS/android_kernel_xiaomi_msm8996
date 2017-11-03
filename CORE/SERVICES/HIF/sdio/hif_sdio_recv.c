@@ -927,6 +927,7 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
             status = HIFDevProcessRecvHeader(pDev, pPacket, lookAheads,
                     &NumLookAheads);
             if (A_FAILED(status)) {
+                HTC_PACKET_ENQUEUE_TO_HEAD(&syncCompletedPktsQueue, pPacket);
                 break;
             }
 
@@ -941,7 +942,18 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
                         pipeid);
             }
         }
+
         if (A_FAILED(status)) {
+            while (!HTC_QUEUE_EMPTY(&syncCompletedPktsQueue)) {
+                adf_nbuf_t netbuf;
+
+                pPacket = HTC_PACKET_DEQUEUE(&syncCompletedPktsQueue);
+                if (pPacket == NULL)
+                    break;
+                netbuf = (adf_nbuf_t) pPacket->pNetBufContext;
+                if (netbuf)
+                    adf_nbuf_free(netbuf);
+            }
             break;
         }
 
