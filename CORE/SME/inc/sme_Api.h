@@ -4310,11 +4310,6 @@ eHalStatus sme_set_ll_ext_cb(tHalHandle hal,
 
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
 
-eHalStatus sme_fw_mem_dump(tHalHandle hHal, void *recvd_req);
-eHalStatus sme_fw_mem_dump_register_cb(tHalHandle hHal,
-    void (*callback_routine)(void *cb_context, struct fw_dump_rsp *rsp));
-eHalStatus sme_fw_mem_dump_unregister_cb(tHalHandle hHal);
-
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 /*--------------------------------------------------------------------------
   \brief sme_UpdateRoamOffloadEnabled() - enable/disable roam offload feature
