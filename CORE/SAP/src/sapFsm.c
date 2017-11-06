@@ -2451,9 +2451,18 @@ sap_concurrency_chan_override(
 		    "%s: mode %d band %d och %d lf %d hf %d cf %d hbw %d",
 		    __func__, info->con_mode, info->band, info->och,
 		    info->lfreq, info->hfreq, info->cfreq, info->hbw);
-		if (!sap_context->band_switch_enable &&
-			info->band != target_band) {
-			continue;
+		if (info->band != target_band) {
+			if (sap_context->band_switch_enable) {
+				if (info->band == eCSR_BAND_5G) {
+					sap_context->ch_width_orig =
+						sap_context->ch_width_5g_orig;
+				} else {
+					sap_context->ch_width_orig =
+						sap_context->ch_width_24g_orig;
+				}
+			} else {
+				continue;
+			}
 		}
 		if (cc_switch_mode == VOS_MCC_TO_SCC_SWITCH_ENABLE
 			&& target_chan != 0
@@ -2473,9 +2482,18 @@ sap_concurrency_chan_override(
 			    __func__, info->con_mode, info->band,
 			    info->och, info->lfreq, info->hfreq,
 			    info->cfreq, info->hbw);
-			if (!sap_context->band_switch_enable &&
-				info->band != target_band) {
-				continue;
+			if (info->band != target_band) {
+				if (sap_context->band_switch_enable) {
+					if (info->band == eCSR_BAND_5G) {
+						sap_context->ch_width_orig =
+							sap_context->ch_width_5g_orig;
+					} else {
+						sap_context->ch_width_orig =
+							sap_context->ch_width_24g_orig;
+					}
+				} else {
+					continue;
+				}
 			}
 			candidate[candidate_count++] = info->och;
 		}

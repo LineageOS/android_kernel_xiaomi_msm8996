@@ -667,6 +667,8 @@ WLANSAP_SetScanAcsChannelParams(tsap_Config_t *pConfig,
     pSapCtx->band_switch_enable = pConfig->band_switch_enable;
     pSapCtx->ap_p2pclient_concur_enable =
             pConfig->ap_p2pclient_concur_enable;
+    pSapCtx->ch_width_24g_orig = pConfig->ch_width_24g_orig;
+    pSapCtx->ch_width_5g_orig = pConfig->ch_width_5g_orig;
 #endif
     pSapCtx->scanBandPreference = pConfig->scanBandPreference;
     pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;
@@ -791,6 +793,8 @@ WLANSAP_StartBss
         pSapCtx->band_switch_enable = pConfig->band_switch_enable;
         pSapCtx->ap_p2pclient_concur_enable =
                 pConfig->ap_p2pclient_concur_enable;
+        pSapCtx->ch_width_24g_orig = pConfig->ch_width_24g_orig;
+        pSapCtx->ch_width_5g_orig = pConfig->ch_width_5g_orig;
 #endif
         pSapCtx->scanBandPreference = pConfig->scanBandPreference;
         pSapCtx->acsBandSwitchThreshold = pConfig->acsBandSwitchThreshold;

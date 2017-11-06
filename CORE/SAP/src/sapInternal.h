@@ -250,6 +250,10 @@ typedef struct sSapContext {
     tSapChannelListInfo SapChnlList;
     uint16_t           vht_channel_width;
     uint16_t           ch_width_orig;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    uint16_t           ch_width_24g_orig;
+    uint16_t           ch_width_5g_orig;
+#endif
 
     // session to scan
     tANI_BOOLEAN        isScanSessionOpen;

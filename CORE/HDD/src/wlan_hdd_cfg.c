@@ -8041,6 +8041,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                         pConfig->wlan_ap_p2pgo_conc_enable;
    smeConfig->csrConfig.ap_p2pclient_concur_enable =
                         pConfig->wlan_ap_p2pclient_conc_enable;
+   smeConfig->csrConfig.ch_width_24g_orig = pConfig->nChannelBondingMode24GHz ?
+                        eHT_CHANNEL_WIDTH_40MHZ : eHT_CHANNEL_WIDTH_20MHZ;
+   smeConfig->csrConfig.ch_width_5g_orig = pConfig->vhtChannelWidth;
 #endif
 
    smeConfig->csrConfig.max_amsdu_num = pConfig->max_amsdu_num;

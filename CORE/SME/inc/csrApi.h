@@ -1366,6 +1366,8 @@ typedef struct tagCsrConfigParam
     bool     band_switch_enable;
     bool     ap_p2pgo_concurrency_enable;
     bool     ap_p2pclient_concur_enable;
+    uint16_t ch_width_24g_orig;
+    uint16_t ch_width_5g_orig;
 #endif
     tANI_U8  allowDFSChannelRoam;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
