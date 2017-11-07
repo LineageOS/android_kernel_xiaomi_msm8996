@@ -6674,6 +6674,16 @@ struct sir_wifi_ll_ext_peer_stats {
 };
 
 /**
+ * struct sir_wifi_ll_ext_time_stamp - time stamp for stats report
+ * @duration: the count duration on fw side for this report
+ * @end_time: timestamp when LL stats reported to user layer
+ */
+struct sir_wifi_ll_ext_period {
+	uint32_t duration;
+	v_TIME_t end_time;
+};
+
+/**
  * struct sir_wifi_ll_ext_stats - link layer stats report
  * @trigger_cond_id:  Indicate what triggered this event.
  *	1: timeout. 2: threshold
@@ -6712,6 +6722,8 @@ struct sir_wifi_ll_ext_peer_stats {
  *     |      peer_num                 |
  *     +-------------------------------+
  *     |      channel_num              |
+ *     +-------------------------------+
+ *     |      time stamp               |
  *     +-------------------------------+
  *     |      tx_mpdu_aggr_array_len   |
  *     +-------------------------------+
@@ -6766,6 +6778,7 @@ struct sir_wifi_ll_ext_stats {
 	uint32_t rx_chgd_bitmap;
 	uint8_t peer_num;
 	uint8_t channel_num;
+	struct sir_wifi_ll_ext_period time_stamp;
 	uint32_t tx_mpdu_aggr_array_len;
 	uint32_t tx_succ_mcs_array_len;
 	uint32_t tx_fail_mcs_array_len;
