@@ -12234,7 +12234,6 @@ void csrRoamWmStatusChangeComplete( tpAniSirGlobal pMac )
     {
         smsLog( pMac, LOGW, "CSR: WmStatusChange Completion called but NO commands are ACTIVE ..." );
     }
-    smeProcessPendingQueue( pMac );
 }
 
 void csrRoamProcessWmStatusChangeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )

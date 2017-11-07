@@ -1000,6 +1000,7 @@ sme_process_cmd:
                         case eSmeCommandWmStatusChange:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
                             csrRoamProcessWmStatusChangeCommand(pMac, pCommand);
+                            fContinue = eANI_BOOLEAN_TRUE;
                             break;
 
                         case eSmeCommandSetKey:
