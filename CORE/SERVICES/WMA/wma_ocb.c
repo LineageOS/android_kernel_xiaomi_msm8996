@@ -35,6 +35,8 @@
 #include "wmi_unified_api.h"
 #include "utilsApi.h"
 
+#define UINT32_MAX (0xFFFFFFFFU)
+
 /**
  * wma_ocb_resp() - send the OCB set config response via callback
  * @wma_handle: pointer to the WMA handle
