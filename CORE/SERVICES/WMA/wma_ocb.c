@@ -1138,6 +1138,7 @@ static int wma_radio_chan_stats_event_handler(void *handle, u_int8_t *event,
 	if (!chan_stats) {
 		WMA_LOGE("Invalid radio_chan_stats ptr");
 		return -EINVAL;
+	}
 
 	if (fix_param->num_chans > (UINT32_MAX - sizeof(*resp))/
 	    sizeof(struct radio_chan_stats_info)) {
