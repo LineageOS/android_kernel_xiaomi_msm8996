@@ -1344,7 +1344,7 @@ struct hdd_adapter_s
 #ifdef WLAN_FEATURE_TSF
    /* tsf value get from firmware */
    uint64_t cur_target_time;
-
+   vos_timer_t host_capture_req_timer;
 #ifdef WLAN_FEATURE_TSF_PLUS
    /* spin lock for read/write timestamps */
    spinlock_t host_target_sync_lock;
