@@ -49,6 +49,10 @@
 #include "q6voice.h"
 #include "sound/q6lsm.h"
 
+#ifdef CONFIG_MACH_XIAOMI_A8
+#include "msm-elliptic.h"
+#endif
+
 #ifndef CONFIG_DOLBY_DAP
 #undef DOLBY_ADM_COPP_TOPOLOGY_ID
 #define DOLBY_ADM_COPP_TOPOLOGY_ID 0xFFFFFFFE
@@ -20764,6 +20768,10 @@ static int msm_routing_probe(struct snd_soc_platform *platform)
 	snd_soc_add_platform_controls(
 		platform, msm_routing_feature_support_mixer_controls,
 		ARRAY_SIZE(msm_routing_feature_support_mixer_controls));
+
+#ifdef CONFIG_MACH_XIAOMI_A8
+	elliptic_add_platform_controls(platform);
+#endif
 
 	return 0;
 }

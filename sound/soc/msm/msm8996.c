@@ -394,12 +394,20 @@ static char const *usb_sample_rate_text[] = {"KHZ_8", "KHZ_11P025",
 					"KHZ_44P1", "KHZ_48", "KHZ_88P2",
 					"KHZ_96", "KHZ_176P4", "KHZ_192"};
 
+#ifdef CONFIG_MACH_XIAOMI_A8
+static const char *const ultrasound_power_text[] = {"Off", "On"};
+#endif
+
 static SOC_ENUM_SINGLE_EXT_DECL(usb_rx_chs, usb_ch_text);
 static SOC_ENUM_SINGLE_EXT_DECL(usb_tx_chs, usb_ch_text);
 static SOC_ENUM_SINGLE_EXT_DECL(usb_rx_format, usb_bit_format_text);
 static SOC_ENUM_SINGLE_EXT_DECL(usb_tx_format, usb_bit_format_text);
 static SOC_ENUM_SINGLE_EXT_DECL(usb_rx_sample_rate, usb_sample_rate_text);
 static SOC_ENUM_SINGLE_EXT_DECL(usb_tx_sample_rate, usb_sample_rate_text);
+
+#ifdef CONFIG_MACH_XIAOMI_A8
+static SOC_ENUM_SINGLE_EXT_DECL(ultrasound_power, ultrasound_power_text);
+#endif
 
 static const char *const auxpcm_rate_text[] = {"8000", "16000"};
 static const struct soc_enum msm8996_auxpcm_enum[] = {
@@ -590,6 +598,10 @@ struct msm8996_asoc_mach_data {
 	int hph_en1_gpio;
 	int hph_en0_gpio;
 	struct snd_info_entry *codec_root;
+#ifdef CONFIG_MACH_XIAOMI_A8
+	struct regulator *us_p_power;
+	struct regulator *us_n_power;
+#endif
 };
 
 struct msm8996_asoc_wcd93xx_codec {
@@ -614,6 +626,10 @@ static void *def_tasha_mbhc_cal(void);
 static int msm_snd_enable_codec_ext_clk(struct snd_soc_codec *codec,
 					int enable, bool dapm);
 static int msm8996_wsa881x_init(struct snd_soc_component *component);
+
+#ifdef CONFIG_MACH_XIAOMI_A8
+static int ultrasound_power_state;
+#endif
 
 /*
  * Need to report LINEIN
@@ -941,6 +957,41 @@ static int msm8996_hifi_put(struct snd_kcontrol *kcontrol,
 	msm8996_hifi_ctrl(codec);
 	return 1;
 }
+
+#ifdef CONFIG_MACH_XIAOMI_A8
+static int ultrasound_power_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = ultrasound_power_state;
+	return 0;
+}
+
+static int ultrasound_power_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct snd_soc_card *card = codec->component.card;
+	struct msm8996_asoc_mach_data *pdata = snd_soc_card_get_drvdata(card);
+	int ret;
+
+	ultrasound_power_state = ucontrol->value.integer.value[0];
+	pr_debug("%s: ultrasound power %d\n", __func__, ultrasound_power_state);
+
+	if (ultrasound_power_state == 1) {
+		if (pdata->us_p_power)
+			ret = regulator_enable(pdata->us_p_power);
+		if (pdata->us_n_power)
+			ret = regulator_enable(pdata->us_n_power);
+	} else {
+		if (pdata->us_p_power)
+			ret = regulator_disable(pdata->us_p_power);
+		if (pdata->us_n_power)
+			ret = regulator_disable(pdata->us_n_power);
+	}
+
+	return 0;
+}
+#endif
 
 static int msm8996_ext_us_amp_init(void)
 {
@@ -6465,6 +6516,10 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 	SOC_ENUM_EXT("QUAT_TDM Slot Width", msm_snd_enum[20],
 			msm_quat_tdm_slot_width_get,
 			msm_quat_tdm_slot_width_put),
+#ifdef CONFIG_MACH_XIAOMI_A8
+	SOC_ENUM_EXT("Ultrasound Power", ultrasound_power,
+			ultrasound_power_get, ultrasound_power_put),
+#endif
 	SOC_SINGLE_MULTI_EXT("PRI_TDM_RX_0 Slot Mapping", SND_SOC_NOPM,
 			PRIMARY_TDM_RX_0, 0xFFFF,
 			0, 8, msm_tdm_slot_mapping_get,
@@ -10471,6 +10526,20 @@ static int msm8996_asoc_machine_probe(struct platform_device *pdev)
 			"spkr-id-gpio", pdev->dev.of_node->full_name);
 	}
 
+#ifdef CONFIG_MACH_XIAOMI_A8
+	pdata->us_p_power = regulator_get(&pdev->dev, "vreg_pa_p_5p0");
+	if (IS_ERR(pdata->us_p_power)) {
+		dev_info(&pdev->dev, "ultrasound p power can't be found\n");
+		pdata->us_p_power = NULL;
+	}
+
+	pdata->us_n_power = regulator_get(&pdev->dev, "vreg_pa_n_5p0");
+	if (IS_ERR(pdata->us_n_power)) {
+		dev_info(&pdev->dev, "ultrasound n power can't be found\n");
+		pdata->us_n_power = NULL;
+	}
+#endif
+
 	return 0;
 err:
 	if (pdata->us_euro_gpio > 0) {
@@ -10500,6 +10569,13 @@ static int msm8996_asoc_machine_remove(struct platform_device *pdev)
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 	struct msm8996_asoc_mach_data *pdata =
 				snd_soc_card_get_drvdata(card);
+
+#ifdef CONFIG_MACH_XIAOMI_A8
+	if (pdata->us_p_power)
+		regulator_put(pdata->us_p_power);
+	if (pdata->us_p_power)
+		regulator_put(pdata->us_n_power);
+#endif
 
 	if (gpio_is_valid(ext_us_amp_gpio))
 		gpio_free(ext_us_amp_gpio);
