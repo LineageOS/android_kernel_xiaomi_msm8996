@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014,2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014,2016-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -257,8 +257,15 @@ static A_STATUS HIFDevAllocAndPrepareRxPackets(HIF_SDIO_DEVICE *pDev,
 
     if (A_FAILED(status)) {
         while (!HTC_QUEUE_EMPTY(pQueue)) {
+            adf_nbuf_t netbuf;
+
             pPacket = HTC_PACKET_DEQUEUE(pQueue);
-        }
+            if (pPacket == NULL)
+                break;
+            netbuf = (adf_nbuf_t) pPacket->pNetBufContext;
+            if (netbuf)
+                adf_nbuf_free(netbuf);
+            }
     }
     return status;
 }
@@ -881,6 +888,16 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
                 /* go fetch the packet */
                 status = HIFDevRecvPacket(pDev, pPacket, pPacket->ActualLength, MailBoxIndex);
                 if (A_FAILED(status)) {
+                    while (!HTC_QUEUE_EMPTY(&recvPktQueue)) {
+                        adf_nbuf_t netbuf;
+
+                        pPacket = HTC_PACKET_DEQUEUE(&recvPktQueue);
+                        if (pPacket == NULL)
+                            break;
+                        netbuf = (adf_nbuf_t) pPacket->pNetBufContext;
+                        if (netbuf)
+                            adf_nbuf_free(netbuf);
+                    }
                     break;
                 }
                 /* sent synchronously, queue this packet for synchronous completion */
@@ -910,6 +927,7 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
             status = HIFDevProcessRecvHeader(pDev, pPacket, lookAheads,
                     &NumLookAheads);
             if (A_FAILED(status)) {
+                HTC_PACKET_ENQUEUE_TO_HEAD(&syncCompletedPktsQueue, pPacket);
                 break;
             }
 
@@ -924,7 +942,18 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
                         pipeid);
             }
         }
+
         if (A_FAILED(status)) {
+            while (!HTC_QUEUE_EMPTY(&syncCompletedPktsQueue)) {
+                adf_nbuf_t netbuf;
+
+                pPacket = HTC_PACKET_DEQUEUE(&syncCompletedPktsQueue);
+                if (pPacket == NULL)
+                    break;
+                netbuf = (adf_nbuf_t) pPacket->pNetBufContext;
+                if (netbuf)
+                    adf_nbuf_free(netbuf);
+            }
             break;
         }
 

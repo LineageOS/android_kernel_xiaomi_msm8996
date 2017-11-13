@@ -22293,6 +22293,12 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
                      (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->UapsdMask;
         }
 
+        if (NULL == pRoamProfile->SSIDs.SSIDList)
+        {
+             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: SSIDList NULL ", __func__);
+             return -EINVAL;
+        }
+
         pRoamProfile->SSIDs.numOfSSIDs = 1;
         pRoamProfile->SSIDs.SSIDList->SSID.length = ssid_len;
         vos_mem_zero(pRoamProfile->SSIDs.SSIDList->SSID.ssId,

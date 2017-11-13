@@ -9031,11 +9031,15 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
         value = 0;
     }
 
+    /* check and update MU BEAMFORMEE capability*/
+    if (pconfig->enableMuBformee && !cfg->vht_mu_bformee)
+        pconfig->enableMuBformee = cfg->vht_mu_bformee;
+
     /* set VHT MU Beamformee cap */
     if (value && !cfg->vht_mu_bformee) {
         status = ccmCfgSetInt(hdd_ctx->hHal,
                               WNI_CFG_VHT_MU_BEAMFORMEE_CAP,
-                              cfg->vht_mu_bformee, NULL,
+                              pconfig->enableMuBformee, NULL,
                               eANI_BOOLEAN_FALSE);
 
         if (status == eHAL_STATUS_FAILURE) {
