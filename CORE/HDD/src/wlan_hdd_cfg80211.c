@@ -5442,6 +5442,9 @@ static bool put_wifi_wmm_ac_stat( tpSirWifiWmmAcStat stats,
     if (nla_put_u32(vendor_event, QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_AC,
                     stats->ac ) ||
         nla_put_u32(vendor_event,
+                    QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_PENDING_MSDU,
+                    stats->pending_msdu ) ||
+        nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_WMM_AC_TX_MPDU,
                     stats->txMpdu ) ||
         nla_put_u32(vendor_event,
