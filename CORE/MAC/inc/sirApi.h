@@ -7241,6 +7241,11 @@ struct sir_ocb_config {
 	uint32_t def_tx_param_size;
 };
 
+/* Flag to indicate expiry time in TSF. */
+#define OCB_CONFIG_FLAG_EXPIRY_TIME_IN_TSF (0x01)
+/* Flag to indicate 802.11 frame mode. */
+#define OCB_CONFIG_FLAG_80211_FRAME_MODE   (0x02)
+
 /* The size of the utc time in bytes. */
 #define SIZE_UTC_TIME (10)
 /* The size of the utc time error in bytes. */

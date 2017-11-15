@@ -610,6 +610,21 @@ end:
 	} else {
 		if (enable_chan_stats)
 			wlan_hdd_dsrc_config_radio_chan_stats(adapter, true);
+
+		/*
+		 * Net device mtu size is 1500 by default, But for OCB RAW mode,
+		 * driver need later convert 802.3 data header to IEEE802.11
+		 * data header and EPD header, which will increase total frame
+		 * length. In such case, long packet length will exceed the
+		 * target credit size. It resulted in that the packet is cut
+		 * down, data would be missed and the traffic would be broken.
+		 * So decrease the netdev mtu size to work around this issue
+		 * in IEEE80211p RAW mode.
+		 */
+		if (config->flags & OCB_CONFIG_FLAG_80211_FRAME_MODE)
+			adapter->dev->mtu = ETH_DATA_LEN - 8;
+		else
+			adapter->dev->mtu = ETH_DATA_LEN;
 	}
 	return rc;
 }
