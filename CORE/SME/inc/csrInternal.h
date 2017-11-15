@@ -548,6 +548,7 @@ typedef struct tagCsrConfig
     tANI_U32 bgScanInterval;
     eCsrCBChoice cbChoice;
     eCsrBand bandCapability;     //indicate hw capability
+    tANI_U8 gStaLocalEDCAEnable;
     eCsrRoamWmmUserModeType WMMSupportMode;
     tANI_BOOLEAN Is11eSupportEnabled;
     tANI_BOOLEAN Is11dSupportEnabled;

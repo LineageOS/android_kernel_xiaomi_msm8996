@@ -1072,6 +1072,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_QOS_WMM_MODE_MIN,
                  CFG_QOS_WMM_MODE_MAX ),
 
+   REG_VARIABLE( CFG_STA_LOCAL_EDCA_FOR_ETSI_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, gStaLocalEDCAEnable,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_STA_LOCAL_EDCA_FOR_ETSI_DEFAULT,
+                 CFG_STA_LOCAL_EDCA_FOR_ETSI_MIN,
+                 CFG_STA_LOCAL_EDCA_FOR_ETSI_MAX ),
+
    REG_VARIABLE( CFG_QOS_WMM_80211E_ENABLED_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, b80211eIsEnabled,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -7856,6 +7863,7 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #endif
    smeConfig->csrConfig.Is11eSupportEnabled      = pConfig->b80211eIsEnabled;
    smeConfig->csrConfig.WMMSupportMode           = pConfig->WmmMode;
+   smeConfig->csrConfig.gStaLocalEDCAEnable      = pConfig->gStaLocalEDCAEnable;
    /*
     * -channelBondingMode5GHz is getting updated by SAP
     * so stacbmode will be used for STA connection.

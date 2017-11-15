@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014,2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -73,6 +73,8 @@ extern void schInitializeCfPollTemplate(tpAniSirGlobal pMac);
 /// Initialize CF End template
 extern void schInitializeCfEndTemplate(tpAniSirGlobal pMac);
 
+extern tSirRetStatus schGetParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN], tANI_U8 local);
+extern void setSchEdcaParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN], tpPESession psessionEntry);
 /// Process the scheduler messages
 extern void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg);
 

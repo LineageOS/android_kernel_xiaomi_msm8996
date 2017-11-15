@@ -2107,6 +2107,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.rx_aggregation_size =
                                pParam->rx_aggregation_size;
 
+        pMac->roam.configParam.gStaLocalEDCAEnable =
+                               pParam->gStaLocalEDCAEnable;
         pMac->roam.configParam.enable_edca_params =
                                pParam->enable_edca_params;
         pMac->roam.configParam.edca_vo_cwmin = pParam->edca_vo_cwmin;
