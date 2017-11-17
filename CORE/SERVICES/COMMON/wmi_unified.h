@@ -4369,7 +4369,11 @@ typedef enum {
      *  units are microseconds
      */
     WMI_PDEV_PARAM_ACK_TIMEOUT,
-
+    /** Number of TX chains to use for a/b/g rates.
+     *  bit 0~15  : 11b mode TX chain number.
+     *  bit 16~31 : 11ag mode TX chain number.
+     */
+    WMI_PDEV_PARAM_ABG_MODE_TX_CHAIN_NUM,
 } WMI_PDEV_PARAM;
 
 typedef enum {
@@ -4390,6 +4394,21 @@ typedef enum {
     /** Enable Disable debug */
     WMI_DBGLOG_REPORT_ENABLE
 } WMI_DBG_PARAM;
+
+/** MACRO define to set / get 11b and 11ag mode TX chain number:
+ *  bit 0~15 : 11b mode TX chain number.
+ *  bit 16~31: 11ag mode TX chain number.
+ */
+#define WMI_PDEV_PARAM_11B_TX_CHAIN_NUM_S  0
+#define WMI_PDEV_PARAM_11B_TX_CHAIN_NUM    0x0000FFFF
+#define WMI_PDEV_PARAM_11AG_TX_CHAIN_NUM_S 16
+#define WMI_PDEV_PARAM_11AG_TX_CHAIN_NUM   0xFFFF0000
+
+#define WMI_PDEV_PARAM_GET_11B_TX_CHAIN_NUM(word32) WMI_F_MS(word32, WMI_PDEV_PARAM_11B_TX_CHAIN_NUM)
+#define WMI_PDEV_PARAM_SET_11B_TX_CHAIN_NUM(word32, value)  WMI_F_RMW(word32,value,WMI_PDEV_PARAM_11B_TX_CHAIN_NUM)
+
+#define WMI_PDEV_PARAM_GET_11AG_TX_CHAIN_NUM(word32) WMI_F_MS(word32, WMI_PDEV_PARAM_11AG_TX_CHAIN_NUM)
+#define WMI_PDEV_PARAM_SET_11AG_TX_CHAIN_NUM(word32, value) WMI_F_RMW(word32,value,WMI_PDEV_PARAM_11AG_TX_CHAIN_NUM)
 
 /* param_value for param_id WMI_PDEV_PARAM_CTS_CBW */
 typedef enum {
