@@ -670,7 +670,8 @@ int f2fs_getattr(struct vfsmount *mnt,
 	generic_fillattr(inode, stat);
 
 	/* we need to show initial sectors used for inline_data/dentries */
-	if (f2fs_has_inline_data(inode) || f2fs_has_inline_dentry(inode))
+	if ((S_ISREG(inode->i_mode) && f2fs_has_inline_data(inode)) ||
+					f2fs_has_inline_dentry(inode))
 		stat->blocks += (stat->size + 511) >> 9;
 
 	return 0;
