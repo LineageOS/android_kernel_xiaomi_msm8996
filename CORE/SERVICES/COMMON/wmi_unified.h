@@ -2954,6 +2954,11 @@ typedef enum {
 #define WMI_SCAN_DBS_POLICY_RESERVED            0x3
 #define WMI_SCAN_DBS_POLICY_MAX                 0x3
 
+/** Enable Reception of Public Action frame with this flag
+ * (inside scan_ctrl_flags_ext field of wmi_start_scan_cmd_fixed_param)
+ */
+#define WMI_SCAN_FLAG_EXT_FILTER_PUBLIC_ACTION_FRAME      0x4
+
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_stop_scan_cmd_fixed_param */
     /** requestor requesting cancel  */
