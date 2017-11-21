@@ -1926,6 +1926,11 @@ struct hdd_context_s
     /* debugfs entry */
     struct dentry *debugfs_phy;
 
+#ifdef WLAN_POWER_DEBUGFS
+    /* mutex lock to block concurrent access */
+    struct mutex power_stats_lock;
+#endif
+
     /* Use below lock to protect access to isSchedScanUpdatePending
      * since it will be accessed in two different contexts.
      */

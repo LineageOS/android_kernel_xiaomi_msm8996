@@ -9233,6 +9233,12 @@ wlan_hdd_set_mcc_to_scc_switch(hdd_adapter_t *adapter)
 
 	sap_config = &adapter->sessionCtx.ap.sapConfig;
 	sap_config->cc_switch_mode = cfg_ini->WlanMccToSccSwitchMode;
+	sap_config->band_switch_enable = cfg_ini->wlan_band_switch_enable;
+	sap_config->ap_p2pclient_concur_enable =
+		cfg_ini->wlan_ap_p2pgo_conc_enable;
+	sap_config->ch_width_24g_orig = cfg_ini->nChannelBondingMode24GHz ?
+		eHT_CHANNEL_WIDTH_40MHZ : eHT_CHANNEL_WIDTH_20MHZ;
+	sap_config->ch_width_5g_orig = cfg_ini->vhtChannelWidth;
 }
 #else
 static void
@@ -17390,8 +17396,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
      */
     if ((0 == pHddCtx->cfg_ini->conc_custom_rule1) ||
         (pHddCtx->cfg_ini->conc_custom_rule1 &&
-         WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode))
-    pConfig->cc_switch_mode = iniConfig->WlanMccToSccSwitchMode;
+         WLAN_HDD_SOFTAP == pHostapdAdapter->device_mode)) {
+        pConfig->cc_switch_mode = iniConfig->WlanMccToSccSwitchMode;
+        pConfig->band_switch_enable = iniConfig->wlan_band_switch_enable;
+        pConfig->ap_p2pclient_concur_enable =
+                iniConfig->wlan_ap_p2pclient_conc_enable;
+    }
 #endif
 
     pIe = wlan_hdd_get_vendor_oui_ie_ptr(BLACKLIST_OUI_TYPE, WPA_OUI_TYPE_SIZE,
@@ -17530,6 +17540,12 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         ret = -EINVAL;
         goto error;
     }
+
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    pConfig->ch_width_24g_orig = iniConfig->nChannelBondingMode24GHz ?
+        eHT_CHANNEL_WIDTH_40MHZ : eHT_CHANNEL_WIDTH_20MHZ;
+    pConfig->ch_width_5g_orig = iniConfig->vhtChannelWidth;
+#endif
 
     // ht_capab is not what the name conveys,this is used for protection bitmap
     pConfig->ht_capab = iniConfig->apProtection;
