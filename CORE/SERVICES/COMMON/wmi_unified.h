@@ -2760,9 +2760,9 @@ typedef struct {
 
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_start_scan_cmd_fixed_param */
-    /** Scan ID */
+    /** Scan ID (lower 16 bits) MSB 4 bits is used to identify scan client based on enum WMI_SCAN_CLIENT_ID */
     A_UINT32 scan_id;
-    /** Scan requestor ID */
+    /** Scan requestor ID (lower 16 bits) is used by scan client to classify the scan source, reason, ...etc */
     A_UINT32 scan_req_id;
     /** VDEV id(interface) that is requesting scan */
     A_UINT32 vdev_id;
@@ -9533,6 +9533,7 @@ typedef struct {
      * wmi_roam_scan_extended_threshold_param extended_param;
      * wmi_roam_earlystop_rssi_thres_param earlystop_param;
      * wmi_roam_dense_thres_param dense_param;
+     * wmi_roam_bg_scan_roaming_param bg_scan_param;
      */
 } wmi_roam_scan_rssi_threshold_fixed_param;
 
@@ -9632,6 +9633,19 @@ enum {
     WMI_AUTH_RSNA_FILS_SHA384,
 };
 
+typedef enum {
+    WMI_SCAN_CLIENT_NLO = 0x1,  /* 1 */
+    WMI_SCAN_CLIENT_EXTSCAN,    /* 2 */
+    WMI_SCAN_CLIENT_ROAM,       /* 3 */
+    WMI_SCAN_CLIENT_P2P,        /* 4 */
+    WMI_SCAN_CLIENT_LPI,        /* 5 */
+    WMI_SCAN_CLIENT_NAN,        /* 6 */
+    WMI_SCAN_CLIENT_ANQP,       /* 7 */
+    WMI_SCAN_CLIENT_OBSS,       /* 8 */
+    WMI_SCAN_CLIENT_PLM,        /* 9 */
+    WMI_SCAN_CLIENT_HOST,       /* 10 */
+} WMI_SCAN_CLIENT_ID;
+
 typedef struct {
     /** authentication mode (defined above)  */
     A_UINT32               rsn_authmode;
@@ -9717,6 +9731,15 @@ typedef struct {
     /* traffic threshold to enable aggressive roaming in dense env; units are percent of medium occupancy, 0 - 100 */
     A_UINT32 roam_dense_traffic_thres;
 } wmi_roam_dense_thres_param;
+
+typedef struct {
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_bg_scan_roaming_param */
+    A_UINT32 tlv_header;
+    /** rssi threshold in dBm below which roaming will be triggered during background scan(non-roam scan). 0 will disable this threshold */
+    A_UINT32 roam_bg_scan_bad_rssi_thresh;
+    /** bitmap for which scan client will enable/disable background roaming. bit position is mapped to the enum WMI_SCAN_CLIENT_ID. 1 = enable, 0 = disable */
+    A_UINT32 roam_bg_scan_client_bitmap;
+} wmi_roam_bg_scan_roaming_param;
 
 /** Beacon filter wmi command info */
 
