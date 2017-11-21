@@ -18873,6 +18873,7 @@ typedef enum wmi_hw_mode_config_type {
 	 * as in WMI_HW_MODE_SBS, and 3rd on the other band
 	 */
 	WMI_HW_MODE_DBS_SBS     = 4,
+	WMI_HW_MODE_DBS_OR_SBS  = 5, /* One PHY is on 5G and the other PHY can be in 2G or 5G. */
 } WMI_HW_MODE_CONFIG_TYPE;
 
 #define WMI_SUPPORT_11B_GET(flags) WMI_GET_BITS(flags, 0, 1)
