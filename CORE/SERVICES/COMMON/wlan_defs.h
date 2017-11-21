@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2010, 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2004-2010, 2013-2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -848,5 +848,19 @@ struct wlan_dbg_tidq_stats{
     A_UINT32 wlan_dbg_tid_txq_status;
     struct wlan_dbg_txq_stats txq_st;
 };
+
+typedef enum {
+    WLAN_DBG_DATA_STALL_VDEV_PAUSE = 0,
+    WLAN_DBG_DATA_STALL_HWSCHED_CMD_FILTER,
+    WLAN_DBG_DATA_STALL_HWSCHED_CMD_FLUSH,
+    WLAN_DBG_DATA_STALL_RX_REFILL_FAILED,
+    WLAN_DBG_DATA_STALL_RX_FCS_LEN_ERROR,
+} wlan_dbg_data_stall_type_e;
+
+typedef enum {
+    WLAN_DBG_DATA_STALL_RECOVERY_CONNECT_DISCONNECT=0,
+    WLAN_DBG_DATA_STALL_RECOVERY_CONNECT_MAC_PHY_RESET,
+    WLAN_DBG_DATA_STALL_RECOVERY_CONNECT_PDR,
+} wlan_dbg_data_stall_recovery_type_e;
 
 #endif /* __WLANDEFS_H__ */
