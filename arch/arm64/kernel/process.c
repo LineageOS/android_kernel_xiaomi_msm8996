@@ -69,6 +69,22 @@ void (*arm_pm_restart)(enum reboot_mode reboot_mode, const char *cmd);
 /*
  * This is our default idle handler.
  */
+
+extern void arch_idle(void);
+void (*arm_pm_idle)(void) = arch_idle;
+
+static void default_idle(void)
+{
+	if (arm_pm_idle)
+		arm_pm_idle();
+	else
+		cpu_do_idle();
+	local_irq_enable();
+}
+
+void (*pm_idle)(void) = default_idle;
+EXPORT_SYMBOL(pm_idle);
+
 void arch_cpu_idle(void)
 {
 	/*
