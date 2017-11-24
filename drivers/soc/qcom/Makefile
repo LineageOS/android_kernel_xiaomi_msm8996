@@ -110,3 +110,4 @@ obj-$(CONFIG_QCOM_SMCINVOKE) += smcinvoke.o
 obj-$(CONFIG_QCOM_EARLY_RANDOM)	+= early_random.o
 obj-$(CONFIG_MSM_HAB) += hab/
 obj-$(CONFIG_MSM_CAPTOUCH) += captouch.o
+obj-$(CONFIG_STATE_NOTIFIER)		+= state_notifier.o
