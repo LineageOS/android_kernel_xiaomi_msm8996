@@ -89,7 +89,7 @@ scm_version()
 
 		# Check for uncommitted changes
 		if git diff-index --name-only HEAD | grep -qv "^scripts/package"; then
-			printf '%s' -dirty
+			printf '%s'
 		fi
 
 		# All done with git
@@ -113,7 +113,7 @@ scm_version()
 		# Are there uncommitted changes?
 		# These are represented by + after the changeset id.
 		case "$hgid" in
-			*+|*+\ *) printf '%s' -dirty ;;
+			*+|*+\ *) printf '%s' ;;
 		esac
 
 		# All done with mercurial
@@ -175,15 +175,6 @@ res="${res}${CONFIG_LOCALVERSION}${LOCALVERSION}"
 if test "$CONFIG_LOCALVERSION_AUTO" = "y"; then
 	# full scm version string
 	res="$res$(scm_version)"
-else
-	# append a plus sign if the repository is not in a clean
-	# annotated or signed tagged state (as git describe only
-	# looks at signed or annotated tags - git tag -a/-s) and
-	# LOCALVERSION= is not specified
-	if test "${LOCALVERSION+set}" != "set"; then
-		scm=$(scm_version --short)
-		res="$res"
-	fi
 fi
 
 echo "$res"
