@@ -14636,6 +14636,109 @@ static int wlan_hdd_cfg80211_get_chain_rssi(struct wiphy *wiphy,
 	return ret;
 }
 
+static const struct
+nla_policy
+qca_wlan_vendor_peer_flush_pending_policy
+	[QCA_WLAN_VENDOR_ATTR_FLUSH_PENDING_MAX + 1] = {
+	[QCA_WLAN_VENDOR_ATTR_PEER_ADDR] = {.type = NLA_BINARY,
+					.len = VOS_MAC_ADDR_SIZE},
+	[QCA_WLAN_VENDOR_ATTR_AC] = { .type = NLA_U8 },
+};
+
+/**
+ * __wlan_hdd_cfg80211_peer_flush_tids() - flush peer pending packets
+ * @wiphy: Pointer to wireless phy
+ * @wdev: Pointer to wireless device
+ * @data: Pointer to data
+ * @data_len: Length of @data
+ *
+ * This function is used to flush peer pending packets using vendor commands
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int
+__wlan_hdd_cfg80211_peer_flush_pending(struct wiphy *wiphy,
+				       struct wireless_dev *wdev,
+				       const void *data, int data_len)
+{
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_FLUSH_PENDING_MAX + 1];
+	struct sme_flush_pending flush_pending;
+	eHalStatus status;
+	int ret;
+
+	ENTER();
+
+	ret = wlan_hdd_validate_context(hdd_ctx);
+	if (0 != ret)
+		return ret;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_FLUSH_PENDING_MAX, data,
+		      data_len, qca_wlan_vendor_peer_flush_pending_policy)) {
+		hddLog(LOGE, FL("Invalid attribute"));
+		return -EINVAL;
+	}
+
+	if (!tb[QCA_WLAN_VENDOR_ATTR_PEER_ADDR]) {
+		hddLog(LOGE,
+		       FL("Attribute peerMac not provided"));
+		return -EINVAL;
+	}
+	memcpy(flush_pending.peer_addr.bytes,
+	       nla_data(tb[QCA_WLAN_VENDOR_ATTR_PEER_ADDR]),
+	       VOS_MAC_ADDR_SIZE);
+
+	if (!tb[QCA_WLAN_VENDOR_ATTR_AC]) {
+		hddLog(LOGE, FL("Attribute AC not provided"));
+		return -EINVAL;
+	}
+	flush_pending.flush_ac = nla_get_u8(tb[QCA_WLAN_VENDOR_ATTR_AC]);
+	hddLog(LOG1, FL("flush ac = %02x"), flush_pending.flush_ac & 0x0f);
+
+	flush_pending.session_id = adapter->sessionId;
+	hddLog(LOG1, FL("session_id = %d"), flush_pending.session_id);
+
+	status = sme_peer_flush_pending(hdd_ctx->hHal, &flush_pending);
+	if (!HAL_STATUS_SUCCESS(status)) {
+		hddLog(LOGE, FL("sme_config_peer_flush_pending (err=%d)"),
+		       status);
+		return -EINVAL;
+	}
+	EXIT();
+	return 0;
+}
+
+/**
+ * wlan_hdd_cfg80211_peer_flush_tids() - flush peer pending packets
+ * @wiphy: Pointer to wireless phy
+ * @wdev: Pointer to wireless device
+ * @data: Pointer to data
+ * @data_len: Length of @data
+ *
+ * Wrapper function of __wlan_hdd_cfg80211_peer_flush_ac()
+ *
+ * Return: 0 on success, negative errno on failure
+ */
+static int wlan_hdd_cfg80211_peer_flush_pending(struct wiphy *wiphy,
+						struct wireless_dev *wdev,
+						const void *data, int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_peer_flush_pending(wiphy, wdev,
+						     data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+
 const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 {
     {
@@ -15170,6 +15273,14 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 				 WIPHY_VENDOR_CMD_NEED_NETDEV |
 				 WIPHY_VENDOR_CMD_NEED_RUNNING,
 		.doit = wlan_hdd_cfg80211_ll_stats_ext_set_param
+	},
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_PEER_FLUSH_PENDING,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+				 WIPHY_VENDOR_CMD_NEED_NETDEV |
+				 WIPHY_VENDOR_CMD_NEED_RUNNING,
+		.doit = wlan_hdd_cfg80211_peer_flush_pending
 	},
 };
 

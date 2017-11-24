@@ -4706,6 +4706,9 @@ eHalStatus sme_delete_all_tdls_peers(tHalHandle hal, uint8_t session_id);
 
 eHalStatus sme_update_txrate(tHalHandle hal, struct sir_txrate_update *req);
 
+eHalStatus sme_peer_flush_pending(tHalHandle hal,
+				  struct sme_flush_pending *req);
+
 void sme_send_disassoc_req_frame(tHalHandle hal, uint8_t session_id,
 		uint8_t *peer_mac, tANI_U16 reason, uint8_t wait_for_ack);
 

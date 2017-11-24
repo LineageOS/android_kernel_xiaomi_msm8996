@@ -33439,6 +33439,67 @@ static VOS_STATUS wma_get_isolation(tp_wma_handle wma)
 }
 
 /*
+ * wma_peer_flush_pending() - Flush peer data in fw
+ * @wma_handle: WMA handle
+ * @sta_inactivity_timer: sme_sta_inactivity_timeout
+ *
+ * This function is used to discard pending packets of tids in fw.
+ *
+ * Return: None
+ */
+static void wma_peer_flush_pending(tp_wma_handle wma,
+				   struct sme_flush_pending *flush_pend)
+{
+	u_int8_t ac_to_tid[4][2] = { {0, 3}, {1, 2}, {4, 5}, {6, 7} };
+	u_int8_t vdev_id, peer_id;
+	u_int32_t peer_tid_bitmap = 0;
+	struct wma_txrx_node *iface;
+	u_int8_t i;
+	struct ol_txrx_peer_t *peer;
+	ol_txrx_pdev_handle pdev;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	if (!pdev) {
+		WMA_LOGE("%s: pdev is NULL", __func__);
+		return;
+	}
+
+	peer = ol_txrx_find_peer_by_addr(pdev, flush_pend->peer_addr.bytes,
+					 &peer_id);
+	if (!peer) {
+		WMA_LOGE("PEER [%pM] not found", flush_pend->peer_addr.bytes);
+		return;
+	}
+	WMA_LOGI("PEER [%pM] found", flush_pend->peer_addr.bytes);
+
+	vdev_id = flush_pend->session_id;
+	iface = &wma->interfaces[vdev_id];
+	if (!iface->handle) {
+		WMA_LOGE("%s: Failed to get iface handle: %p",
+			 __func__, iface->handle);
+		return;
+	}
+
+	if (flush_pend->flush_ac) {
+		for (i = 0; i < 4; ++i) {
+			if (((flush_pend->flush_ac & 0x0f) >> i) & 0x01) {
+				peer_tid_bitmap |= (1 << ac_to_tid[i][0]) |
+						   (1 << ac_to_tid[i][1]);
+			}
+		}
+	} else {
+		return;
+	}
+
+	WMA_LOGI("%s: vdevid %d peer_tid_bitmap %08x", __func__,
+		 vdev_id, peer_tid_bitmap);
+
+	wmi_unified_peer_flush_tids_send(wma->wmi_handle,
+					 flush_pend->peer_addr.bytes,
+					 peer_tid_bitmap, vdev_id);
+}
+
+/*
  * function   : wma_mc_process_msg
  * Description :
  * Args       :
@@ -34371,6 +34432,10 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
         case WDA_GET_ISOLATION:
             wma_get_isolation(wma_handle);
             break;
+		case WDA_PEER_FLUSH_PENDING:
+			wma_peer_flush_pending(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

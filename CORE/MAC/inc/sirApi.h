@@ -8467,6 +8467,18 @@ struct sme_sta_inactivity_timeout {
 };
 
 /**
+ * struct sme_flush_pending - flush pending packets with specified tids
+ * @vdev_id: vdev Id.
+ * @peer_addr: peer mac address.
+ * @flush_ac: access category pending packets using
+ */
+struct sme_flush_pending {
+	uint8_t session_id;
+	v_MACADDR_t  peer_addr;
+	uint8_t flush_ac;
+};
+
+/**
  * struct scan_chan_info - channel info
  * @freq: radio frequence
  * @cmd flag: cmd flag
