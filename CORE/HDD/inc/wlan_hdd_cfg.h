@@ -467,9 +467,24 @@ enum
 
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
 #define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE          "gWlanMccToSccSwitchMode"
-#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_MIN      ( VOS_MCC_TO_SCC_SWITCH_DISABLE)
-#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_MAX      ( VOS_MCC_TO_SCC_SWITCH_FORCE )
-#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_DEFAULT  (VOS_MCC_TO_SCC_SWITCH_DISABLE)
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_MIN      VOS_MCC_TO_SCC_SWITCH_DISABLE
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_MAX      VOS_MCC_TO_SCC_SWITCH_FORCE
+#define CFG_WLAN_MCC_TO_SCC_SWITCH_MODE_DEFAULT  VOS_MCC_TO_SCC_SWITCH_DISABLE
+
+#define CFG_WLAN_BAND_SWITCH_ENABLE              "gWlanBandSwitchEnable"
+#define CFG_WLAN_BAND_SWITCH_ENABLE_MIN          ( 0 )
+#define CFG_WLAN_BAND_SWITCH_ENABLE_MAX          ( 1 )
+#define CFG_WLAN_BAND_SWITCH_ENABLE_DEFAULT      ( 0 )
+
+#define CFG_WLAN_AP_P2PGO_CONC_ENABLE            "gWlanApP2pGOConcurrencyEnable"
+#define CFG_WLAN_AP_P2PGO_CONC_ENABLE_MIN        ( 0 )
+#define CFG_WLAN_AP_P2PGO_CONC_ENABLE_MAX        ( 1 )
+#define CFG_WLAN_AP_P2PGO_CONC_ENABLE_DEFAULT    ( 0 )
+
+#define CFG_WLAN_AP_P2PGC_CONC_ENABLE            "gWlanApP2pClientConcurEnable"
+#define CFG_WLAN_AP_P2PGC_CONC_ENABLE_MIN        ( 0 )
+#define CFG_WLAN_AP_P2PGC_CONC_ENABLE_MAX        ( 1 )
+#define CFG_WLAN_AP_P2PGC_CONC_ENABLE_DEFAULT    ( 0 )
 #endif
 
 
@@ -724,6 +739,11 @@ enum
 #define CFG_QOS_WMM_MODE_MIN                               (0)
 #define CFG_QOS_WMM_MODE_MAX                               (2) //HDD_WMM_NO_QOS
 #define CFG_QOS_WMM_MODE_DEFAULT                           (0) //HDD_WMM_AUTO
+
+#define CFG_STA_LOCAL_EDCA_FOR_ETSI_NAME                "gStaLocalEDCAForETSI"
+#define CFG_STA_LOCAL_EDCA_FOR_ETSI_MIN                 (0)
+#define CFG_STA_LOCAL_EDCA_FOR_ETSI_MAX                 (1)
+#define CFG_STA_LOCAL_EDCA_FOR_ETSI_DEFAULT             (0)
 
 #define CFG_QOS_WMM_80211E_ENABLED_NAME                   "80211eIsEnabled"
 #define CFG_QOS_WMM_80211E_ENABLED_MIN                     (0)
@@ -4933,6 +4953,7 @@ struct hdd_config {
 
    //WMM QoS Configuration
    hdd_wmm_user_mode_t          WmmMode;
+   v_U8_t                       gStaLocalEDCAEnable;
    v_BOOL_t                     b80211eIsEnabled;
    v_U8_t                       UapsdMask;    // what ACs to setup U-APSD for at assoc
    v_U32_t                      InfraUapsdVoSrvIntv;
@@ -5249,6 +5270,9 @@ struct hdd_config {
 #endif
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
    v_U32_t                     WlanMccToSccSwitchMode;
+   bool                        wlan_band_switch_enable;
+   bool                        wlan_ap_p2pgo_conc_enable;
+   bool                        wlan_ap_p2pclient_conc_enable;
 #endif
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
    v_U32_t                     WlanAutoShutdown;

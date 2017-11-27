@@ -3255,6 +3255,7 @@ end:
 static void
 limProcessStaMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession psessionEntry)
 {
+    tANI_U32 params[4][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN];
     tpAddBssParams pAddBssParams = (tpAddBssParams) limMsgQ->bodyptr;
     tLimMlmAssocCnf mlmAssocCnf;
     tANI_U32 mesgType       = LIM_MLM_ASSOC_CNF;
@@ -3336,6 +3337,20 @@ limProcessStaMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession ps
             pStaDs->staIndex = pAddBssParams->staContext.staIdx;
             pStaDs->ucUcastSig   = pAddBssParams->staContext.ucUcastSig;
             pStaDs->ucBcastSig   = pAddBssParams->staContext.ucBcastSig;
+
+            //for ETSI, STA should follow AP' country code and judge the country of EU, while we have no valid AP, so need ignore country for ETSI test.
+            //if(pMac->roam.configParam.gStaLocalEDCAEnable && vos_is_etsi_europe_country(pMac->scan.countryCodeCurrent))
+            if(pMac->roam.configParam.gStaLocalEDCAEnable)
+            {
+
+                if (schGetParams(pMac, params, true /*local*/) != eSIR_SUCCESS)
+                    {
+                        PELOGE(limLog(pMac, LOGE, FL("schGetParams(local) failed"));)
+                    }
+                    else
+                        setSchEdcaParams(pMac, params, psessionEntry);
+            }
+
             // Downgrade the EDCA parameters if needed
             limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
             limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive,

@@ -2074,6 +2074,11 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
                                pParam->isCoalesingInIBSSAllowed;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
         pMac->roam.configParam.cc_switch_mode = pParam->cc_switch_mode;
+        pMac->roam.configParam.band_switch_enable = pParam->band_switch_enable;
+        pMac->roam.configParam.ap_p2pgo_concurrency_enable =
+                               pParam->ap_p2pgo_concurrency_enable;
+        pMac->roam.configParam.ap_p2pclient_concur_enable =
+                               pParam->ap_p2pclient_concur_enable;
 #endif
         pMac->roam.configParam.allowDFSChannelRoam = pParam->allowDFSChannelRoam;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
@@ -2102,6 +2107,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         pMac->roam.configParam.rx_aggregation_size =
                                pParam->rx_aggregation_size;
 
+        pMac->roam.configParam.gStaLocalEDCAEnable =
+                               pParam->gStaLocalEDCAEnable;
         pMac->roam.configParam.enable_edca_params =
                                pParam->enable_edca_params;
         pMac->roam.configParam.edca_vo_cwmin = pParam->edca_vo_cwmin;
@@ -2258,6 +2265,11 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
         pParam->cc_switch_mode = pMac->roam.configParam.cc_switch_mode;
+        pParam->band_switch_enable = pMac->roam.configParam.band_switch_enable;
+        pParam->ap_p2pgo_concurrency_enable =
+                     pMac->roam.configParam.ap_p2pgo_concurrency_enable;
+        pParam->ap_p2pclient_concur_enable =
+                     pMac->roam.configParam.ap_p2pclient_concur_enable;
 #endif
         pParam->enableTxLdpc = pMac->roam.configParam.txLdpcEnable;
 
@@ -12234,7 +12246,6 @@ void csrRoamWmStatusChangeComplete( tpAniSirGlobal pMac )
     {
         smsLog( pMac, LOGW, "CSR: WmStatusChange Completion called but NO commands are ACTIVE ..." );
     }
-    smeProcessPendingQueue( pMac );
 }
 
 void csrRoamProcessWmStatusChangeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )

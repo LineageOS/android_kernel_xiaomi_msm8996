@@ -547,6 +547,10 @@ typedef struct sap_Config {
     uint8_t         sec_ch;
     uint16_t         vht_channel_width;
     uint16_t         ch_width_orig;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+    uint16_t         ch_width_24g_orig;
+    uint16_t         ch_width_5g_orig;
+#endif
     v_U8_t          max_num_sta;     /* maximum number of STAs in station table */
     v_U8_t          dtim_period;     /* dtim interval */
     v_U8_t          num_accept_mac;
@@ -584,6 +588,8 @@ typedef struct sap_Config {
 #endif
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
     v_U8_t          cc_switch_mode;
+    bool            band_switch_enable;
+    bool            ap_p2pclient_concur_enable;
 #endif
 
     v_U16_t    probeRespIEsBufferLen;

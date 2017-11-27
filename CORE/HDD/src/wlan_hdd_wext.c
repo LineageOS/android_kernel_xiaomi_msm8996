@@ -697,6 +697,48 @@ int hdd_priv_get_data(struct iw_point *p_priv_data,
    return 0;
 }
 
+#define WLAN_HDD_MAX_BW_VALUE	5
+
+/**
+ * wlan_hdd_validate_mon_channel() - check channel number is valid or not
+ * @channel: channel number
+ *
+ * @return: VOS_STATUS
+ */
+VOS_STATUS wlan_hdd_validate_mon_channel(int channel)
+{
+        uint8_t fValidChannel = FALSE, count = 0;
+
+        for (count = RF_CHAN_1; count <= RF_CHAN_165; count++)
+        {
+            if ( channel == rfChannels[count].channelNum )
+            {
+                fValidChannel = TRUE;
+                break;
+            }
+        }
+        if (fValidChannel != TRUE)
+        {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Invalid Channel [%d]", __func__, channel);
+            return VOS_STATUS_E_FAILURE;
+        }
+        return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wlan_hdd_validate_mon_bw() - check bandwidth value is valid or not
+ * @bw: bandwidth value
+ *
+ * @return: VOS_STATUS
+ */
+VOS_STATUS wlan_hdd_validate_mon_bw(int bw)
+{
+        if (bw >= 0 && bw <= WLAN_HDD_MAX_BW_VALUE)
+            return VOS_STATUS_SUCCESS;
+
+        return VOS_STATUS_E_FAILURE;
+}
 
 /**---------------------------------------------------------------------------
 
@@ -11342,6 +11384,18 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
             uint8_t ini_sub_20_ch_width =
                         hdd_ctx->cfg_ini->sub_20_channel_width;
 
+            /* Validate channel Number*/
+            if (wlan_hdd_validate_mon_channel(value[1]) != VOS_STATUS_SUCCESS) {
+                hddLog(LOGE, "Invalid channel for monitor mode");
+                return -EINVAL;
+            }
+
+            /* Validate bandwidth Number*/
+            if (wlan_hdd_validate_mon_bw(value[2]) != VOS_STATUS_SUCCESS) {
+                hddLog(LOGE, "Invalid bandwidth for monitor mode");
+                return -EINVAL;
+            }
+
             roam_profile = vos_mem_malloc(sizeof(tCsrRoamProfile));
             if (roam_profile == NULL){
                 hddLog(LOGE, "Failed to allocate memory");
@@ -11365,6 +11419,7 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
             hddLog(LOGE, "Set monitor mode Channel %d bandwidth %d sub20 %d",
                    value[1], vht_channel_width,
                    roam_profile->sub20_channelwidth);
+
             hdd_select_mon_cbmode(pAdapter, value[1], &vht_channel_width);
 
             roam_profile->ChannelInfo.ChannelList = &ch_info->channel;
