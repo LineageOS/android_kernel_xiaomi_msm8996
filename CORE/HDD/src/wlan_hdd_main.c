@@ -11655,6 +11655,29 @@ hdd_adapter_t *hdd_open_adapter(hdd_context_t *hdd_ctx,
 	}
 
 	if (VOS_FTM_MODE != vos_get_conparam()) {
+		uint32_t cca_threshold;
+
+		cca_threshold = hdd_ctx->cfg_ini->cca_threshold_2g |
+				hdd_ctx->cfg_ini->cca_threshold_5g << 8;
+
+		if (hdd_ctx->cfg_ini->cca_threshold_enable) {
+			hddLog(VOS_TRACE_LEVEL_DEBUG,
+			       "%s: CCA Threshold is enabled.", __func__);
+			ret = process_wma_set_command((int)adapter->sessionId,
+					WMI_PDEV_PARAM_CCA_THRESHOLD,
+					cca_threshold,
+					PDEV_CMD);
+		} else {
+			ret = 0;
+		}
+
+		if (ret != 0) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       "%s: WMI_PDEV_PARAM_CCA_THRESHOLD set failed %d",
+			       __func__, ret);
+			goto err_post_add_adapter;
+		}
+
 		ret = process_wma_set_command((int)adapter->sessionId,
 			      (int)WMI_PDEV_PARAM_HYST_EN,
 			      (int)hdd_ctx->cfg_ini->enableMemDeepSleep,
