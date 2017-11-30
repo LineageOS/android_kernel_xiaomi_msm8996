@@ -34363,14 +34363,13 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 	vos_msg_t vos_msg = {0};
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
+	param_buf = (WMI_SCAN_EVENTID_param_tlvs *) data;
+	wmi_event = param_buf->fixed_param;
+	vdev_id = wmi_event->vdev_id;
 	if (wmi_event->vdev_id >= wma_handle->max_bssid) {
 		WMA_LOGE("Invalid vdev id from firmware");
 		return -EINVAL;
 	}
-
-	param_buf = (WMI_SCAN_EVENTID_param_tlvs *) data;
-	wmi_event = param_buf->fixed_param;
-	vdev_id = wmi_event->vdev_id;
 	scan_id = wma_handle->interfaces[vdev_id].scan_info.scan_id;
 
 	adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
