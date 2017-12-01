@@ -2807,9 +2807,7 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 		pr_info("%s: Section:%d Bytes Read:%0x\n", __func__,
 			sectionCount, result);
 #ifdef CONFIG_NON_QC_PLATFORM_PCI
-		printk("\nMemory addr for %s = 0x%p\n",fw_ram_seg_name[sectionCount], bufferLoc);
-		print_hex_dump(KERN_DEBUG, fw_ram_seg_name[sectionCount],
-				DUMP_PREFIX_ADDRESS, 16, 4, bufferLoc, result, false);
+		printk("\nMemory addr for %s = 0x%p (size: %x)\n",fw_ram_seg_name[sectionCount], bufferLoc, result);
 #endif
 		amountRead += result;
 		bufferLoc += result;
