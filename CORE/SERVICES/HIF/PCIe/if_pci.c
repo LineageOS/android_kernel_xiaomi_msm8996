@@ -1854,6 +1854,9 @@ again:
     if (ol_sc->ramdump_base == NULL || !ol_sc->ramdump_size) {
         pr_info("%s: Failed to get RAM dump memory address or size!\n",
                 __func__);
+    } else {
+        pr_info("%s: ramdump base 0x%p size %d\n", __func__,
+		ol_sc->ramdump_base, (int)ol_sc->ramdump_size);
     }
 
     adf_os_atomic_init(&sc->tasklet_from_intr);
