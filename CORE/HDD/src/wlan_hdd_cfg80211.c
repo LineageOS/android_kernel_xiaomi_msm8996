@@ -784,6 +784,30 @@ static int rssiMcsTbl[][10] =
 
 extern struct net_device_ops net_ops_struct;
 
+/**
+ * struct cfg_hostapd_edca - Store hostapd EDCA params
+ *                           and fill them in gLimEdcaParams
+ *                           structure
+ * @acm: EDCA param
+ * @aifs: EDCA param
+ * @cwmin: EDCA param
+ * @cwmax: EDCA param
+ * @txop: EDCA param
+ * @paramb: EDCA param for 11b
+ * @paramg: EDCA param for 11g
+ * @enable: enable hostapd EDCA params
+ */
+struct cfg_hostapd_edca {
+	uint8_t acm;
+	uint8_t aifs;
+	uint16_t cwmin;
+	uint16_t cwmax;
+	uint8_t txop;
+	uint8_t paramsb[5];
+	uint8_t paramsg[5];
+	uint8_t enable;
+};
+
 #ifdef WLAN_NL80211_TESTMODE
 enum wlan_hdd_tm_attr
 {
@@ -17917,6 +17941,8 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 #endif
 {
     hdd_adapter_t  *pAdapter   = WLAN_HDD_GET_PRIV_PTR(dev);
+    tHalHandle hal_ptr = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    tpAniSirGlobal mac_ptr = PMAC_STRUCT(hal_ptr);
     hdd_context_t  *pHddCtx    = NULL;
     hdd_scaninfo_t *pScanInfo  = NULL;
     hdd_adapter_t  *staAdapter = NULL;
@@ -17927,6 +17953,11 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     unsigned long   rc;
     hdd_adapter_list_node_t *pAdapterNode = NULL;
     hdd_adapter_list_node_t *pNext        = NULL;
+    uint8_t i, zeros[18] = {0};
+    uint32_t hostapd_edca_local[] = {WNI_CFG_EDCA_HOSTAPD_ACVO_LOCAL,
+                                     WNI_CFG_EDCA_HOSTAPD_ACVI_LOCAL,
+                                     WNI_CFG_EDCA_HOSTAPD_ACBE_LOCAL,
+                                     WNI_CFG_EDCA_HOSTAPD_ACBK_LOCAL};
 
     ENTER();
 
@@ -17957,6 +17988,12 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 
     if (WLAN_HDD_SOFTAP == pAdapter->device_mode)
         hdd_wlan_green_ap_stop_bss(pHddCtx);
+
+    if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) &&
+        (pHddCtx->cfg_ini->enable_hostapd_edca_local)) {
+        for (i = 0; i < 4; ++i)
+            cfgSetStr(mac_ptr, hostapd_edca_local[i], zeros, 18);
+    }
 
     status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
     while (NULL != pAdapterNode && VOS_STATUS_SUCCESS == status) {
@@ -26491,7 +26528,47 @@ static int __wlan_hdd_set_txq_params(struct wiphy *wiphy,
 				     struct net_device *dev,
 				     struct ieee80211_txq_params *params)
 {
+	hdd_adapter_t *padapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	tHalHandle hal_ptr = WLAN_HDD_GET_HAL_CTX(padapter);
+	tpAniSirGlobal pmac = PMAC_STRUCT(hal_ptr);
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	uint32_t hostapd_edca_local[] = {WNI_CFG_EDCA_HOSTAPD_ACVO_LOCAL,
+					 WNI_CFG_EDCA_HOSTAPD_ACVI_LOCAL,
+					 WNI_CFG_EDCA_HOSTAPD_ACBE_LOCAL,
+					 WNI_CFG_EDCA_HOSTAPD_ACBK_LOCAL};
+	int rc;
+	struct cfg_hostapd_edca tmp;
+
 	ENTER();
+
+	memset(&tmp, 0 , sizeof(struct cfg_hostapd_edca));
+
+	if (hdd_ctx->cfg_ini->enable_hostapd_edca_local) {
+		rc = wlan_hdd_validate_context(hdd_ctx);
+		if (0 != rc)
+			return rc;
+
+		if (VOS_FTM_MODE == hdd_get_conparam()) {
+			hddLog(LOGE, FL("Command not allowed in FTM mode"));
+			return -EINVAL;
+		}
+
+		if (params->ac >= MAX_NUM_AC) {
+			hddLog(LOGE, "Wrong Params ac %d\r\n", params->ac);
+			return -EINVAL;
+		}
+
+		tmp.aifs = params->aifs;
+		tmp.cwmin = sirSwapU16(params->cwmin);
+		tmp.cwmax = sirSwapU16(params->cwmax);
+		tmp.txop = (uint8_t)params->txop;
+		memcpy(&tmp.paramsb, (uint8_t *)(&tmp.cwmin), 5);
+		memcpy(&tmp.paramsg, (uint8_t *)(&tmp.cwmin), 5);
+		tmp.enable = 1;
+		/* Store Hostapd EDCA params in cfg */
+		cfgSetStr(pmac, hostapd_edca_local[params->ac], (uint8_t *)(&tmp),
+			  sizeof(struct cfg_hostapd_edca));
+	}
 	return 0;
 }
 #else
