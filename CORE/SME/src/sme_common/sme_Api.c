@@ -14529,6 +14529,28 @@ eHalStatus sme_set_cts2self_for_p2p_go(tHalHandle hal_handle)
 	return status;
 }
 
+/**
+ * sme_set_ac_txq_optimize() - sme function to set ini parms to FW.
+ * @hal_handle:                    reference to the HAL
+ * @value                          reference to the value
+ * Return: hal_status
+ */
+eHalStatus sme_set_ac_txq_optimize(tHalHandle hal_handle, uint8_t *value)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	vos_msg_t vos_msg;
+
+	vos_msg.bodyptr = value;
+	vos_msg.type = WDA_SET_AC_TXQ_OPTIMIZE;
+	if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA,
+						       &vos_msg))) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Failed to post WDA_SET_AC_TXQ_OPTIMIZE to WDA"));
+		status = eHAL_STATUS_FAILURE;
+	}
+	return status;
+}
+
 eHalStatus sme_ConfigEnablePowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;

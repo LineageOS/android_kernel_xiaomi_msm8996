@@ -1104,6 +1104,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_UPDATE_STA_INACTIVITY_TIMEOUT     SIR_HAL_STA_INACTIVITY_TIMEOUT
 #define WDA_ACTION_FRAME_RANDOM_MAC           SIR_HAL_ACTION_FRAME_RANDOM_MAC
 
+#define WDA_SET_AC_TXQ_OPTIMIZE               SIR_HAL_SET_AC_TXQ_OPTIMIZE
+
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
