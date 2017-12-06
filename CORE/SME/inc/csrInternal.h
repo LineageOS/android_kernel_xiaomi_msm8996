@@ -1123,6 +1123,7 @@ typedef struct tagCsrRoamStruct
 #endif
     vos_timer_t packetdump_timer;
     tANI_BOOLEAN pending_roam_disable;
+    vos_spin_lock_t roam_state_lock;
 }tCsrRoamStruct;
 
 
