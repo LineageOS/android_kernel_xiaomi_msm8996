@@ -196,7 +196,7 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
         }
     case  HTT_T2H_MSG_TYPE_RX_OFFLOAD_DELIVER_IND:
         {
-            int msdu_cnt;
+            u_int16_t msdu_cnt;
             msdu_cnt = HTT_RX_OFFLOAD_DELIVER_IND_MSDU_CNT_GET(*msg_word);
             ol_rx_offload_deliver_ind_handler(
                 pdev->txrx_pdev,

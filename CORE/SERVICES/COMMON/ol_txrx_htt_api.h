@@ -448,7 +448,7 @@ void
 ol_rx_offload_deliver_ind_handler(
     ol_txrx_pdev_handle pdev,
     adf_nbuf_t msg,
-    int msdu_cnt);
+    u_int16_t msdu_cnt);
 
 /**
  * @brief Process a peer map message sent by the target.
