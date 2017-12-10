@@ -597,10 +597,10 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	}
 
 	if (hdr->buf_len < sizeof(struct ieee80211_frame) ||
-		hdr->buf_len > data_len) {
+	   (!saved_beacon && hdr->buf_len > data_len)) {
 		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
-		TLSHIM_LOGE("Invalid rx mgmt packet, data_len %u, hdr->buf_len %u",
-				data_len, hdr->buf_len);
+		TLSHIM_LOGE("Invalid rx mgmt packet, saved_beacon %d, data_len %u, hdr->buf_len %u",
+				saved_beacon, data_len, hdr->buf_len);
 		return 0;
 	}
 

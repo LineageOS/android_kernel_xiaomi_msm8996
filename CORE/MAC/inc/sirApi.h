@@ -1209,6 +1209,11 @@ typedef struct sSirSmeJoinReq
     struct cds_fils_connection_info fils_con_info;
 #endif
     tSirBssDescription  bssDescription;
+    /*
+     * WARNING: Pls make bssDescription as last variable in struct
+     * tSirSmeJoinReq as it has ieFields followed after this bss
+     * description. Adding a variable after this corrupts the ieFields
+     */
 } tSirSmeJoinReq, *tpSirSmeJoinReq;
 
 /* Definition for response message to previously issued join request */
@@ -6391,6 +6396,8 @@ typedef struct
     tANI_U32 contentionTimeAvg;
     /* num of data pkts used for contention statistics */
     tANI_U32 contentionNumSamples;
+    /* num of pending msdu */
+    tANI_U32 pending_msdu;
 } tSirWifiWmmAcStat, *tpSirWifiWmmAcStat;
 
 /* Interface statistics - corresponding to 2nd most

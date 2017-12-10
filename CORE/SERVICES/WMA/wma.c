@@ -3470,6 +3470,13 @@ static int wma_peer_info_event_handler(void *handle, u_int8_t *cmd_param_info,
 
 	WMA_LOGI("%s Recv WMI_PEER_STATS_INFO_EVENTID", __func__);
 	event = param_buf->fixed_param;
+	if (event->num_peers >
+		((WMA_SVC_MSG_MAX_SIZE -
+		  sizeof(wmi_peer_stats_info_event_fixed_param))/
+		 sizeof(wmi_peer_stats_info))) {
+		WMA_LOGE("Excess num of peers from fw %d", event->num_peers);
+		return -EINVAL;
+	}
 	buf_size = sizeof(wmi_peer_stats_info_event_fixed_param) +
 		sizeof(wmi_peer_stats_info) * event->num_peers;
 	buf = vos_mem_malloc(buf_size);
@@ -5308,8 +5315,23 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 		return -EINVAL;
 	}
 
+	if (radio_stats->num_channels >
+	    NUM_2_4GHZ_CHANNELS + NUM_5GHZ_CHANNELS) {
+		WMA_LOGE("%s: Too many channels %d",
+			 __func__, radio_stats->num_channels);
+		return -EINVAL;
+	}
+
 	radio_stats_size = sizeof(tSirWifiRadioStat);
 	chan_stats_size  = sizeof(tSirWifiChannelStats);
+
+	if (fixed_param->num_radio >
+	    (UINT_MAX - sizeof(*link_stats_results)) / radio_stats_size) {
+		WMA_LOGE("excess num_radio %d is leading to int overflow",
+			 fixed_param->num_radio);
+		return -EINVAL;
+	}
+
 	link_stats_results_size = sizeof(*link_stats_results) +
 			radio_stats_size +
 			(radio_stats->num_channels * chan_stats_size);
@@ -8118,6 +8140,7 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	wmi_key_material *key = NULL;
 	int size=0;
 	tSirRoamOffloadSynchInd *pRoamOffloadSynchInd;
+	uint32_t roam_synch_data_len;
 
 	WMA_LOGD("LFR3:%s", __func__);
 	if (!event) {
@@ -8137,6 +8160,12 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	 return -EINVAL;
 	}
 
+	if (synch_event->vdev_id >= wma->max_bssid) {
+		WMA_LOGE("%s: received invalid vdev_id %d",
+			 __func__, synch_event->vdev_id);
+		return -EINVAL;
+	}
+
 	DPTRACE(adf_dp_trace_record_event(ADF_DP_TRACE_EVENT_RECORD,
 		synch_event->vdev_id, ADF_PROTO_TYPE_EVENT, ADF_ROAM_SYNCH));
 
@@ -8146,29 +8175,44 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	  __func__);
 	  return -EINVAL;
 	}
-	/*
-	 * All below length fields are unsigned and hence positive numbers.
-	 * Maximum number during the addition would be (3 * MAX_LIMIT(UINT32) +
-	 * few fixed fields).
-	 */
-	if ((sizeof(*synch_event) + synch_event->bcn_probe_rsp_len +
-			synch_event->reassoc_rsp_len +
-			sizeof(wmi_channel) + sizeof(wmi_key_material) +
-			sizeof(uint32_t)) > WMA_SVC_MSG_MAX_SIZE) {
-		WMA_LOGE("excess synch payload: LEN bcn:%d, rsp:%d",
-				synch_event->bcn_probe_rsp_len,
-				synch_event->reassoc_rsp_len);
-		VOS_ASSERT(0);
+
+	WMA_LOGD("synch payload: LEN bcn:%d, req:%d, rsp:%d",
+		 synch_event->bcn_probe_rsp_len,
+		 synch_event->reassoc_req_len,
+		 synch_event->reassoc_rsp_len);
+
+	if (synch_event->bcn_probe_rsp_len > WMA_SVC_MSG_MAX_SIZE)
 		return -EINVAL;
-	}
+	if (synch_event->reassoc_rsp_len >
+	    (WMA_SVC_MSG_MAX_SIZE - synch_event->bcn_probe_rsp_len))
+		return -EINVAL;
+	if (synch_event->reassoc_req_len >
+	    WMA_SVC_MSG_MAX_SIZE - (synch_event->bcn_probe_rsp_len +
+	    synch_event->reassoc_rsp_len))
+		return -EINVAL;
+
+	roam_synch_data_len = synch_event->bcn_probe_rsp_len +
+				synch_event->reassoc_rsp_len +
+				synch_event->reassoc_req_len;
+	/*
+	 * Below is the check for the entire size of the message received from'
+	 * the firmware.
+	 */
+	if (roam_synch_data_len > WMA_SVC_MSG_MAX_SIZE -
+	    (sizeof(*synch_event) + sizeof(wmi_channel) +
+	    sizeof(wmi_key_material) + sizeof(uint32_t)))
+		return -EINVAL;
+
+	if (sizeof(tSirRoamOffloadSynchInd) >
+	    (WMA_SVC_MSG_MAX_SIZE - roam_synch_data_len))
+		return -EINVAL;
+	roam_synch_data_len += sizeof(tSirRoamOffloadSynchInd);
 
 	adf_os_spin_lock_bh(&wma->roam_synch_lock);
 	wma->interfaces[synch_event->vdev_id].roam_synch_in_progress = VOS_TRUE;
 	adf_os_spin_unlock_bh(&wma->roam_synch_lock);
-	len = sizeof(tSirRoamOffloadSynchInd) +
-		synch_event->bcn_probe_rsp_len +
-		synch_event->reassoc_rsp_len;
-	pRoamOffloadSynchInd = (tSirRoamOffloadSynchInd *)vos_mem_malloc(len);
+	pRoamOffloadSynchInd =
+		(tSirRoamOffloadSynchInd *)vos_mem_malloc(roam_synch_data_len);
 	if (!pRoamOffloadSynchInd) {
 	 WMA_LOGE("%s: failed to allocate memory for roam_synch_event", __func__);
 	 return -ENOMEM;
@@ -8446,6 +8490,12 @@ static int wma_unified_bcntx_status_event_handler(void *handle, u_int8_t *cmd_pa
 
    resp_event = param_buf->fixed_param;
 
+   if (resp_event->vdev_id >= wma->max_bssid) {
+        WMA_LOGE("%s: received invalid vdev_id %d",
+                __func__, resp_event->vdev_id);
+        return -EINVAL;
+   }
+
    /* Check for valid handle to ensure session is not deleted in any race */
    if (!wma->interfaces[resp_event->vdev_id].handle) {
       WMA_LOGE("%s: The session does not exist", __func__);
@@ -8586,6 +8636,14 @@ static int wma_rx_aggr_failure_event_handler(void *handle, u_int8_t *event_buf,
 
 	rx_aggr_failure_info = param_buf->fixed_param;
 	hole_info = param_buf->failure_info;
+
+	if (rx_aggr_failure_info->num_failure_info > ((WMA_SVC_MSG_MAX_SIZE -
+	    sizeof(*rx_aggr_hole_event)) /
+	    sizeof(rx_aggr_hole_event->hole_info_array[0]))) {
+		WMA_LOGE("%s: Excess data from WMI num_failure_info %d",
+			 __func__, rx_aggr_failure_info->num_failure_info);
+		return -EINVAL;
+	}
 
 	alloc_len = sizeof(*rx_aggr_hole_event) +
 		(rx_aggr_failure_info->num_failure_info)*
@@ -25985,9 +26043,9 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 	int32_t len;
 	int ret;
+#ifdef CONFIG_CNSS
 	struct ol_softc *scn =
 		vos_get_context(VOS_MODULE_ID_HIF, wma->vos_context);
-#ifdef CONFIG_CNSS
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 				wma->vos_context);
 	if (NULL == pMac) {
@@ -34312,10 +34370,14 @@ static int wma_scan_event_callback(WMA_HANDLE handle, u_int8_t *data,
 	vos_msg_t vos_msg = {0};
 	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
-        param_buf = (WMI_SCAN_EVENTID_param_tlvs *) data;
-        wmi_event = param_buf->fixed_param;
-        vdev_id = wmi_event->vdev_id;
-        scan_id = wma_handle->interfaces[vdev_id].scan_info.scan_id;
+	param_buf = (WMI_SCAN_EVENTID_param_tlvs *) data;
+	wmi_event = param_buf->fixed_param;
+	vdev_id = wmi_event->vdev_id;
+	if (wmi_event->vdev_id >= wma_handle->max_bssid) {
+		WMA_LOGE("Invalid vdev id from firmware");
+		return -EINVAL;
+	}
+	scan_id = wma_handle->interfaces[vdev_id].scan_info.scan_id;
 
 	adf_os_spin_lock_bh(&wma_handle->roam_preauth_lock);
 	if (wma_handle->roam_preauth_scan_id == wmi_event->scan_id) {
@@ -34702,6 +34764,11 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	wmi_event = param_buf->fixed_param;
 	WMA_LOGD("%s: Reason %x for vdevid %x, rssi %d",
 		__func__, wmi_event->reason, wmi_event->vdev_id, wmi_event->rssi);
+
+	if (wmi_event->vdev_id >= wma_handle->max_bssid) {
+		WMA_LOGE("Invalid vdev id from firmware");
+		return -EINVAL;
+	}
 
 	DPTRACE(adf_dp_trace_record_event(ADF_DP_TRACE_EVENT_RECORD,
 		wmi_event->vdev_id, ADF_PROTO_TYPE_EVENT, ADF_ROAM_EVENTID));
@@ -38193,6 +38260,14 @@ wma_process_utf_event(WMA_HANDLE handle,
 				 " Seq %d got seq %d",
 				 wma_handle->utf_event_info.expectedSeq,
 				 currentSeq);
+	}
+
+	if ((datalen > MAX_UTF_EVENT_LENGTH) ||
+		(wma_handle->utf_event_info.offset >
+		(MAX_UTF_EVENT_LENGTH - datalen))) {
+		WMA_LOGE("Excess data from firmware, offset:%zu, len:%d",
+			wma_handle->utf_event_info.offset, datalen);
+		return -EINVAL;
 	}
 
 	memcpy(&wma_handle->utf_event_info.data[wma_handle->utf_event_info.offset],
