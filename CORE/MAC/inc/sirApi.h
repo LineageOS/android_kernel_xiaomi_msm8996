@@ -3040,7 +3040,6 @@ typedef struct sSirSmePreSwitchChannelInd
     tANI_U8   sessionId;
 } tSirSmePreSwitchChannelInd, *tpSirSmePreSwitchChannelInd;
 
-
 //
 // HDD -> LIM
 // tSirMsgQ.type = eWNI_SME_DEL_BA_PEER_IND
@@ -8518,6 +8517,20 @@ struct sme_sub20_chan_width {
 	uint16_t	length;
 	uint8_t	session_id;
 	uint8_t	channelwidth;
+};
+
+/**
+ * struct sme_change_country_code_ind - indicate country code changed
+ * @message_type: message Type is eWNI_SME_CC_CHANGE_IND.
+ * @msg_len: message length.
+ * @session_id: session Id.
+ * @country_code: country code information.
+ */
+struct sme_change_country_code_ind {
+	uint16_t  message_type;
+	uint16_t  msg_len;
+	uint8_t   session_id;
+	uint8_t   country_code[WNI_CFG_COUNTRY_CODE_LEN];
 };
 
 /**
