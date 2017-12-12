@@ -646,6 +646,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 	 * If the mpdu_data_len is greater than Max (2k), drop the frame
 	 */
 	if (rx_pkt->pkt_meta.mpdu_data_len > WMA_MAX_MGMT_MPDU_LEN) {
+		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);
 		TLSHIM_LOGE("Data Len %d greater than max, dropping frame",
 			 rx_pkt->pkt_meta.mpdu_data_len);
 		vos_mem_free(rx_pkt);

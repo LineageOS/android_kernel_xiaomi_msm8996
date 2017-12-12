@@ -671,6 +671,15 @@ extern int
     adf_nbuf_t *tail_msdu);
 
 /**
+ * @brief Return the maximum number of available msdus currently
+ *
+ * @param pdev - the HTT instance the rx data was received on
+ */
+extern int
+(*htt_rx_offload_msdu_cnt)(
+    htt_pdev_handle pdev);
+
+/**
  * @brief Return a linked list of buffers holding one MSDU
  *  In some systems the buffers are delivered along with offload delivery
  *  indication message itself, while in other systems the buffers are uploaded
@@ -840,8 +849,8 @@ void
 htt_rx_frag_ind_flush_seq_num_range(
     htt_pdev_handle pdev,
     adf_nbuf_t rx_frag_ind_msg,
-    int *seq_num_start,
-    int *seq_num_end);
+    u_int16_t *seq_num_start,
+    u_int16_t *seq_num_end);
 /**
  * @brief Return the HL rx desc size
  * @param pdev - the HTT instance the rx data was received on

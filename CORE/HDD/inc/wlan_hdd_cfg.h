@@ -3268,6 +3268,27 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_REORDER_OFFLOAD_SUPPORT_MAX     ( 1 )
 #define CFG_REORDER_OFFLOAD_SUPPORT_DEFAULT ( 0 )
 
+/*
+ * <ini>
+ * gEnableHostapdEdca - Use hostapd EDCA local params
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to enable using hostapd
+ * EDCA local params.
+ *
+ * Supported Feature: EDCA
+ *
+ * Usage: Internal/External
+ *
+ * </ini>
+ */
+#define CFG_EDCA_FROM_HOSTAPD                      "gEnableHostapdEdcaLocal"
+#define CFG_EDCA_FROM_HOSTAPD_MIN                  ( 0 )
+#define CFG_EDCA_FROM_HOSTAPD_MAX                  ( 1 )
+#define CFG_EDCA_FROM_HOSTAPD_DEFAULT              ( 0 )
+
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 #define CFG_ROAMING_OFFLOAD_NAME                "gRoamOffloadEnabled"
 #define CFG_ROAMING_OFFLOAD_MIN                 (0)
@@ -3351,6 +3372,32 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_NAN_SUPPORT_MIN                      (0)
 #define CFG_ENABLE_NAN_SUPPORT_MAX                      (1)
 #endif
+
+/*
+ * <ini>
+ * gEnableAcTxqOptimize
+ * @Min: 0
+ * @Max: 0x13
+ * @Default: 0
+ *
+ * This ini is used to enable one AC tx queue optimize
+ *
+ * Usage: Internal/External
+ *
+ * bits 0-1:   WMM_AC_BE 0
+ *             WMM_AC_BK 1
+ *             WMM_AC_VI 2
+ *             WMM_AC_VO 3
+ * bits 2-3:   reserved
+ * bits 4:     Enalbe
+ * bits 5-7:   reserved
+ *
+ * </ini>
+ */
+#define CFG_ENABLE_AC_TXQ_OPTIMIZE                 "gEnableAcTxqOptimize"
+#define CFG_ENABLE_AC_TXQ_OPTIMIZE_MIN             ( 0x0 )
+#define CFG_ENABLE_AC_TXQ_OPTIMIZE_MAX             ( 0x13 )
+#define CFG_ENABLE_AC_TXQ_OPTIMIZE_DEFAULT         ( 0x0 )
 
 #define CFG_ENABLE_SELF_RECOVERY                   "gEnableSelfRecovery"
 #define CFG_ENABLE_SELF_RECOVERY_MIN               ( 0 )
@@ -4796,6 +4843,66 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_OCB_TX_PER_PKT_STATS_ENABLE_DEFAULT ( 0 )
 #endif /* WLAN_FEATURE_DSRC */
 
+/*
+ * <ini>
+ * gCCAThresholdEnable - enable/disable CCA threshold setting
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to overide CCA threshold for ESTI Adaptivity.
+ *
+ * Related: NOne
+ *
+ * Usage: Internal/External
+ *
+ * </ini>
+ */
+#define CFG_CCA_THRESHOLD_ENABLE_NAME    "gCCAThresholdEnable"
+#define CFG_CCA_THRESHOLD_ENABLE_MIN     (0)
+#define CFG_CCA_THRESHOLD_ENABLE_MAX     (1)
+#define CFG_CCA_THRESHOLD_ENABLE_DEFAULT (0)
+
+/*
+ * <ini>
+ * gCCAThreshold2G - CCA threshold for 2G band
+ * @Min: 10
+ * @Max: 127
+ * @Default: 28
+ *
+ * Once CCA threshold is enabled, this is threshold for 2G band.
+ *
+ * Related: None
+ *
+ * Usage: Internal/External
+ *
+ * </ini>
+ */
+#define CFG_CCA_THRESHOLD_2G_NAME    "gCCAThreshold2G"
+#define CFG_CCA_THRESHOLD_2G_MIN     (10)
+#define CFG_CCA_THRESHOLD_2G_MAX     (127)
+#define CFG_CCA_THRESHOLD_2G_DEFAULT (28)
+
+/*
+ * <ini>
+ * gCCAThreshold5G - CCA threshold for 5G band
+ * @Min: 10
+ * @Max: 127
+ * @Default: 28
+ *
+ * Once CCA threshold is enabled, this is threshold for 5G band.
+ *
+ * Related: None
+ *
+ * Usage: Internal/External
+ *
+ * </ini>
+ */
+#define CFG_CCA_THRESHOLD_5G_NAME    "gCCAThreshold5G"
+#define CFG_CCA_THRESHOLD_5G_MIN     (10)
+#define CFG_CCA_THRESHOLD_5G_MAX     (127)
+#define CFG_CCA_THRESHOLD_5G_DEFAULT (28)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -5295,6 +5402,7 @@ struct hdd_config {
    v_U32_t                     TxPower2g;
    v_U32_t                     TxPower5g;
    v_U32_t                     gEnableDebugLog;
+   uint8_t                     enable_ac_txq_optimize;
    v_U8_t                      rxhandle;
    uint8_t                     cpu_map_list[CFG_RPS_RX_QUEUE_CPU_MAP_LIST_LEN];
    v_BOOL_t                    fDfsPhyerrFilterOffload;
@@ -5394,6 +5502,7 @@ struct hdd_config {
    bool                        crash_inject_enabled;
    v_S31_t                     dfsRadarPriMultiplier;
    v_U8_t                      reorderOffloadSupport;
+   uint8_t                     enable_hostapd_edca_local;
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
    v_BOOL_t                    isRoamOffloadEnabled;
@@ -5674,6 +5783,9 @@ struct hdd_config {
 #ifdef WLAN_FEATURE_DSRC
    bool                        ocb_tx_per_pkt_stats_enabled;
 #endif
+   bool      cca_threshold_enable;
+   uint32_t  cca_threshold_2g;
+   uint32_t  cca_threshold_5g;
 };
 
 typedef struct hdd_config hdd_config_t;
