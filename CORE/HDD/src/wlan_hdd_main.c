@@ -1769,6 +1769,43 @@ static void hdd_set_thermal_level_cb(hdd_context_t *pHddCtx, u_int8_t level)
 }
 #endif
 
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+bool
+hdd_system_suspend_state_set(hdd_context_t *hdd_ctx, bool state)
+{
+	unsigned long flags;
+	bool old;
+
+	spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock, flags);
+	old = hdd_ctx->system_suspended;
+	hdd_ctx->system_suspended = state;
+	spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock, flags);
+
+	return old;
+}
+
+
+int
+hdd_thermal_suspend_state(hdd_context_t *hdd_ctx)
+{
+	unsigned long flags;
+	int s;
+
+	spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock, flags);
+	s = hdd_ctx->thermal_suspend_state;
+	spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock, flags);
+
+	return s;
+}
+
+#else
+bool
+hdd_system_suspend_state_set(hdd_context_t *hdd_ctx, bool state)
+{
+	return TRUE;
+}
+
+#endif
 /**---------------------------------------------------------------------------
 
   \brief hdd_setIbssPowerSaveParams - update IBSS Power Save params to WMA.
@@ -15951,6 +15988,14 @@ static int hdd_initialize_mac_address(hdd_context_t *hdd_ctx)
 }
 
 #ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+static VOS_STATUS hdd_init_thermal_ctx(hdd_context_t *pHddCtx)
+{
+	pHddCtx->system_suspended = false;
+	pHddCtx->thermal_suspend_state = HDD_WLAN_THERMAL_ACTIVE;
+	spin_lock_init(&pHddCtx->thermal_suspend_lock);
+	return VOS_STATUS_SUCCESS;
+}
+
 static void hdd_get_thermal_shutdown_ini_param(tSmeThermalParams   *pthermalParam,
 						hdd_context_t    *pHddCtx)
 {
@@ -15964,9 +16009,15 @@ static void hdd_get_thermal_shutdown_ini_param(tSmeThermalParams   *pthermalPara
 	  pHddCtx->cfg_ini->thermal_warning_threshold;
 	pthermalParam->thermal_suspend_threshold =
 	  pHddCtx->cfg_ini->thermal_suspend_threshold;
-	pthermalParam->thermal_sample_rate = pHddCtx->cfg_ini->thermal_sample_rate;
+	pthermalParam->thermal_sample_rate =
+		pHddCtx->cfg_ini->thermal_sample_rate;
 }
 #else
+static inline VOS_STATUS hdd_init_thermal_ctx(hdd_context_t *pHddCtx)
+{
+	return VOS_STATUS_SUCCESS;
+}
+
 static inline void hdd_get_thermal_shutdown_ini_param(tSmeThermalParams   *pthermalParam,
 						hdd_context_t    *pHddCtx)
 {
@@ -16043,6 +16094,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    pHddCtx->wiphy = wiphy;
    pHddCtx->isLoadInProgress = TRUE;
+
+   status = hdd_init_thermal_ctx(pHddCtx);
+   if (VOS_STATUS_SUCCESS != status)
+        goto err_free_hdd_context;
+
    pHddCtx->ioctl_scan_mode = eSIR_ACTIVE_SCAN;
    vos_set_wakelock_logging(false);
 
