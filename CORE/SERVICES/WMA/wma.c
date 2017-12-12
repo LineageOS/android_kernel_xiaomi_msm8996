@@ -28910,6 +28910,83 @@ VOS_STATUS wma_process_rmc_action_period_ind(tp_wma_handle wma)
     return VOS_STATUS_SUCCESS;
 }
 
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+static VOS_STATUS wma_set_thermal_suspend_params(tp_wma_handle wma)
+{
+
+	wmi_thermal_mgmt_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int status;
+	u_int32_t len;
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send set key cmd");
+		return eHAL_STATUS_FAILURE;
+	}
+
+	cmd = (wmi_thermal_mgmt_cmd_fixed_param *) wmi_buf_data (buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		   WMITLV_TAG_STRUC_wmi_thermal_mgmt_cmd_fixed_param,
+		   WMITLV_GET_STRUCT_TLVLEN(wmi_thermal_mgmt_cmd_fixed_param));
+
+	cmd->lower_thresh_degreeC =
+		wma->thermal_mgmt_info.thermal_resume_threshold;
+	cmd->threshold_warning_degreeC =
+		wma->thermal_mgmt_info.thermal_warning_threshold;
+	cmd->upper_thresh_degreeC =
+		wma->thermal_mgmt_info.thermal_suspend_threshold;
+	cmd->enable = wma->thermal_mgmt_info.thermal_shutdown_enabled;
+	cmd->action = WMI_THERMAL_MGMT_ACTION_NOTIFY_HOST;
+	cmd->sample_rate_ms = wma->thermal_mgmt_info.thermal_sample_rate;
+
+	WMA_LOGD("thermal shutdown params: resume:%d, warning:%d, suspend:%d, "
+		"enable:%d, action:%d, sample rate:%d ms\n",
+		cmd->lower_thresh_degreeC, cmd->threshold_warning_degreeC,
+		cmd->upper_thresh_degreeC, cmd->enable, cmd->action,
+		cmd->sample_rate_ms);
+
+	status = wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				      WMI_THERMAL_MGMT_CMDID);
+	if (status) {
+		wmi_buf_free(buf);
+		WMA_LOGE("%s:Failed to send thermal mgmt command", __func__);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+#endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
+
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+static void wma_fetch_set_thermal_params(tp_wma_handle wma,
+					t_thermal_mgmt *pThermalParams)
+{
+	wma->thermal_mgmt_info.thermal_shutdown_enabled =
+		pThermalParams->thermal_shutdown_enabled;
+	wma->thermal_mgmt_info.thermal_shutdown_auto_enabled =
+		pThermalParams->thermal_shutdown_auto_enabled;
+	wma->thermal_mgmt_info.thermal_resume_threshold =
+		pThermalParams->thermal_resume_threshold;
+	wma->thermal_mgmt_info.thermal_warning_threshold =
+		pThermalParams->thermal_warning_threshold;
+	wma->thermal_mgmt_info.thermal_suspend_threshold =
+		pThermalParams->thermal_suspend_threshold;
+	wma->thermal_mgmt_info.thermal_sample_rate =
+		pThermalParams->thermal_sample_rate;
+
+	if (wma->thermal_mgmt_info.thermal_shutdown_enabled)
+		wma_set_thermal_suspend_params(wma);
+}
+#else
+static inline void wma_fetch_set_thermal_params(tp_wma_handle wma,
+						t_thermal_mgmt *pThermalParams)
+{
+	return;
+}
+#endif
 /* function   : wma_process_init_thermal_info
  * Description : This function initializes the thermal management table in WMA,
                 sends down the initial temperature thresholds to the firmware and
@@ -29006,7 +29083,10 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 			WMA_LOGE("Could not send thermal mgmt command to the firmware!");
 		}
 	}
-        return VOS_STATUS_SUCCESS;
+
+	wma_fetch_set_thermal_params(wma, pThermalParams);
+
+	return VOS_STATUS_SUCCESS;
 }
 
 

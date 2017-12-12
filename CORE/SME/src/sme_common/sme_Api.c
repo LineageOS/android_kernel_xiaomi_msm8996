@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -15313,6 +15313,18 @@ eHalStatus sme_InitThermalInfo( tHalHandle hHal,
          thermalParam.smeThermalLevels[3].smeMinTempThreshold;
     pWdaParam->thermalLevels[3].maxTempThreshold =
          thermalParam.smeThermalLevels[3].smeMaxTempThreshold;
+
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+    pWdaParam->thermal_shutdown_enabled = thermalParam.thermal_shutdown_enabled;
+    pWdaParam->thermal_shutdown_auto_enabled =
+        thermalParam.thermal_shutdown_auto_enabled;
+    pWdaParam->thermal_resume_threshold =thermalParam.thermal_resume_threshold;
+    pWdaParam->thermal_warning_threshold =
+        thermalParam.thermal_warning_threshold;
+    pWdaParam->thermal_suspend_threshold =
+        thermalParam.thermal_suspend_threshold;
+    pWdaParam->thermal_sample_rate = thermalParam.thermal_sample_rate;
+#endif
 
     if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme))
     {
