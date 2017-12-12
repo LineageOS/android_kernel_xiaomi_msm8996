@@ -1807,6 +1807,8 @@ struct hdd_context_s
    bool system_suspended;
    volatile int thermal_suspend_state;
    spinlock_t thermal_suspend_lock;
+   struct workqueue_struct *thermal_suspend_wq;
+   struct delayed_work thermal_suspend_work;
 #endif
 
    /**Track whether driver has been suspended.*/
@@ -2243,6 +2245,17 @@ void hdd_set_ssr_required(e_hdd_ssr_required value);
 
 VOS_STATUS hdd_enable_bmps_imps(hdd_context_t *pHddCtx);
 VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type);
+
+/**
+ * hdd_thermal_suspend_queue_work() - Queue a thermal suspend work
+ * @hdd_ctx:     Pointer to hdd_context_t
+ * @ms: Delay time in milliseconds to execute the work
+ *
+ * Queue thermal suspend work on the workqueue after delay
+ *
+ * Return: false if work was already on a queue, true otherwise.
+ */
+bool hdd_thermal_suspend_queue_work(hdd_context_t *hdd_ctx, unsigned long ms);
 
 void wlan_hdd_cfg80211_update_wiphy_caps(struct wiphy *wiphy);
 VOS_STATUS hdd_setIbssPowerSaveParams(hdd_adapter_t *pAdapter);

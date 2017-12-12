@@ -3450,6 +3450,15 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    pMac->sme.set_thermal_level_cb(pMac->hHdd, pMsg->bodyval);
                }
                break;
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+          case eWNI_SME_THERMAL_TEMPERATURE_IND:
+               if (pMac->sme.thermal_temp_ind_cb)
+               {
+                   pMac->sme.thermal_temp_ind_cb(pMac->hHdd, pMsg->bodyval);
+               }
+               break;
+#endif
+
           case eWNI_SME_LOST_LINK_INFO_IND:
                if (pMac->sme.lost_link_info_cb) {
                    pMac->sme.lost_link_info_cb(pMac->hHdd,
@@ -15391,6 +15400,29 @@ eHalStatus sme_SetThermalLevel( tHalHandle hHal, tANI_U8 level )
 	return eHAL_STATUS_FAILURE;
 }
 
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+/**
+ * sme_add_thermal_temperature_ind_callback() - Set callback fn for thermal
+ * temperature indication
+ * hHal: Handler to HAL
+ * callback: The callback function
+ *
+ * Return: void
+ */
+void sme_add_thermal_temperature_ind_callback(tHalHandle hHal,
+				   tSmeThermalTempIndCb callback)
+{
+	tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+	pMac->sme.thermal_temp_ind_cb = callback;
+}
+#else
+inline void sme_add_thermal_temperature_ind_callback(tHalHandle hHal,
+				   tSmeThermalTempIndCb callback)
+{
+	return;
+}
+#endif
 
 /* ---------------------------------------------------------------------------
    \fn sme_TxpowerLimit

@@ -28958,9 +28958,53 @@ static VOS_STATUS wma_set_thermal_suspend_params(tp_wma_handle wma)
 
 	return eHAL_STATUS_SUCCESS;
 }
+
+static void wma_thermal_temperature_ind(int32_t degree_c)
+{
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	vos_msg_t sme_msg = {0};
+
+	sme_msg.type = eWNI_SME_THERMAL_TEMPERATURE_IND;
+	sme_msg.bodyptr = NULL;
+	sme_msg.bodyval = (u_int32_t)degree_c;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_SME, &sme_msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status))
+		WMA_LOGE(FL("Fail to post temperature ind msg"));
+}
+
+#define CELSIUS_MIN_DEGREE (-273)
+static bool need_thermal_temperature_ind(tp_thermal_mgmt info, int32_t degree_c)
+{
+	static int32_t t_last = CELSIUS_MIN_DEGREE;
+	int ret = false;
+	int32_t t_curr = degree_c;
+	int32_t t_r = (int32_t)info->thermal_resume_threshold;
+	int32_t t_w = (int32_t)info->thermal_warning_threshold;
+	int32_t t_s = (int32_t)info->thermal_suspend_threshold;
+
+	if ((t_last >= t_r && t_curr < t_r) ||
+	    (t_last < t_w && t_curr >= t_w) ||
+	    (t_last < t_s && t_curr >= t_s) ||
+	    (t_last == CELSIUS_MIN_DEGREE))
+		ret = true;
+
+	t_last = t_curr;
+	return ret;
+}
 #endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
 
 #ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+static void
+wma_thermal_shutdown_evt_handler(tp_thermal_mgmt info, int32_t degree_c)
+{
+    if (!info->thermal_shutdown_enabled)
+        return;
+
+    if (need_thermal_temperature_ind(info, degree_c))
+        wma_thermal_temperature_ind(degree_c);
+}
+
 static void wma_fetch_set_thermal_params(tp_wma_handle wma,
 					t_thermal_mgmt *pThermalParams)
 {
@@ -28983,6 +29027,12 @@ static void wma_fetch_set_thermal_params(tp_wma_handle wma,
 #else
 static inline void wma_fetch_set_thermal_params(tp_wma_handle wma,
 						t_thermal_mgmt *pThermalParams)
+{
+	return;
+}
+
+static inline void
+wma_thermal_shutdown_evt_handler(tp_thermal_mgmt info, int32_t degree_c)
 {
 	return;
 }
@@ -35427,6 +35477,61 @@ u_int8_t wma_thermal_mgmt_get_level(void *handle, u_int32_t temp)
 	return level;
 }
 
+static int wma_thermal_throttle_handler(void *handle, u_int32_t degree_c)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	u_int8_t thermal_level;
+	t_thermal_cmd_params thermal_params;
+	ol_txrx_pdev_handle curr_pdev;
+	tp_thermal_mgmt info;
+
+	/* Check if thermal mitigation is enabled */
+	if (!wma->thermal_mgmt_info.thermalMgmtEnabled){
+		WMA_LOGD("Thermal mgmt is not enabled, ignoring event");
+		return 0;
+	}
+
+	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	if (NULL == curr_pdev) {
+		WMA_LOGE("%s: Failed to get pdev", __func__);
+		return -EINVAL;
+	}
+
+	/* Get the thermal mitigation level for the reported temperature*/
+	thermal_level = wma_thermal_mgmt_get_level(handle, degree_c);
+	WMA_LOGD("Thermal mgmt level  %d", thermal_level);
+
+	info = &wma->thermal_mgmt_info;
+	if (thermal_level == info->thermalCurrLevel) {
+		WMA_LOGD("Current level %d is same as the set level, ignoring",
+			 info->thermalCurrLevel);
+		return 0;
+	}
+
+	info->thermalCurrLevel = thermal_level;
+
+	/* Inform txrx */
+	ol_tx_throttle_set_level(curr_pdev, thermal_level);
+
+	/* Send SME SET_THERMAL_LEVEL_IND message */
+	wma_set_thermal_level_ind(thermal_level);
+
+	/* Get the temperature thresholds to set in firmware */
+	thermal_params.minTemp =
+		info->thermalLevels[thermal_level].minTempThreshold;
+	thermal_params.maxTemp =
+		info->thermalLevels[thermal_level].maxTempThreshold;
+	thermal_params.thermalEnable = info->thermalMgmtEnabled;
+
+	if (VOS_STATUS_SUCCESS != wma_set_thermal_mgmt(wma, thermal_params)) {
+		WMA_LOGE("Could not send thermal mgmt cmd to the firmware!");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+
 /* function   : wma_thermal_mgmt_evt_handler
  * Description : This function handles the thermal mgmt event from the firmware
  * Args       :
@@ -35441,73 +35546,32 @@ static int wma_thermal_mgmt_evt_handler(void *handle, u_int8_t *event,
 {
 	tp_wma_handle wma;
 	wmi_thermal_mgmt_event_fixed_param *tm_event;
-	u_int8_t thermal_level;
-	t_thermal_cmd_params thermal_params;
 	WMI_THERMAL_MGMT_EVENTID_param_tlvs *param_buf;
-	ol_txrx_pdev_handle curr_pdev;
+	int ret;
 
 	if (NULL == event || NULL == handle) {
-                WMA_LOGE("Invalid thermal mitigation event buffer");
-                return -EINVAL;
-        }
+			WMA_LOGE("Invalid thermal mitigation event buffer");
+			return -EINVAL;
+	}
 
 	wma = (tp_wma_handle) handle;
-
 	if (NULL == wma) {
 		WMA_LOGE("%s: Failed to get wma handle", __func__);
 		return -EINVAL;
 	}
 
 	param_buf = (WMI_THERMAL_MGMT_EVENTID_param_tlvs *) event;
-
-	curr_pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
-	if (NULL == curr_pdev) {
-		WMA_LOGE("%s: Failed to get pdev", __func__);
-		return -EINVAL;
-	}
-
-	/* Check if thermal mitigation is enabled */
-	if (!wma->thermal_mgmt_info.thermalMgmtEnabled){
-		WMA_LOGE("Thermal mgmt is not enabled, ignoring event");
-		return -EINVAL;
-	}
-
 	tm_event = param_buf->fixed_param;
 	WMA_LOGD("Thermal mgmt event received with temperature %d",
 		 tm_event->temperature_degreeC);
 
-	/* Get the thermal mitigation level for the reported temperature*/
-	thermal_level = wma_thermal_mgmt_get_level(handle, tm_event->temperature_degreeC);
-	WMA_LOGD("Thermal mgmt level  %d", thermal_level);
+	ret = wma_thermal_throttle_handler(handle,
+		tm_event->temperature_degreeC);
 
-	if (thermal_level == wma->thermal_mgmt_info.thermalCurrLevel) {
-		WMA_LOGD("Current level %d is same as the set level, ignoring",
-				  wma->thermal_mgmt_info.thermalCurrLevel);
-		return 0;
-	}
+	wma_thermal_shutdown_evt_handler(&wma->thermal_mgmt_info,
+		tm_event->temperature_degreeC);
 
-	wma->thermal_mgmt_info.thermalCurrLevel = thermal_level;
-
-	/* Inform txrx */
-	ol_tx_throttle_set_level(curr_pdev, thermal_level);
-
-	/* Send SME SET_THERMAL_LEVEL_IND message */
-	wma_set_thermal_level_ind(thermal_level);
-
-	/* Get the temperature thresholds to set in firmware */
-	thermal_params.minTemp =
-		 wma->thermal_mgmt_info.thermalLevels[thermal_level].minTempThreshold;
-	thermal_params.maxTemp =
-		 wma->thermal_mgmt_info.thermalLevels[thermal_level].maxTempThreshold;
-	thermal_params.thermalEnable =
-		 wma->thermal_mgmt_info.thermalMgmtEnabled;
-
-	if (VOS_STATUS_SUCCESS != wma_set_thermal_mgmt(wma, thermal_params)) {
-		WMA_LOGE("Could not send thermal mgmt command to the firmware!");
-		return -EINVAL;
-	}
-
-	return 0;
+	return ret;
 }
 
 #ifdef FEATURE_WLAN_CH_AVOID

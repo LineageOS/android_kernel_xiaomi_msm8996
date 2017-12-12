@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -252,7 +252,9 @@ typedef struct tagSmeStruct
     void *radio_chan_stats_context;
     ocb_callback radio_chan_stats_callback;
     void (*set_thermal_level_cb)(void *hdd_context, uint8_t level);
-
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+    void (*thermal_temp_ind_cb)(void *pContext, uint32_t degree_c);
+#endif
     void (*rssi_threshold_breached_cb)(void *, struct rssi_breach_event *);
     void (*lost_link_info_cb)(void *context,
 			      struct sir_lost_link_info *lost_link_info);

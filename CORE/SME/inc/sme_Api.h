@@ -4614,6 +4614,17 @@ uint8_t    sme_is_any_session_in_connected_state(tHalHandle h_hal);
 typedef void ( *tSmeSetThermalLevelCallback)(void *pContext, u_int8_t level);
 void sme_add_set_thermal_level_callback(tHalHandle hHal,
                    tSmeSetThermalLevelCallback callback);
+typedef void (*tSmeThermalTempIndCb)(void *pContext, u_int32_t degree_c);
+/**
+ * sme_add_thermal_temperature_ind_callback() - Set callback fn for thermal
+ * temperature indication
+ * hHal: Handler to HAL
+ * callback: The callback function
+ *
+ * Return: void
+ */
+void sme_add_thermal_temperature_ind_callback(tHalHandle hHal,
+                   tSmeThermalTempIndCb callback);
 
 eHalStatus sme_handle_set_fcc_channel(tHalHandle hHal,
 		bool fcc_constraint,

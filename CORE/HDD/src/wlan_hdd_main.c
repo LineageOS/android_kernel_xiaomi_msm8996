@@ -1770,6 +1770,18 @@ static void hdd_set_thermal_level_cb(hdd_context_t *pHddCtx, u_int8_t level)
 #endif
 
 #ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+static bool
+hdd_system_suspend_state(hdd_context_t *hdd_ctx)
+{
+	unsigned long flags;
+	bool s;
+
+	spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock, flags);
+	s = hdd_ctx->system_suspended;
+	spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock, flags);
+	return s;
+}
+
 bool
 hdd_system_suspend_state_set(hdd_context_t *hdd_ctx, bool state)
 {
@@ -1798,6 +1810,160 @@ hdd_thermal_suspend_state(hdd_context_t *hdd_ctx)
 	return s;
 }
 
+static bool
+hdd_thermal_suspend_transit(hdd_context_t *hdd_ctx, int target, int *old)
+{
+	unsigned long flags;
+	int s;
+	bool ret = false;
+
+	spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock, flags);
+
+	s = hdd_ctx->thermal_suspend_state;
+	if (old)
+		*old = s;
+
+	switch (target) {
+	case HDD_WLAN_THERMAL_ACTIVE:
+		if (s == HDD_WLAN_THERMAL_RESUMING ||
+			s == HDD_WLAN_THERMAL_SUSPENDING)
+			ret = true;
+		break;
+	case HDD_WLAN_THERMAL_SUSPENDING:
+		if (s == HDD_WLAN_THERMAL_ACTIVE)
+			ret = true;
+		break;
+	case HDD_WLAN_THERMAL_SUSPENDED:
+		if (s == HDD_WLAN_THERMAL_SUSPENDING ||
+			s == HDD_WLAN_THERMAL_RESUMING)
+			ret = true;
+		break;
+	case HDD_WLAN_THERMAL_RESUMING:
+		if (s == HDD_WLAN_THERMAL_SUSPENDED)
+			ret = true;
+		break;
+	case HDD_WLAN_THERMAL_DEINIT:
+		if (s != HDD_WLAN_THERMAL_DEINIT)
+			ret = true;
+		break;
+	}
+
+	if (ret)
+		hdd_ctx->thermal_suspend_state = target;
+
+	spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock, flags);
+	return ret;
+}
+
+static void
+hdd_thermal_suspend_cleanup(hdd_context_t *hdd_ctx)
+{
+	int state;
+	bool okay;
+
+	if (!hdd_ctx->thermal_suspend_wq)
+		return;
+
+	cancel_delayed_work_sync(&hdd_ctx->thermal_suspend_work);
+	okay = hdd_thermal_suspend_transit(hdd_ctx, HDD_WLAN_THERMAL_DEINIT,
+					   &state);
+	destroy_workqueue(hdd_ctx->thermal_suspend_wq);
+	hdd_ctx->thermal_suspend_wq = NULL;
+
+	if (!okay || state == HDD_WLAN_THERMAL_ACTIVE)
+		return;
+
+	if (state == HDD_WLAN_THERMAL_SUSPENDED) {
+		hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_THERMAL);
+		__wlan_hdd_cfg80211_resume_wlan(hdd_ctx->wiphy, true);
+		hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_THERMAL);
+	}
+}
+
+static void
+hdd_thermal_suspend_work(struct work_struct *work)
+{
+	hdd_context_t *hdd_ctx =
+		container_of(work, hdd_context_t, thermal_suspend_work.work);
+	struct wiphy *wiphy = hdd_ctx->wiphy;
+	int ret;
+
+	while (hdd_system_suspend_state(hdd_ctx)) {
+		hddLog(LOG1, FL("Waiting for system resume complete"));
+		schedule_timeout_interruptible(100 * HZ / 1000);
+	}
+
+	if (hdd_thermal_suspend_transit(hdd_ctx,
+		HDD_WLAN_THERMAL_SUSPENDING, NULL)) {
+		hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_THERMAL);
+		ret = __wlan_hdd_cfg80211_suspend_wlan(wiphy, NULL, true);
+		hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_THERMAL);
+		if (ret) {
+			hdd_thermal_suspend_transit(hdd_ctx,
+				HDD_WLAN_THERMAL_ACTIVE, NULL);
+			hddLog(LOGE, FL("Thermal suspend failed: %d"), ret);
+			return;
+		}
+		hdd_thermal_suspend_transit(hdd_ctx, HDD_WLAN_THERMAL_SUSPENDED,
+						NULL);
+	} else if (hdd_thermal_suspend_transit(hdd_ctx,
+		   HDD_WLAN_THERMAL_RESUMING, NULL)) {
+		hdd_prevent_suspend(WIFI_POWER_EVENT_WAKELOCK_THERMAL);
+		ret = __wlan_hdd_cfg80211_resume_wlan(wiphy, true);
+		hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_THERMAL);
+		if (ret) {
+			hdd_thermal_suspend_transit(hdd_ctx,
+				HDD_WLAN_THERMAL_SUSPENDED, NULL);
+			hddLog(LOGE, FL("Thermal resume failed: %d"), ret);
+			return;
+		}
+		hdd_thermal_suspend_transit(hdd_ctx, HDD_WLAN_THERMAL_ACTIVE,
+						NULL);
+	} else {
+		hddLog(LOGE, FL("Should not reach here"));
+	}
+}
+
+/**
+ * hdd_thermal_suspend_queue_work() - Queue a thermal suspend work
+ * @hdd_ctx: Pointer to hdd_context_t
+ * @ms: Delay time in milliseconds to execute the work
+ *
+ * Queue thermal suspend work on the workqueue after delay
+ *
+ * Return: false if work was already on a queue, true otherwise.
+ */
+bool
+hdd_thermal_suspend_queue_work(hdd_context_t *hdd_ctx, unsigned long ms)
+{
+	hddLog(LOG1, FL("Queue a thermal suspend work, delay %ld ms"), ms);
+	return queue_delayed_work(hdd_ctx->thermal_suspend_wq,
+		&hdd_ctx->thermal_suspend_work, (ms * HZ) / 1000);
+}
+
+static void
+hdd_thermal_temp_ind_event_cb(hdd_context_t *hdd_ctx, uint32_t degreeC)
+{
+	if (!hdd_ctx->cfg_ini->thermal_shutdown_auto_enabled) {
+		return;
+	}
+
+	/*
+	 * Here, we only do thermal suspend.
+	 *
+	 * We can only resume FW elsewhere in two ways:
+	 * 1. triggered by wakeup interrupt from FW when it detects T < Tresume
+	 * 2. user space app launch thermal resume after suspend as app wants
+	 *
+	 * Key factor: FW cannot provide temperature when it suspended.
+	 */
+	if ((hdd_thermal_suspend_state(hdd_ctx) == HDD_WLAN_THERMAL_ACTIVE &&
+		degreeC >= hdd_ctx->cfg_ini->thermal_suspend_threshold) ||
+		(hdd_thermal_suspend_state(hdd_ctx) == HDD_WLAN_THERMAL_SUSPENDED &&
+		degreeC < hdd_ctx->cfg_ini->thermal_resume_threshold)) {
+		hdd_thermal_suspend_queue_work(hdd_ctx, 0);
+	}
+}
 #else
 bool
 hdd_system_suspend_state_set(hdd_context_t *hdd_ctx, bool state)
@@ -1805,7 +1971,20 @@ hdd_system_suspend_state_set(hdd_context_t *hdd_ctx, bool state)
 	return TRUE;
 }
 
+static inline void
+hdd_thermal_suspend_cleanup(hdd_context_t *hdd_ctx)
+{
+	return;
+}
+
+static inline void
+hdd_thermal_temp_ind_event_cb(hdd_context_t *hdd_ctx, uint32_t degreeC)
+{
+	return;
+}
+
 #endif
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_setIbssPowerSaveParams - update IBSS Power Save params to WMA.
@@ -15993,6 +16172,10 @@ static VOS_STATUS hdd_init_thermal_ctx(hdd_context_t *pHddCtx)
 	pHddCtx->system_suspended = false;
 	pHddCtx->thermal_suspend_state = HDD_WLAN_THERMAL_ACTIVE;
 	spin_lock_init(&pHddCtx->thermal_suspend_lock);
+	INIT_DELAYED_WORK(&pHddCtx->thermal_suspend_work, hdd_thermal_suspend_work);
+	pHddCtx->thermal_suspend_wq = create_singlethread_workqueue("thermal_wq");
+	if (!pHddCtx->thermal_suspend_wq)
+		return VOS_STATUS_E_INVAL;
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -17014,6 +17197,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    sme_add_set_thermal_level_callback(pHddCtx->hHal,
                      (tSmeSetThermalLevelCallback)hdd_set_thermal_level_cb);
 
+   sme_add_thermal_temperature_ind_callback(pHddCtx->hHal,
+                    (tSmeThermalTempIndCb)hdd_thermal_temp_ind_event_cb);
+
    /* Bad peer tx flow control */
    wlan_hdd_bad_peer_txctl(pHddCtx);
 
@@ -17677,6 +17863,8 @@ static void hdd_driver_exit(void)
    }
    else
    {
+       hdd_thermal_suspend_cleanup(pHddCtx);
+
       /*
        * Check IPA HW pipe shutdown properly or not
        * If not, force shut down HW pipe
