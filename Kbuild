@@ -54,6 +54,12 @@ ifeq ($(KERNEL_BUILD), 0)
 		endif
 	endif
 
+	ifeq ($(CONFIG_ARCH_MSM8909), y)
+		ifeq ($(CONFIG_ROME_IF), sdio)
+			CONFIG_WLAN_SYNC_TSF_PLUS := y
+		endif
+	endif
+
 	# As per target team, build is done as follows:
 	# Defconfig : build with default flags
 	# Slub      : defconfig  + CONFIG_SLUB_DEBUG=y +
