@@ -1960,4 +1960,15 @@
 		"qscratch_base",
 		"ref_clk_addr";
 };
+
+&firmware {
+	android {
+		fstab {
+			/delete-node/ vendor;
+			system {
+				dev = "/dev/block/platform/soc/624000.ufshc/by-name/system";
+			};
+		};
+	};
+};
 // msm8996.dtsi end
