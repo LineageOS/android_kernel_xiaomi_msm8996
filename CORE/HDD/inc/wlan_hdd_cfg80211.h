@@ -306,6 +306,13 @@ enum qca_nl80211_vendor_subcmds {
 	QCA_NL80211_VENDOR_SUBCMD_CHIP_PWRSAVE_FAILURE = 148,
 	/* subcommand to flush peer tids */
 	QCA_NL80211_VENDOR_SUBCMD_PEER_FLUSH_PENDING  = 162,
+
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+	/* Thermal Shutdown cmds to protect chip */
+	QCA_NL80211_VENDOR_SUBCMD_THERMAL_CMD = 165,
+	QCA_NL80211_VENDOR_SUBCMD_TEMPERATURE_EVENT = 166,
+	QCA_NL80211_VENDOR_SUBCMD_RESUME_COMP_EVENT = 167,
+#endif
 };
 
 /**
@@ -421,6 +428,11 @@ enum qca_nl80211_vendor_subcmds_index {
     QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_PNO_NETWORK_FOUND_INDEX,
     QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_PNO_PASSPOINT_NETWORK_FOUND_INDEX,
 #endif /* FEATURE_WLAN_EXTSCAN */
+
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+    QCA_NL80211_VENDOR_SUBCMD_TEMPERATURE_EVENT_INDEX,
+    QCA_NL80211_VENDOR_SUBCMD_RESUME_COMP_EVENT_INDEX,
+#endif
 
     /* OCB events */
     QCA_NL80211_VENDOR_SUBCMD_DCC_STATS_EVENT_INDEX,
@@ -1567,6 +1579,54 @@ enum qca_wlan_vendor_attr_nd_offload {
 		QCA_WLAN_VENDOR_ATTR_ND_OFFLOAD_AFTER_LAST - 1,
 };
 
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+/**
+ * enum qca_wlan_vendor_attr_get_temperature_rsp - vendor subcmd to get chip
+ *	temperature
+ *
+ * @QCA_WLAN_VENDOR_ATTR_GET_TEMP_RSP_INVALID: invalid
+ * @QCA_WLAN_VENDOR_ATTR_GET_TEMP_RSP_TEMPERATURE: 32 bits temperature
+ *
+ * enum values are used for NL attributes for data used by
+ * QCA_NL80211_VENDOR_SUBCMD_GET_TEMPERATURE sub command.
+ */
+enum qca_wlan_vendor_attr_get_temperature_rsp {
+	QCA_WLAN_VENDOR_ATTR_GET_TEMP_RSP_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_GET_TEMP_RSP_TEMPERATURE,
+	QCA_WLAN_VENDOR_ATTR_GET_TEMP_RSP_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_GET_TEMP_RSP_MAX =
+		QCA_WLAN_VENDOR_ATTR_GET_TEMP_RSP_AFTER_LAST - 1,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_get_thermal_params_rsp - vendor subcmd to get
+ *	parameters of thermal shutdown feature
+ *
+ * @QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_INVALID: invalid
+ * @QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SHUTDOWN_EN: 8 bits flag
+ * @QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SHUTDOWN_AUTO_EN: 8 bits flag
+ * @QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_RESUME_THRESH: 16 bits threshold
+ * @QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_WARNING_THRESH: 16 bits threshold
+ * @QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SUSPEND_THRESH: 16 bits threshold
+ * @QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SAMPLE_RATE: 16 bits sample rate
+ *
+ * enum values are used for NL attributes for data used by
+ * QCA_NL80211_VENDOR_SUBCMD_GET_THERMAL_PARAMS sub command.
+ */
+enum qca_wlan_vendor_attr_get_thermal_params_rsp {
+	QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SHUTDOWN_EN,
+	QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SHUTDOWN_AUTO_EN,
+	QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_RESUME_THRESH,
+	QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_WARNING_THRESH,
+	QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SUSPEND_THRESH,
+	QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SAMPLE_RATE,
+	QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_MAX =
+		QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_AFTER_LAST - 1,
+};
+#endif
+
 /**
  * enum qca_wlan_vendor_features - vendor device/driver features
  * @QCA_WLAN_VENDOR_FEATURE_KEY_MGMT_OFFLOAD: Device supports key
@@ -2649,6 +2709,43 @@ enum qca_wlan_vendor_attr_ll_stats_ext {
 	QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_MAX =
 		QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_LAST - 1,
 };
+
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+/**
+ * enum wlan_ts_cmds - thermal commands.
+ *
+ * @WLAN_TS_CMD_GET_PARAMS:
+ * Get the configuration parameters for thermal shutdown for user.
+ * @WLAN_TS_CMD_GET_TEMP:
+ * Get the temperature from FW and send it to user.
+ * @WLAN_TS_CMD_SUSPEND:
+ * Execute the suspend command issued from user.
+ * @WLAN_TS_CMD_RESUME:
+ * Execute the resume command issued from user.
+ */
+enum wlan_ts_cmds {
+	WLAN_TS_CMD_NONE,
+	WLAN_TS_CMD_GET_PARAMS,
+	WLAN_TS_CMD_GET_TEMP,
+	WLAN_TS_CMD_SUSPEND,
+	WLAN_TS_CMD_RESUME,
+};
+
+/**
+ * enum qca_wlan_vendor_attr_thermal_drv_cmd - thermal command value for vendor
+ * sub-command QCA_NL80211_VENDOR_SUBCMD_THERMAL_CMD
+ * @QCA_WLAN_VENDOR_ATTR_THM_CMD_VALUE:
+ * The value of command, driver will implement different operations according
+ * to this value.
+ */
+enum qca_wlan_vendor_attr_thermal_drv_cmd {
+	QCA_WLAN_VENDOR_ATTR_THM_CMD_INVALID = 0,
+	QCA_WLAN_VENDOR_ATTR_THM_CMD_VALUE,
+	QCA_WLAN_VENDOR_ATTR_THM_CMD_AFTER_LAST,
+	QCA_WLAN_VENDOR_ATTR_THM_CMD_MAX =
+		QCA_WLAN_VENDOR_ATTR_THM_CMD_AFTER_LAST - 1,
+};
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0))
 /**

@@ -1384,6 +1384,17 @@ static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
         .subcmd = QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_HOTLIST_AP_LOST
     },
 #endif /* FEATURE_WLAN_EXTSCAN */
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+    [QCA_NL80211_VENDOR_SUBCMD_TEMPERATURE_EVENT_INDEX] = {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_TEMPERATURE_EVENT
+    },
+    [QCA_NL80211_VENDOR_SUBCMD_RESUME_COMP_EVENT_INDEX] = {
+        .vendor_id = QCA_NL80211_VENDOR_ID,
+        .subcmd = QCA_NL80211_VENDOR_SUBCMD_RESUME_COMP_EVENT
+    },
+#endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
+
     /* OCB events */
     [QCA_NL80211_VENDOR_SUBCMD_DCC_STATS_EVENT_INDEX] =  {
         .vendor_id = QCA_NL80211_VENDOR_ID,
@@ -8193,6 +8204,304 @@ wlan_hdd_cfg80211_get_logger_supp_feature(struct wiphy *wiphy,
 
 	return ret;
 }
+
+
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+static const struct nla_policy qca_wlan_vendor_thermal_cmd_policy[
+		QCA_WLAN_VENDOR_ATTR_THM_CMD_MAX + 1] = {
+	[QCA_WLAN_VENDOR_ATTR_THM_CMD_VALUE] = {
+		.type = NLA_U32
+	},
+};
+
+/**
+ * wlan_hdd_thermal_cmd_get_temperature() - Fetch temperature and send it to ap
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ *
+ * This is called by thermal cmd and data is sent to user space.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+
+static int
+wlan_hdd_thermal_cmd_get_temperature(struct wiphy *wiphy,
+		struct wireless_dev *wdev)
+{
+	eHalStatus status;
+	struct statsContext temp_context;
+	unsigned long rc;
+	struct sk_buff *nl_resp = 0;
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct net_device *dev = wdev->netdev;
+	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return -EINVAL;
+
+	/* prepare callback context and magic pattern */
+	init_completion(&temp_context.completion);
+	temp_context.pAdapter = adapter;
+	temp_context.magic = TEMP_CONTEXT_MAGIC;
+
+	status = sme_GetTemperature(WLAN_HDD_GET_HAL_CTX(adapter),
+				&temp_context, hdd_GetTemperatureCB);
+	if (eHAL_STATUS_SUCCESS != status) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("Unable to get temperature"));
+	} else {
+		rc = wait_for_completion_timeout(&temp_context.completion,
+				msecs_to_jiffies(1000));
+		if (!rc) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("SME timed out while getting temperature"));
+			return -EBUSY;
+		}
+	}
+
+	spin_lock(&hdd_context_lock);
+	temp_context.magic = 0;
+	spin_unlock(&hdd_context_lock);
+
+	nl_resp = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, 4 + NLMSG_HDRLEN);
+	if (!nl_resp) {
+		hddLog(LOGE, FL("cfg80211_vendor_cmd_alloc_reply_skb failed"));
+		rc = -ENOMEM;
+		goto exit;
+	}
+
+	rc = nla_put_u32(nl_resp, QCA_WLAN_VENDOR_ATTR_GET_TEMP_RSP_TEMPERATURE,
+			 adapter->temperature);
+	if (rc) {
+		kfree_skb(nl_resp);
+		goto exit;
+	}
+
+	rc = cfg80211_vendor_cmd_reply(nl_resp);
+	if (rc) {
+		hddLog(LOGE, FL("cfg80211_vendor_cmd_reply failed: %ld"), rc);
+		goto exit;
+	}
+exit:
+	return rc;
+}
+
+/**
+ * wlan_hdd_thermal_cmd_get_params() - Get thermal parameters and send them
+ * to app
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ *
+ * This is called by thermal cmd and data is sent to user space.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+
+static int
+wlan_hdd_thermal_cmd_get_params(struct wiphy *wiphy)
+{
+	int rc;
+	struct sk_buff *nl_resp = 0;
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	uint32_t nl_buf_len;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return -EINVAL;
+
+	nl_buf_len = NLMSG_HDRLEN;
+	nl_buf_len += (sizeof(hdd_ctx->cfg_ini->thermal_shutdown_enabled)
+		+ NLA_HDRLEN) + (sizeof(hdd_ctx->cfg_ini->thermal_shutdown_auto_enabled)
+		+ NLA_HDRLEN) + (sizeof(hdd_ctx->cfg_ini->thermal_resume_threshold)
+		+ NLA_HDRLEN) + (sizeof(hdd_ctx->cfg_ini->thermal_warning_threshold)
+		+ NLA_HDRLEN) + (sizeof(hdd_ctx->cfg_ini->thermal_suspend_threshold)
+		+ NLA_HDRLEN) + (sizeof(hdd_ctx->cfg_ini->thermal_sample_rate)
+		+ NLA_HDRLEN);
+
+	nl_resp = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, nl_buf_len);
+	if (!nl_resp) {
+		hddLog(LOGE, FL("cfg80211_vendor_cmd_alloc_reply_skb failed"));
+		rc = -ENOMEM;
+		goto exit;
+	}
+
+	nla_put_u8(nl_resp, QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SHUTDOWN_EN,
+		hdd_ctx->cfg_ini->thermal_shutdown_enabled);
+	nla_put_u8(nl_resp,
+		QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SHUTDOWN_AUTO_EN,
+		hdd_ctx->cfg_ini->thermal_shutdown_auto_enabled);
+	nla_put_u16(nl_resp, QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_RESUME_THRESH,
+		    hdd_ctx->cfg_ini->thermal_resume_threshold);
+	nla_put_u16(nl_resp, QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_WARNING_THRESH,
+		    hdd_ctx->cfg_ini->thermal_warning_threshold);
+	nla_put_u16(nl_resp, QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SUSPEND_THRESH,
+		    hdd_ctx->cfg_ini->thermal_suspend_threshold);
+	nla_put_u16(nl_resp, QCA_WLAN_VENDOR_ATTR_GET_THM_PARAMS_RSP_SAMPLE_RATE,
+		    hdd_ctx->cfg_ini->thermal_sample_rate);
+
+	rc = cfg80211_vendor_cmd_reply(nl_resp);
+	if (rc) {
+		hddLog(LOGE, FL("cfg80211_vendor_cmd_reply failed: %d"), rc);
+		goto exit;
+	}
+exit:
+	return rc;
+}
+
+/**
+ * wlan_hdd_thermal_cmd_suspend() - Execute the suspend command
+ *
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ *
+ * This is called by thermal cmd.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int wlan_hdd_thermal_cmd_suspend(struct wiphy *wiphy)
+{
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+
+	if (!hdd_ctx->cfg_ini->thermal_shutdown_enabled)
+		return -ENOSYS;
+
+	if (hdd_ctx->cfg_ini->thermal_shutdown_auto_enabled)
+		return -EINVAL;
+
+	if (hdd_thermal_suspend_state(hdd_ctx) == HDD_WLAN_THERMAL_ACTIVE)
+		if (hdd_thermal_suspend_queue_work(hdd_ctx, 0))
+			return 0;
+
+	return -EBUSY;
+}
+
+/**
+ * wlan_hdd_thermal_cmd_resume() - Execute the resume command
+ *
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ *
+ * This is called by thermal cmd.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int wlan_hdd_thermal_cmd_resume(struct wiphy *wiphy)
+{
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+
+	if (!hdd_ctx->cfg_ini->thermal_shutdown_enabled)
+		return -ENOSYS;
+
+	if (hdd_ctx->cfg_ini->thermal_shutdown_auto_enabled)
+		return -EINVAL;
+
+	if (hdd_thermal_suspend_state(hdd_ctx) == HDD_WLAN_THERMAL_ACTIVE)
+		if (hdd_thermal_suspend_queue_work(hdd_ctx, 0))
+			return 0;
+
+	return -EBUSY;
+}
+
+/**
+ * __wlan_hdd_cfg80211_thermal_cmd() - Parse the thermal command from user space
+ * and call the function according to different commands.
+ *
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the Key data
+ * @data_len:Length of the data passed
+ *
+ * This is called when the wlan_ts tool execute commands.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+static int
+__wlan_hdd_cfg80211_thermal_cmd(struct wiphy *wiphy,
+		struct wireless_dev *wdev,
+		const void *data, int data_len)
+{
+	int ret;
+	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+	struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_THM_CMD_MAX + 1];
+	uint32_t ts_cmd;
+
+	if (VOS_FTM_MODE == hdd_get_conparam()) {
+		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+		return -EINVAL;
+	}
+
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return -EINVAL;
+
+	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_THM_CMD_VALUE,
+			data, data_len,
+			qca_wlan_vendor_thermal_cmd_policy)) {
+		hddLog(LOGE, FL("Invalid ATTR"));
+		return -EINVAL;
+	}
+
+	if (!tb[QCA_WLAN_VENDOR_ATTR_THM_CMD_VALUE]) {
+		hddLog(LOGE, FL("attr thermal cmd failed"));
+		return -EINVAL;
+	}
+	ts_cmd = nla_get_u32(tb[QCA_WLAN_VENDOR_ATTR_THM_CMD_VALUE]);
+
+	switch(ts_cmd) {
+		case WLAN_TS_CMD_GET_PARAMS:
+			ret = wlan_hdd_thermal_cmd_get_params(wiphy);
+		break;
+		case WLAN_TS_CMD_GET_TEMP:
+			ret = wlan_hdd_thermal_cmd_get_temperature(wiphy, wdev);
+		break;
+		case WLAN_TS_CMD_SUSPEND:
+			ret = wlan_hdd_thermal_cmd_suspend(wiphy);
+		break;
+		case WLAN_TS_CMD_RESUME:
+			ret = wlan_hdd_thermal_cmd_resume(wiphy);
+		break;
+		default:
+			ret = -EINVAL;
+		break;
+	}
+	return ret;
+}
+
+/**
+ * wlan_hdd_cfg80211_thermal_cmd() - Parse the thermal command from user space
+ * and call the function according to different commands.
+ *
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the Key data
+ * @data_len:Length of the data passed
+ *
+ * This is called when the wlan_ts tool execute commands.
+ *
+ * Return:   Return the Success or Failure code.
+ */
+
+static int
+wlan_hdd_cfg80211_thermal_cmd(struct wiphy *wiphy,
+		struct wireless_dev *wdev,
+		const void *data, int data_len)
+{
+	int ret;
+
+	vos_ssr_protect(__func__);
+	ret = __wlan_hdd_cfg80211_thermal_cmd(wiphy, wdev, data, data_len);
+	vos_ssr_unprotect(__func__);
+
+	return ret;
+}
+#endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
 
 #ifdef FEATURE_WLAN_TDLS
 /* EXT TDLS */
@@ -15303,6 +15612,15 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 				 WIPHY_VENDOR_CMD_NEED_RUNNING,
 		.doit = wlan_hdd_cfg80211_peer_flush_pending
 	},
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+	{
+		.info.vendor_id = QCA_NL80211_VENDOR_ID,
+		.info.subcmd = QCA_NL80211_VENDOR_SUBCMD_THERMAL_CMD,
+		.flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+				 WIPHY_VENDOR_CMD_NEED_NETDEV,
+		.doit = wlan_hdd_cfg80211_thermal_cmd
+	},
+#endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
 };
 
 /*
