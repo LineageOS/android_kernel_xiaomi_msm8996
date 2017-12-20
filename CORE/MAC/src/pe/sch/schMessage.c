@@ -254,11 +254,7 @@ schGetParams(
     tANI_U32 etsi_b[] = {WNI_CFG_EDCA_ETSI_ACBE, WNI_CFG_EDCA_ETSI_ACBK,
                    WNI_CFG_EDCA_ETSI_ACVI, WNI_CFG_EDCA_ETSI_ACVO};
 
-    if(pMac->roam.configParam.gStaLocalEDCAEnable)
-    {
-        val = WNI_CFG_EDCA_PROFILE_ETSI_EUROPE;
-    }
-    else if ((wlan_cfgGetStr(pMac, WNI_CFG_COUNTRY_CODE, country_code_str,
+    if ((wlan_cfgGetStr(pMac, WNI_CFG_COUNTRY_CODE, country_code_str,
                         &country_code_len) == eSIR_SUCCESS) &&
         vos_is_etsi_europe_country(country_code_str)) {
         val = WNI_CFG_EDCA_PROFILE_ETSI_EUROPE;
@@ -331,6 +327,15 @@ schGetParams(
         }
         for (idx=0; idx < len; idx++)
             params[i][idx] = (tANI_U32) data[idx];
+    }
+
+    /* If gStaLocalEDCAEnable = 1,
+     * WNI_CFG_EDCA_ETSI_ACBE Txop limit minus 500us
+     */
+    if (local && (val == WNI_CFG_EDCA_PROFILE_ETSI_EUROPE) &&
+        pMac->roam.configParam.gStaLocalEDCAEnable) {
+        /* Txop limit 5500us / 32 = 0xab */
+        params[0][WNI_CFG_EDCA_PROFILE_TXOPA_IDX] = 0xab;
     }
     PELOG1(schLog(pMac, LOG1, FL("GetParams: local=%d, profile = %d Done"), local, val);)
     return eSIR_SUCCESS;

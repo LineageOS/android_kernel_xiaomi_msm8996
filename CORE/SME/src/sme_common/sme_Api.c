@@ -5108,6 +5108,8 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
       pParam->sub20_channelwidth = pMac->sub20_channelwidth;
       pParam->sub20_dynamic_channelwidth = pMac->sub20_dynamic_channelwidth;
       pParam->sta_change_cc_via_beacon = pMac->sta_change_cc_via_beacon;
+      pParam->csrConfig.gStaLocalEDCAEnable =
+              pMac->roam.configParam.gStaLocalEDCAEnable;
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
