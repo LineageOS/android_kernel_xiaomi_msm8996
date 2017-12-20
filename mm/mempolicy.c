@@ -1554,10 +1554,10 @@ COMPAT_SYSCALL_DEFINE3(set_mempolicy, int, mode, compat_ulong_t __user *, nmask,
 	alloc_size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
 
 	if (nmask) {
-		if (compat_get_bitmap(bm, nmask, nr_bits))
+		if(compat_get_bitmap(bm, nmask, nr_bits))
 			return -EFAULT;
 		nm = compat_alloc_user_space(alloc_size);
-		if (copy_to_user(nm, bm, alloc_size))
+		if(copy_to_user(nm, bm, alloc_size))
 			return -EFAULT;
 	}
 
@@ -1576,10 +1576,10 @@ COMPAT_SYSCALL_DEFINE6(mbind, compat_ulong_t, start, compat_ulong_t, len,
 	alloc_size = ALIGN(nr_bits, BITS_PER_LONG) / 8;
 
 	if (nmask) {
-		if (compat_get_bitmap(nodes_addr(bm), nmask, nr_bits))
+		if(compat_get_bitmap(nodes_addr(bm), nmask, nr_bits))
 			return -EFAULT;
 		nm = compat_alloc_user_space(alloc_size);
-		if (copy_to_user(nm, nodes_addr(bm), alloc_size))
+		if(copy_to_user(nm, nodes_addr(bm), alloc_size))
 			return -EFAULT;
 	}
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2014-2016 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2014-2017 The Linux Foundation. All rights reserved.
  * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -2896,9 +2896,8 @@ static int set_usb_current_limit_vote_cb(struct device *dev,
 
 	effective_id = get_effective_client_id_locked(chip->usb_icl_votable);
 
-	/* disable parallel charging if HVDCP is voting for 300mA */
-	if (effective_id == HVDCP_ICL_VOTER)
-		smbchg_parallel_usb_disable(chip);
+	/* Disable parallel charger if ICL is changed */
+	smbchg_parallel_usb_disable(chip);
 
 	if (chip->parallel.current_max_ma == 0) {
 		rc = smbchg_set_usb_current_max(chip, icl_ma);
