@@ -588,9 +588,14 @@
 #define SIR_MAC_AUTH_CHALLENGE_LENGTH        253
 #define SIR_MAC_WEP_IV_LENGTH                4
 #define SIR_MAC_WEP_ICV_LENGTH               4
+#define SIR_MAC_CHALLENGE_ID_LEN             2
+
+/* 2 bytes each for auth algo number, transaction number and status code */
+#define SIR_MAC_AUTH_FRAME_INFO_LEN          6
 
 /// MAX key length when ULA is used
 #define SIR_MAC_MAX_KEY_LENGTH               32
+#define SIR_MAC_MAX_KEY_RSC_LEN              16
 
 /// Macro definitions for get/set on FC fields
 #define SIR_MAC_GET_PROT_VERSION(x)      ((((tANI_U16) x) & 0x0300) >> 8)
