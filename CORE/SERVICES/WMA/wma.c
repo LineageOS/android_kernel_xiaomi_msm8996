@@ -5232,7 +5232,6 @@ static int wma_unified_radio_tx_power_level_stats_event_handler(void *handle,
 	    sizeof(*fixed_param)) / sizeof(uint32_t))) {
 		WMA_LOGE("%s: excess tx_power buffers:%d", __func__,
 			fixed_param->num_tx_power_levels);
-		VOS_ASSERT(0);
 		return -EINVAL;
 	}
 
@@ -5243,7 +5242,17 @@ static int wma_unified_radio_tx_power_level_stats_event_handler(void *handle,
 				fixed_param->total_num_tx_power_levels;
 	if (!rs_results->total_num_tx_power_levels)
 		goto post_stats;
-
+	if ((fixed_param->power_level_offset >
+	    rs_results->total_num_tx_power_levels) ||
+	    (fixed_param->num_tx_power_levels >
+	    rs_results->total_num_tx_power_levels -
+	    fixed_param->power_level_offset)) {
+		WMA_LOGE("%s: Invalid offset %d total_num %d num %d",
+			__func__, fixed_param->power_level_offset,
+			rs_results->total_num_tx_power_levels,
+			fixed_param->num_tx_power_levels);
+		return -EINVAL;
+	}
 	if (!rs_results->tx_time_per_power_level) {
 		rs_results->tx_time_per_power_level = vos_mem_malloc(
 				sizeof(uint32_t) *
