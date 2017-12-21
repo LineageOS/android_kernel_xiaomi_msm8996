@@ -5,7 +5,7 @@ WLAN_CHIPSET :=
 
 ifeq ($(BOARD_HAS_QCOM_WLAN), true)
 # Build/Package options for 8084/8092/8960/8992/8994/msm8996 targets
-ifeq ($(call is-board-platform-in-list, apq8084 mpq8092 msm8952 msm8960 msm8992 msm8994 msm8996),true)
+ifeq ($(call is-board-platform-in-list, apq8084 mpq8092 msm8952 msm8960 msm8992 msm8994 msm8996 msm8937),true)
 WLAN_CHIPSET := qca_cld
 WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m
 endif
@@ -73,7 +73,11 @@ KBUILD_OPTIONS := WLAN_ROOT=$(KERNEL_TO_BUILD_ROOT_OFFSET)$(WLAN_BLD_DIR)/qcacld
 # requirement we are specifying <chipset>_wlan.ko as LOCAL_MODULE.
 # This means we need to rename the module to <chipset>_wlan.ko
 # after wlan.ko is built.
+ifeq ($(call is-board-platform-in-list, msm8937),true)
+KBUILD_OPTIONS += MODNAME=qca6174
+else
 KBUILD_OPTIONS += MODNAME=wlan
+endif
 KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 KBUILD_OPTIONS += $(WLAN_SELECT)
 KBUILD_OPTIONS += WLAN_OPEN_SOURCE=$(WLAN_OPEN_SOURCE)
@@ -81,7 +85,11 @@ KBUILD_OPTIONS += WLAN_OPEN_SOURCE=$(WLAN_OPEN_SOURCE)
 #module to be built for all user,userdebug and eng tags
 include $(CLEAR_VARS)
 LOCAL_MODULE              := $(WLAN_CHIPSET)_wlan.ko
+ifeq ($(call is-board-platform-in-list, msm8937),true)
+LOCAL_MODULE_KBUILD_NAME  := qca6174.ko
+else
 LOCAL_MODULE_KBUILD_NAME  := wlan.ko
+endif
 LOCAL_MODULE_TAGS         := optional
 LOCAL_MODULE_DEBUG_ENABLE := true
 ifeq ($(PRODUCT_VENDOR_MOVE_ENABLED), true)
@@ -102,9 +110,11 @@ $(shell mkdir -p $(TARGET_OUT_VENDOR)/lib/modules; \
     ln -sf /$(TARGET_COPY_OUT_VENDOR)/lib/modules/$(WLAN_CHIPSET)/$(WLAN_CHIPSET)_wlan.ko \
            $(TARGET_OUT_VENDOR)/lib/modules/wlan.ko)
 else
+ifneq ($(call is-board-platform-in-list, msm8937),true)
 $(shell mkdir -p $(TARGET_OUT)/lib/modules; \
     ln -sf /system/lib/modules/$(WLAN_CHIPSET)/$(WLAN_CHIPSET)_wlan.ko \
            $(TARGET_OUT)/lib/modules/wlan.ko)
+endif
 endif # PRODUCT_VENDOR_MOVE_ENABLED
 endif
 $(shell ln -sf /persist/wlan_mac.bin $(TARGET_OUT_ETC)/firmware/wlan/qca_cld/wlan_mac.bin)
