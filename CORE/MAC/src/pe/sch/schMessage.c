@@ -336,6 +336,56 @@ schGetParams(
     return eSIR_SUCCESS;
 }
 
+/* Get Hostapd EDCA params if set*/
+tSirRetStatus
+sch_get_hostapd_edca(tpAniSirGlobal pMac,
+		     tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN],
+		     tANI_U8 local)
+{
+	tANI_U32 i, idx;
+	tANI_U32 *prf;
+	tANI_U32 hostapd_edca_local[] = {WNI_CFG_EDCA_HOSTAPD_ACVO_LOCAL,
+					 WNI_CFG_EDCA_HOSTAPD_ACVI_LOCAL,
+					 WNI_CFG_EDCA_HOSTAPD_ACBE_LOCAL,
+					 WNI_CFG_EDCA_HOSTAPD_ACBK_LOCAL};
+	tANI_U8 ac[4] = {EDCA_AC_VO, EDCA_AC_VI, EDCA_AC_BE, EDCA_AC_BK};
+
+	if (local) {
+		for (i = 0; i < MAX_NUM_AC; i++) {
+			tANI_U8  data[WNI_CFG_EDCA_HOSTAPD_ACVO_LOCAL_LEN];
+			tANI_U32 len = WNI_CFG_EDCA_HOSTAPD_ACVO_LOCAL_LEN;
+
+			prf = &hostapd_edca_local[i];
+
+			if (wlan_cfgGetStr(pMac, (tANI_U16)(*prf), (tANI_U8 *)
+			    &data[0], &len) != eSIR_SUCCESS) {
+				schLog(pMac, LOGP,
+				       FL("cfgGet %d failed"), *prf);
+				return eSIR_FAILURE;
+			}
+			if (len > WNI_CFG_EDCA_HOSTAPD_ACBK_LOCAL_LEN) {
+				schLog(pMac, LOGE,
+				       FL("cfgGet %d: length is %d not %d"),
+				       *prf, len,
+				       WNI_CFG_EDCA_HOSTAPD_ACBK_LOCAL_LEN);
+				return eSIR_FAILURE;
+			}
+			if (data[len-1]) {
+				for (idx = 0; idx < len-1; idx++)
+					params[ac[i]][idx] =
+					       (tANI_U32)data[idx];
+			} else {
+				/* Jump the loop if the first cfg is not enable,
+				 * no need to judge the other 3 cfg as hostapd
+				 * set 4 AC one time */
+				break;
+			}
+
+		}
+	}
+	return eSIR_SUCCESS;
+}
+
 static bool
 broadcastWMMOfConcurrentSTASession(tpAniSirGlobal pMac,
 	tpPESession psessionEntry)
@@ -492,6 +542,12 @@ schQosUpdateLocal(tpAniSirGlobal pMac, tpPESession psessionEntry)
         return;
     }
 
+    if (LIM_IS_AP_ROLE(psessionEntry)) {
+        if (sch_get_hostapd_edca(pMac, params, true) != eSIR_SUCCESS) {
+            /* If fail to get Hostapd EDCA, use default EDCA */
+            PELOGE(schLog(pMac, LOGE, FL("sch_get_hostapd_edca failed"));)
+        }
+    }
     setSchEdcaParams(pMac, params, psessionEntry);
 
     //For AP, the bssID is stored in LIM Global context.
@@ -520,7 +576,6 @@ schSetDefaultEdcaParams(tpAniSirGlobal pMac, tpPESession psessionEntry)
     setSchEdcaParams(pMac, params, psessionEntry);
     return;
 }
-
 
 /** ----------------------------------------------------------
 \fn      setSchEdcaParams
