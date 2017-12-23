@@ -330,3 +330,9 @@ config SUSPEND_TIME
 config DEDUCE_WAKEUP_REASONS
 	bool
 	default n
+
+config QUICK_THAW_FINGERPRINTD
+	bool "Quickly resume fingerprintd"
+	depends on SUSPEND
+	default y
+
