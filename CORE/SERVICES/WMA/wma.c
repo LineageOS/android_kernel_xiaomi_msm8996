@@ -548,7 +548,7 @@ static bool wma_is_vdev_in_ap_mode(tp_wma_handle wma, u_int8_t vdev_id)
 {
 	struct wma_txrx_node *intf = wma->interfaces;
 
-	if (vdev_id > wma->max_bssid) {
+	if (vdev_id >= wma->max_bssid) {
 		WMA_LOGP("%s: Invalid vdev_id %hu", __func__, vdev_id);
 		VOS_ASSERT(0);
 		return false;
@@ -574,7 +574,7 @@ static bool wma_is_vdev_in_ibss_mode(tp_wma_handle wma, u_int8_t vdev_id)
 {
 	struct wma_txrx_node *intf = wma->interfaces;
 
-	if (vdev_id > wma->max_bssid) {
+	if (vdev_id >= wma->max_bssid) {
 		WMA_LOGP("%s: Invalid vdev_id %hu", __func__, vdev_id);
 		VOS_ASSERT(0);
 		return false;
@@ -1345,9 +1345,15 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 		return -EINVAL;
 	}
 
+	if (resp_event->vdev_id >= wma->max_bssid) {
+		WMA_LOGE("%s: received invalid vdev_id %d",
+			__func__, resp_event->vdev_id);
+		return -EINVAL;
+	}
+
 	iface = &wma->interfaces[resp_event->vdev_id];
 
-	if ((resp_event->vdev_id <= wma->max_bssid) &&
+	if ((resp_event->vdev_id < wma->max_bssid) &&
 		(adf_os_atomic_read(
 		&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) &&
 		(wma_is_vdev_in_ap_mode(wma, resp_event->vdev_id) == true)) {
@@ -1957,7 +1963,7 @@ static void wma_delete_all_ibss_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 	ol_txrx_vdev_handle vdev;
 	ol_txrx_peer_handle peer, temp;
 
-	if (!wma || vdev_id > wma->max_bssid)
+	if (!wma || vdev_id >= wma->max_bssid)
 		return;
 
 	vdev = wma->interfaces[vdev_id].handle;
@@ -1999,7 +2005,7 @@ static void wma_delete_all_ap_remote_peers(tp_wma_handle wma, A_UINT32 vdev_id)
 	ol_txrx_vdev_handle vdev;
 	ol_txrx_peer_handle peer, temp;
 
-	if (!wma || vdev_id > wma->max_bssid)
+	if (!wma || vdev_id >= wma->max_bssid)
 		return;
 
 	vdev = wma->interfaces[vdev_id].handle;
@@ -2197,7 +2203,7 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 
 	resp_event = (wmi_vdev_stopped_event_fixed_param *)buf;
 
-	if ((resp_event->vdev_id <= wma->max_bssid) &&
+	if ((resp_event->vdev_id < wma->max_bssid) &&
 	(adf_os_atomic_read(&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) &&
 	((wma->interfaces[resp_event->vdev_id].type == WMI_VDEV_TYPE_AP) &&
 	(wma->interfaces[resp_event->vdev_id].sub_type == 0))) {
@@ -2236,7 +2242,7 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 		tpDeleteBssParams params =
 			(tpDeleteBssParams)req_msg->user_data;
 		struct beacon_info *bcn;
-		if (resp_event->vdev_id > wma->max_bssid) {
+		if (resp_event->vdev_id >= wma->max_bssid) {
 			WMA_LOGE("%s: Invalid vdev_id %d", __func__,
 				resp_event->vdev_id);
 			vos_mem_free(params);
@@ -4300,7 +4306,7 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 	wmi_extscan_wlan_descriptor    *src_hotlist;
 	uint32_t numap;
 	int j, ap_found = 0;
-
+	uint32_t buf_len;
 	tpAniSirGlobal pMac = (tpAniSirGlobal )vos_get_context(
 					VOS_MODULE_ID_PE, wma->vos_context);
 	if (!pMac) {
@@ -4329,6 +4335,13 @@ static int wma_extscan_hotlist_match_event_handler(void *handle,
 		WMA_LOGE("%s: Total Entries %u greater than max",
 			  __func__, numap);
 		numap = WMA_EXTSCAN_MAX_HOTLIST_ENTRIES;
+	}
+	buf_len = sizeof(wmi_extscan_hotlist_match_event_fixed_param) +
+			(4 * sizeof(uint32_t)) +
+			(numap * sizeof(wmi_extscan_wlan_descriptor));
+	if (buf_len > len) {
+		WMA_LOGE("Invalid buf len from FW %d numap %d", len, numap);
+		return -EINVAL;
 	}
 	dest_hotlist = vos_mem_malloc(sizeof(*dest_hotlist) +
 					sizeof(*dest_ap) * numap);
@@ -5581,6 +5594,8 @@ static tSirLLStatsResults *__wma_get_ll_stats_ext_buf(uint32_t *len,
 	 *     +-------------------------------+
 	 *     |      channel_num              |
 	 *     +-------------------------------+
+	 *     |      time stamp               |
+	 *     +-------------------------------+
 	 *     |      tx_mpdu_aggr_array_len   |
 	 *     +-------------------------------+
 	 *     |      tx_succ_mcs_array_len    |
@@ -6003,6 +6018,28 @@ static void __wma_fill_rx_stats(struct sir_wifi_ll_ext_stats *ll_stats,
 }
 
 /**
+ * __wma_ll_stats_time_stamp() - log indication timestamp and counting duration
+ * @period - counting period on FW side
+ * @time_stamp - time stamp for user layer
+ *
+ * return: none
+ */
+static void __wma_ll_stats_time_stamp(wmi_stats_period *period,
+				      struct sir_wifi_ll_ext_period *time_stamp)
+{
+	time_stamp->end_time = vos_timer_get_system_time();
+	if (!period) {
+		WMA_LOGE(FL("Period buf is null."));
+		time_stamp->duration = 0;
+		return;
+	}
+	WMA_LOGD(FL("On fw side, start time is %d, start count is %d "),
+		 period->start_low_freq_msec, period->start_low_freq_count);
+	time_stamp->duration = period->end_low_freq_msec -
+				period->start_low_freq_msec;
+}
+
+/**
  * wma_ll_stats_evt_handler() - handler for MAC layer counters.
  * @handle - wma handle
  * @event - FW event
@@ -6030,6 +6067,7 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 	vos_msg_t vos_msg;
 	struct ol_txrx_peer_t *peer;
 	ol_txrx_pdev_handle pdev;
+	wmi_stats_period *period;
 
 	mac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 					      wma_handle->vos_context);
@@ -6056,6 +6094,9 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 	wmi_cca_stats = param_buf->chan_cca_stats;
 	wmi_peer_signal = param_buf->peer_signal_stats;
 	wmi_peer_rx = param_buf->peer_ac_rx_stats;
+	period = param_buf->stats_period;
+	WMA_LOGD("%s: stats period length is %d. ", __func__,
+		 fixed_param->stats_period_array_len);
 
 	/* Get the MAX of three peer numbers */
 	peer_num = fixed_param->num_peer_signal_stats >
@@ -6089,6 +6130,7 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 	ll_stats->channel_num = fixed_param->num_chan_cca_stats;
 	ll_stats->peer_num = peer_num;
 
+	__wma_ll_stats_time_stamp(period, &ll_stats->time_stamp);
 	result = (uint8_t *)ll_stats->stats;
 	peer_stats = (struct sir_wifi_ll_ext_peer_stats *)result;
 	ll_stats->peer_stats = peer_stats;
@@ -11962,7 +12004,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 	int len;
 	tSirScanOffloadEvent *scan_event;
 
-	if (scan_req->sessionId > wma_handle->max_bssid) {
+	if (scan_req->sessionId >= wma_handle->max_bssid) {
 		WMA_LOGE("%s: Invalid vdev_id %d, msg_type : 0x%x", __func__,
 			scan_req->sessionId, msg_type);
 		vos_status = VOS_STATUS_E_FAILURE;
@@ -14943,7 +14985,7 @@ void wma_vdev_resp_timer(void *data)
 		struct beacon_info *bcn;
 		struct wma_txrx_node *iface;
 
-		if (tgt_req->vdev_id > wma->max_bssid) {
+		if (tgt_req->vdev_id >= wma->max_bssid) {
 			WMA_LOGE("%s: Invalid vdev_id %d", __func__,
 				tgt_req->vdev_id);
 			vos_mem_free(params);
@@ -25823,7 +25865,7 @@ static VOS_STATUS wma_wow_enter(tp_wma_handle wma,
 
 	WMA_LOGD("wow enable req received for vdev id: %d", info->sessionId);
 
-	if (info->sessionId > wma->max_bssid) {
+	if (info->sessionId >= wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
 		vos_mem_free(info);
 		return VOS_STATUS_E_INVAL;
@@ -25850,7 +25892,7 @@ static VOS_STATUS wma_wow_exit(tp_wma_handle wma,
 
 	WMA_LOGD("wow disable req received for vdev id: %d", info->sessionId);
 
-	if (info->sessionId > wma->max_bssid) {
+	if (info->sessionId >= wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
 		vos_mem_free(info);
 		return VOS_STATUS_E_INVAL;
@@ -25883,7 +25925,7 @@ static VOS_STATUS wma_suspend_req(tp_wma_handle wma, tpSirWlanSuspendParam info)
 
 	wma->no_of_suspend_ind++;
 
-	if (info->sessionId > wma->max_bssid) {
+	if (info->sessionId >= wma->max_bssid) {
 		WMA_LOGE("Invalid vdev id (%d)", info->sessionId);
 		vos_mem_free(info);
 		return VOS_STATUS_E_INVAL;

@@ -1111,6 +1111,70 @@ ol_tx_drop_list_add(adf_nbuf_t *list, adf_nbuf_t msdu, adf_nbuf_t *tail)
 	*tail = msdu;
 }
 
+/**
+ * ol_build_ieee80211_header() - Build IEEE80211 DATA header from 802.3
+ * @msdu: the msdu buffer to be transmitted.
+ *
+ * This function is used to convert MSDU packet from 802.3 Header to
+ * IEEE802.11 Header + EPD Header. Only used in 802.11p DSRC OCB RAW mode.
+ * EPD header is 2 bytes, indicates the ether_type, larger than 0x600.
+ * OCB configuration Command has already indicated current working mode.
+ */
+static A_STATUS ol_build_ieee80211_header(adf_nbuf_t msdu)
+{
+	int need_hdr_len;
+	uint16_t epd_hdr_type;
+	static uint16_t seq_num = 0;
+	struct ether_header *eth_hdr_p;
+	struct ieee80211_qosframe hdr;
+
+	eth_hdr_p = (struct ether_header *)adf_nbuf_data(msdu);
+	epd_hdr_type = eth_hdr_p->ether_type;
+
+	adf_os_mem_zero(&hdr, sizeof(struct ieee80211_qosframe));
+	hdr.i_fc[0] |= IEEE80211_FC0_VERSION_0 |
+		       IEEE80211_FC0_TYPE_DATA |
+		       IEEE80211_FC0_SUBTYPE_QOS;
+	adf_os_mem_copy(hdr.i_addr1, eth_hdr_p->ether_dhost,
+			IEEE80211_ADDR_LEN);
+	adf_os_mem_copy(hdr.i_addr2, eth_hdr_p->ether_shost,
+			IEEE80211_ADDR_LEN);
+	adf_os_mem_set(hdr.i_addr3, 0xff, IEEE80211_ADDR_LEN);
+
+	*(uint16_t *)hdr.i_seq = htole16(seq_num << IEEE80211_SEQ_SEQ_SHIFT);
+	seq_num++;
+
+	hdr.i_qos[0] |= adf_nbuf_get_tid(msdu);
+	if (IEEE80211_IS_MULTICAST(hdr.i_addr1))
+		hdr.i_qos[0] |= 1 << IEEE80211_QOS_ACKPOLICY_S;
+
+	need_hdr_len = sizeof(hdr) + sizeof(epd_hdr_type) -
+		       ETHER_HDR_LEN - adf_nbuf_headroom(msdu);
+
+	/*
+	 * So we need to modify the skb buffer header and hence need
+	 * a copy of that. For OCB data packets from network stack,
+	 * it is impossible happened here, in case of headroom is not
+	 * enough.
+	 */
+	if (need_hdr_len > 0 || adf_nbuf_is_cloned(msdu)) {
+		need_hdr_len += adf_nbuf_headroom(msdu);
+		if (adf_nbuf_expand(msdu, need_hdr_len, 0) == NULL) {
+			TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+				   "%s: buf expand fail\n", __func__);
+			return A_ERROR;
+		}
+	}
+
+	adf_nbuf_pull_head(msdu, ETHER_HDR_LEN);
+	adf_os_mem_copy(adf_nbuf_push_head(msdu, sizeof(epd_hdr_type)),
+			&epd_hdr_type, sizeof(epd_hdr_type));
+	adf_os_mem_copy(adf_nbuf_push_head(msdu, sizeof(hdr)),
+			&hdr, sizeof(hdr));
+
+	return A_OK;
+}
+
 static inline adf_nbuf_t
 ol_tx_hl_base(
     ol_txrx_vdev_handle vdev,
@@ -1258,6 +1322,17 @@ ol_tx_hl_base(
                 /* only collect dsrc tx packet stats.*/
                 ol_collect_per_pkt_tx_stats(vdev, &tx_ctrl, tx_desc->id);
             } else {
+                /*
+                 * TX ctrl header is filled by specific operation.
+                 * Packets from network stack have no ctrl header.
+                 * Only convert the packet from network stack.
+                 */
+                 if (vdev->ocb_config_flags & OCB_CONFIG_FLAG_80211_FRAME_MODE) {
+                     A_STATUS status = ol_build_ieee80211_header(msdu);
+                     if (A_FAILED(status))
+                         goto free_tx_desc;
+                 }
+
                 /*
                  * IEEE 1609.4-2016 5.3.4 mandates that IP datagrams can
                  * transmit only on SCH (Service Channel) and can't goes on CCH.

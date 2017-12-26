@@ -13180,10 +13180,10 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
 #endif
        pHddCtx->mcc_mode = mcc_mode;
    }
-   hddLog(VOS_TRACE_LEVEL_INFO, "wlan(%d) " MAC_ADDRESS_STR " %s",
+   hddLog(VOS_TRACE_LEVEL_ERROR, "wlan(%d) " MAC_ADDRESS_STR " %s",
                 staChannel, MAC_ADDR_ARRAY(staBssid), mcc_mode ? "MCC" : "SCC");
    if (p2pChannel > 0) {
-       hddLog(VOS_TRACE_LEVEL_INFO, "p2p-%s(%d) " MAC_ADDRESS_STR,
+       hddLog(VOS_TRACE_LEVEL_ERROR, "p2p-%s(%d) " MAC_ADDRESS_STR,
                      p2pMode, p2pChannel, MAC_ADDR_ARRAY(p2pBssid));
    }
    if (apChannel1 > 0) {
@@ -17060,6 +17060,9 @@ static int hdd_driver_init( void)
    do {
 
 #ifndef MODULE
+      /* For statically linked driver, call hdd_set_conparam to update curr_con_mode
+       */
+      hdd_set_conparam((v_UINT_t)con_mode);
       if (WLAN_IS_EPPING_ENABLED(con_mode)) {
          ret_status =  epping_driver_init(con_mode, &wlan_wake_lock,
                           WLAN_MODULE_NAME);
@@ -17098,12 +17101,6 @@ static int hdd_driver_init( void)
    MTRACE(hddTraceInit());
 #endif
    hdd_register_debug_callback();
-
-#ifndef MODULE
-      /* For statically linked driver, call hdd_set_conparam to update curr_con_mode
-       */
-      hdd_set_conparam((v_UINT_t)con_mode);
-#endif
 
    ret_status = hdd_hif_register_driver();
    vos_remove_pm_qos();

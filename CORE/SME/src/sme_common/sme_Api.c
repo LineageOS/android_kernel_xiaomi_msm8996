@@ -1895,6 +1895,9 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    pMac->sta_auth_retries_for_code17 =
          pSmeConfigParams->csrConfig.sta_auth_retries_for_code17;
 
+   pMac->sta_change_cc_via_beacon =
+         pSmeConfigParams->sta_change_cc_via_beacon;
+
    return status;
 }
 
@@ -2307,6 +2310,30 @@ void sme_set_allowed_action_frames(tHalHandle hal,
 	}
 
 	return;
+}
+
+/**
+ * sme_handle_cc_change_ind() - handle new country code
+ * @hal_ptr: Handler to HAL
+ * @msg_buf: contain new country code.
+ *
+ * Return: eHAL_STATUS_SUCCESS on success,
+ * eHAL_STATUS_INVALID_PARAMETER on failure.
+ */
+eHalStatus sme_handle_cc_change_ind(tHalHandle hal_ptr, void *msg_buf)
+{
+	eHalStatus status = eHAL_STATUS_FAILURE;
+	tpAniSirGlobal mac_ptr = PMAC_STRUCT(hal_ptr);
+	v_REGDOMAIN_t domainId;
+	struct sme_change_country_code_ind * change_cc_ind =
+			 (struct sme_change_country_code_ind *)msg_buf;
+
+	status =
+		csrGetRegulatoryDomainForCountry(mac_ptr,
+						 change_cc_ind->country_code,
+						 &domainId, COUNTRY_IE);
+
+	return (status);
 }
 
 /*--------------------------------------------------------------------------
@@ -2963,6 +2990,18 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 {
                    smsLog(pMac, LOGE, "Empty rsp message for meas "
                           "(eWNI_SME_PRE_SWITCH_CHL_IND), nothing to process");
+                }
+                break;
+          case eWNI_SME_CC_CHANGE_IND:
+                if(pMsg->bodyptr)
+                {
+                   status = sme_handle_cc_change_ind(pMac,pMsg->bodyptr);
+                   vos_mem_free(pMsg->bodyptr);
+                }
+                else
+                {
+                   smsLog(pMac, LOGE, "Empty rsp message for meas "
+                          "(eWNI_SME_CC_CHANGE_IND), nothing to process");
                 }
                 break;
           case eWNI_SME_POST_SWITCH_CHL_IND:
@@ -5068,6 +5107,9 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
       pParam->sub20_config_info = pMac->sub20_config_info;
       pParam->sub20_channelwidth = pMac->sub20_channelwidth;
       pParam->sub20_dynamic_channelwidth = pMac->sub20_dynamic_channelwidth;
+      pParam->sta_change_cc_via_beacon = pMac->sta_change_cc_via_beacon;
+      pParam->csrConfig.gStaLocalEDCAEnable =
+              pMac->roam.configParam.gStaLocalEDCAEnable;
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 

@@ -668,9 +668,15 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
     hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
+    int ret_code;
 
-    if (0 != wlan_hdd_validate_context(hdd_ctx))
-        return eHAL_STATUS_FAILURE;
+    ret_code = wlan_hdd_validate_context(hdd_ctx);
+    if (0 != ret_code) {
+        /* If ssr is inprogress, do not return, resource release is necessary */
+        if (!(-EAGAIN == ret_code && hdd_ctx->isLogpInProgress)) {
+            return eHAL_STATUS_FAILURE;
+        }
+    }
 
     mutex_lock(&cfgState->remain_on_chan_ctx_lock);
     pRemainChanCtx = cfgState->remain_on_chan_ctx;
@@ -736,7 +742,9 @@ wlan_hdd_remain_on_channel_callback(tHalHandle hHal, void* pCtx,
      * after sending any cancel remain on channel event will also
      * ensure that the cancel roc is sent without any delays.
      */
-    schedule_delayed_work(&hdd_ctx->rocReqWork, 0);
+     /* If ssr is inprogress, do not schedule next roc req */
+     if (!hdd_ctx->isLogpInProgress)
+        schedule_delayed_work(&hdd_ctx->rocReqWork, 0);
 
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
          ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode ) ||
