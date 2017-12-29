@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5c26d39d_cd11ab3e",
+        "filename": "drivers/media/platform/msm/camera_v2/sensor/io/msm_camera_dt_util.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-12-29T11:00:41Z",
+      "side": 0,
+      "message": "Remove?",
+      "range": {
+        "startLine": 25,
+        "startChar": 0,
+        "endLine": 25,
+        "endChar": 11
+      },
+      "revId": "34c4ec6ba0a96ea2ccdad85d0362957f8e03bfd0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}

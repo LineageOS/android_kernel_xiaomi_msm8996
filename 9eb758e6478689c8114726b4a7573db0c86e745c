@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bb096a0a_b6a33c5b",
+        "filename": "drivers/media/platform/msm/camera_v2/sensor/actuator/msm_actuator.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 925,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-12-29T11:00:41Z",
+      "side": 1,
+      "message": "We could wrap this into CONFIG_MACH_XIAOMI_NATRIUM and avoid touching the upstream code. Thoughts?",
+      "range": {
+        "startLine": 845,
+        "startChar": 0,
+        "endLine": 925,
+        "endChar": 3
+      },
+      "revId": "9eb758e6478689c8114726b4a7573db0c86e745c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bfff968c_d3fae385",
+        "filename": "include/uapi/media/msm_camsensor_sdk.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 197,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-12-29T11:00:41Z",
+      "side": 1,
+      "message": "This belongs to the removed flashlight changes. Needs to go away too.",
+      "range": {
+        "startLine": 196,
+        "startChar": 0,
+        "endLine": 197,
+        "endChar": 18
+      },
+      "revId": "9eb758e6478689c8114726b4a7573db0c86e745c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
