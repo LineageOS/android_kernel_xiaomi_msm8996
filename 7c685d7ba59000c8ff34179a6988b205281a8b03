@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "a2c8882a_0649498f",
+        "filename": "sound/soc/msm/qdsp6v2/msm-pcm-routing-v2.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 11042,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-12-29T16:23:29Z",
+      "side": 0,
+      "message": "I also wonder what happens if we dismiss these edits. Because the removals are not consistent. I would expect all PRI_MI2S_TX and SEC_MI2S_TX entries to be deleted, but that\u0027s not the case.",
+      "parentUuid": "bc9db73a_5cc03e50",
+      "range": {
+        "startLine": 11038,
+        "startChar": 0,
+        "endLine": 11042,
+        "endChar": 54
+      },
+      "revId": "7c685d7ba59000c8ff34179a6988b205281a8b03",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d5687e86_1df768df",
         "filename": "sound/soc/msm/qdsp6v2/msm-pcm-routing-v2.c",
         "patchSetId": 2
