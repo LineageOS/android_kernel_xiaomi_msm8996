@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "97d1d802_81d5a80a",
+        "filename": "drivers/Makefile",
+        "patchSetId": 2
+      },
+      "lineNbr": 176,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2017-12-29T09:27:58Z",
+      "side": 1,
+      "message": "Funny, I had the impression that there was a specific kernel config to enable this.",
+      "range": {
+        "startLine": 176,
+        "startChar": 0,
+        "endLine": 176,
+        "endChar": 21
+      },
+      "revId": "33a5621f8ec1d376a4de4637cec2478d941425a9",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
