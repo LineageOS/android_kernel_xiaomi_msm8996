@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1457,6 +1457,7 @@ struct hdd_adapter_s
     /* random address management for management action frames */
     spinlock_t random_mac_lock;
     struct action_frame_random_mac random_mac[MAX_RANDOM_MAC_ADDRS];
+    struct power_stats_response *chip_power_stats;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
