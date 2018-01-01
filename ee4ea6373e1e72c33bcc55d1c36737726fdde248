@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "816f5466_92ff1bc0",
+        "filename": "sound/soc/msm/msm8996.c",
+        "patchSetId": 4
+      },
+      "lineNbr": 5661,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2018-01-01T10:29:55Z",
+      "side": 1,
+      "message": "Xiaomi derp",
+      "range": {
+        "startLine": 5661,
+        "startChar": 12,
+        "endLine": 5661,
+        "endChar": 22
+      },
+      "revId": "ee4ea6373e1e72c33bcc55d1c36737726fdde248",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
