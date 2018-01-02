@@ -1,0 +1,22 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b70ce7ec_db35cb78",
+        "filename": "arch/arm64/configs/scorpio_defconfig",
+        "patchSetId": 11
+      },
+      "lineNbr": 585,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2018-01-02T09:01:53Z",
+      "side": 1,
+      "message": "CONFIG_F2FS_FS\u003dy\nCONFIG_F2FS_FS_ENCRYPTION\u003dy\nshould be enough",
+      "parentUuid": "",
+      "revId": "31b81b8328ab5b85b3a4caeba0e81ea1d0cd18f1",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
