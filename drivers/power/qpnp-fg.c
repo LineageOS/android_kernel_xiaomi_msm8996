@@ -583,6 +583,7 @@ struct fg_chip {
 	u16			*offset;
 	bool			ima_supported;
 	bool			init_done;
+	int			mi_last_soc;
 	/* jeita hysteresis */
 	bool			jeita_hysteresis_support;
 	bool			batt_hot;
@@ -2258,8 +2259,10 @@ static int get_prop_capacity(struct fg_chip *chip)
 	if (chip->battery_missing)
 		return MISSING_CAPACITY;
 
-	if (!chip->profile_loaded && !chip->use_otp_profile)
-		return DEFAULT_CAPACITY;
+	if (!chip->profile_loaded && !chip->use_otp_profile) {
+		pr_info("loading batt profile, return last soc %d\n", chip->mi_last_soc);
+		return chip->mi_last_soc;
+	}
 
 	if (chip->charge_full)
 		return FULL_CAPACITY;
@@ -2296,6 +2299,37 @@ static int get_prop_capacity(struct fg_chip *chip)
 
 	return DIV_ROUND_CLOSEST((msoc - 1) * (FULL_CAPACITY - 2),
 			FULL_SOC_RAW - 2) + 1;
+}
+
+static int get_last_soc(struct fg_chip *chip)
+{
+	u8 cap[2];
+	int rc, capacity = 0, tries = 0;
+
+	while (tries < MAX_TRIES_SOC) {
+		rc = fg_read(chip, cap,
+				chip->soc_base + SOC_MONOTONIC_SOC, 2);
+		if (rc) {
+			pr_err("spmi read failed: addr=%03x, rc=%d\n",
+				chip->soc_base + SOC_MONOTONIC_SOC, rc);
+			return rc;
+		}
+
+		if (cap[0] == cap[1])
+			break;
+
+		tries++;
+	}
+
+	if (tries == MAX_TRIES_SOC) {
+		pr_err("shadow registers do not match\n");
+		return DEFAULT_CAPACITY;
+	}
+
+	if (cap[0] > 0)
+		capacity = (cap[0] * 100 / FULL_PERCENT);
+
+	return capacity;
 }
 
 #define HIGH_BIAS	3
@@ -8908,6 +8942,9 @@ static int fg_probe(struct spmi_device *spmi)
 			goto power_supply_unregister;
 		}
 	}
+
+	chip->mi_last_soc = get_last_soc(chip);
+	pr_info("last soc %d\n", chip->mi_last_soc);
 
 	/* Fake temperature till the actual temperature is read */
 	chip->last_good_temp = 250;
