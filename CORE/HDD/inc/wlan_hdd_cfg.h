@@ -4519,6 +4519,11 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_SUB_20_CHANNEL_WIDTH_MAX             (6)
 #define CFG_SUB_20_CHANNEL_WIDTH_DEFAULT         (0)
 
+#define CFG_STA_CHANGE_COUNTRYCODE_DYN_NAME     "g_sta_change_cc_via_beacon"
+#define CFG_STA_CHANGE_COUNTRYCODE_DYN_ENABLE   (1)
+#define CFG_STA_CHANGE_COUNTRYCODE_DYN_DISABLE  (0)
+#define CFG_STA_CHANGE_COUNTRYCODE_DYN_DEFAULT  (0)
+
 /*
  * 5G preference parameters for boosting RSSI
  * enable_band_specific_pref: Enable preference for 5G from INI.
@@ -5769,6 +5774,7 @@ struct hdd_config {
    uint8_t probe_req_ouis[MAX_PRB_REQ_VENDOR_OUI_INI_LEN];
    /* parameter for indicating sub20 channel width */
    uint8_t                     sub_20_channel_width;
+   bool                        sta_change_cc_via_beacon;
    uint32_t                    rx_wakelock_timeout;
    /* beacon count before channel switch */
    uint8_t                     sap_chanswitch_beacon_cnt;

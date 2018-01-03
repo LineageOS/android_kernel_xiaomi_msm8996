@@ -271,9 +271,6 @@ static enum hdd_tsf_op_result hdd_indicate_tsf_internal(
  */
 #define WLAN_HDD_CAPTURE_TSF_INTERVAL_SEC 10
 #define WLAN_HDD_CAPTURE_TSF_INIT_INTERVAL_MS 100
-#define NORMAL_INTERVAL_TARGET \
-	((int64_t)((int64_t)WLAN_HDD_CAPTURE_TSF_INTERVAL_SEC * \
-		NSEC_PER_SEC / HOST_TO_TARGET_TIME_RATIO))
 #define OVERFLOW_INDICATOR32 (((int64_t)0x1) << 32)
 #define MAX_UINT64 ((uint64_t)0xffffffffffffffff)
 #define MASK_UINT32 0xffffffff
@@ -550,6 +547,7 @@ static inline int32_t hdd_get_hosttime_from_targettime(
 	int32_t ret = -EINVAL;
 	int64_t delta32_target;
 	bool in_cap_state;
+	int64_t normal_interval_target_value;
 
 	in_cap_state = hdd_tsf_is_in_cap(adapter);
 
@@ -564,11 +562,15 @@ static inline int32_t hdd_get_hosttime_from_targettime(
 	delta32_target = (int64_t)((target_time & MASK_UINT32) -
 			(adapter->last_target_time & MASK_UINT32));
 
+	normal_interval_target_value =
+		 (int64_t)WLAN_HDD_CAPTURE_TSF_INTERVAL_SEC  * NSEC_PER_SEC;
+	do_div(normal_interval_target_value, HOST_TO_TARGET_TIME_RATIO);
+
 	if (delta32_target <
-			(NORMAL_INTERVAL_TARGET - OVERFLOW_INDICATOR32))
+			(normal_interval_target_value - OVERFLOW_INDICATOR32))
 		delta32_target += OVERFLOW_INDICATOR32;
 	else if (delta32_target >
-			(OVERFLOW_INDICATOR32 - NORMAL_INTERVAL_TARGET))
+			(OVERFLOW_INDICATOR32 - normal_interval_target_value))
 		delta32_target -= OVERFLOW_INDICATOR32;
 
 	ret = hdd_64bit_plus(adapter->last_host_time,
@@ -892,8 +894,13 @@ int hdd_stop_tsf_sync(hdd_adapter_t *adapter)
 
 int hdd_tx_timestamp(adf_nbuf_t netbuf, uint64_t target_time)
 {
-	struct sock *sk =
-		(netbuf->sk ? netbuf->sk : (struct sock *)netbuf->tstamp.tv64);
+	struct sock *sk = NULL;
+
+	if (netbuf->sk != NULL)
+		sk = netbuf->sk;
+	else
+		memcpy((void *)(&sk), (void *)(&netbuf->tstamp.tv64),
+		       sizeof(sk));
 
 	if (!sk)
 		return -EINVAL;
@@ -1050,7 +1057,8 @@ hdd_tsf_record_sk_for_skb(hdd_context_t *hdd_ctx, adf_nbuf_t nbuf)
 	 * be set to NULL in skb_orphan().
 	 */
 	if (HDD_TSF_IS_TX_SET(hdd_ctx))
-		nbuf->tstamp.tv64 = (s64)nbuf->sk;
+		memcpy((void *)(&nbuf->tstamp.tv64), (void *)(&nbuf->sk),
+		       sizeof(nbuf->sk));
 }
 #else
 static inline void hdd_update_tsf(hdd_adapter_t *adapter, uint64_t tsf)

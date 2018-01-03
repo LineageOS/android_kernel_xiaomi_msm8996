@@ -1056,6 +1056,9 @@ struct ol_txrx_vdev_t {
 	struct ol_txrx_ocb_chan_info *ocb_channel_info;
 	uint32_t ocb_channel_count;
 
+	/* OCB Configuration flags */
+	uint16_t ocb_config_flags;
+
 	/* Default OCB TX parameter */
 	struct ocb_tx_ctrl_hdr_t *ocb_def_tx_param;
 

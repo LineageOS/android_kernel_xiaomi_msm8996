@@ -130,6 +130,7 @@ typedef struct _smeConfigParams
     uint8_t      sub20_config_info;
     uint8_t      sub20_channelwidth;
     uint8_t      sub20_dynamic_channelwidth;
+    bool         sta_change_cc_via_beacon;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum

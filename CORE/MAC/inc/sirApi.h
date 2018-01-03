@@ -3040,7 +3040,6 @@ typedef struct sSirSmePreSwitchChannelInd
     tANI_U8   sessionId;
 } tSirSmePreSwitchChannelInd, *tpSirSmePreSwitchChannelInd;
 
-
 //
 // HDD -> LIM
 // tSirMsgQ.type = eWNI_SME_DEL_BA_PEER_IND
@@ -6675,6 +6674,16 @@ struct sir_wifi_ll_ext_peer_stats {
 };
 
 /**
+ * struct sir_wifi_ll_ext_time_stamp - time stamp for stats report
+ * @duration: the count duration on fw side for this report
+ * @end_time: timestamp when LL stats reported to user layer
+ */
+struct sir_wifi_ll_ext_period {
+	uint32_t duration;
+	v_TIME_t end_time;
+};
+
+/**
  * struct sir_wifi_ll_ext_stats - link layer stats report
  * @trigger_cond_id:  Indicate what triggered this event.
  *	1: timeout. 2: threshold
@@ -6713,6 +6722,8 @@ struct sir_wifi_ll_ext_peer_stats {
  *     |      peer_num                 |
  *     +-------------------------------+
  *     |      channel_num              |
+ *     +-------------------------------+
+ *     |      time stamp               |
  *     +-------------------------------+
  *     |      tx_mpdu_aggr_array_len   |
  *     +-------------------------------+
@@ -6767,6 +6778,7 @@ struct sir_wifi_ll_ext_stats {
 	uint32_t rx_chgd_bitmap;
 	uint8_t peer_num;
 	uint8_t channel_num;
+	struct sir_wifi_ll_ext_period time_stamp;
 	uint32_t tx_mpdu_aggr_array_len;
 	uint32_t tx_succ_mcs_array_len;
 	uint32_t tx_fail_mcs_array_len;
@@ -7241,6 +7253,11 @@ struct sir_ocb_config {
 	void *def_tx_param;
 	uint32_t def_tx_param_size;
 };
+
+/* Flag to indicate expiry time in TSF. */
+#define OCB_CONFIG_FLAG_EXPIRY_TIME_IN_TSF (0x01)
+/* Flag to indicate 802.11 frame mode. */
+#define OCB_CONFIG_FLAG_80211_FRAME_MODE   (0x02)
 
 /* The size of the utc time in bytes. */
 #define SIZE_UTC_TIME (10)
@@ -8518,6 +8535,20 @@ struct sme_sub20_chan_width {
 	uint16_t	length;
 	uint8_t	session_id;
 	uint8_t	channelwidth;
+};
+
+/**
+ * struct sme_change_country_code_ind - indicate country code changed
+ * @message_type: message Type is eWNI_SME_CC_CHANGE_IND.
+ * @msg_len: message length.
+ * @session_id: session Id.
+ * @country_code: country code information.
+ */
+struct sme_change_country_code_ind {
+	uint16_t  message_type;
+	uint16_t  msg_len;
+	uint8_t   session_id;
+	uint8_t   country_code[WNI_CFG_COUNTRY_CODE_LEN];
 };
 
 /**
