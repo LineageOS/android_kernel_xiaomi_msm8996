@@ -1440,6 +1440,13 @@ static void adf_nbuf_track_memory_manager_destroy(void)
 		adf_print("%s: %d unfreed tracking memory still in use",
 			  __func__, adf_net_buf_track_used_list_count);
 
+	adf_net_buf_track_free_list = NULL;
+	adf_net_buf_track_free_list_count = 0;
+	adf_net_buf_track_used_list_count = 0;
+	adf_net_buf_track_max_used = 0;
+	adf_net_buf_track_max_free = 0;
+	adf_net_buf_track_max_allocated = 0;
+
 	spin_unlock_irqrestore(&adf_net_buf_track_free_list_lock, irq_flag);
 	kmem_cache_destroy(nbuf_tracking_cache);
 }
