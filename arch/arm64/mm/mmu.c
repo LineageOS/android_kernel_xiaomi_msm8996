@@ -698,7 +698,7 @@ static int __init map_entry_trampoline(void)
 	/* Map only the text into the trampoline page table */
 	memset(tramp_pg_dir, 0, PTRS_PER_PGD * sizeof(pgd_t));
 	__create_mapping(NULL, tramp_pg_dir + pgd_index(TRAMP_VALIAS), pa_start,
-			 TRAMP_VALIAS, PAGE_SIZE, prot, pgd_pgtable_alloc);
+			 TRAMP_VALIAS, PAGE_SIZE, prot, pgd_pgtable_alloc, false);
 
 	/* Map both the text and data into the kernel page table */
 	__set_fixmap(FIX_ENTRY_TRAMP_TEXT, pa_start, prot);
