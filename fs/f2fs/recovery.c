@@ -582,9 +582,6 @@ int recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
 	int ret = 0;
 	unsigned long s_flags = sbi->sb->s_flags;
 	bool need_writecp = false;
-#ifdef CONFIG_QUOTA
-	int quota_enabled;
-#endif
 
 	if (s_flags & MS_RDONLY) {
 		f2fs_msg(sbi->sb, KERN_INFO, "orphan cleanup on readonly fs");
@@ -595,7 +592,7 @@ int recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
 	/* Needed for iput() to work correctly and not trash data */
 	sbi->sb->s_flags |= MS_ACTIVE;
 	/* Turn on quotas so that they are updated correctly */
-	quota_enabled = f2fs_enable_quota_files(sbi, s_flags & MS_RDONLY);
+	f2fs_enable_quota_files(sbi);
 #endif
 
 	fsync_entry_slab = f2fs_kmem_cache_create("f2fs_fsync_inode_entry",
@@ -656,8 +653,7 @@ skip:
 out:
 #ifdef CONFIG_QUOTA
 	/* Turn quotas off */
-	if (quota_enabled)
-		f2fs_quota_off_umount(sbi->sb);
+	f2fs_quota_off_umount(sbi->sb);
 #endif
 	sbi->sb->s_flags = s_flags; /* Restore MS_RDONLY status */
 
