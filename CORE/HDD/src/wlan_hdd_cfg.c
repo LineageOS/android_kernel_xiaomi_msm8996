@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -5195,6 +5195,13 @@ REG_TABLE_ENTRY g_registry_table[] =
 		CFG_CCA_THRESHOLD_5G_DEFAULT,
 		CFG_CCA_THRESHOLD_5G_MIN,
 		CFG_CCA_THRESHOLD_5G_MAX),
+
+	REG_VARIABLE(CFG_ENABLE_MONITOR_ON_STA, WLAN_PARAM_Integer,
+		     hdd_config_t, mon_on_sta_enable,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_ENABLE_MONITOR_ON_STA_DEFAULT,
+		     CFG_ENABLE_MONITOR_ON_STA_MIN,
+		     CFG_ENABLE_MONITOR_ON_STA_MAX),
 };
 
 

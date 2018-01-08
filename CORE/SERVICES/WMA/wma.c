@@ -16977,6 +16977,44 @@ static void wma_set_modulated_dtim(tp_wma_handle wma,
 	}
 }
 
+static int32_t wma_send_pdev_monitor_mode_cmd(
+				tp_wma_handle wma,
+				wda_cli_set_cmd_t *privcmd)
+{
+	wmi_pdev_set_rx_filter_promiscuous_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int32_t len = sizeof(*cmd);
+
+	WMA_LOGD("Set pdev monitor mode value %d", privcmd->param_value);
+
+	buf = wmi_buf_alloc(wma->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s: pdev monitor mode Mem Alloc Failed", __func__);
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_pdev_set_rx_filter_promiscuous_cmd_fixed_param *)
+		wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_pdev_set_rx_filter_promiscuous_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+			wmi_pdev_set_rx_filter_promiscuous_cmd_fixed_param));
+
+	cmd->pdev_id = 0; /* default 0, pdev id */
+	cmd->rx_filter_promiscuous_enable = privcmd->param_value;
+
+	if (wmi_unified_cmd_send(wma->wmi_handle, buf, len,
+				 WMI_PDEV_SET_RX_FILTER_PROMISCUOUS_CMDID)) {
+		WMA_LOGE("set pdev monitor mode failed, val %d",
+			 privcmd->param_value);
+
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+
+	return 0;
+}
+
 static void wma_process_cli_set_cmd(tp_wma_handle wma,
 				    wda_cli_set_cmd_t *privcmd)
 {
@@ -17102,6 +17140,9 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 #endif
 		case GEN_PARAM_MODULATED_DTIM:
 			wma_set_modulated_dtim(wma, privcmd);
+			break;
+		case GEN_PDEV_MONITOR_MODE:
+			wma_send_pdev_monitor_mode_cmd(wma, privcmd);
 			break;
 		default:
 			WMA_LOGE("Invalid param id 0x%x", privcmd->param_id);

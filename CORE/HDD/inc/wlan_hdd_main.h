@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2120,6 +2120,8 @@ struct hdd_context_s
     /* the context that is capturing tsf */
     hdd_adapter_t *cap_tsf_context;
 #endif
+    /* flag to show whether moniotr mode is enabled */
+    bool is_mon_enable;
 };
 
 /*---------------------------------------------------------------------------
@@ -2657,5 +2659,14 @@ void hdd_chip_pwr_save_fail_detected_cb(void *hddctx,
  * Return: 0 for success non-zero for failure
  */
 int hdd_drv_cmd_validate(tANI_U8 *command, int len);
+
+/**
+ * wlan_hdd_monitor_mode_enable() - function to enable/disable monitor mode
+ * @hdd_ctx: pointer to HDD context
+ * @enable: 0 - disable, 1 - enable
+ *
+ * Return: 0 for success and error number for failure
+ */
+int wlan_hdd_monitor_mode_enable(hdd_context_t *hdd_ctx, bool enable);
 
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

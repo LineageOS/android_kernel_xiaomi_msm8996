@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -864,6 +864,11 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
                                                peer_id, tid, offload_ind);
             break;
      }
+    case HTT_T2H_MSG_TYPE_MONITOR_MAC_HEADER_IND:
+        {
+            ol_rx_mon_mac_header_handler(pdev->txrx_pdev, htt_t2h_msg);
+            break;
+        }
 
     default:
         htt_t2h_lp_msg_handler(context, htt_t2h_msg);

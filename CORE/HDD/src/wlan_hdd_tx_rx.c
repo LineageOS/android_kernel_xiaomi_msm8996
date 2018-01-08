@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1245,6 +1245,64 @@ VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 				hdd_stats.hddTxRxStats.rxDelivered[cpu_index];
 		else
 			++adapter->hdd_stats.hddTxRxStats.rxRefused[cpu_index];
+
+		skb = skb_next;
+	}
+
+	adapter->dev->last_rx = jiffies;
+
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS hdd_vir_mon_rx_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
+			      uint8_t sta_id)
+{
+	hdd_adapter_t *adapter = NULL;
+	hdd_context_t *hdd_ctx = NULL;
+	int rxstat;
+	struct sk_buff *skb = NULL;
+	struct sk_buff *skb_next;
+
+	/* Sanity check on inputs */
+	if ((NULL == vos_ctx) || (NULL == rx_buf)) {
+		VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Null params being passed", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
+	if (NULL == hdd_ctx) {
+		VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
+			  "%s: HDD adapter context is Null", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_MONITOR);
+	if ((NULL == adapter) || (WLAN_HDD_ADAPTER_MAGIC != adapter->magic)) {
+		VOS_TRACE(VOS_MODULE_ID_HDD_DATA, VOS_TRACE_LEVEL_ERROR,
+			  "invalid adapter %p for sta Id %d", adapter, sta_id);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	/* walk the chain until all are processed */
+	skb = (struct sk_buff *)rx_buf;
+	while (NULL != skb) {
+		skb_next = skb->next;
+		skb->dev = adapter->dev;
+
+		/*
+		 * If this is not a last packet on the chain
+		 * Just put packet into backlog queue, not scheduling RX sirq
+		 */
+		if (skb->next) {
+			rxstat = netif_rx(skb);
+		} else {
+			/*
+			 * This is the last packet on the chain
+			 * Scheduling rx sirq
+			 */
+			rxstat = netif_rx_ni(skb);
+		}
 
 		skb = skb_next;
 	}

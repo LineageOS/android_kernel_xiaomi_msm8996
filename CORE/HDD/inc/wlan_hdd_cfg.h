@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -4908,6 +4908,26 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_CCA_THRESHOLD_5G_MAX     (127)
 #define CFG_CCA_THRESHOLD_5G_DEFAULT (28)
 
+/*
+ * <ini>
+ * gEnableMonOnSta - extend the monitor capability for STA
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * this is used to control monitor feature for STA.
+ *
+ * Related: none
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_ENABLE_MONITOR_ON_STA	  "gEnableMonOnSta"
+#define CFG_ENABLE_MONITOR_ON_STA_MIN     (0)
+#define CFG_ENABLE_MONITOR_ON_STA_MAX     (1)
+#define CFG_ENABLE_MONITOR_ON_STA_DEFAULT (0)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -5792,6 +5812,7 @@ struct hdd_config {
    bool      cca_threshold_enable;
    uint32_t  cca_threshold_2g;
    uint32_t  cca_threshold_5g;
+   uint8_t                     mon_on_sta_enable;
 };
 
 typedef struct hdd_config hdd_config_t;

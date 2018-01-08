@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1299,6 +1299,25 @@ void ol_txrx_osif_vdev_register(ol_txrx_vdev_handle vdev,
     #ifdef QCA_LL_TX_FLOW_CT
     vdev->osif_flow_control_cb = txrx_ops->tx.flow_control_cb;
     #endif /* QCA_LL_TX_FLOW_CT */
+}
+
+/**
+ * ol_txrx_osif_pdev_mon_register_cbk() - register monitor rx callback
+ * @txrx_pdev: pdev handle
+ * @cbk: monitor rx callback function
+ *
+ * Return: none
+ */
+void ol_txrx_osif_pdev_mon_register_cbk(
+	ol_txrx_pdev_handle txrx_pdev,
+	ol_txrx_vir_mon_rx_fp cbk)
+{
+	TXRX_ASSERT2(txrx_pdev);
+
+	if (NULL == txrx_pdev)
+	    return;
+
+	txrx_pdev->osif_rx_mon_cb = cbk;
 }
 
 void

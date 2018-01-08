@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -569,6 +569,14 @@ wlan_hdd_sta_ap_p2pgo_iface_limit[] = {
    }
 };
 
+static const struct ieee80211_iface_limit
+   wlan_hdd_mon_iface_limit[] = {
+   {
+       .max = 3, /* Monitor interface */
+       .types = BIT(NL80211_IFTYPE_MONITOR),
+   },
+};
+
 static struct ieee80211_iface_combination
 wlan_hdd_iface_combination[] = {
    /* STA */
@@ -635,6 +643,13 @@ wlan_hdd_iface_combination[] = {
       .max_interfaces = 4,
       .n_limits = ARRAY_SIZE(wlan_hdd_sta_ap_p2pgo_iface_limit),
       .beacon_int_infra_match = true,
+   },
+   /* Monitor */
+   {
+      .limits = wlan_hdd_mon_iface_limit,
+      .max_interfaces = 3,
+      .num_different_channels = 2,
+      .n_limits = ARRAY_SIZE(wlan_hdd_mon_iface_limit),
    },
 };
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)) ||
@@ -15524,7 +15539,8 @@ int wlan_hdd_cfg80211_init(struct device *dev,
                              | BIT(NL80211_IFTYPE_ADHOC)
                              | BIT(NL80211_IFTYPE_P2P_CLIENT)
                              | BIT(NL80211_IFTYPE_P2P_GO)
-                             | BIT(NL80211_IFTYPE_AP);
+                             | BIT(NL80211_IFTYPE_AP)
+                             | BIT(NL80211_IFTYPE_MONITOR);
 
     if( pCfg->advertiseConcurrentOperation )
     {
@@ -29966,6 +29982,11 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     dev = pHddCtx->parent_dev;
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
+    if (true == vos_is_mon_enable()) {
+        hddLog(LOGE, FL("command not allowed in FTM mode"));
         return -EINVAL;
     }
 
