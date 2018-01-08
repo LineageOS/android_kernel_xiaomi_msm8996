@@ -1718,7 +1718,9 @@ static VOS_STATUS
 hdd_parse_get_ibss_peer_info(tANI_U8 *pValue, v_MACADDR_t *pPeerMacAddr)
 {
     tANI_U8 *inPtr = pValue;
-    inPtr = strnchr(pValue, strlen(pValue), SPACE_ASCII_VALUE);
+    size_t inPtrLen = strlen(pValue);
+
+    inPtr = strnchr(pValue, inPtrLen, SPACE_ASCII_VALUE);
 
     if (NULL == inPtr)
     {
@@ -1735,6 +1737,12 @@ hdd_parse_get_ibss_peer_info(tANI_U8 *pValue, v_MACADDR_t *pPeerMacAddr)
     if ('\0' == *inPtr)
     {
         return VOS_STATUS_E_FAILURE;;
+    }
+
+    inPtrLen -= (inPtr - pValue);
+    if (inPtrLen < 17)
+    {
+        return VOS_STATUS_E_FAILURE;
     }
 
     if (inPtr[2] != ':' || inPtr[5] != ':' || inPtr[8] != ':' ||
