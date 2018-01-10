@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1105,6 +1105,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_ACTION_FRAME_RANDOM_MAC           SIR_HAL_ACTION_FRAME_RANDOM_MAC
 
 #define WDA_SET_AC_TXQ_OPTIMIZE               SIR_HAL_SET_AC_TXQ_OPTIMIZE
+#define WDA_MNT_FILTER_TYPE_CMD               SIR_HAL_MNT_FILTER_TYPE_CMD
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 

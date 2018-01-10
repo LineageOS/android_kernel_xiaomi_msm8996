@@ -33734,6 +33734,59 @@ static void wma_peer_flush_pending(tp_wma_handle wma,
 					 peer_tid_bitmap, vdev_id);
 }
 
+/**
+ * wma_mnt_filter_type_cmd() - set filter packet type to firmware
+ * in monitor mode.
+ * @wda_handle: pointer to wma handle.
+ * @enable_monitor_req: pointer to filter type request.
+ *
+ * This is called to filter type to firmware via WMI command.
+ *
+ * Return: VOS_STATUS.
+ */
+VOS_STATUS wma_mnt_filter_type_cmd(tp_wma_handle wma_handle,
+                           struct hal_mnt_filter_type_request *filter_type_req)
+{
+    wmi_mnt_filter_cmd_fixed_param *cmd;
+    int status = 0;
+    wmi_buf_t buf;
+    u_int8_t *buf_ptr;
+    int32_t len = sizeof(wmi_mnt_filter_cmd_fixed_param);
+
+    if (!wma_handle || !wma_handle->wmi_handle) {
+        WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+        return VOS_STATUS_E_INVAL;
+    }
+
+    buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+    if (!buf) {
+        WMA_LOGP(FL("wmi_buf_alloc failed"));
+        return -ENOMEM;
+    }
+    buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+    cmd = (wmi_mnt_filter_cmd_fixed_param *) buf_ptr;
+    WMITLV_SET_HDR(&cmd->tlv_header,
+                    WMITLV_TAG_STRUC_wmi_mnt_filter_cmd_fixed_param,
+                    WMITLV_GET_STRUCT_TLVLEN(
+                    wmi_mnt_filter_cmd_fixed_param));
+    cmd->vdev_id = filter_type_req->vdev_id;
+    if (filter_type_req->request_data_len) {
+        vos_mem_copy(&(cmd->configure_type),
+        filter_type_req->request_data, filter_type_req->request_data_len);
+    }
+    WMA_LOGI("%s: Filter type=0x%x",__func__,cmd->configure_type);
+    status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+                                    WMI_MNT_FILTER_CMDID);
+    if (status != EOK) {
+        WMA_LOGE("%s: wmi_unified_cmd_send WMI_MNT_FILTER_CMDID"
+                 " returned Error %d",
+                 __func__, status);
+        wmi_buf_free(buf);
+        return VOS_STATUS_E_FAILURE;
+    }
+    return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -34664,15 +34717,20 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			     (struct action_frame_random_filter *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
-        case WDA_GET_ISOLATION:
-            wma_get_isolation(wma_handle);
-            break;
+		case WDA_GET_ISOLATION:
+			wma_get_isolation(wma_handle);
+			break;
 		case WDA_PEER_FLUSH_PENDING:
 			wma_peer_flush_pending(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_SET_AC_TXQ_OPTIMIZE:
 			wma_set_ac_txq_optimize(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_MNT_FILTER_TYPE_CMD:
+			wma_mnt_filter_type_cmd(wma_handle,
+				(struct hal_mnt_filter_type_request*)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:
