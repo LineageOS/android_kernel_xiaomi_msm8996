@@ -2177,8 +2177,13 @@ __iw_get_mode(struct net_device *dev, struct iw_request_info *info,
 
     switch (pWextState->roamProfile.BSSType) {
     case eCSR_BSS_TYPE_INFRASTRUCTURE:
-        hddLog(LOG1, FL("returns IW_MODE_INFRA"));
-        wrqu->mode = IW_MODE_INFRA;
+        if(VOS_MONITOR_MODE == vos_get_conparam()){
+            hddLog(LOG1, FL("returns IW_MODE_MONITOR"));
+            wrqu->mode = IW_MODE_MONITOR;
+        }else{
+            hddLog(LOG1, FL("returns IW_MODE_INFRA"));
+            wrqu->mode = IW_MODE_INFRA;
+        }
         break;
     case eCSR_BSS_TYPE_IBSS:
     case eCSR_BSS_TYPE_START_IBSS:
