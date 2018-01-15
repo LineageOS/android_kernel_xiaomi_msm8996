@@ -888,4 +888,10 @@ config SND_SOC_MSM_HDMI_CODEC_RX
 config SND_SOC_MSM_HDMI_DBA_CODEC_RX
 	bool "HDMI DBA Audio Playback"
 	depends on MSM_DBA
+ 
+config SOUND_CONTROL
+	bool "Sound Control engine"
+	help
+		Sound Control engine by JonasCardoso
+
 endmenu
