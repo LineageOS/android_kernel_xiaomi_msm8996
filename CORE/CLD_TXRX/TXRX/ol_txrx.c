@@ -288,6 +288,15 @@ ol_txrx_update_tx_queue_groups(
     u_int32_t group_vdev_bit_mask, vdev_bit_mask, group_vdev_id_mask;
     u_int32_t membership;
     struct ol_txrx_vdev_t *vdev;
+
+    if (group_id >= OL_TX_MAX_TXQ_GROUPS) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_WARN,
+            "%s: invalid group_id=%u, ignore update.\n",
+            __func__,
+            group_id);
+        return;
+    }
+
     group = &pdev->txq_grps[group_id];
 
     membership = OL_TXQ_GROUP_MEMBERSHIP_GET(vdev_id_mask,ac_mask);
