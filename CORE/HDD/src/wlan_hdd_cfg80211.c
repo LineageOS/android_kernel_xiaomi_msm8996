@@ -24203,6 +24203,7 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     eConnectionState prev_conn_state;
+    uint32_t wait_time = WLAN_WAIT_TIME_DISCONNECT;
 
     ENTER();
 
@@ -24230,7 +24231,15 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
         hddLog(LOG1,
                FL("status = %d, already disconnected"), status);
         result = 0;
-        goto disconnected;
+        /*
+         * Wait here instead of returning directly. This will block the
+         * next connect command and allow processing of the disconnect
+         * in SME else we might hit some race conditions leading to SME
+         * and HDD out of sync. As disconnect is already in progress,
+         * wait here for 1 sec instead of 5 sec.
+         */
+        wait_time = WLAN_WAIT_DISCONNECT_ALREADY_IN_PROGRESS;
+        goto wait_for_disconnect;
     }
     /*
      * Wait here instead of returning directly, this will block the next
@@ -24249,9 +24258,10 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
         result = -EINVAL;
         goto disconnected;
     }
+wait_for_disconnect:
     rc = wait_for_completion_timeout(
                 &pAdapter->disconnect_comp_var,
-                msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+                msecs_to_jiffies(wait_time));
 
     if (!rc && (eHAL_STATUS_CMD_NOT_QUEUED != status)) {
        hddLog(VOS_TRACE_LEVEL_ERROR,
