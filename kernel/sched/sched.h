@@ -511,6 +511,10 @@ struct cfs_rq {
 	struct list_head leaf_cfs_rq_list;
 	struct task_group *tg;	/* group that "owns" this runqueue */
 
+#ifdef CONFIG_SCHED_WALT
+	u64 cumulative_runnable_avg;
+#endif
+
 #ifdef CONFIG_CFS_BANDWIDTH
 
 #ifdef CONFIG_SCHED_HMP
@@ -819,6 +823,7 @@ struct rq {
 #endif
 
 #ifdef CONFIG_SCHED_WALT
+	unsigned int cur_freq;
 	u64 cumulative_runnable_avg;
 	u64 window_start;
 	u64 curr_runnable_sum;

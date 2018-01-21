@@ -770,6 +770,7 @@ boost_write(struct cgroup_subsys_state *css, struct cftype *cft,
 
 static void schedtune_attach(struct cgroup_taskset *tset)
 {
+#ifdef CONFIG_SCHED_HMP
 	struct task_struct *task;
 	struct cgroup_subsys_state *css;
 	struct schedtune *st;
@@ -782,6 +783,7 @@ static void schedtune_attach(struct cgroup_taskset *tset)
 
 	cgroup_taskset_for_each(task, css, tset)
 		sync_cgroup_colocation(task, colocate);
+#endif
 }
 
 static struct cftype files[] = {
