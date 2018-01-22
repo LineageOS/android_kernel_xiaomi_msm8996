@@ -249,7 +249,7 @@ static struct fg_mem_setting settings[FG_MEM_SETTING_MAX] = {
 	SETTING(IRQ_VOLT_EMPTY,	 0x458,   3,      3100),
 	SETTING(CUTOFF_VOLTAGE,	 0x40C,   0,      3400),
 	SETTING(VBAT_EST_DIFF,	 0x000,   0,      30),
-	SETTING(DELTA_SOC,	 0x450,   3,      1),
+	SETTING(DELTA_SOC,	 0x450,   3,      2),
 	SETTING(BATT_LOW,	 0x458,   0,      4200),
 	SETTING(THERM_DELAY,	 0x4AC,   3,      0),
 };
@@ -2245,7 +2245,7 @@ static int get_prop_capacity(struct fg_chip *chip)
 		if (chip->last_soc == FULL_SOC_RAW)
 			return FULL_CAPACITY;
 		return DIV_ROUND_CLOSEST((chip->last_soc - 1) *
-				(FULL_CAPACITY - 2),
+				(FULL_CAPACITY - 1),
 				FULL_SOC_RAW - 2) + 1;
 	}
 
@@ -2277,7 +2277,7 @@ static int get_prop_capacity(struct fg_chip *chip)
 
 			if (!vbatt_low_sts)
 				return DIV_ROUND_CLOSEST((chip->last_soc - 1) *
-						(FULL_CAPACITY - 2),
+						(FULL_CAPACITY - 1),
 						FULL_SOC_RAW - 2) + 1;
 			else
 				return EMPTY_CAPACITY;
@@ -2288,7 +2288,7 @@ static int get_prop_capacity(struct fg_chip *chip)
 		return FULL_CAPACITY;
 	}
 
-	return DIV_ROUND_CLOSEST((msoc - 1) * (FULL_CAPACITY - 2),
+	return DIV_ROUND_CLOSEST((msoc - 1) * (FULL_CAPACITY - 1),
 			FULL_SOC_RAW - 2) + 1;
 }
 
