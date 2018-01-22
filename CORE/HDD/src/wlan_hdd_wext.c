@@ -253,6 +253,10 @@ typedef enum eMonFilterType{
         MON_ALL_PKT,
 } tMonFilterType;
 
+#define WE_SET_TDLS_OFFCHANNEL_MODE           90
+#define WE_SET_TDLS_OFFCHANNEL                91
+#define WE_SET_TDLS_OFFCHANNEL_SEC_OFFSET     92
+
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
 #define WE_GET_11D_STATE     1
@@ -7403,6 +7407,32 @@ static int __iw_setint_getnone(struct net_device *dev,
             wlan_hdd_mnt_filter_type_cmd(pAdapter, &filter_type,sizeof(v_U8_t));
             break;
         }
+        case WE_SET_TDLS_OFFCHANNEL_MODE:
+        {
+            hddLog(LOG1, "SET tdls_offchannel_mode  val %d", set_value);
+            ret = hdd_set_tdls_offchannelmode(pAdapter, set_value);
+            break;
+        }
+        case WE_SET_TDLS_OFFCHANNEL:
+        {
+            hddLog(LOG1, "SET tdls_offchannel val %d", set_value);
+
+            if (VOS_IS_DFS_CH(set_value)) {
+                hddLog(LOGE,
+                      FL("DFS channel %d is passed for hdd_set_tdls_offchannel"),
+                      set_value);
+                ret = -EINVAL;
+                break;
+            }
+            ret = hdd_set_tdls_offchannel(pHddCtx, set_value);
+            break;
+        }
+	case WE_SET_TDLS_OFFCHANNEL_SEC_OFFSET:
+        {
+            hddLog(LOG1, "SET tdls_offchannel_mode  val %d", set_value);
+            ret = hdd_set_tdls_secoffchanneloffset(pHddCtx, set_value);
+	    break;
+	}
         default:
         {
             hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
@@ -12112,6 +12142,23 @@ static const struct iw_priv_args we_private_args[] = {
         WE_SET_MON_FILTER,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "setMonFilter" },
+#ifdef FEATURE_WLAN_TDLS
+    {
+        WE_SET_TDLS_OFFCHANNEL_MODE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "tdlsoffchnmode" },
+    {
+        WE_SET_TDLS_OFFCHANNEL,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "tdlsoffchan" },
+    {
+        WE_SET_TDLS_OFFCHANNEL_SEC_OFFSET,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "tdlsecchnoffst" },
+#endif
 
     /* handlers for sub-ioctl */
     {   WE_GET_11D_STATE,
