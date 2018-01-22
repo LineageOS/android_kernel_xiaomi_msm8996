@@ -8274,6 +8274,7 @@ static int fg_hw_init(struct fg_chip *chip)
 		chip->wa_flag |= PULSE_REQUEST_WA;
 		break;
 	case PMI8996:
+		fg_reset_on_lockup = 1;
 		rc = fg_8996_hw_init(chip);
 		/* Setup workaround flag based on PMIC type */
 		if (fg_sense_type == INTERNAL_CURRENT_SENSE)
