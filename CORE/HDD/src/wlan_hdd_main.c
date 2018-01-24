@@ -408,6 +408,14 @@ uint8_t wlan_hdd_find_opclass(tHalHandle hal, uint8_t channel,
 	return opclass;
 }
 
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+void hdd_csa_notify_cb
+(
+   void *hdd_context,
+   void *indi_param
+);
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
 #ifdef FEATURE_GREEN_AP
 
 static void hdd_wlan_green_ap_timer_fn(void *phddctx)
@@ -1038,7 +1046,10 @@ void wlan_hdd_restart_sap(hdd_adapter_t *ap_adapter)
         clear_bit(SOFTAP_BSS_STARTED, &ap_adapter->event_flags);
         wlan_hdd_decr_active_session(pHddCtx, ap_adapter->device_mode);
         hddLog(LOGE, FL("SAP Stop Success"));
-
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+                /*this delay is needed to ensure proper resource cleanup of SAP*/
+                vos_sleep(1000);
+#endif  //#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
         if (pHddCtx->cfg_ini->apOBSSProtEnabled)
             vos_runtime_pm_allow_suspend(pHddCtx->runtime_context.obss);
         if (0 != wlan_hdd_cfg80211_update_apies(ap_adapter)) {
@@ -12703,6 +12714,27 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
             wlan_hdd_reset_prob_rspies(pAdapter);
             kfree(pAdapter->sessionCtx.ap.beacon);
             pAdapter->sessionCtx.ap.beacon = NULL;
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+            if (pAdapter->device_mode == WLAN_HDD_SOFTAP)
+            {
+                if(pHddCtx->ch_switch_ctx.chan_sw_timer_initialized == VOS_TRUE)
+                {
+                //Stop the channel switch timer
+                    if (VOS_TIMER_STATE_RUNNING ==
+			    vos_timer_getCurrentState(&pHddCtx->ch_switch_ctx.hdd_ap_chan_switch_timer))
+		    {
+			    vos_timer_stop(&pHddCtx->ch_switch_ctx.hdd_ap_chan_switch_timer);
+		    }
+			    //Destroy the channel switch timer
+		    if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
+					&pHddCtx->ch_switch_ctx.hdd_ap_chan_switch_timer)))
+		    {
+			    hddLog(LOGE, FL("Failed to destroy AP channel switch timer!!"));
+		    }
+		    pHddCtx->ch_switch_ctx.chan_sw_timer_initialized = VOS_FALSE;
+                }
+             }
+#endif //WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
          }
          mutex_unlock(&pHddCtx->sap_lock);
 
@@ -16898,6 +16930,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
 #endif /* FEATURE_WLAN_CH_AVOID */
 
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+    /* Initialize the lock*/
+   mutex_init(&pHddCtx->ch_switch_ctx.sap_ch_sw_lock);
+    /*Register the CSA Notification callback*/
+   sme_AddCSAIndCallback(pHddCtx->hHal, hdd_csa_notify_cb);
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
    status = hdd_post_voss_start_config( pHddCtx );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
@@ -19564,17 +19603,84 @@ void wlan_hdd_check_sta_ap_concurrent_ch_intf(void *data)
         pHddApCtx->sapConfig.channel, intf_ch);
 
     pHddApCtx->sapConfig.channel = intf_ch;
-    pHddApCtx->bss_stop_reason = BSS_STOP_DUE_TO_MCC_SCC_SWITCH;
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+    if(vos_is_ch_switch_with_csa_enabled())
+    {
+        struct wlan_sap_csa_info csa_info;
 
-    sme_SelectCBMode(hHal,
+        csa_info.sta_channel = intf_ch;
+
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+	    "%s: Indicate connected event to HostApd Chan=%d",
+	    __func__, csa_info.sta_channel);
+
+	/*Indicate to HostApd about Station interface state change*/
+        hdd_sta_state_sap_notify(pHddCtx, STA_NOTIFY_CONNECTED, csa_info);
+    }else{
+#endif
+        pHddApCtx->bss_stop_reason = BSS_STOP_DUE_TO_MCC_SCC_SWITCH;
+        sme_SelectCBMode(hHal,
                      pHddApCtx->sapConfig.SapHw_mode,
                      pHddApCtx->sapConfig.channel,
                      pHddApCtx->sapConfig.sec_ch,
                      &vht_channel_width, pHddApCtx->sapConfig.ch_width_orig);
-    wlan_sap_set_vht_ch_width(pHddApCtx->sapContext, vht_channel_width);
-    wlan_hdd_restart_sap(ap_adapter);
+        wlan_sap_set_vht_ch_width(pHddApCtx->sapContext, vht_channel_width);
+        wlan_hdd_restart_sap(ap_adapter);
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+    }
+#endif
 }
 #endif
+
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
+void hdd_csa_notify_cb
+(
+   void *hdd_context,
+   void *indi_param
+)
+{
+   tpSmeCsaOffloadInd csa_params = NULL;
+   hdd_context_t      *hdd_ctxt = NULL;
+   struct wlan_sap_csa_info csa_info;
+   v_U32_t ret = 0;
+   /* Basic sanity */
+
+   if(!vos_is_ch_switch_with_csa_enabled())
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s : SAP channel switch with CSA not enabled", __func__);
+      return;
+   }
+
+   if (!hdd_context || !indi_param)
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s : Invalid arguments", __func__);
+      return;
+   }
+
+   hdd_ctxt    = (hdd_context_t *)hdd_context;
+
+   csa_params = (tpSmeCsaOffloadInd)indi_param;
+
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+             "%s : tbtt count %d Channel = %d",
+             __func__,csa_params->tbtt_count, csa_params->channel);
+   hdd_ctxt->ch_switch_ctx.tbtt_count = csa_params->tbtt_count - 1;  /* Will reduce the count by 1,
+									as the switch might take time.
+									Currently of No Use, as this will be
+									override by ini g_sap_chanswitch_beacon_cnt */
+   csa_info.sta_channel = csa_params->channel;
+   ret = hdd_sta_state_sap_notify(hdd_ctxt, STA_NOTIFY_CSA, csa_info);
+   if(ret != 0)
+   {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+          "%s : Failed to trigger Channel Switch Ch:%d ret=%d",
+          __func__,csa_params->channel, ret);
+   }
+}
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 
 /**
  * wlan_hdd_check_custom_con_channel_rules() - This function checks the sap's

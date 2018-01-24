@@ -5061,6 +5061,15 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_ENABLE_MONITOR_ON_STA_MAX     (1)
 #define CFG_ENABLE_MONITOR_ON_STA_DEFAULT (0)
 
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+/*SAP Channel Switch Support*/
+#define CFG_SAP_CHANNEL_SWITCH_WITH_CSA_NAME "gSAPChannelSwitchWithCSA"
+#define CFG_SAP_CHANNEL_SWITCH_WITH_CSA_MIN      (0)
+#define CFG_SAP_CHANNEL_SWITCH_WITH_CSA_MAX      (1)
+#define CFG_SAP_CHANNEL_SWITCH_WITH_CSA_DEFAULT  (0)
+
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -5957,6 +5966,10 @@ struct hdd_config {
    uint32_t  cca_threshold_2g;
    uint32_t  cca_threshold_5g;
    uint8_t                     mon_on_sta_enable;
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+   uint32_t                    sap_ch_switch_with_csa;
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
 };
 
 typedef struct hdd_config hdd_config_t;
