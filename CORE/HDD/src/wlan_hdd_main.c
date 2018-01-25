@@ -15380,6 +15380,10 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                "%s: TCP DELACK trigger level %d, average_rx: %llu",
                __func__, next_rx_level, temp_rx);
         pHddCtx->cur_rx_level = next_rx_level;
+#ifdef QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+        if (pHddCtx->cfg_ini->del_ack_enable)
+            next_rx_level = WLAN_SVC_TP_LOW;
+#endif
         wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
                                     WLAN_SVC_WLAN_TP_IND,
                                     &next_rx_level,
