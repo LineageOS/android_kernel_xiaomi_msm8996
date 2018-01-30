@@ -5320,6 +5320,14 @@ typedef struct{
 
 } t_thermal_mgmt, *tp_thermal_mgmt;
 
+typedef struct{
+    u_int32_t dpd_enable;
+    u_int32_t dpd_delta_degreeHigh;
+    u_int32_t dpd_delta_degreeLow;
+    u_int32_t dpd_cooling_time;
+    u_int32_t dpd_duration_max;
+} t_dpd_recal_mgmt, *tp_dpd_recal_mgmt;
+
 typedef struct sSirTxPowerLimit
 {
     /* Thermal limits for 2g and 5g */
