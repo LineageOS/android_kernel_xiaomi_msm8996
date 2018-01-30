@@ -14843,6 +14843,11 @@ typedef struct {
 
     /** index of peak magnitude bin (signed) */
     A_INT32 peak_sidx;
+    /** Max pulse chirp velocity in delta bins over chirp FFT interval */
+    A_INT32 pulse_delta_peak;
+
+    /** Max pulse chirp velocity variance in delta bins */
+    A_INT32 pulse_delta_diff;
 
 } wmi_dfs_radar_event_fixed_param;
 
