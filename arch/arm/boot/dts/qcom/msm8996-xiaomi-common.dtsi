@@ -1964,7 +1964,9 @@
 &firmware {
 	android {
 		fstab {
-			/delete-node/ vendor;
+			vendor {
+				dev = "/dev/block/platform/soc/624000.ufshc/by-name/cust";
+			};
 			system {
 				dev = "/dev/block/platform/soc/624000.ufshc/by-name/system";
 			};
