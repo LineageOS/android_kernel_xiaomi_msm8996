@@ -32,13 +32,12 @@
  * big CPUs.
  */
 #define LITTLE_CPU_MASK (CPU_MASK(0) | CPU_MASK(1))
-#define BIG_CPU_MASK    (CPU_MASK(2) | CPU_MASK(3))
 
 #define UNTHROTTLE_ZONE (-1)
 
 #define DEFAULT_SAMPLING_MS 3000
 
-/* Max possible is currently 99 (two digits) */
+/* Max possible is currently 100 (0-99 => two digits) */
 #define NR_THERMAL_ZONES 16
 
 struct thermal_zone_sysfs {
