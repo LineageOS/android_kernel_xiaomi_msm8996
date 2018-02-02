@@ -546,6 +546,7 @@ struct fg_chip {
 	struct delayed_work	update_sram_data;
 	struct delayed_work	update_temp_work;
 	struct delayed_work	check_empty_work;
+	struct delayed_work	soc_work;
 	char			*batt_profile;
 	u8			thermal_coefficients[THERMAL_COEFF_N_BYTES];
 	u32			cc_cv_threshold_mv;
@@ -583,6 +584,7 @@ struct fg_chip {
 	u16			*offset;
 	bool			ima_supported;
 	bool			init_done;
+	int			mi_last_soc;
 	/* jeita hysteresis */
 	bool			jeita_hysteresis_support;
 	bool			batt_hot;
@@ -2190,8 +2192,10 @@ static int get_prop_capacity(struct fg_chip *chip)
 	if (chip->battery_missing)
 		return MISSING_CAPACITY;
 
-	if (!chip->profile_loaded && !chip->use_otp_profile)
-		return DEFAULT_CAPACITY;
+	if (!chip->profile_loaded && !chip->use_otp_profile) {
+		pr_info("loading batt profile, return last soc %d\n", chip->mi_last_soc);
+		return chip->mi_last_soc;
+	}
 
 	if (chip->charge_full)
 		return FULL_CAPACITY;
@@ -2228,6 +2232,37 @@ static int get_prop_capacity(struct fg_chip *chip)
 
 	return DIV_ROUND_CLOSEST((msoc - 1) * (FULL_CAPACITY - 1),
 			FULL_SOC_RAW - 2) + 1;
+}
+
+static int get_last_soc(struct fg_chip *chip)
+{
+	u8 cap[2];
+	int rc, capacity = 0, tries = 0;
+
+	while (tries < MAX_TRIES_SOC) {
+		rc = fg_read(chip, cap,
+				chip->soc_base + SOC_MONOTONIC_SOC, 2);
+		if (rc) {
+			pr_err("spmi read failed: addr=%03x, rc=%d\n",
+				chip->soc_base + SOC_MONOTONIC_SOC, rc);
+			return rc;
+		}
+
+		if (cap[0] == cap[1])
+			break;
+
+		tries++;
+	}
+
+	if (tries == MAX_TRIES_SOC) {
+		pr_err("shadow registers do not match\n");
+		return DEFAULT_CAPACITY;
+	}
+
+	if (cap[0] > 0)
+		capacity = (cap[0] * 100 / FULL_PERCENT);
+
+	return capacity;
 }
 
 #define HIGH_BIAS	3
@@ -2637,6 +2672,36 @@ resched:
 		msecs_to_jiffies(SANITY_CHECK_PERIOD_MS));
 out:
 	fg_relax(&chip->sanity_wakeup_source);
+}
+
+#define SOC_WORK_MS	20000
+static void soc_work_fn(struct work_struct *work)
+{
+	struct fg_chip *chip = container_of(work,
+				struct fg_chip,
+				soc_work.work);
+	int soc;
+	static int prev_soc = -EINVAL;
+
+	soc = get_prop_capacity(chip);
+	pr_info("adjust_soc: s %d r %d i %d v %d t %d\n",
+			soc,
+			get_sram_prop_now(chip, FG_DATA_BATT_ESR),
+			get_sram_prop_now(chip, FG_DATA_CURRENT),
+			get_sram_prop_now(chip, FG_DATA_VOLTAGE),
+			get_sram_prop_now(chip, FG_DATA_BATT_TEMP));
+
+	/* if soc changes, report power supply change uevent */
+	if (soc != prev_soc) {
+		if (chip->power_supply_registered)
+			power_supply_changed(&chip->bms_psy);
+		prev_soc = soc;
+	}
+
+	schedule_delayed_work(
+		&chip->soc_work,
+		msecs_to_jiffies(SOC_WORK_MS));
+
 }
 
 #define SRAM_TIMEOUT_MS			3000
@@ -7396,6 +7461,7 @@ static int fg_init_irqs(struct fg_chip *chip)
 
 static void fg_cancel_all_works(struct fg_chip *chip)
 {
+	cancel_delayed_work_sync(&chip->soc_work);
 	cancel_delayed_work_sync(&chip->check_sanity_work);
 	cancel_delayed_work_sync(&chip->update_sram_data);
 	cancel_delayed_work_sync(&chip->update_temp_work);
@@ -8585,6 +8651,9 @@ static void delayed_init_work(struct work_struct *work)
 	if (chip->last_temp_update_time == 0)
 		update_temp_data(&chip->update_temp_work.work);
 
+       schedule_delayed_work(&chip->soc_work,
+               msecs_to_jiffies(SOC_WORK_MS));
+
 	if (!chip->use_otp_profile)
 		schedule_delayed_work(&chip->batt_profile_init, 0);
 
@@ -8674,6 +8743,7 @@ static int fg_probe(struct spmi_device *spmi)
 	INIT_DELAYED_WORK(&chip->update_sram_data, update_sram_data_work);
 	INIT_DELAYED_WORK(&chip->update_temp_work, update_temp_data);
 	INIT_DELAYED_WORK(&chip->check_empty_work, check_empty_work);
+	INIT_DELAYED_WORK(&chip->soc_work, soc_work_fn);
 	INIT_DELAYED_WORK(&chip->batt_profile_init, batt_profile_init);
 	INIT_DELAYED_WORK(&chip->check_sanity_work, check_sanity_work);
 	INIT_WORK(&chip->ima_error_recovery_work, ima_error_recovery_work);
@@ -8835,6 +8905,9 @@ static int fg_probe(struct spmi_device *spmi)
 		}
 	}
 
+	chip->mi_last_soc = get_last_soc(chip);
+	pr_info("last soc %d\n", chip->mi_last_soc);
+
 	/* Fake temperature till the actual temperature is read */
 	chip->last_good_temp = 250;
 
@@ -8907,6 +8980,9 @@ static void check_and_update_sram_data(struct fg_chip *chip)
 
 	schedule_delayed_work(
 		&chip->update_sram_data, msecs_to_jiffies(time_left * 1000));
+
+	schedule_delayed_work(
+		&chip->soc_work, msecs_to_jiffies(SOC_WORK_MS));
 }
 
 static int fg_suspend(struct device *dev)
@@ -8916,6 +8992,7 @@ static int fg_suspend(struct device *dev)
 	if (!chip->sw_rbias_ctrl)
 		return 0;
 
+	cancel_delayed_work(&chip->soc_work);
 	cancel_delayed_work(&chip->update_temp_work);
 	cancel_delayed_work(&chip->update_sram_data);
 
