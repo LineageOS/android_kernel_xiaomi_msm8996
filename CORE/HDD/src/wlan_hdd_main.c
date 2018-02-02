@@ -8706,9 +8706,18 @@ void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
     int8_t i;
     u_int8_t macaddr_b3, tmp_br3;
 
+    hddLog(VOS_TRACE_LEVEL_INFO,
+           "hw update mac addr[0] from " MAC_ADDRESS_STR
+           " to " MAC_ADDRESS_STR,
+           MAC_ADDR_ARRAY(cfg_ini->intfMacAddr[0].bytes),
+           MAC_ADDR_ARRAY(hw_macaddr.bytes));
     vos_mem_copy(cfg_ini->intfMacAddr[0].bytes, hw_macaddr.bytes,
                  VOS_MAC_ADDR_SIZE);
     for (i = 1; i < VOS_MAX_CONCURRENCY_PERSONA; i++) {
+        hddLog(VOS_TRACE_LEVEL_INFO,
+               "hw update mac addr[%d] from " MAC_ADDRESS_STR,
+               i,
+               MAC_ADDR_ARRAY(cfg_ini->intfMacAddr[i].bytes));
         vos_mem_copy(cfg_ini->intfMacAddr[i].bytes, hw_macaddr.bytes,
                      VOS_MAC_ADDR_SIZE);
         macaddr_b3 = cfg_ini->intfMacAddr[i].bytes[3];
@@ -8724,6 +8733,9 @@ void hdd_update_macaddr(hdd_config_t *cfg_ini, v_MACADDR_t hw_macaddr)
         /* Set locally administered bit */
         cfg_ini->intfMacAddr[i].bytes[0] |= 0x02;
         cfg_ini->intfMacAddr[i].bytes[3] = macaddr_b3;
+        hddLog(VOS_TRACE_LEVEL_INFO,
+               " to " MAC_ADDRESS_STR,
+               MAC_ADDR_ARRAY(cfg_ini->intfMacAddr[i].bytes));
         hddLog(VOS_TRACE_LEVEL_INFO, "cfg_ini->intfMacAddr[%d]: "
                MAC_ADDRESS_STR, i,
                MAC_ADDR_ARRAY(cfg_ini->intfMacAddr[i].bytes));
@@ -9463,6 +9475,8 @@ void hdd_update_tgt_cfg(void *context, void *param)
     {
         vos_mem_copy(&hdd_ctx->hw_macaddr, &cfg->hw_macaddr,
                      VOS_MAC_ADDR_SIZE);
+        hddLog(VOS_TRACE_LEVEL_INFO,
+               FL("hw update mac addr"));
     }
     else {
         hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -16247,6 +16261,12 @@ static int hdd_cnss_wlan_mac(hdd_context_t *hdd_ctx)
 	vos_mem_copy(&customMacAddr, addr, mac_addr_size);
 
 	for (iter = 0; iter < no_of_mac_addr; ++iter, addr += mac_addr_size) {
+		hddLog(VOS_TRACE_LEVEL_INFO,
+		       "cnss update mac addr[%d] from " MAC_ADDRESS_STR
+		       " to " MAC_ADDRESS_STR "\n",
+		       iter,
+		       MAC_ADDR_ARRAY(ini->intfMacAddr[iter].bytes),
+		       MAC_ADDR_ARRAY(addr));
 		buf = ini->intfMacAddr[iter].bytes;
 		vos_mem_copy(buf, addr, VOS_MAC_ADDR_SIZE);
 		hddLog(LOG1, FL(MAC_ADDRESS_STR), MAC_ADDR_ARRAY(buf));
@@ -16280,8 +16300,11 @@ static int hdd_initialize_mac_address(hdd_context_t *hdd_ctx)
 
 	ret = hdd_cnss_wlan_mac(hdd_ctx);
 
-	if (ret == 0)
+	if (ret == 0) {
+		hddLog(LOG1,
+		       FL("cnss update mac addr"));
 		return ret;
+	}
 
 	hddLog(LOGW, FL("Can't update MAC via platform driver ret: %d"), ret);
 
@@ -16296,6 +16319,7 @@ static int hdd_initialize_mac_address(hdd_context_t *hdd_ctx)
 
 	if (!vos_is_macaddr_zero(&hdd_ctx->hw_macaddr)) {
 		hdd_update_macaddr(hdd_ctx->cfg_ini, hdd_ctx->hw_macaddr);
+		hddLog(LOG1,FL("wlan_mac.bin update mac addr"));
 	} else {
 		tSirMacAddr customMacAddr;
 

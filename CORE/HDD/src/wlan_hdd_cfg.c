@@ -6401,6 +6401,12 @@ static void update_mac_from_string(hdd_context_t *pHddCtx, tCfgIniEntry *macTabl
             break;
       }
       if (res == 0 && !vos_is_macaddr_zero(&macaddr[i])) {
+         hddLog(VOS_TRACE_LEVEL_INFO,
+                "wlan_mac.bin update mac addr[%d] from " MAC_ADDRESS_STR
+                " to " MAC_ADDRESS_STR,
+                i,
+                MAC_ADDR_ARRAY(pHddCtx->cfg_ini->intfMacAddr[i].bytes),
+                MAC_ADDR_ARRAY(macaddr[i].bytes));
          vos_mem_copy((v_U8_t *)&pHddCtx->cfg_ini->intfMacAddr[i].bytes[0],
                       (v_U8_t *)&macaddr[i].bytes[0], VOS_MAC_ADDR_SIZE);
       }
