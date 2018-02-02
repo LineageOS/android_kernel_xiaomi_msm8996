@@ -1,7 +1,7 @@
 /*
  * drivers/thermal/msm_thermal_simple.c
  *
- * Copyright (C) 2014-2017, Sultanxda <sultanxda@gmail.com>
+ * Copyright (C) 2014-2018, Sultanxda <sultanxda@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -458,7 +458,7 @@ static int sysfs_zone_attr_init(struct thermal_policy *t)
 	return 0;
 
 free_name:
-	for (i--; i >= 0; i--)
+	while (i--)
 		kfree(t->zfs.dev_attr[i].attr.name);
 	return -ENOMEM;
 }
