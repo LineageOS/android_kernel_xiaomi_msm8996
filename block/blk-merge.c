@@ -61,6 +61,9 @@ static unsigned int __blk_recalc_rq_segments(struct request_queue *q,
 					goto new_segment;
 				if (!BIOVEC_SEG_BOUNDARY(q, &bvprv, &bv))
 					goto new_segment;
+				if ((bvprv.bv_page != bv.bv_page) &&
+				    (bvprv.bv_page + 1) != bv.bv_page)
+					goto new_segment;
 
 				seg_size += bv.bv_len;
 				bvprv = bv;
@@ -171,6 +174,9 @@ __blk_segment_map_sg(struct request_queue *q, struct bio_vec *bvec,
 		if (!BIOVEC_PHYS_MERGEABLE(bvprv, bvec))
 			goto new_segment;
 		if (!BIOVEC_SEG_BOUNDARY(q, bvprv, bvec))
+			goto new_segment;
+		if (((bvprv)->bv_page != bvec->bv_page) &&
+			((bvprv->bv_page + 1) != bvec->bv_page))
 			goto new_segment;
 
 		(*sg)->length += nbytes;

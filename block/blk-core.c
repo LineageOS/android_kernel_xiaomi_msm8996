@@ -283,11 +283,22 @@ inline void __blk_run_queue_uncond(struct request_queue *q)
 	 * number of active request_fn invocations such that blk_drain_queue()
 	 * can wait until all these request_fn calls have finished.
 	 */
-	q->request_fn_active++;
-	preempt_disable();
-	q->request_fn(q);
-	preempt_enable();
-	q->request_fn_active--;
+
+	if (!q->notified_urgent &&
+		q->elevator->type->ops.elevator_is_urgent_fn &&
+		q->urgent_request_fn &&
+		q->elevator->type->ops.elevator_is_urgent_fn(q)) {
+		q->notified_urgent = true;
+		q->request_fn_active++;
+		q->urgent_request_fn(q);
+		q->request_fn_active--;
+	} else {
+	    q->request_fn_active++;
+	    preempt_disable();
+	    q->request_fn(q);
+	    preempt_enable();
+	    q->request_fn_active--;
+	}
 }
 
 /**
@@ -297,6 +308,12 @@ inline void __blk_run_queue_uncond(struct request_queue *q)
  * Description:
  *    See @blk_run_queue. This variant must be called with the queue lock
  *    held and interrupts disabled.
+ *    Device driver will be notified of an urgent request
+ *    pending under the following conditions:
+ *    1. The driver and the current scheduler support urgent reques handling
+ *    2. There is an urgent request pending in the scheduler
+ *    3. There isn't already an urgent request in flight, meaning previously
+ *       notified urgent request completed (!q->notified_urgent)
  */
 void __blk_run_queue(struct request_queue *q)
 {
@@ -1276,9 +1293,73 @@ void blk_requeue_request(struct request_queue *q, struct request *rq)
 
 	BUG_ON(blk_queued_rq(rq));
 
+	if (rq->cmd_flags & REQ_URGENT) {
+		/*
+		 * It's not compliant with the design to re-insert
+		 * urgent requests. We want to be able to track this
+		 * down.
+		 */
+		pr_err("%s(): requeueing an URGENT request", __func__);
+		WARN_ON(!q->dispatched_urgent);
+		q->dispatched_urgent = false;
+	}
 	elv_requeue_request(q, rq);
 }
 EXPORT_SYMBOL(blk_requeue_request);
+
+/**
+ * blk_reinsert_request() - Insert a request back to the scheduler
+ * @q:		request queue
+ * @rq:		request to be inserted
+ *
+ * This function inserts the request back to the scheduler as if
+ * it was never dispatched.
+ *
+ * Return: 0 on success, error code on fail
+ */
+int blk_reinsert_request(struct request_queue *q, struct request *rq)
+{
+	if (unlikely(!rq) || unlikely(!q))
+		return -EIO;
+
+	blk_delete_timer(rq);
+	blk_clear_rq_complete(rq);
+	trace_block_rq_requeue(q, rq);
+
+	if (rq->cmd_flags & REQ_QUEUED)
+		blk_queue_end_tag(q, rq);
+
+	BUG_ON(blk_queued_rq(rq));
+	if (rq->cmd_flags & REQ_URGENT) {
+		/*
+		 * It's not compliant with the design to re-insert
+		 * urgent requests. We want to be able to track this
+		 * down.
+		 */
+		pr_err("%s(): reinserting an URGENT request", __func__);
+		WARN_ON(!q->dispatched_urgent);
+		q->dispatched_urgent = false;
+	}
+
+	return elv_reinsert_request(q, rq);
+}
+EXPORT_SYMBOL(blk_reinsert_request);
+
+/**
+ * blk_reinsert_req_sup() - check whether the scheduler supports
+ *          reinsertion of requests
+ * @q:		request queue
+ *
+ * Returns true if the current scheduler supports reinserting
+ * request. False otherwise
+ */
+bool blk_reinsert_req_sup(struct request_queue *q)
+{
+	if (unlikely(!q))
+		return false;
+	return q->elevator->type->ops.elevator_reinsert_req_fn ? true : false;
+}
+EXPORT_SYMBOL(blk_reinsert_req_sup);
 
 static void add_acct_request(struct request_queue *q, struct request *rq,
 			     int where)
@@ -2267,6 +2348,10 @@ struct request *blk_peek_request(struct request_queue *q)
 			 * not be passed by new incoming requests
 			 */
 			rq->cmd_flags |= REQ_STARTED;
+			if (rq->cmd_flags & REQ_URGENT) {
+				WARN_ON(q->dispatched_urgent);
+				q->dispatched_urgent = true;
+			}
 			trace_block_rq_issue(q, rq);
 		}
 
