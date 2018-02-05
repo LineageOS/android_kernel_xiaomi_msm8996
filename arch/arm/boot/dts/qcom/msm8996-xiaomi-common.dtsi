@@ -931,10 +931,12 @@
 
 &pmi8994_haptics {
 	status = "disabled";
-	qcom,wave-play-rate-us = <4166>;
+	qcom,wave-play-rate-us = <5000>;
 	qcom,wave-shape = "sine";
+	qcom,play-mode = "buffer";
 	qcom,vmax-mv = <2200>;
 	qcom,brake-pattern = [03 03 02 02];
+	qcom,wave-samples = [3e 00 3e 3e 3e 02 00 00];
 };
 
 &flash_led {
