@@ -83,6 +83,8 @@ static int migration_register_count;
 static struct mutex sched_lock;
 static cpumask_t controlled_cpus;
 
+static bool gov_is_locked = false;
+
 /* Target load.  Lower values result in higher CPU speeds. */
 #define DEFAULT_TARGET_LOAD 90
 static unsigned int default_target_loads[] = {DEFAULT_TARGET_LOAD};
@@ -160,6 +162,12 @@ struct cpufreq_interactive_tunables {
 
 	/* Whether to enable prediction or not */
 	bool enable_prediction;
+
+	/* For locking governor tunables.
+	 * Need for prevent tunables from change from userspace.
+	 * Perfd likes to change it. Now we can lock it
+	 */
+	bool is_locked;	
 };
 
 /* For cases where we have single governor instance for system */
@@ -931,6 +939,33 @@ err:
 	return ERR_PTR(err);
 }
 
+static ssize_t show_is_locked(struct cpufreq_interactive_tunables *tunables,
+		char *buf)
+{
+	return sprintf(buf, "%u\n", tunables->is_locked);
+}
+
+static ssize_t store_is_locked(struct cpufreq_interactive_tunables *tunables,
+		const char *buf, size_t count)
+{
+	int ret;
+	unsigned long val;
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+	tunables->is_locked = val;
+	if (tunables->is_locked)
+	{
+	    gov_is_locked = true;
+	}
+	else 
+	{
+	    gov_is_locked = false;
+	}
+	return count;
+}
+
+
 static ssize_t show_target_loads(
 	struct cpufreq_interactive_tunables *tunables,
 	char *buf)
@@ -962,6 +997,9 @@ static ssize_t store_target_loads(
 	if (IS_ERR(new_target_loads))
 		return PTR_RET(new_target_loads);
 
+	if (gov_is_locked)
+	    return count;
+
 	spin_lock_irqsave(&tunables->target_loads_lock, flags);
 	if (tunables->target_loads != default_target_loads)
 		kfree(tunables->target_loads);
@@ -970,7 +1008,6 @@ static ssize_t store_target_loads(
 	spin_unlock_irqrestore(&tunables->target_loads_lock, flags);
 
 	sched_update_freq_max_load(&controlled_cpus);
-
 	return count;
 }
 
@@ -1005,6 +1042,9 @@ static ssize_t store_above_hispeed_delay(
 	if (IS_ERR(new_above_hispeed_delay))
 		return PTR_RET(new_above_hispeed_delay);
 
+	if (gov_is_locked)
+	    return count;
+
 	spin_lock_irqsave(&tunables->above_hispeed_delay_lock, flags);
 	if (tunables->above_hispeed_delay != default_above_hispeed_delay)
 		kfree(tunables->above_hispeed_delay);
@@ -1030,6 +1070,8 @@ static ssize_t store_hispeed_freq(struct cpufreq_interactive_tunables *tunables,
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
+	if (gov_is_locked)
+	    return count;
 	tunables->hispeed_freq = val;
 	return count;
 }
@@ -1050,9 +1092,12 @@ static ssize_t store_##file_name(					\
 	ret = kstrtoul(buf, 0, &val);				\
 	if (ret < 0)							\
 		return ret;						\
+	if (gov_is_locked)						\
+	    return count;						\
 	tunables->file_name = val;					\
 	return count;							\
 }
+
 show_store_one(max_freq_hysteresis);
 show_store_one(align_windows);
 show_store_one(ignore_hispeed_on_notif);
@@ -1074,6 +1119,8 @@ static ssize_t store_go_hispeed_load(struct cpufreq_interactive_tunables
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
+	if (gov_is_locked)
+	    return count;
 	tunables->go_hispeed_load = val;
 	return count;
 }
@@ -1093,6 +1140,8 @@ static ssize_t store_min_sample_time(struct cpufreq_interactive_tunables
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
+	if (gov_is_locked)
+	    return count;
 	tunables->min_sample_time = val;
 	return count;
 }
@@ -1114,7 +1163,8 @@ static ssize_t store_timer_rate(struct cpufreq_interactive_tunables *tunables,
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
-
+	if (gov_is_locked)
+	    return count;
 	val_round = jiffies_to_usecs(usecs_to_jiffies(val));
 	if (val != val_round)
 		pr_warn("timer_rate not aligned to jiffy. Rounded up to %lu\n",
@@ -1132,7 +1182,6 @@ static ssize_t store_timer_rate(struct cpufreq_interactive_tunables *tunables,
 			t->timer_rate = usecs_to_jiffies(val_round);
 	}
 	set_window_helper(tunables);
-
 	return count;
 }
 
@@ -1151,7 +1200,8 @@ static ssize_t store_timer_slack(struct cpufreq_interactive_tunables *tunables,
 	ret = kstrtol(buf, 10, &val);
 	if (ret < 0)
 		return ret;
-
+	if (gov_is_locked)
+	    return count;
 	tunables->timer_slack_val = usecs_to_jiffies(val);
 	return count;
 }
@@ -1171,9 +1221,9 @@ static ssize_t store_boost(struct cpufreq_interactive_tunables *tunables,
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
-
 	tunables->boost_val = val;
-
+	if (gov_is_locked)
+	    return count;
 	if (tunables->boost_val) {
 		trace_cpufreq_interactive_boost("on");
 		if (!tunables->boosted)
@@ -1182,7 +1232,6 @@ static ssize_t store_boost(struct cpufreq_interactive_tunables *tunables,
 		tunables->boostpulse_endtime = ktime_to_us(ktime_get());
 		trace_cpufreq_interactive_unboost("off");
 	}
-
 	return count;
 }
 
@@ -1195,7 +1244,8 @@ static ssize_t store_boostpulse(struct cpufreq_interactive_tunables *tunables,
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
-
+	if (gov_is_locked)
+	    return count;
 	tunables->boostpulse_endtime = ktime_to_us(ktime_get()) +
 		tunables->boostpulse_duration_val;
 	trace_cpufreq_interactive_boost("pulse");
@@ -1219,7 +1269,6 @@ static ssize_t store_boostpulse_duration(struct cpufreq_interactive_tunables
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
-
 	tunables->boostpulse_duration_val = val;
 	return count;
 }
@@ -1241,6 +1290,8 @@ static ssize_t store_io_is_busy(struct cpufreq_interactive_tunables *tunables,
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
+	if (gov_is_locked)
+	    return count;
 	tunables->io_is_busy = val;
 
 	if (!tunables->use_sched_load)
@@ -1254,7 +1305,6 @@ static ssize_t store_io_is_busy(struct cpufreq_interactive_tunables *tunables,
 			t->io_is_busy = val;
 	}
 	sched_set_io_is_busy(val);
-
 	return count;
 }
 
@@ -1336,7 +1386,8 @@ static ssize_t store_use_sched_load(
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
-
+	if (gov_is_locked)
+	    return count;
 	if (tunables->use_sched_load == (bool) val)
 		return count;
 
@@ -1351,7 +1402,6 @@ static ssize_t store_use_sched_load(
 		tunables->use_sched_load = !val;
 		return ret;
 	}
-
 	return count;
 }
 
@@ -1372,7 +1422,8 @@ static ssize_t store_use_migration_notif(
 	ret = kstrtoul(buf, 0, &val);
 	if (ret < 0)
 		return ret;
-
+	if (gov_is_locked)
+	    return count;
 	if (tunables->use_migration_notif == (bool) val)
 		return count;
 	tunables->use_migration_notif = val;
@@ -1395,7 +1446,6 @@ static ssize_t store_use_migration_notif(
 					&load_notifier_block);
 	}
 	mutex_unlock(&sched_lock);
-
 	return count;
 }
 
@@ -1435,6 +1485,7 @@ static ssize_t store_##file_name##_gov_pol				\
 show_gov_pol_sys(file_name);						\
 store_gov_pol_sys(file_name)
 
+show_store_gov_pol_sys(is_locked);
 show_store_gov_pol_sys(target_loads);
 show_store_gov_pol_sys(above_hispeed_delay);
 show_store_gov_pol_sys(hispeed_freq);
@@ -1466,6 +1517,7 @@ __ATTR(_name, 0644, show_##_name##_gov_pol, store_##_name##_gov_pol)
 	gov_sys_attr_rw(_name);						\
 	gov_pol_attr_rw(_name)
 
+gov_sys_pol_attr_rw(is_locked);
 gov_sys_pol_attr_rw(target_loads);
 gov_sys_pol_attr_rw(above_hispeed_delay);
 gov_sys_pol_attr_rw(hispeed_freq);
@@ -1492,6 +1544,7 @@ static struct freq_attr boostpulse_gov_pol =
 
 /* One Governor instance for entire system */
 static struct attribute *interactive_attributes_gov_sys[] = {
+	&is_locked_gov_sys.attr,
 	&target_loads_gov_sys.attr,
 	&above_hispeed_delay_gov_sys.attr,
 	&hispeed_freq_gov_sys.attr,
@@ -1520,6 +1573,7 @@ static struct attribute_group interactive_attr_group_gov_sys = {
 
 /* Per policy governor instance */
 static struct attribute *interactive_attributes_gov_pol[] = {
+	&is_locked_gov_pol.attr,
 	&target_loads_gov_pol.attr,
 	&above_hispeed_delay_gov_pol.attr,
 	&hispeed_freq_gov_pol.attr,
@@ -1566,7 +1620,6 @@ static struct cpufreq_interactive_tunables *alloc_tunable(
 	tunables = kzalloc(sizeof(*tunables), GFP_KERNEL);
 	if (!tunables)
 		return ERR_PTR(-ENOMEM);
-
 	tunables->above_hispeed_delay = default_above_hispeed_delay;
 	tunables->nabove_hispeed_delay =
 		ARRAY_SIZE(default_above_hispeed_delay);
