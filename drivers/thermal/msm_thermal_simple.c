@@ -218,7 +218,7 @@ static int do_cpu_throttle(struct notifier_block *nb,
 
 static struct notifier_block cpu_throttle_nb = {
 	.notifier_call = do_cpu_throttle,
-	.priority      = -INT_MAX,
+	.priority      = INT_MIN,
 };
 
 static void update_online_cpu_policy(void)
