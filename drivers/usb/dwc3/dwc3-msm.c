@@ -70,7 +70,7 @@ static int cpu_to_affin;
 module_param(cpu_to_affin, int, S_IRUGO|S_IWUSR);
 MODULE_PARM_DESC(cpu_to_affin, "affin usb irq to this cpu");
 
-static bool disable_host_mode;
+static bool disable_host_mode = true;
 module_param(disable_host_mode, bool, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(disable_host_mode, "To stop HOST mode detection");
 
