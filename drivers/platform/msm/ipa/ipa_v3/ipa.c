@@ -636,8 +636,8 @@ static int ipa3_send_wan_msg(unsigned long usr_param,
 		/* cache the cne event */
 		memcpy(&ipa3_ctx->ipa_cne_evt_req_cache[
 			ipa3_ctx->num_ipa_cne_evt_req].wan_msg,
-			wan_msg,
-			sizeof(struct ipa_wan_msg));
+			&cache_wan_msg,
+			sizeof(cache_wan_msg));
 
 		memcpy(&ipa3_ctx->ipa_cne_evt_req_cache[
 			ipa3_ctx->num_ipa_cne_evt_req].msg_meta,
@@ -2091,6 +2091,12 @@ static void ipa3_q6_avoid_holb(void)
 			if (ep_idx == -1)
 				continue;
 
+			/* from IPA 4.0 pipe suspend is not supported */
+			if (ipa3_ctx->ipa_hw_type < IPA_HW_v4_0)
+				ipahal_write_reg_n_fields(
+				IPA_ENDP_INIT_CTRL_n,
+				ep_idx, &ep_suspend);
+
 			/*
 			 * ipa3_cfg_ep_holb is not used here because we are
 			 * setting HOLB on Q6 pipes, and from APPS perspective
@@ -2103,10 +2109,6 @@ static void ipa3_q6_avoid_holb(void)
 			ipahal_write_reg_n_fields(
 				IPA_ENDP_INIT_HOL_BLOCK_EN_n,
 				ep_idx, &ep_holb);
-
-			ipahal_write_reg_n_fields(
-				IPA_ENDP_INIT_CTRL_n,
-				ep_idx, &ep_suspend);
 		}
 	}
 }
