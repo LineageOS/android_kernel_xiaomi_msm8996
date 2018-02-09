@@ -85,6 +85,8 @@ int wma_ocb_set_config_resp(tp_wma_handle wma_handle, uint8_t status)
 			vdev->ocb_channel_info = 0;
 		}
 
+		vdev->ocb_config_flags = req->flags;
+
 		/* Default TX parameter */
 		if (!ol_txrx_set_ocb_def_tx_param(vdev,
 		    req->def_tx_param, req->def_tx_param_size)) {

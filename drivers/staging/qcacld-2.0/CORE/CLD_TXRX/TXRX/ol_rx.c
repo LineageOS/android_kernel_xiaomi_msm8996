@@ -1023,6 +1023,47 @@ static inline void ol_rx_timestamp(ol_pdev_handle pdev,
 }
 #endif
 
+/**
+ * ol_convert_ieee80211_to_8023() - handle data header transition.
+ * @msdu - Received packet.
+ *
+ * This function try to convert the IEEE80211 data frame to 802.3 frame.
+ * When DSRC OCB interface works in RAW mode, driver received data frame
+ * started with IEEE802.11 header, before this packet is delivered to
+ * network stack, it is needed to do transition. But for QCOM specific
+ * frame, this function do nothing change.
+ */
+static A_STATUS ol_convert_ieee80211_to_8023(adf_nbuf_t msdu)
+{
+	int hdr_size;
+	uint16_t epd_hdr_type;
+	struct ether_header eth_hdr;
+	struct ieee80211_frame *wh;
+
+	wh = (struct ieee80211_frame *)adf_nbuf_data(msdu);
+	if (!IEEE80211_IS_DATA(wh))
+		return A_ERROR;
+
+	hdr_size = ol_txrx_ieee80211_hdrsize(wh);
+	if (adf_nbuf_len(msdu) < (hdr_size + sizeof(epd_hdr_type)))
+		return A_ERROR;
+
+	epd_hdr_type = *(uint16_t *)(adf_nbuf_data(msdu) + hdr_size);
+	if (epd_hdr_type == adf_os_htons(ETHERTYPE_WSMP))
+		return A_ENOTSUP;
+
+	adf_os_mem_zero(&eth_hdr, sizeof(struct ether_header));
+	adf_os_mem_copy(eth_hdr.ether_dhost, wh->i_addr1, IEEE80211_ADDR_LEN);
+	adf_os_mem_copy(eth_hdr.ether_shost, wh->i_addr2, IEEE80211_ADDR_LEN);
+	eth_hdr.ether_type = epd_hdr_type;
+
+	adf_nbuf_pull_head(msdu, hdr_size + sizeof(epd_hdr_type));
+	adf_nbuf_push_head(msdu, sizeof(eth_hdr));
+	adf_os_mem_copy(adf_nbuf_data(msdu), &eth_hdr, sizeof(eth_hdr));
+
+	return A_OK;
+}
+
 void
 ol_rx_deliver(
     struct ol_txrx_vdev_t *vdev,
@@ -1111,13 +1152,31 @@ DONE:
                 int i;
                 struct ol_txrx_ocb_chan_info *chan_info = 0;
                 int packet_freq = peer->last_pkt_center_freq;
+                bool need_rx_stats_hdr = false;
+
                 for (i = 0; i < vdev->ocb_channel_count; i++) {
                     if (vdev->ocb_channel_info[i].chan_freq == packet_freq) {
                         chan_info = &vdev->ocb_channel_info[i];
                         break;
                     }
                 }
-                if (!chan_info || !chan_info->disable_rx_stats_hdr) {
+
+                if (NULL != chan_info)
+                    need_rx_stats_hdr = !chan_info->disable_rx_stats_hdr;
+
+                if (vdev->ocb_config_flags & OCB_CONFIG_FLAG_80211_FRAME_MODE) {
+                    /*
+                     * When DSRC OCB interface works in raw mode,
+                     * and received packets started with 802.11 data header,
+                     * it is required to driver convert the header to
+                     * 802.3 header, except specific WSMP data frame.
+                     */
+                    A_STATUS status = ol_convert_ieee80211_to_8023(msdu);
+                    if (A_SUCCESS(status))
+                        need_rx_stats_hdr = false;
+                }
+
+                if (need_rx_stats_hdr) {
                     struct ether_header eth_header = { {0} };
                     struct ocb_rx_stats_hdr_t rx_header = {0};
 

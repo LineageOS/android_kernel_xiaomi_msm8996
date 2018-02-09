@@ -383,6 +383,8 @@ typedef enum {
     WMI_PDEV_CONFIG_VENDOR_OUI_ACTION_CMDID,
     /** enable/disable per-AC tx queue optimizations */
     WMI_PDEV_SET_AC_TX_QUEUE_OPTIMIZED_CMDID,
+    /** enable/disable rx promiscuous mode */
+    WMI_PDEV_SET_RX_FILTER_PROMISCUOUS_CMDID,
 
     /* VDEV (virtual device) specific commands */
     /** vdev create */
@@ -502,6 +504,8 @@ typedef enum {
      */
     WMI_PEER_ANTDIV_INFO_REQ_CMDID,
 
+    /** Peer/Tid/Msduq threshold update */
+    WMI_PEER_TID_MSDUQ_QDEPTH_THRESH_UPDATE_CMDID,
 
     /* beacon/management specific commands */
 
@@ -1584,6 +1588,7 @@ typedef enum {
     WMI_NDP_CONFIRM_EVENTID,
     WMI_NDP_END_INDICATION_EVENTID,
     WMI_WLAN_COEX_BT_ACTIVITY_EVENTID,
+    WMI_NDL_SCHEDULE_UPDATE_EVENTID,
 } WMI_EVT_ID;
 
 /* defines for OEM message sub-types */
@@ -1608,6 +1613,7 @@ typedef enum {
 #define WMI_SSID_LIST_TAG		 0x2
 #define WMI_BSSID_LIST_TAG		 0x3
 #define WMI_IE_TAG			 0x4
+#define WMI_SCAN_START_OFFSET_TAG        0x5
 
 typedef struct {
     A_UINT32 tlv_header;     /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_channel */
@@ -2829,6 +2835,15 @@ typedef struct {
     A_UINT32     num_ssids;
     wmi_ssid ssids[1];
 } wmi_ssid_list;
+
+typedef struct {
+    /** WMI_SCAN_START_OFFSET_TAG */
+    A_UINT32     tag;
+    /** Number of start TSF offsets */
+    A_UINT32     num_offset;
+    /** Array of start TSF offsets provided in milliseconds */
+    A_UINT32     start_tsf_offset[1];
+} wmi_scan_start_offset;
 
 /**
  * WLAN_SCAN_CHAN_MODE Macros defined for A_UINT8 phymode_list[]
@@ -12790,6 +12805,16 @@ typedef struct {
     A_UINT32 ac_tx_queue_optimize_enable;
 } wmi_pdev_set_ac_tx_queue_optimized_cmd_fixed_param;
 
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_pdev_set_rx_filter_promiscuous_cmd_fixed_param */
+    /** pdev_id for identifying the MAC
+     * See macros starting with WMI_PDEV_ID_ for values.
+     */
+    A_UINT32 pdev_id;
+    /** Enable/disable rx filter promiscuous */
+    A_UINT32 rx_filter_promiscuous_enable;
+} wmi_pdev_set_rx_filter_promiscuous_cmd_fixed_param;
+
 typedef enum {
     WMI_BEACON_INFO_PRESENCE_OUI_EXT            = 1 <<  0,
     WMI_BEACON_INFO_PRESENCE_MAC_ADDRESS        = 1 <<  1,
@@ -14408,6 +14433,62 @@ typedef struct {
     A_INT32 chain_rssi[8];
 } wmi_peer_antdiv_info;
 
+typedef struct {
+    A_UINT32    tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_msduq_qdepth_thresh_update */
+
+    /** tid_number */
+    A_UINT32 tid_num;
+
+    /** msduq_mask to set the value
+     * bit 0 - HI-PRI msdu flowq qdepth threshold need to update if set
+     * bit 1 - LOW-PRI msdu flowq qdepth threshold need to update if set
+     * bit 2 - UDP msdu flowq qdepth threshold need to update if set
+     * bit 3 - NON-UDP msdu flowq qdepth threshold need to update if set
+     * rest of bits are reserved and set to 0.
+     */
+    A_UINT32 msduq_update_mask;
+
+    /** Qdepth threshold value
+     * If number of msdus in a queue excess over qdepth_thresh_value value
+     * while queuing msdu's then we drop new msdus.
+     * (Though dropping older (stale) data rather than newer data might be
+     * preferable, the dropping is performed by MAC HW, and there’s no option
+     * to configure the HW to do head dropping rather than tail dropping.)
+     */
+    A_UINT32 qdepth_thresh_value;
+} wmi_msduq_qdepth_thresh_update;
+
+/** WMI_PEER_TID_MSDUQ_QDEPTH_THRESH_UPDATE_CMDID
+ *   Request FW to update msduq qdepth threshold per TID per peer */
+typedef struct {
+    /** TLV tag and len; tag equals
+     *  WMITLV_TAG_STRUC_wmi_peer_tid_msduq_qdepth_thresh_update_cmd_fixed_param
+     */
+    A_UINT32 tlv_header;
+
+    /** pdev id
+     * The pdev_id can be determined from the vdev_id, but the pdev_id
+     * is explicitly provided so it can be used for sanity checking.
+     */
+    A_UINT32 pdev_id;
+
+    /** vdev id */
+    A_UINT32 vdev_id;
+
+    /**
+     * To set the peer msduq qdepth threshold update for a single peer,
+     * the host shall send mac address for which peer need to be updated.
+     */
+    wmi_mac_addr peer_mac_address;
+
+    /** number of payload update tlvs */
+    A_UINT32 num_of_msduq_updates;
+
+    /** Followed by the variable length TLV msduq_qdepth_updates:
+     *  wmi_msduq_qdepth_th_update msduq_qdepth_thshd_update_list[]
+     */
+} wmi_peer_tid_msduq_qdepth_thresh_update_cmd_fixed_param;
+
 typedef enum {
     WMI_PEER_IND_SMPS = 0x0, /* spatial multiplexing power save */
     WMI_PEER_IND_OMN,        /* operating mode notification */
@@ -15454,11 +15535,17 @@ typedef struct {
     A_UINT32 reason_code;
     /** Number of active ndps on this peer */
     A_UINT32 num_active_ndps_on_peer;
+    /** Number of channels on this peer */
+    A_UINT32 num_ndp_channels;
+    /** Number of spatial streams associated */
+    A_UINT32 nss_2g;
+    A_UINT32 nss_5g;
     /**
      * TLV (tag length value ) parameters follow the ndp_confirm
      * structure. The TLV's are:
      * A_UINT8 ndp_cfg[];
      * A_UINT8 ndp_app_info[];
+     * wmi_channel ndp_channel_list[];
      */
 } wmi_ndp_confirm_event_fixed_param_PROTOTYPE;
 
@@ -15485,6 +15572,37 @@ typedef struct {
 } wmi_ndp_end_indication_PROTOTYPE;
 
 #define wmi_ndp_end_indication wmi_ndp_end_indication_PROTOTYPE
+
+typedef struct
+{
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_ndl_schedule_update_fixed_param */
+    /** Unique id identifying the VDEV */
+    A_UINT32 vdev_id;
+   /** peer MAC address */
+    wmi_mac_addr peer_macaddr;
+   /** Flags:
+    *  Bit   0    -> Nss updated
+    *  Bit   1    -> channel list updated
+    *  Bits  2-31 -> Reserved
+    */
+    A_UINT32 flags;
+    /** num spatial streams associated */
+    A_UINT32 nss_2g;
+    A_UINT32 nss_5g;
+    /** num of channels */
+    A_UINT32 num_channels;
+    /** num of ndp instances */
+    A_UINT32 num_ndp_instances;
+    /**
+     * TLV (tag length value) parameters follow the ndl_schedule_update
+     * structure. The TLV's are:
+     * A_UINT32 ndp_instance_list[];
+     * wmi_channel ndl_channel_list[];
+     */
+} wmi_ndl_schedule_update_fixed_param_PROTOTYPE;
+
+#define wmi_ndl_schedule_update_fixed_param wmi_ndl_schedule_update_fixed_param_PROTOTYPE
+
 
 typedef struct {
     A_UINT32 tlv_header;
@@ -20859,6 +20977,8 @@ static INLINE A_UINT8 *wmi_id_to_name(A_UINT32 wmi_command)
 		WMI_RETURN_STRING(WMI_PDEV_SEND_FD_CMDID);
 		WMI_RETURN_STRING(WMI_ENABLE_FILS_CMDID);
 		WMI_RETURN_STRING(WMI_PDEV_SET_AC_TX_QUEUE_OPTIMIZED_CMDID);
+		WMI_RETURN_STRING(WMI_PEER_TID_MSDUQ_QDEPTH_THRESH_UPDATE_CMDID);
+		WMI_RETURN_STRING(WMI_PDEV_SET_RX_FILTER_PROMISCUOUS_CMDID);
 	}
 
 	return "Invalid WMI cmd";

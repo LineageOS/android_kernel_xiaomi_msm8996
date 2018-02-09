@@ -119,6 +119,8 @@ static v_BOOL_t init_by_reg_core = VOS_FALSE;
 #define WORLD_SKU_MASK          0x00F0
 #define WORLD_SKU_PREFIX        0x0060
 
+#define REG_SET_WAIT_MS        100
+
 /**
  * struct bonded_chan
  * @start_ch: start channel
@@ -2264,6 +2266,19 @@ static void restore_custom_reg_settings(struct wiphy *wiphy)
 }
 #endif
 
+static void hdd_debug_cc_timer_expired_handler(void *arg)
+{
+	hdd_context_t *pHddCtx;
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+		  ("%s ENTER "), __func__);
+
+	if (!arg)
+		return;
+	pHddCtx = (hdd_context_t *)arg;
+	vos_timer_destroy(&(pHddCtx->reg.reg_set_timer));
+	regdmn_set_regval(&pHddCtx->reg);
+}
+
 /*
  * Function: wlan_hdd_linux_reg_notifier
  * This function is called from cfg80211 core to provide regulatory settings
@@ -2453,8 +2468,16 @@ int __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
                                          temp_reg_domain);
         }
 
-        /* send CTL info to firmware */
-        regdmn_set_regval(&pHddCtx->reg);
+        /* Due the firmware process, host side need to send
+         * WMI_SCAN_CHAN_LIST_CMDID before WMI_PDEV_SET_REGDOMAIN_CMDID, so
+         * that tx-power setting for operation channel can be applied,
+         * so use timer to postpone SET_REGDOMAIN_CMDID
+         */
+        vos_timer_init(&(pHddCtx->reg.reg_set_timer),
+                       VOS_TIMER_TYPE_SW,
+                       hdd_debug_cc_timer_expired_handler,
+                       (void *)pHddCtx);
+        vos_timer_start(&(pHddCtx->reg.reg_set_timer), REG_SET_WAIT_MS);
 
         /* set dfs_region info */
         vos_nv_set_dfs_region(request->dfs_region);
