@@ -583,28 +583,6 @@ static int pn548_remove(struct i2c_client *client)
 	return 0;
 }
 
-static int pn548_suspend(struct device *device)
-{
-	struct i2c_client *client = to_i2c_client(device);
-	pr_err("%s ++ \n", __func__);
-
-	if (device_may_wakeup(&client->dev))
-		enable_irq_wake(client->irq);
-	return 0;
-}
-static int pn548_resume(struct device *device)
-{
-	struct i2c_client *client = to_i2c_client(device);
-	pr_err("%s -- \n", __func__);
-	if (device_may_wakeup(&client->dev))
-		disable_irq_wake(client->irq);
-
-	return 0;
-}
-static const struct dev_pm_ops nfc_pm_ops = {
-	SET_SYSTEM_SLEEP_PM_OPS(pn548_suspend, pn548_resume)
-};
-
 static const struct i2c_device_id pn548_id_table[] = {
 	{ "pn548", 0 },
 	{ }
@@ -621,7 +599,6 @@ static struct i2c_driver pn548_driver = {
 		.name = "pn548",
 		.owner = THIS_MODULE,
 		.of_match_table = pn548_match_table,
-		.pm = &nfc_pm_ops,
 	},
 	.probe = pn548_probe,
 	.remove = pn548_remove,
