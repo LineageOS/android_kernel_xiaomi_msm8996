@@ -585,22 +585,30 @@ static int pn548_remove(struct i2c_client *client)
 
 static int pn548_suspend(struct device *device)
 {
-	struct i2c_client *client = to_i2c_client(device);
+	struct pn548_dev *pn548_dev = dev_get_drvdata(device);
 	pr_err("%s ++ \n", __func__);
 
-	if (device_may_wakeup(&client->dev))
-		enable_irq_wake(client->irq);
-	return 0;
-}
-static int pn548_resume(struct device *device)
-{
-	struct i2c_client *client = to_i2c_client(device);
-	pr_err("%s -- \n", __func__);
-	if (device_may_wakeup(&client->dev))
-		disable_irq_wake(client->irq);
+	if (device_may_wakeup(&pn548_dev->client->dev)) {
+		pn548_enable_irq(pn548_dev);
+		pn548_enable_irq_wake(pn548_dev);
+	}
 
 	return 0;
 }
+
+static int pn548_resume(struct device *device)
+{
+	struct pn548_dev *pn548_dev = dev_get_drvdata(device);
+	pr_err("%s -- \n", __func__);
+
+	if (device_may_wakeup(&pn548_dev->client->dev)) {
+		pn548_disable_irq(pn548_dev);
+		pn548_disable_irq_wake(pn548_dev);
+	}
+
+	return 0;
+}
+
 static const struct dev_pm_ops nfc_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(pn548_suspend, pn548_resume)
 };
