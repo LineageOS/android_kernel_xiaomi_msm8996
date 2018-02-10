@@ -44,7 +44,6 @@
 #define MAX_BUFFER_SIZE 512
 #define _A1_PN66T_
 
-static struct wake_lock fieldon_wl;
 struct pn548_dev	{
 	wait_queue_head_t	read_wq;
 	struct mutex		read_mutex;
@@ -200,9 +199,6 @@ static ssize_t pn548_dev_read(struct file *filp, char __user *buf,
 	mutex_unlock(&pn548_dev->read_mutex);
 	wake_unlock(&pn548_dev->wl);
 
-
-	if (((tmp[0] & 0xff) == 0x61) && ((tmp[1] & 0xff) == 0x07) && ((tmp[2] & 0xff) == 0x01))
-		wake_lock_timeout(&fieldon_wl, msecs_to_jiffies(3*1000));
 
 	if (ret < 0) {
 		pr_err("%s: PN548 i2c_master_recv returned %d\n", __func__, ret);
@@ -516,7 +512,6 @@ static int pn548_probe(struct i2c_client *client,
 
 	/*Initialise wake lock*/
 	wake_lock_init(&pn548_dev->wl, WAKE_LOCK_SUSPEND, "nfc_locker");
-	wake_lock_init(&fieldon_wl, WAKE_LOCK_SUSPEND, "nfc_locker");
 	pn548_dev->pn548_device.minor = MISC_DYNAMIC_MINOR;
 	pn548_dev->pn548_device.name = "pn548";
 	pn548_dev->pn548_device.fops = &pn548_dev_fops;
@@ -556,7 +551,6 @@ err_misc_register:
 	mutex_destroy(&pn548_dev->read_mutex);
 	mutex_destroy(&pn548_dev->irq_wake_mutex);
 	wake_lock_destroy(&pn548_dev->wl);
-	wake_lock_destroy(&fieldon_wl);
 	kfree(pn548_dev);
 err_exit:
 err_i2c:
@@ -580,7 +574,6 @@ static int pn548_remove(struct i2c_client *client)
 	mutex_destroy(&pn548_dev->read_mutex);
 	mutex_destroy(&pn548_dev->irq_wake_mutex);
 	wake_lock_destroy(&pn548_dev->wl);
-	wake_lock_destroy(&fieldon_wl);
 	gpio_free(pn548_dev->irq_gpio);
 	gpio_free(pn548_dev->ven_gpio);
 	gpio_free(pn548_dev->firm_gpio);
