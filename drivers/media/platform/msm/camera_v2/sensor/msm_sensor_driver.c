@@ -1047,9 +1047,6 @@ CSID_TG:
 
 	pr_err("%s probe succeeded", slave_info->sensor_name);
 
-	s_ctrl->bypass_video_node_creation =
-		slave_info->bypass_video_node_creation;
-
 	/*
 	 * Create /dev/videoX node, comment for now until dummy /dev/videoX
 	 * node is created and used by HAL
@@ -1099,6 +1096,10 @@ CSID_TG:
 	 * probed on this slot
 	 */
 	s_ctrl->is_probe_succeed = 1;
+
+	s_ctrl->bypass_video_node_creation =
+		slave_info->bypass_video_node_creation;
+
 	return rc;
 
 camera_power_down:
