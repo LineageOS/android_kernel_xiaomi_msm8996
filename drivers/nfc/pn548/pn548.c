@@ -41,6 +41,7 @@
 
 #include <pn548.h>
 
+#define NFC_TRY_NUM    3
 #define MAX_BUFFER_SIZE 512
 #define _A1_PN66T_
 
@@ -158,14 +159,10 @@ static ssize_t pn548_dev_read(struct file *filp, char __user *buf,
 	struct pn548_dev *pn548_dev = filp->private_data;
 	char tmp[MAX_BUFFER_SIZE];
 	int ret;
-
-
+	int retry = 0;
 
 	if (count > MAX_BUFFER_SIZE)
 		count = MAX_BUFFER_SIZE;
-
-
-
 
 	mutex_lock(&pn548_dev->read_mutex);
 	if (!gpio_get_value(pn548_dev->irq_gpio)) {
@@ -194,11 +191,26 @@ static ssize_t pn548_dev_read(struct file *filp, char __user *buf,
 		}
 	}
 
-	/* Read data */
-	ret = i2c_master_recv(pn548_dev->client, tmp, count);
+	/* Read data, at most tree times */
+	for (retry = 0; retry < NFC_TRY_NUM; retry++) {
+		ret = i2c_master_recv(pn548_dev->client, tmp, count);
+		if (ret == (int)count) {
+			break;
+		} else {
+			if (retry > 0) {
+				pr_info("%s : read retry times =%d returned %d\n", __func__,retry,ret);
+			}
+			msleep(10);
+			continue;
+		}
+	}
+
 	mutex_unlock(&pn548_dev->read_mutex);
 	wake_unlock(&pn548_dev->wl);
 
+	/* pn548 seems to be slow in handling I2C read requests
+	 * so add 1ms delay after recv operation */
+	udelay(1000);
 
 	if (ret < 0) {
 		pr_err("%s: PN548 i2c_master_recv returned %d\n", __func__, ret);
@@ -228,8 +240,7 @@ static ssize_t pn548_dev_write(struct file *filp, const char __user *buf,
 	struct pn548_dev  *pn548_dev = filp->private_data;
 	char tmp[MAX_BUFFER_SIZE];
 	int ret;
-
-
+	int retry = 0;
 
 	if (count > MAX_BUFFER_SIZE)
 		count = MAX_BUFFER_SIZE;
@@ -241,11 +252,29 @@ static ssize_t pn548_dev_write(struct file *filp, const char __user *buf,
 
 
 	/* Write data */
-	ret = i2c_master_send(pn548_dev->client, tmp, count);
+	/* Write data, at most tree times */
+	for (retry = 0; retry < NFC_TRY_NUM; retry++) {
+		ret = i2c_master_send(pn548_dev->client, tmp, count);
+		if (ret == (int)count) {
+			break;
+		} else {
+			if (retry > 0) {
+				pr_info("%s : send retry times =%d returned %d\n", __func__,retry,ret);
+			}
+			msleep(50);
+			continue;
+		}
+	}
+
 	if (ret != count) {
 		pr_err("%s : i2c_master_send returned %d\n", __func__, ret);
 		ret = -EIO;
 	}
+
+	/* pn548 seems to be slow in handling I2C write requests
+	 * so add 1ms delay after I2C send oparation */
+	udelay(1000);
+
 	return ret;
 }
 
