@@ -533,7 +533,8 @@ static int pn548_probe(struct i2c_client *client,
 	pn548_dev->irq_enabled = true;
 	gpio_direction_input(pn548_dev->irq_gpio);
 	ret = request_irq(client->irq, pn548_dev_irq_handler,
-			  IRQF_TRIGGER_RISING, client->name, pn548_dev);
+			IRQF_TRIGGER_HIGH | IRQF_NO_SUSPEND | IRQF_ONESHOT,
+			client->name, pn548_dev);
 	if (ret) {
 		dev_err(&client->dev, "request_irq failed\n");
 		goto err_request_irq_failed;
