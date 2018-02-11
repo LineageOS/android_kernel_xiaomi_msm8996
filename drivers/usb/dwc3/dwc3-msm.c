@@ -2355,8 +2355,8 @@ static void dwc3_ext_event_notify(struct dwc3_msm *mdwc)
 		return;
 	}
 
-	pm_stay_awake(mdwc->dev);
-	queue_delayed_work(mdwc->sm_usb_wq, &mdwc->sm_work, 0);
+	if (mdwc->no_wakeup_src_in_hostmode && mdwc->in_host_mode)
+		queue_delayed_work(mdwc->sm_usb_wq, &mdwc->sm_work, 0);
 }
 
 static void dwc3_resume_work(struct work_struct *w)
