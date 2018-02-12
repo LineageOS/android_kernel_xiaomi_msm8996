@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d54880ac_13455a50",
+        "filename": "drivers/usb/dwc3/dwc3-msm.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 2358,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2018-02-12T06:03:07Z",
+      "side": 0,
+      "message": "Should be guarded by\nif (!mdwc-\u003eno_wakeup_src_in_hostmode || !mdwc-\u003ein_host_mode)",
+      "range": {
+        "startLine": 2358,
+        "startChar": 1,
+        "endLine": 2358,
+        "endChar": 26
+      },
+      "revId": "abb3e41dc6d4a4a5c37c37a94751cb8cf4c65b3d",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
