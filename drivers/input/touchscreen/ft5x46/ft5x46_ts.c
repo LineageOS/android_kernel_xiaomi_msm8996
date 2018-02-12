@@ -84,6 +84,12 @@
 /* ft8716 firmware upgrade definition */
 #define FT8716_FIRMWARE_VERION		0x10e
 
+#ifdef CONFIG_TOUCHSCREEN_FT8716_DISABLE_FW_UPDATE
+#define FT8716_DISABLE_FW_UPDATE	1
+#else
+#define FT8716_DISABLE_FW_UPDATE	0
+#endif
+
 /* ft5x0x firmware upgrade definition */
 #define FT5X0X_FIRMWARE_TAIL		(-8) /* base on the end of firmware */
 #define FT5X0X_FIRMWARE_VERION		(-2)
@@ -1322,7 +1328,7 @@ static int ft8716_load_firmware(struct ft5x46_data *ft5x46,
 
 	/* step 1: check firmware id is different */
 
-	if (id == firmware->data[FT8716_FIRMWARE_VERION]) {
+	if (id == firmware->data[FT8716_FIRMWARE_VERION] || FT8716_DISABLE_FW_UPDATE) {
 		ft8716_reset_firmware(ft5x46);
 		return 0;
 	}
