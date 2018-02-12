@@ -57,3 +57,10 @@ config TOUCHSCREEN_FT5X46P_PROXIMITY
 	default n
 	help
 	 focaltech touch proximity enable.
+
+config TOUCHSCREEN_FT8716_DISABLE_FW_UPDATE
+	bool "disable ft8716 firmware updates"
+	depends on TOUCHSCREEN_FT5X46
+	default n
+	help
+	 Say Y here to disable ft8716 firmware updates.
