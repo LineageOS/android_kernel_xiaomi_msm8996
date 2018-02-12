@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /************************************************************************/
@@ -62,7 +60,7 @@ defrag_get_info(
 	arg->total_sec = fsi->num_sectors;
 	arg->fat_offset_sec = fsi->FAT1_start_sector;
 	arg->fat_sz_sec = fsi->num_FAT_sectors;
-	arg->n_fat = (fsi->FAT1_start_sector == fsi->FAT2_start_sector)? 1:2;
+	arg->n_fat = (fsi->FAT1_start_sector == fsi->FAT2_start_sector) ? 1 : 2;
 
 	arg->sec_per_au = amap->option.au_size;
 	arg->hidden_sectors = amap->option.au_align_factor % amap->option.au_size;
@@ -139,7 +137,7 @@ error:
  * @return	0 on success, -errno otherwise
  * @param	sb		super block
  * @param	args	traverse args
- * @remark	protected by i_mutex, super_block and volume lock
+ * @remark	protected by inode_lock, super_block and volume lock
  */
 int
 defrag_scan_dir(
@@ -149,7 +147,7 @@ defrag_scan_dir(
 	struct sdfat_sb_info *sbi = NULL;
 	FS_INFO_T *fsi = NULL;
 	struct defrag_trav_header *header = NULL;
-	IN DOS_DENTRY_T *dos_ep;
+	DOS_DENTRY_T *dos_ep;
 	CHAIN_T chain;
 	int dot_found = 0, args_idx = DFR_TRAV_HEADER_IDX + 1, clus = 0, index = 0;
 	int err = 0, j = 0;
@@ -186,9 +184,9 @@ defrag_scan_dir(
 	}
 
 	/* For more-scan case */
-	if ((header->stat == DFR_TRAV_STAT_MORE) && 
-		(header->start_clus == sbi->dfr_hint_clus) && 
-		(sbi->dfr_hint_idx > 0) ) {
+	if ((header->stat == DFR_TRAV_STAT_MORE) &&
+		(header->start_clus == sbi->dfr_hint_clus) &&
+		(sbi->dfr_hint_idx > 0)) {
 
 		index = sbi->dfr_hint_idx;
 		for (j = 0; j < (sbi->dfr_hint_idx / fsi->dentries_per_clu); j++) {
@@ -236,7 +234,7 @@ scan_fat_chain:
 		err = __defrag_scan_dir(sb, dos_ep, i_pos, &args[args_idx]);
 		if (!err) {
 			/* More-scan case */
-			if ( ++args_idx >= (PAGE_SIZE / sizeof(struct defrag_trav_arg)) ) {
+			if (++args_idx >= (PAGE_SIZE / sizeof(struct defrag_trav_arg))) {
 				sbi->dfr_hint_clus = header->start_clus;
 				sbi->dfr_hint_idx = clus * fsi->dentries_per_clu + index + 1;
 
@@ -252,10 +250,10 @@ scan_fat_chain:
 		/* End case */
 		} else if (err == -ENOENT) {
 			sbi->dfr_hint_clus = sbi->dfr_hint_idx = 0;
-            err = 0;
+			err = 0;
 			goto done;
 		} else {
-            ;
+			/* DO NOTHING */
 		}
 		err = 0;
 	}
@@ -299,7 +297,7 @@ __defrag_validate_cluster_prev(
 		dir.flags = 0x1;	// Assume non-continuous
 
 		entry = GET64_LO(chunk->i_pos);
-				
+
 		FAT32_CHECK_CLUSTER(fsi, dir.dir, err);
 		ERR_HANDLE(err);
 		ep = get_dentry_in_dir(sb, &dir, entry, NULL);
@@ -369,7 +367,7 @@ __defrag_check_au(
 {
 	unsigned int nr_free = amap_get_freeclus(sb, clus);
 
-#if defined(CONFIG_SDFAT_DFR_DEBUG) || defined(CONFIG_SDFAT_DBG_MSG)
+#if defined(CONFIG_SDFAT_DFR_DEBUG) && defined(CONFIG_SDFAT_DBG_MSG)
 	if (nr_free < limit) {
 		AMAP_T *amap = SDFAT_SB(sb)->fsi.amap;
 		AU_INFO_T *au = GET_AU(amap, i_AU_of_CLU(amap, clus));
@@ -377,8 +375,7 @@ __defrag_check_au(
 		dfr_debug("AU[%d] nr_free %d, limit %d", au->idx, nr_free, limit);
 	}
 #endif
-
-	return ((nr_free < limit)? 1 : 0);
+	return ((nr_free < limit) ? 1 : 0);
 }
 
 
@@ -406,15 +403,15 @@ defrag_validate_cluster(
 	if (fid->dir.dir == DIR_DELETED)
 		return -ENOENT;
 
-    /* Skip working-AU */
-    err = amap_check_working(sb, chunk->d_clus);
-    if (err)
-        return -EBUSY;
+	/* Skip working-AU */
+	err = amap_check_working(sb, chunk->d_clus);
+	if (err)
+		return -EBUSY;
 
 	/* Check # of free_clus of belonged AU */
-    err = __defrag_check_au(inode->i_sb, chunk->d_clus, CLUS_PER_AU(sb) - chunk->au_clus);
-    if (err)
-        return -EINVAL;
+	err = __defrag_check_au(inode->i_sb, chunk->d_clus, CLUS_PER_AU(sb) - chunk->au_clus);
+	if (err)
+		return -EINVAL;
 
 	/* Check chunk's clusters */
 	for (i = 0; i < chunk->nr_clus; i++) {
@@ -457,7 +454,7 @@ defrag_reserve_clusters(
 	struct sdfat_sb_info *sbi = SDFAT_SB(sb);
 	FS_INFO_T *fsi = &(sbi->fsi);
 
-	if ( !(sbi->options.improved_allocation & SDFAT_ALLOC_DELAY) )
+	if (!(sbi->options.improved_allocation & SDFAT_ALLOC_DELAY))
 		/* Nothing to do */
 		return 0;
 
@@ -519,8 +516,6 @@ defrag_unmark_ignore_all(struct super_block *sb)
 {
 	if (SDFAT_SB(sb)->options.improved_allocation & SDFAT_ALLOC_SMART)
 		amap_unmark_ignore_all(sb);
-
-	return;
 }
 
 
@@ -535,7 +530,7 @@ defrag_unmark_ignore_all(struct super_block *sb)
  */
 int
 defrag_map_cluster(
-	struct inode *inode, 
+	struct inode *inode,
 	unsigned int clu_offset,
 	unsigned int *clu)
 {
@@ -596,11 +591,10 @@ defrag_map_cluster(
 	/* Make FAT-chain for new_clus */
 	for (i = 0; i < chunk->nr_clus; i++) {
 #if 0
-		if (sbi->dfr_new_clus[chunk->new_idx + i]) {
+		if (sbi->dfr_new_clus[chunk->new_idx + i])
 			nr_new++;
-		} else {
+		else
 			break;
-		}
 #else
 		if (!sbi->dfr_new_clus[chunk->new_idx + i])
 			break;
@@ -611,7 +605,7 @@ defrag_map_cluster(
 		for (i = 0; i < chunk->nr_clus - 1; i++) {
 			FAT32_CHECK_CLUSTER(fsi, sbi->dfr_new_clus[chunk->new_idx + i], err);
 			BUG_ON(err);
-			if (fat_ent_set(sb, 
+			if (fat_ent_set(sb,
 				sbi->dfr_new_clus[chunk->new_idx + i],
 				sbi->dfr_new_clus[chunk->new_idx + i + 1]))
 				return -EIO;
@@ -654,11 +648,11 @@ defrag_writepage_end_io(
 		chunk_start = chunk->f_clus;
 		chunk_end = chunk->f_clus + chunk->nr_clus;
 
-		if ( (clus_start >= chunk_start) && (clus_end <= chunk_end) ) {
+		if ((clus_start >= chunk_start) && (clus_end <= chunk_end)) {
 			int off = clus_start - chunk_start;
 
-			clear_bit( (page->index & (PAGES_PER_CLUS(sb) - 1)),
-					(volatile unsigned long *)&(sbi->dfr_page_wb[chunk->new_idx + off]) );
+			clear_bit((page->index & (PAGES_PER_CLUS(sb) - 1)),
+					(volatile unsigned long *)&(sbi->dfr_page_wb[chunk->new_idx + off]));
 		}
 	}
 }
@@ -683,7 +677,7 @@ __defrag_check_wb(
 
 	/* Check WB complete status first */
 	for (wb_i = 0; wb_i < chunk->nr_clus; wb_i++) {
-		if ( atomic_read((atomic_t *)&(sbi->dfr_page_wb[chunk->new_idx + wb_i])) ) {
+		if (atomic_read((atomic_t *)&(sbi->dfr_page_wb[chunk->new_idx + wb_i]))) {
 			err = -EBUSY;
 			break;
 		}
@@ -700,7 +694,7 @@ __defrag_check_wb(
 
 	if (nr_new == chunk->nr_clus) {
 		err = 0;
-		if ( (wb_i != chunk->nr_clus) && (wb_i != chunk->nr_clus - 1) )
+		if ((wb_i != chunk->nr_clus) && (wb_i != chunk->nr_clus - 1))
 			dfr_debug("submit_fullpage_bio() called on a page (nr_clus %d, wb_i %d)",
 				chunk->nr_clus, wb_i);
 
@@ -741,9 +735,9 @@ __defrag_check_fat_old(
 		err = fat_ent_get(sb, clus, &clus);
 		ERR_HANDLE(err);
 
-		if ( (idx < max_idx - 1) && (IS_CLUS_EOF(clus) || IS_CLUS_FREE(clus)) ) {
+		if ((idx < max_idx - 1) && (IS_CLUS_EOF(clus) || IS_CLUS_FREE(clus))) {
 			dfr_err("FAT: inode %p, max_idx %d, idx %d, clus %08x, "
-				"f_clus %d, nr_clus %d", inode, max_idx, 
+				"f_clus %d, nr_clus %d", inode, max_idx,
 				idx, clus, chunk->f_clus, chunk->nr_clus);
 			BUG_ON(idx < max_idx - 1);
 			goto error;
@@ -804,14 +798,13 @@ __defrag_check_fat_new(
 	BUG_ON(err);
 	err = fat_ent_get(sb, sbi->dfr_new_clus[chunk->new_idx + chunk->nr_clus - 1], &clus);
 	BUG_ON(err);
-	if ( (chunk->next_clus & 0x0FFFFFFF) != (clus & 0x0FFFFFFF) ) {
+	if ((chunk->next_clus & 0x0FFFFFFF) != (clus & 0x0FFFFFFF)) {
 		dfr_err("FAT: inode %p, next_clus %08x, read_clus %08x", inode, chunk->next_clus, clus);
 		err = EIO;
 	}
 
 error:
 	BUG_ON(err);
-	return;
 }
 
 
@@ -872,7 +865,7 @@ defrag_update_fat_prev(
 	struct defrag_info *sb_dfr = &sbi->dfr_info, *ino_dfr = NULL;
 	int skip = 0, done = 0;
 
-	/* Check if FS_ERROR occured */
+	/* Check if FS_ERROR occurred */
 	if (sb->s_flags & MS_RDONLY) {
 		dfr_err("RDONLY partition (err %d)", -EPERM);
 		goto out;
@@ -885,7 +878,7 @@ defrag_update_fat_prev(
 		int i = 0, j = 0;
 
 		mutex_lock(&ino_dfr->lock);
-		BUG_ON (atomic_read(&ino_dfr->stat) != DFR_INO_STAT_REQ);
+		BUG_ON(atomic_read(&ino_dfr->stat) != DFR_INO_STAT_REQ);
 		for (i = 0; i < ino_dfr->nr_chunks; i++) {
 			struct defrag_chunk_info *chunk = NULL;
 			int err = 0;
@@ -906,15 +899,16 @@ defrag_update_fat_prev(
 			}
 
 			/* Double-check clusters */
-			if ( chunk_prev &&
+			if (chunk_prev &&
 				(chunk->f_clus == chunk_prev->f_clus + chunk_prev->nr_clus) &&
-				(chunk_prev->stat == DFR_CHUNK_STAT_PASS) ) {
+				(chunk_prev->stat == DFR_CHUNK_STAT_PASS)) {
 
 				err = defrag_validate_cluster(inode, chunk, 1);
 
 				/* Handle continuous chunks in a file */
 				if (!err) {
-					chunk->prev_clus = sbi->dfr_new_clus[chunk_prev->new_idx + chunk_prev->nr_clus - 1];
+					chunk->prev_clus =
+						sbi->dfr_new_clus[chunk_prev->new_idx + chunk_prev->nr_clus - 1];
 					dfr_debug("prev->f_clus %d, prev->nr_clus %d, chunk->f_clus %d",
 							chunk_prev->f_clus, chunk_prev->nr_clus, chunk->f_clus);
 				}
@@ -932,7 +926,7 @@ defrag_update_fat_prev(
 			 * Skip update_fat_prev if WB or update_fat_next not completed.
 			 * Go to error case if FORCE set.
 			 */
-			if ( __defrag_check_wb(sbi, chunk) || (chunk->stat != DFR_CHUNK_STAT_PREP) ) {
+			if (__defrag_check_wb(sbi, chunk) || (chunk->stat != DFR_CHUNK_STAT_PREP)) {
 				if (force) {
 					err = -EPERM;
 					dfr_err("Skip case: inode %p, stat %x, f_clus %d, err %d",
@@ -1014,13 +1008,13 @@ error:
 
 out:
 	if (skip) {
-		dfr_debug("%s skipped (nr_reqs %d, done %d, skip %d)", 
+		dfr_debug("%s skipped (nr_reqs %d, done %d, skip %d)",
 					__func__, sb_dfr->nr_chunks - 1, done, skip);
 	} else {
 		/* Make dfr_reserved_clus zero */
 		if (sbi->dfr_reserved_clus > 0) {
 			if (fsi->reserved_clusters < sbi->dfr_reserved_clus) {
-				dfr_err("Reserved count: reserved_clus %d, dfr_reserved_clus %d", 
+				dfr_err("Reserved count: reserved_clus %d, dfr_reserved_clus %d",
 						fsi->reserved_clusters, sbi->dfr_reserved_clus);
 				BUG_ON(fsi->reserved_clusters < sbi->dfr_reserved_clus);
 			}
@@ -1050,7 +1044,7 @@ defrag_update_fat_next(
 	struct defrag_chunk_info *chunk = NULL;
 	int done = 0, i = 0, j = 0, err = 0;
 
-	/* Check if FS_ERROR occured */
+	/* Check if FS_ERROR occurred */
 	if (sb->s_flags & MS_RDONLY) {
 		dfr_err("RDONLY partition (err %d)", -EROFS);
 		goto out;
@@ -1063,7 +1057,7 @@ defrag_update_fat_next(
 
 			chunk = &(ino_dfr->chunks[i]);
 
-			/* Do nothing if error occured or update_fat_next already passed */
+			/* Do nothing if error occurred or update_fat_next already passed */
 			if (chunk->stat == DFR_CHUNK_STAT_ERR)
 				continue;
 			if (chunk->stat & DFR_CHUNK_STAT_FAT) {
@@ -1083,7 +1077,7 @@ defrag_update_fat_next(
 
 			/* Update chunk's next cluster */
 			FAT32_CHECK_CLUSTER(fsi,
-								sbi->dfr_new_clus[chunk->new_idx + chunk->nr_clus - 1], err);
+				sbi->dfr_new_clus[chunk->new_idx + chunk->nr_clus - 1], err);
 			BUG_ON(err);
 			if (fat_ent_set(sb,
 				sbi->dfr_new_clus[chunk->new_idx + chunk->nr_clus - 1],
@@ -1126,8 +1120,8 @@ defrag_check_discard(
 
 	BUG_ON(!amap);
 
-	if ( !(SDFAT_SB(sb)->options.discard) ||
-		!(SDFAT_SB(sb)->options.improved_allocation & SDFAT_ALLOC_SMART) )
+	if (!(SDFAT_SB(sb)->options.discard) ||
+		!(SDFAT_SB(sb)->options.improved_allocation & SDFAT_ALLOC_SMART))
 		return;
 
 	memset(tmp, 0, sizeof(int) * DFR_MAX_AU_MOVED);
@@ -1139,8 +1133,8 @@ defrag_check_discard(
 		au = GET_AU(amap, i_AU_of_CLU(amap, chunk->d_clus));
 
 		/* Send DISCARD for free AU */
-		if ( (IS_AU_IGNORED(au, amap)) &&
-			(amap_get_freeclus(sb, chunk->d_clus) == CLUS_PER_AU(sb)) ) {
+		if ((IS_AU_IGNORED(au, amap)) &&
+			(amap_get_freeclus(sb, chunk->d_clus) == CLUS_PER_AU(sb))) {
 			sector_t blk = 0, nr_blks = 0;
 			unsigned int au_align_factor = amap->option.au_align_factor % amap->option.au_size;
 
@@ -1157,11 +1151,11 @@ defrag_check_discard(
 				continue;
 
 			/* Send DISCARD cmd */
-			blk = (sector_t) ( ((au->idx * CLUS_PER_AU(sb)) << fsi->sect_per_clus_bits)
-										- au_align_factor );
+			blk = (sector_t) (((au->idx * CLUS_PER_AU(sb)) << fsi->sect_per_clus_bits)
+						- au_align_factor);
 			nr_blks = ((sector_t)CLUS_PER_AU(sb)) << fsi->sect_per_clus_bits;
 
-			dfr_debug("Send DISCARD for AU[%d] (blk %08llx)", au->idx, blk);
+			dfr_debug("Send DISCARD for AU[%d] (blk %08zx)", au->idx, blk);
 			sb_issue_discard(sb, blk, nr_blks, GFP_NOFS, 0);
 
 			/* Save previous AU's index */
@@ -1204,7 +1198,7 @@ defrag_free_cluster(
 		dfr_err("Free: Already freed, clus %08x, val %08x", clus, val);
 		BUG_ON(!val);
 	}
-	
+
 	set_sb_dirty(sb);
 	fsi->used_clusters--;
 	if (fsi->amap)
@@ -1236,14 +1230,14 @@ defrag_check_defrag_required(
 	int clean_ratio = 0, frag_ratio = 0;
 	int ret = 0;
 
-	if( !(sb) || !(SDFAT_SB(sb)->options.defrag) )
+	if (!sb || !(SDFAT_SB(sb)->options.defrag))
 		return 0;
 
 	/* Check DFR_DEFAULT_STOP_RATIO first */
 	fsi = &(SDFAT_SB(sb)->fsi);
 	if (fsi->used_clusters == (unsigned int)(~0)) {
-		 if (fsi->fs_func->count_used_clusters(sb, &fsi->used_clusters))
-			 return -EIO;
+		if (fsi->fs_func->count_used_clusters(sb, &fsi->used_clusters))
+			return -EIO;
 	}
 	if (fsi->used_clusters * DFR_FULL_RATIO >= fsi->num_clusters * DFR_DEFAULT_STOP_RATIO) {
 		dfr_debug("used_clusters %d, num_clusters %d", fsi->used_clusters, fsi->num_clusters);
@@ -1262,12 +1256,11 @@ defrag_check_defrag_required(
 					(fsi->used_clusters * CLUS_PER_AU(sb));
 
 	/*
-	 * Wake-up defrag_daemon
-	 * 		when # of clean AUs too small,
-	 *		or frag_ratio exceeds the limit
+	 * Wake-up defrag_daemon:
+	 * when # of clean AUs too small, or frag_ratio exceeds the limit
 	 */
-	if ( (clean_ratio < DFR_DEFAULT_WAKEUP_RATIO) ||
-		((clean_ratio < DFR_DEFAULT_CLEAN_RATIO) && (frag_ratio >= DFR_DEFAULT_FRAG_RATIO)) ) {
+	if ((clean_ratio < DFR_DEFAULT_WAKEUP_RATIO) ||
+		((clean_ratio < DFR_DEFAULT_CLEAN_RATIO) && (frag_ratio >= DFR_DEFAULT_FRAG_RATIO))) {
 
 		if (totalau)
 			*totalau = amap->n_au;
@@ -1315,8 +1308,8 @@ defrag_check_defrag_on(
 	if (atomic_read(&ino_dfr->stat) == DFR_INO_STAT_REQ) {
 
 		clus_start = start >> (fsi->cluster_size_bits);
-		clus_end = (end >> (fsi->cluster_size_bits)) + 
-					((end & (fsi->cluster_size - 1))? 1:0);
+		clus_end = (end >> (fsi->cluster_size_bits)) +
+				((end & (fsi->cluster_size - 1)) ? 1 : 0);
 
 		if (!ino_dfr->chunks)
 			goto error;
@@ -1326,18 +1319,17 @@ defrag_check_defrag_on(
 			struct defrag_chunk_info *chunk = &(ino_dfr->chunks[i]);
 			unsigned int chunk_start = 0, chunk_end = 0;
 
-			/* Skip this chunk when error occured or it already passed defrag process */
+			/* Skip this chunk when error occurred or it already passed defrag process */
 			if ((chunk->stat == DFR_CHUNK_STAT_ERR) || (chunk->stat == DFR_CHUNK_STAT_PASS))
 				continue;
 
 			chunk_start = chunk->f_clus;
 			chunk_end = chunk->f_clus + chunk->nr_clus;
 
-			if ( ((clus_start >= chunk_start) && (clus_start < chunk_end)) ||
+			if (((clus_start >= chunk_start) && (clus_start < chunk_end)) ||
 				((clus_end > chunk_start) && (clus_end <= chunk_end)) ||
-				((clus_start < chunk_start) && (clus_end > chunk_end)) )  {
-					ret = 1;
-
+				((clus_start < chunk_start) && (clus_end > chunk_end)))  {
+				ret = 1;
 				if (cancel) {
 					chunk->stat =  DFR_CHUNK_STAT_ERR;
 					dfr_debug("Defrag canceled: inode %p, start %08x, end %08x, caller %s",
@@ -1371,15 +1363,13 @@ defrag_spo_test(
 {
 	struct sdfat_sb_info *sbi = SDFAT_SB(sb);
 
-	if( !(sb) || !(SDFAT_SB(sb)->options.defrag) )
+	if (!sb || !(SDFAT_SB(sb)->options.defrag))
 		return;
 
 	if (flag == sbi->dfr_spo_flag) {
 		dfr_err("Defrag SPO test (flag %d, caller %s)", flag, caller);
 		panic("Defrag SPO test");
 	}
-
-	return;
 }
 #endif	/* CONFIG_SDFAT_DFR_DEBUG */
 

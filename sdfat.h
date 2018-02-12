@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, 
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _SDFAT_H
@@ -35,28 +33,28 @@
 #include "dfr.h"
 #endif
 
-/* 
+/*
  * sdfat error flags
  */
-#define SDFAT_ERRORS_CONT	1    /* ignore error and continue */
-#define SDFAT_ERRORS_PANIC	2    /* panic on error */
-#define SDFAT_ERRORS_RO		3    /* remount r/o on error */
+#define SDFAT_ERRORS_CONT	(1)    /* ignore error and continue */
+#define SDFAT_ERRORS_PANIC	(2)    /* panic on error */
+#define SDFAT_ERRORS_RO		(3)    /* remount r/o on error */
 
 /*
  * sdfat allocator flags
  */
-#define SDFAT_ALLOC_DELAY	1    /* Delayed allocation */
-#define SDFAT_ALLOC_SMART	2    /* Smart allocation */
+#define SDFAT_ALLOC_DELAY	(1)    /* Delayed allocation */
+#define SDFAT_ALLOC_SMART	(2)    /* Smart allocation */
 
 /*
  * sdfat allocator destination for smart allocation
  */
-#define ALLOC_NOWHERE		0
-#define ALLOC_COLD		1
-#define ALLOC_HOT		16
-#define ALLOC_COLD_ALIGNED	1
-#define ALLOC_COLD_PACKING	2
-#define ALLOC_COLD_SEQ		4
+#define ALLOC_NOWHERE		(0)
+#define ALLOC_COLD		(1)
+#define ALLOC_HOT		(16)
+#define ALLOC_COLD_ALIGNED	(1)
+#define ALLOC_COLD_PACKING	(2)
+#define ALLOC_COLD_SEQ		(4)
 
 /*
  * sdfat nls lossy flag
@@ -71,22 +69,24 @@
 #define CLUSTER_16(x)	((u16)((x) & 0xFFFFU))
 #define CLUSTER_32(x)	((u32)((x) & 0xFFFFFFFFU))
 #define CLUS_EOF	CLUSTER_32(~0)
+#define CLUS_BAD	(0xFFFFFFF7U)
 #define CLUS_FREE	(0)
 #define CLUS_BASE	(2)
-#define IS_CLUS_EOF(x)	(x == CLUS_EOF)
-#define IS_CLUS_FREE(x)	(x == CLUS_FREE)
-#define IS_LAST_SECT_IN_CLUS(fsi, sec)	\
-        ( (((sec) - (fsi)->data_start_sector + 1)       \
-            & ((1 << (fsi)->sect_per_clus_bits) -1)) == 0 )
+#define IS_CLUS_EOF(x)	((x) == CLUS_EOF)
+#define IS_CLUS_BAD(x)	((x) == CLUS_BAD)
+#define IS_CLUS_FREE(x)	((x) == CLUS_FREE)
+#define IS_LAST_SECT_IN_CLUS(fsi, sec)				\
+	((((sec) - (fsi)->data_start_sector + 1)		\
+	& ((1 << (fsi)->sect_per_clus_bits) - 1)) == 0)
 
 #define CLUS_TO_SECT(fsi, x)	\
-        ( (((x) - CLUS_BASE) << (fsi)->sect_per_clus_bits) + (fsi)->data_start_sector )
+	((((x) - CLUS_BASE) << (fsi)->sect_per_clus_bits) + (fsi)->data_start_sector)
 
 #define SECT_TO_CLUS(fsi, sec)	\
-        ((((sec) - (fsi)->data_start_sector) >> (fsi)->sect_per_clus_bits) + CLUS_BASE)
+	((((sec) - (fsi)->data_start_sector) >> (fsi)->sect_per_clus_bits) + CLUS_BASE)
 
 /* variables defined at sdfat.c */
-extern const char* FS_TYPE_STR[];
+extern const char *FS_TYPE_STR[];
 
 enum {
 	FS_TYPE_AUTO,
@@ -99,12 +99,12 @@ enum {
  * sdfat mount in-memory data
  */
 struct sdfat_mount_options {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,5,0)
-	uid_t fs_uid;
-	gid_t fs_gid;
-#else
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 	kuid_t fs_uid;
 	kgid_t fs_gid;
+#else /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 5, 0) */
+	uid_t fs_uid;
+	gid_t fs_gid;
 #endif
 	unsigned short fs_fmask;
 	unsigned short fs_dmask;
@@ -142,7 +142,7 @@ struct sdfat_sb_info {
 	struct mutex s_vlock;   /* volume lock */
 	int use_vmalloc;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,00)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
 	int s_dirt;
 	struct mutex s_lock;    /* superblock lock */
 	int write_super_queued;			/* Write_super work is pending? */
@@ -195,12 +195,12 @@ struct sdfat_sb_info {
 struct sdfat_inode_info {
 	FILE_ID_T fid;
 	char  *target;
-	/* NOTE: i_size_ondisk is 64bits, so must hold ->i_mutex to access */
+	/* NOTE: i_size_ondisk is 64bits, so must hold ->inode_lock to access */
 	loff_t i_size_ondisk;         /* physically allocated size */
 	loff_t i_size_aligned;          /* block-aligned i_size (used in cont_write_begin) */
 	loff_t i_pos;               /* on-disk position of directory entry or 0 */
 	struct hlist_node i_hash_fat;    /* hash by i_location */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,00)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
 	struct rw_semaphore truncate_lock; /* protect bmap against truncate */
 #endif
 #ifdef	CONFIG_SDFAT_DFR
@@ -218,7 +218,7 @@ static inline const char *sdfat_get_vol_type_str(unsigned int type)
 {
 	if (type == EXFAT)
 		return "exfat";
-        else if (type == FAT32)
+	else if (type == FAT32)
 		return "vfat:32";
 	else if (type == FAT16)
 		return "vfat:16";
@@ -230,10 +230,10 @@ static inline const char *sdfat_get_vol_type_str(unsigned int type)
 
 static inline struct sdfat_sb_info *SDFAT_SB(struct super_block *sb)
 {
-	return (struct sdfat_sb_info*)sb->s_fs_info;
+	return (struct sdfat_sb_info *)sb->s_fs_info;
 }
 
-static inline struct sdfat_inode_info *SDFAT_I(struct inode *inode) 
+static inline struct sdfat_inode_info *SDFAT_I(struct inode *inode)
 {
 	return container_of(inode, struct sdfat_inode_info, vfs_inode);
 }
@@ -279,6 +279,7 @@ static inline mode_t sdfat_make_mode(struct sdfat_sb_info *sbi,
 static inline u32 sdfat_make_attr(struct inode *inode)
 {
 	u32 attrs = SDFAT_I(inode)->fid.attr;
+
 	if (S_ISDIR(inode->i_mode))
 		attrs |= ATTR_SUBDIR;
 	if (sdfat_mode_can_hold_ro(inode) && !(inode->i_mode & S_IWUGO))
@@ -294,6 +295,31 @@ static inline void sdfat_save_attr(struct inode *inode, u32 attr)
 		SDFAT_I(inode)->fid.attr = attr & (ATTR_RWMASK | ATTR_READONLY);
 }
 
+/* sdfat/statistics.c */
+/* bigdata function */
+#ifdef CONFIG_SDFAT_STATISTICS
+extern int sdfat_statistics_init(struct kset *sdfat_kset);
+extern void sdfat_statistics_uninit(void);
+extern void sdfat_statistics_set_mnt(FS_INFO_T *fsi);
+extern void sdfat_statistics_set_mkdir(u8 flags);
+extern void sdfat_statistics_set_create(u8 flags);
+extern void sdfat_statistics_set_rw(u8 flags, u32 clu_offset, s32 create);
+extern void sdfat_statistics_set_trunc(u8 flags, CHAIN_T *clu);
+extern void sdfat_statistics_set_vol_size(struct super_block *sb);
+#else
+static inline int sdfat_statistics_init(struct kset *sdfat_kset)
+{
+	return 0;
+}
+static inline void sdfat_statistics_uninit(void) {};
+static inline void sdfat_statistics_set_mnt(FS_INFO_T *fsi) {};
+static inline void sdfat_statistics_set_mkdir(u8 flags) {};
+static inline void sdfat_statistics_set_create(u8 flags) {};
+static inline void sdfat_statistics_set_rw(u8 flags, u32 clu_offset, s32 create) {};
+static inline void sdfat_statistics_set_trunc(u8 flags, CHAIN_T *clu) {};
+static inline void sdfat_statistics_set_vol_size(struct super_block *sb) {};
+#endif
+
 /* sdfat/nls.c */
 /* NLS management function */
 s32  nls_cmp_sfn(struct super_block *sb, u8 *a, u8 *b);
@@ -301,37 +327,41 @@ s32  nls_cmp_uniname(struct super_block *sb, u16 *a, u16 *b);
 s32  nls_uni16s_to_sfn(struct super_block *sb, UNI_NAME_T *p_uniname, DOS_NAME_T *p_dosname, s32 *p_lossy);
 s32  nls_sfn_to_uni16s(struct super_block *sb, DOS_NAME_T *p_dosname, UNI_NAME_T *p_uniname);
 s32  nls_uni16s_to_vfsname(struct super_block *sb, UNI_NAME_T *uniname, u8 *p_cstring, s32 len);
-s32  nls_vfsname_to_uni16s(struct super_block *sb, const u8 *p_cstring, const s32 len, UNI_NAME_T *uniname, s32 *p_lossy);
+s32  nls_vfsname_to_uni16s(struct super_block *sb, const u8 *p_cstring,
+			const s32 len, UNI_NAME_T *uniname, s32 *p_lossy);
 
 /* sdfat/mpage.c */
 #ifdef CONFIG_SDFAT_ALIGNED_MPAGE_WRITE
 int sdfat_mpage_writepages(struct address_space *mapping,
-		                        struct writeback_control *wbc, get_block_t *get_block);
+			struct writeback_control *wbc, get_block_t *get_block);
 #endif
 
 /* sdfat/xattr.c */
 #ifdef CONFIG_SDFAT_VIRTUAL_XATTR
-extern int sdfat_setxattr(struct dentry*dentry, const char *name, const void *value, size_t size, int flags);
+void setup_sdfat_xattr_handler(struct super_block *sb);
+extern int sdfat_setxattr(struct dentry *dentry, const char *name, const void *value, size_t size, int flags);
 extern ssize_t sdfat_getxattr(struct dentry *dentry, const char *name, void *value, size_t size);
 extern ssize_t sdfat_listxattr(struct dentry *dentry, char *list, size_t size);
 extern int sdfat_removexattr(struct dentry *dentry, const char *name);
+#else
+static inline void setup_sdfat_xattr_handler(struct super_block *sb) {};
 #endif
 
 /* sdfat/misc.c */
 extern void
 __sdfat_fs_error(struct super_block *sb, int report, const char *fmt, ...)
-	__attribute__ ((format (printf, 3, 4))) __cold;
+	__printf(3, 4) __cold;
 #define sdfat_fs_error(sb, fmt, args...)          \
-	__sdfat_fs_error(sb, 1, fmt , ## args)
+	__sdfat_fs_error(sb, 1, fmt, ## args)
 #define sdfat_fs_error_ratelimit(sb, fmt, args...) \
 	__sdfat_fs_error(sb, __ratelimit(&SDFAT_SB(sb)->ratelimit), fmt, ## args)
-extern void 
+extern void
 __sdfat_msg(struct super_block *sb, const char *lv, int st, const char *fmt, ...)
-	__attribute__ ((format (printf, 4, 5))) __cold;
+	__printf(4, 5) __cold;
 #define sdfat_msg(sb, lv, fmt, args...)          \
-	__sdfat_msg(sb, lv, 0, fmt , ## args)
+	__sdfat_msg(sb, lv, 0, fmt, ## args)
 #define sdfat_log_msg(sb, lv, fmt, args...)          \
-	__sdfat_msg(sb, lv, 1, fmt , ## args)
+	__sdfat_msg(sb, lv, 1, fmt, ## args)
 extern void sdfat_log_version(void);
 extern void sdfat_time_fat2unix(struct sdfat_sb_info *sbi, struct timespec *ts,
 				DATE_TIME_T *tp);
@@ -367,20 +397,16 @@ void sdfat_debug_check_clusters(struct inode *inode);
 #endif /* CONFIG_SDFAT_DEBUG */
 
 #ifdef CONFIG_SDFAT_TRACE_ELAPSED_TIME
-u32 sdfat_time_current_usec(struct timeval* tv);
+u32 sdfat_time_current_usec(struct timeval *tv);
 extern struct timeval __t1;
 extern struct timeval __t2;
 
-#define TIME_GET(tv)    sdfat_time_current_usec(tv)
-#define TIME_START(s)   do {sdfat_time_current_usec(s); } while (0)
-#define TIME_END(e)     do {sdfat_time_current_usec(e); } while (0)
+#define TIME_GET(tv)	sdfat_time_current_usec(tv)
+#define TIME_START(s)	sdfat_time_current_usec(s)
+#define TIME_END(e)	sdfat_time_current_usec(e)
 #define TIME_ELAPSED(s, e) ((u32)(((e)->tv_sec - (s)->tv_sec) * 1000000 + \
 			((e)->tv_usec - (s)->tv_usec)))
-#define PRINT_TIME(n)                                           \
-	do {                                                    \
-		printk("[SDFAT] Elapsed time %d = %d (usec)\n", \
-				n, (__t2 - __t1));              \
-	} while(0)
+#define PRINT_TIME(n)	pr_info("[SDFAT] Elapsed time %d = %d (usec)\n", n, (__t2 - __t1))
 #else /* CONFIG_SDFAT_TRACE_ELAPSED_TIME */
 #define TIME_GET(tv)    (0)
 #define TIME_START(s)
@@ -403,11 +429,12 @@ extern struct timeval __t2;
 #define __S(x) #x
 #define _S(x) __S(x)
 
-extern void __sdfat_dmsg(int level, const char *fmt, ...)
-	__attribute__ ((format (printf, 2, 3))) __cold;
+extern void __sdfat_dmsg(int level, const char *fmt, ...) __printf(2, 3) __cold;
 
-#define SDFAT_EMSG_T(level, ...) __sdfat_dmsg(level, KERN_ERR "[" SDFAT_TAG_NAME "] [" _S(__FILE__) "(" _S(__LINE__) ")] " __VA_ARGS__)
-#define SDFAT_DMSG_T(level, ...) __sdfat_dmsg(level, KERN_INFO "[" SDFAT_TAG_NAME "] " __VA_ARGS__)
+#define SDFAT_EMSG_T(level, ...)	\
+	__sdfat_dmsg(level, KERN_ERR "[" SDFAT_TAG_NAME "] [" _S(__FILE__) "(" _S(__LINE__) ")] " __VA_ARGS__)
+#define SDFAT_DMSG_T(level, ...)	\
+	__sdfat_dmsg(level, KERN_INFO "[" SDFAT_TAG_NAME "] " __VA_ARGS__)
 
 #define SDFAT_EMSG(...) SDFAT_EMSG_T(SDFAT_MSG_LV_ERR, __VA_ARGS__)
 #define SDFAT_IMSG(...) SDFAT_DMSG_T(SDFAT_MSG_LV_INFO, __VA_ARGS__)
@@ -469,11 +496,12 @@ extern void __sdfat_dmsg(int level, const char *fmt, ...)
 #endif /* CONFIG_SDFAT_DBG_MSG */
 
 
-#define ASSERT(expr) \
-	if (!(expr)) { \
-		printk(KERN_ERR "Assertion failed! %s\n", #expr); \
-		BUG_ON(1); \
-	}
+#define ASSERT(expr)	{					\
+	if (!(expr)) {						\
+		pr_err("Assertion failed! %s\n", #expr);	\
+		BUG_ON(1);					\
+	}							\
+}
 
 #endif /* !_SDFAT_H */
 

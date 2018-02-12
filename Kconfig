@@ -6,7 +6,7 @@ config SDFAT_FS
 	select NLS_CODEPAGE_437
 	select NLS_ISO8859_1
 	help
-	  If you want to use the sdFAT file system, then you must say Y or M 
+	  If you want to use the sdFAT file system, then you must say Y or M
 	  here to inlucde sdFAT support.
 	  sdFAT is unified FAT-based file system which supports not only fat12/
 	  16/32 with vfat but also exfat. sdFAT supports winnt short-name rule.
@@ -21,12 +21,15 @@ config SDFAT_DELAYED_META_DIRTY
 	depends on SDFAT_FS
 	help
 	  If you enable this feature, metadata(FAT/Directory entry) is updated
-	  by flush thread. 
+	  by flush thread.
 
 config SDFAT_SUPPORT_DIR_SYNC
 	bool "Enable supporting dir sync"
 	default n
 	depends on SDFAT_FS
+	help
+	  If you enable this feature, the modification for directory operation
+	  is written to a storage at once.
 
 config SDFAT_DEFAULT_CODEPAGE
 	int "Default codepage for sdFAT"
@@ -93,3 +96,8 @@ config SDFAT_DBG_BUGON
 	bool "enable strict BUG_ON() for debugging"
 	depends on SDFAT_FS && SDFAT_DEBUG
 	default n
+
+config SDFAT_STATISTICS
+	bool "enable statistics for bigdata"
+	depends on SDFAT_FS
+	default y

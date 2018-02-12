@@ -12,8 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _SDFAT_FS_H
@@ -59,7 +58,7 @@
 /* NOTE :
  * The maximum length of input or output is limited to 256 including NULL,
  * But we allocate 4 extra bytes for utf8 translation reside in last position,
- * because utf8 can uses memory upto 6 bytes per one charactor.
+ * because utf8 can uses memory upto 6 bytes per one character.
  * Therefore, MAX_CHARSET_SIZE supports upto 6 bytes for utf8
  */
 #define MAX_UNINAME_BUF_SIZE       (((MAX_NAME_LENGTH+1)*2)+4)
@@ -73,6 +72,7 @@
 #define DENTRY_SIZE_BITS	5
 
 #define MAX_FAT_DENTRIES	65536   /* FAT allows 65536 directory entries */
+#define MAX_EXFAT_DENTRIES	8388608 /* exFAT allows 8388608(256MB) directory entries */
 
 /* PBR entries */
 #define PBR_SIGNATURE	0xAA55
@@ -100,7 +100,7 @@
 #define MSDOS_UNUSED		0x00	/* end of directory */
 
 #define EXFAT_UNUSED		0x00	/* end of directory */
-#define IS_EXFAT_DELETED(x)	((x)<0x80) /* deleted file (0x01~0x7F) */
+#define IS_EXFAT_DELETED(x)	((x) < 0x80) /* deleted file (0x01~0x7F) */
 #define EXFAT_INVAL		0x80	/* invalid value */
 #define EXFAT_BITMAP		0x81	/* allocation bitmap */
 #define EXFAT_UPCASE		0x82	/* upcase table */
@@ -143,17 +143,17 @@
 #define CS_PBR_SECTOR           1
 #define CS_DEFAULT              2
 
-/* 
- * ioctl command 
+/*
+ * ioctl command
  */
 #define SDFAT_IOCTL_GET_VOLUME_ID	_IOR('r', 0x12, __u32)
 #define SDFAT_IOCTL_DFR_INFO		_IOC(_IOC_NONE, 'E', 0x13, sizeof(u32))
-#define SDFAT_IOCTL_DFR_TRAV    	_IOC(_IOC_NONE, 'E', 0x14, sizeof(u32))
+#define SDFAT_IOCTL_DFR_TRAV		_IOC(_IOC_NONE, 'E', 0x14, sizeof(u32))
 #define SDFAT_IOCTL_DFR_REQ		_IOC(_IOC_NONE, 'E', 0x15, sizeof(u32))
 #define SDFAT_IOCTL_DFR_SPO_FLAG	_IOC(_IOC_NONE, 'E', 0x16, sizeof(u32))
 #define SDFAT_IOCTL_PANIC               _IOC(_IOC_NONE, 'E', 0x17, sizeof(u32))
 
-/* 
+/*
  * ioctl command for debugging
  */
 
@@ -162,7 +162,7 @@
  *   - file systems typically #0~0x1F
  *   - embedded terminal devices #128~
  *   - exts for debugging purpose #99
- * number 100 and 101 is availble now but has possible conflicts
+ * number 100 and 101 is available now but has possible conflicts
  *
  * NOTE : This is available only If CONFIG_SDFAT_DVBG_IOCTL is enabled.
  *
@@ -184,15 +184,15 @@ typedef struct {
 
 	__u8	sect_size[2];		/* unaligned */
 	__u8	sect_per_clus;
-	__le16	num_reserved;   	/* . */
+	__le16	num_reserved;		/* . */
 	__u8	num_fats;
-	__u8  	num_root_entries[2];	/* unaligned */
+	__u8	num_root_entries[2];	/* unaligned */
 	__u8	num_sectors[2];		/* unaligned */
 	__u8	media_type;
 	__le16  num_fat_sectors;
 	__le16  sectors_in_track;
 	__le16  num_heads;
-	__le32	num_hid_sectors; 	/* . */
+	__le32	num_hid_sectors;	/* . */
 	__le32	num_huge_sectors;
 
 	__u8	phy_drv_no;
@@ -213,7 +213,7 @@ typedef struct {
 	__u8	sect_per_clus;
 	__le16	num_reserved;
 	__u8	num_fats;
-	__u8  	num_root_entries[2];	/* unaligned */
+	__u8	num_root_entries[2];	/* unaligned */
 	__u8	num_sectors[2];		/* unaligned */
 	__u8	media_type;
 	__le16  num_fat_sectors;	/* zero */

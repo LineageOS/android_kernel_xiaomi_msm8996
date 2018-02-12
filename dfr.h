@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _SDFAT_DEFRAG_H
@@ -23,45 +21,47 @@
 #ifdef	CONFIG_SDFAT_DFR
 
 /* Tuning parameters */
-#define	DFR_MIN_TIMEOUT				(1 * HZ)	// Minimum timeout for forced-sync
-#define	DFR_DEFAULT_TIMEOUT			(10 * HZ)	// Default timeout for forced-sync
+#define	DFR_MIN_TIMEOUT		 (1 * HZ)	// Minimum timeout for forced-sync
+#define	DFR_DEFAULT_TIMEOUT	 (10 * HZ)	// Default timeout for forced-sync
 
-#define	DFR_DEFAULT_CLEAN_RATIO		(50)		// Wake-up daemon when clean AU ratio under 50%
-#define	DFR_DEFAULT_WAKEUP_RATIO	(10)		// Wake-up daemon when clean AU ratio under 10%, regardless of frag_ratio
+#define	DFR_DEFAULT_CLEAN_RATIO	 (50)	// Wake-up daemon when clean AU ratio under 50%
+#define	DFR_DEFAULT_WAKEUP_RATIO (10)	// Wake-up daemon when clean AU ratio under 10%, regardless of frag_ratio
 
-#define	DFR_DEFAULT_FRAG_RATIO		(130)		// Wake-up daemon when frag_ratio over 130%
+#define	DFR_DEFAULT_FRAG_RATIO	 (130)	// Wake-up daemon when frag_ratio over 130%
 
-#define	DFR_DEFAULT_PACKING_RATIO	(10)		// Call allocator with PACKING flag, when clean AU ratio under 10%
+#define	DFR_DEFAULT_PACKING_RATIO	(10)	// Call allocator with PACKING flag, when clean AU ratio under 10%
 
-#define	DFR_DEFAULT_STOP_RATIO		(98)		// Stop defrag_daemon when disk used ratio over 98%
-#define	DFR_FULL_RATIO				(100)
+#define	DFR_DEFAULT_STOP_RATIO		(98)	// Stop defrag_daemon when disk used ratio over 98%
+#define	DFR_FULL_RATIO			(100)
 
-#define	DFR_MAX_AU_MOVED			(16)		// Maximum # of AUs for a request
+#define	DFR_MAX_AU_MOVED		(16)	// Maximum # of AUs for a request
 
 
 /* Debugging support*/
-#define dfr_err(fmt, args...) EMSG("DFR: " fmt "\n", args)
+#define dfr_err(fmt, args...) pr_err("DFR: " fmt "\n", args)
 
 #ifdef	CONFIG_SDFAT_DFR_DEBUG
-#define dfr_debug(fmt, args...) DMSG("DFR: " fmt "\n", args)
+#define dfr_debug(fmt, args...) pr_debug("DFR: " fmt "\n", args)
 #else
 #define dfr_debug(fmt, args...)
 #endif
 
 
 /* Error handling */
-#define	ERR_HANDLE(err) \
-	if (err) { \
-		dfr_debug("err %d", err); \
-		goto error; \
-	}
+#define	ERR_HANDLE(err) {			\
+	if (err) {				\
+		dfr_debug("err %d", err);	\
+		goto error;			\
+	}					\
+}
 
-#define	ERR_HANDLE2(cond, err, val) \
-	if (cond) { \
-		err = val; \
-		dfr_debug("err %d", err); \
-		goto error; \
-	}
+#define	ERR_HANDLE2(cond, err, val) {		\
+	if (cond) {				\
+		err = val;			\
+		dfr_debug("err %d", err);	\
+		goto error;			\
+	}					\
+}
 
 
 /* Arguments IN-OUT */
@@ -91,16 +91,16 @@
 	(SDFAT_SB(sb)->options.amap_opt.sect_per_au) >> (SDFAT_SB(sb)->fsi.sect_per_clus_bits) \
 )
 #define	PAGES_PER_AU(sb)			( \
-	( (SDFAT_SB(sb)->options.amap_opt.sect_per_au) << ((sb)->s_blocksize_bits) ) \
+	((SDFAT_SB(sb)->options.amap_opt.sect_per_au) << ((sb)->s_blocksize_bits)) \
 	>> PAGE_SHIFT \
 )
 #define	PAGES_PER_CLUS(sb)			((SDFAT_SB(sb)->fsi.cluster_size) >> PAGE_SHIFT)
 
 #define	FAT32_CHECK_CLUSTER(fsi, clus, err) \
 		{ \
-			if ( ((clus) < FAT32_UNUSED_CLUS) || \
+			if (((clus) < FAT32_UNUSED_CLUS) || \
 					((clus) > (fsi)->num_clusters) || \
-					((clus) >= FAT32_RESERVED) ) { \
+					((clus) >= FAT32_RESERVED)) { \
 				dfr_err("clus %08x, fsi->num_clusters %08x", (clus), (fsi)->num_clusters); \
 				err = -EINVAL; \
 			} else { \
@@ -143,7 +143,7 @@ struct defrag_trav_arg {
 	char dummy1;
 	int dummy2;
 };
- 
+
 #define	DFR_TRAV_STAT_DONE			(0x1)
 #define	DFR_TRAV_STAT_MORE			(0x2)
 #define	DFR_TRAV_STAT_ERR			(0xFF)
@@ -156,7 +156,7 @@ struct defrag_trav_header {
 	char stat;
 	unsigned int nr_entries;
 };
- 
+
 
 /* IOC_DFR_REQ */
 #define	REQ_HEADER_IDX			(0)

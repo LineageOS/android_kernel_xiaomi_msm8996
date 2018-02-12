@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _SDFAT_AMAP_H
@@ -25,16 +23,19 @@
 #include <linux/rbtree.h>
 
 /* AMAP Configuration Variable */
-#define SMART_ALLOC_N_HOT_AU    5 
+#define SMART_ALLOC_N_HOT_AU    (5)
 
-
-/* Allocating Destination (for smart allocator) */
-#define ALLOC_COLD_ALIGNED	1
-#define ALLOC_COLD_PACKING	2
-#define ALLOC_COLD_SEQ		4
+/* Allocating Destination (for smart allocator):
+ * moved to sdfat.h
+ */
+/*
+ * #define ALLOC_COLD_ALIGNED	(1)
+ * #define ALLOC_COLD_PACKING	(2)
+ * #define ALLOC_COLD_SEQ	(4)
+ */
 
 /* Minimum sectors for support AMAP create */
-#define AMAP_MIN_SUPPORT_SECTORS	1048576
+#define AMAP_MIN_SUPPORT_SECTORS	(1048576)
 
 #define amap_add_hot_au(amap, au) amap_insert_to_list(au, &amap->slist_hot)
 
@@ -45,20 +46,20 @@ struct slist_head {
 };
 
 /* AU entry type */
-typedef struct __AU_INFO_T{
-	uint16_t idx;					/* the index of the AU (0, 1, 2, ... ) */
-	uint16_t free_clusters;			/* # of available cluster */
+typedef struct __AU_INFO_T {
+	uint16_t idx;			/* the index of the AU (0, 1, 2, ... ) */
+	uint16_t free_clusters;		/* # of available cluster */
 	union {
 		struct list_head head;
-		struct slist_head shead;	/* singly linked list head for hot list */
+		struct slist_head shead;/* singly linked list head for hot list */
 	};
 } AU_INFO_T;
 
 
 /* Allocation Target AU */
-typedef struct __TARGET_AU_T{
-	AU_INFO_T *au;				/* Working AU */
-	uint16_t idx;				/* Intra-AU cluster index */
+typedef struct __TARGET_AU_T {
+	AU_INFO_T *au;			/* Working AU */
+	uint16_t idx;			/* Intra-AU cluster index */
 	uint16_t clu_to_skip;		/* Clusters to skip */
 } TARGET_AU_T;
 
@@ -71,29 +72,29 @@ typedef struct {
 
 /* AMAP options */
 typedef struct {
-	unsigned int packing_ratio;		/* Tunable packing ratio */
-	unsigned int au_size;			/* AU size in sectors */
+	unsigned int packing_ratio;	/* Tunable packing ratio */
+	unsigned int au_size;		/* AU size in sectors */
 	unsigned int au_align_factor;	/* Hidden sectors % au_size */
 } AMAP_OPT_T;
 
-typedef struct __AMAP_T{
-	spinlock_t amap_lock;			// obsolete
+typedef struct __AMAP_T {
+	spinlock_t amap_lock;		/* obsolete */
 	struct super_block *sb;
 
 	int n_au;
 	int n_clean_au, n_full_au;
 	int clu_align_bias;
 	uint16_t clusters_per_au;
-	AU_INFO_T **au_table;			/* An array of AU_INFO entries */
+	AU_INFO_T **au_table;		/* An array of AU_INFO entries */
 	AMAP_OPT_T option;
 
 	/* Size-based AU management pool (cold) */
-	FCLU_NODE_T *fclu_nodes;		/* An array of listheads */
-	int fclu_order;				/* Page order that fclu_nodes needs */
-	int fclu_hint;					/* maximum # of free clusters in an AU */
+	FCLU_NODE_T *fclu_nodes;	/* An array of listheads */
+	int fclu_order;			/* Page order that fclu_nodes needs */
+	int fclu_hint;			/* maximum # of free clusters in an AU */
 
 	/* Hot AU list */
-	int total_fclu_hot;				/* Free clusters in hot list */
+	int total_fclu_hot;		/* Free clusters in hot list */
 	struct slist_head slist_hot;	/* Hot AU list */
 
 	/* Ignored AU list */
@@ -113,23 +114,24 @@ typedef struct __AMAP_T{
 #define MAX_CLU_PER_AU		(1024)
 
 /* Cold AU bucket <-> # of freeclusters */
-#define NODE_CLEAN(amap) &amap->fclu_nodes[amap->clusters_per_au - 1]
-#define NODE(fclu, amap) &amap->fclu_nodes[fclu - 1]
+#define NODE_CLEAN(amap) (&amap->fclu_nodes[amap->clusters_per_au - 1])
+#define NODE(fclu, amap) (&amap->fclu_nodes[fclu - 1])
 #define FREE_CLUSTERS(node, amap) ((int)(node - amap->fclu_nodes) + 1)
 
 /* AU status */
-#define MAGIC_WORKING	(struct slist_head*)0xFFFF5091
-#define IS_AU_HOT(au, amap)		(au->shead.head == &amap->slist_hot)
-#define IS_AU_IGNORED(au, amap)		(au->shead.head == &amap->slist_ignored)
-#define IS_AU_WORKING(au, amap)		(au->shead.head == MAGIC_WORKING)
-#define SET_AU_WORKING(au)		(au->shead.head = MAGIC_WORKING)
+#define MAGIC_WORKING	((struct slist_head *)0xFFFF5091)
+#define IS_AU_HOT(au, amap)	(au->shead.head == &amap->slist_hot)
+#define IS_AU_IGNORED(au, amap)	(au->shead.head == &amap->slist_ignored)
+#define IS_AU_WORKING(au, amap)	(au->shead.head == MAGIC_WORKING)
+#define SET_AU_WORKING(au)	(au->shead.head = MAGIC_WORKING)
 
 /* AU <-> cluster */
-#define i_AU_of_CLU(amap, clu) 		((amap->clu_align_bias + clu) / amap->clusters_per_au)
-#define CLU_of_i_AU(amap, i_au, idx)	((uint32_t)(i_au) * (uint32_t)amap->clusters_per_au + (idx) - amap->clu_align_bias)
+#define i_AU_of_CLU(amap, clu)	((amap->clu_align_bias + clu) / amap->clusters_per_au)
+#define CLU_of_i_AU(amap, i_au, idx)	\
+	((uint32_t)(i_au) * (uint32_t)amap->clusters_per_au + (idx) - amap->clu_align_bias)
 
-/* 
- * NOTE : AMAP internal functions are moved to core.h 
+/*
+ * NOTE : AMAP internal functions are moved to core.h
  */
 
 #endif /* _SDFAT_AMAP_H */

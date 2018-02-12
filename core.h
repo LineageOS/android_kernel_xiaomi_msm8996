@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _SDFAT_CORE_H
@@ -90,7 +88,8 @@ s32 fscore_create(struct inode *inode, u8 *path, u8 mode, FILE_ID_T *fid);
 s32 fscore_read_link(struct inode *inode, FILE_ID_T *fid, void *buffer, u64 count, u64 *rcount);
 s32 fscore_write_link(struct inode *inode, FILE_ID_T *fid, void *buffer, u64 count, u64 *wcount);
 s32 fscore_truncate(struct inode *inode, u64 old_size, u64 new_size);
-s32 fscore_rename(struct inode *old_parent_inode, FILE_ID_T *fid, struct inode *new_parent_inode, struct dentry *new_dentry);
+s32 fscore_rename(struct inode *old_parent_inode, FILE_ID_T *fid,
+		struct inode *new_parent_inode, struct dentry *new_dentry);
 s32 fscore_remove(struct inode *inode, FILE_ID_T *fid);
 s32 fscore_read_inode(struct inode *inode, DIR_ENTRY_T *info);
 s32 fscore_write_inode(struct inode *inode, DIR_ENTRY_T *info, int sync);
@@ -116,17 +115,17 @@ DENTRY_T *get_dentry_in_dir(struct super_block *sb, CHAIN_T *p_dir, s32 entry, u
 void get_uniname_from_dos_entry(struct super_block *sb, DOS_DENTRY_T *ep, UNI_NAME_T *p_uniname, u8 mode);
 
 /* file operation functions */
-s32 walk_fat_chain (struct super_block *sb, CHAIN_T *p_dir, s32 byte_offset, u32 *clu);
+s32 walk_fat_chain(struct super_block *sb, CHAIN_T *p_dir, s32 byte_offset, u32 *clu);
 
 /* sdfat/cache.c */
 s32  meta_cache_init(struct super_block *sb);
 s32  meta_cache_shutdown(struct super_block *sb);
-u8*  fcache_getblk(struct super_block *sb, u32 sec);
+u8 *fcache_getblk(struct super_block *sb, u32 sec);
 s32  fcache_modify(struct super_block *sb, u32 sec);
 s32  fcache_release_all(struct super_block *sb);
 s32  fcache_flush(struct super_block *sb, u32 sync);
 
-u8*   dcache_getblk(struct super_block *sb, u32 sec);
+u8 *dcache_getblk(struct super_block *sb, u32 sec);
 s32   dcache_modify(struct super_block *sb, u32 sec);
 s32   dcache_lock(struct super_block *sb, u32 sec);
 s32   dcache_unlock(struct super_block *sb, u32 sec);
@@ -151,10 +150,11 @@ s32  mount_fat32(struct super_block *sb, pbr_t *p_pbr);
 
 s32 load_alloc_bmp(struct super_block *sb);
 void free_alloc_bmp(struct super_block *sb);
-ENTRY_SET_CACHE_T *get_dentry_set_in_dir (struct super_block *sb, CHAIN_T *p_dir, s32 entry, u32 type, DENTRY_T **file_ep);
-void release_dentry_set (ENTRY_SET_CACHE_T *es);
+ENTRY_SET_CACHE_T *get_dentry_set_in_dir(struct super_block *sb,
+		CHAIN_T *p_dir, s32 entry, u32 type, DENTRY_T **file_ep);
+void release_dentry_set(ENTRY_SET_CACHE_T *es);
 s32 update_dir_chksum(struct super_block *sb, CHAIN_T *p_dir, s32 entry);
-s32 update_dir_chksum_with_entry_set (struct super_block *sb, ENTRY_SET_CACHE_T *es);
+s32 update_dir_chksum_with_entry_set(struct super_block *sb, ENTRY_SET_CACHE_T *es);
 bool is_dir_empty(struct super_block *sb, CHAIN_T *p_dir);
 s32  mount_exfat(struct super_block *sb, pbr_t *p_pbr);
 
@@ -164,7 +164,7 @@ void amap_destroy(struct super_block *sb);
 
 /* amap_smart.c : (de)allocation functions */
 s32 amap_fat_alloc_cluster(struct super_block *sb, s32 num_alloc, CHAIN_T *p_chain, int dest);
-s32 amap_free_cluster(struct super_block *sb, CHAIN_T *p_chain, s32 do_relse);      /* Free a FAT chain (Not impelmented) */
+s32 amap_free_cluster(struct super_block *sb, CHAIN_T *p_chain, s32 do_relse);/* Not impelmented */
 s32 amap_release_cluster(struct super_block *sb, u32 clu); /* Only update AMAP */
 
 /* amap_smart.c : misc (for defrag) */

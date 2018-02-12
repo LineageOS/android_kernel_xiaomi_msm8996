@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /************************************************************************/
@@ -132,10 +130,11 @@ s32 fsapi_statfs(struct super_block *sb, VOL_INFO_T *info)
 	FS_INFO_T *fsi = &(SDFAT_SB(sb)->fsi);
 
 	/* check the validity of pointer parameters */
-	ASSERT(info);	
+	ASSERT(info);
 
 	if (fsi->used_clusters == (u32) ~0) {
 		s32 err;
+
 		mutex_lock(&(SDFAT_SB(sb)->s_vlock));
 		err = fscore_statfs(sb, info);
 		mutex_unlock(&(SDFAT_SB(sb)->s_vlock));
@@ -156,6 +155,7 @@ EXPORT_SYMBOL(fsapi_statfs);
 s32 fsapi_sync_fs(struct super_block *sb, s32 do_sync)
 {
 	s32 err;
+
 	mutex_lock(&(SDFAT_SB(sb)->s_vlock));
 	err = fscore_sync_fs(sb, do_sync);
 	mutex_unlock(&(SDFAT_SB(sb)->s_vlock));
@@ -166,6 +166,7 @@ EXPORT_SYMBOL(fsapi_sync_fs);
 s32 fsapi_set_vol_flags(struct super_block *sb, u16 new_flag, s32 always_sync)
 {
 	s32 err;
+
 	mutex_lock(&(SDFAT_SB(sb)->s_vlock));
 	err = fscore_set_vol_flags(sb, new_flag, always_sync);
 	mutex_unlock(&(SDFAT_SB(sb)->s_vlock));
@@ -263,7 +264,8 @@ s32 fsapi_truncate(struct inode *inode, u64 old_size, u64 new_size)
 EXPORT_SYMBOL(fsapi_truncate);
 
 /* rename or move a old file into a new file */
-s32 fsapi_rename(struct inode *old_parent_inode, FILE_ID_T *fid, struct inode *new_parent_inode, struct dentry *new_dentry)
+s32 fsapi_rename(struct inode *old_parent_inode, FILE_ID_T *fid,
+		struct inode *new_parent_inode, struct dentry *new_dentry)
 {
 	s32 err;
 	struct super_block *sb = old_parent_inode->i_sb;
@@ -299,7 +301,7 @@ s32 fsapi_read_inode(struct inode *inode, DIR_ENTRY_T *info)
 {
 	s32 err;
 	struct super_block *sb = inode->i_sb;
-	
+
 	mutex_lock(&(SDFAT_SB(sb)->s_vlock));
 	TMSG("%s entered (inode %p info %p\n", __func__, inode, info);
 	err = fscore_read_inode(inode, info);
@@ -414,13 +416,14 @@ s32 fsapi_rmdir(struct inode *inode, FILE_ID_T *fid)
 }
 EXPORT_SYMBOL(fsapi_rmdir);
 
-/* unlink a file. 
- * that is, remove an entry from a directory. BUT don't truncate */
+/* unlink a file.
+ * that is, remove an entry from a directory. BUT don't truncate
+ */
 s32 fsapi_unlink(struct inode *inode, FILE_ID_T *fid)
 {
 	s32 err;
 	struct super_block *sb = inode->i_sb;
-	
+
 	/* check the validity of pointer parameters */
 	ASSERT(fid);
 	mutex_lock(&(SDFAT_SB(sb)->s_vlock));
@@ -441,7 +444,6 @@ s32 fsapi_cache_flush(struct super_block *sb, int do_sync)
 }
 EXPORT_SYMBOL(fsapi_cache_flush);
 
-
 /* release FAT & buf cache */
 s32 fsapi_cache_release(struct super_block *sb)
 {
@@ -456,7 +458,6 @@ s32 fsapi_cache_release(struct super_block *sb)
 	return 0;
 }
 EXPORT_SYMBOL(fsapi_cache_release);
-
 
 u32 fsapi_get_au_stat(struct super_block *sb, s32 mode)
 {
@@ -490,7 +491,6 @@ s32 fsapi_dfr_get_info(struct super_block *sb, void *arg)
 }
 EXPORT_SYMBOL(fsapi_dfr_get_info);
 
-
 s32 fsapi_dfr_scan_dir(struct super_block *sb, void *args)
 {
 	s32 err;
@@ -505,30 +505,29 @@ s32 fsapi_dfr_scan_dir(struct super_block *sb, void *args)
 }
 EXPORT_SYMBOL(fsapi_dfr_scan_dir);
 
-
 s32 fsapi_dfr_validate_clus(struct inode *inode, void *chunk, int skip_prev)
 {
 	s32 err;
 	struct super_block *sb = inode->i_sb;
+
 	mutex_lock(&(SDFAT_SB(sb)->s_vlock));
-	err = defrag_validate_cluster(inode, 
-				(struct defrag_chunk_info *)chunk, skip_prev);
+	err = defrag_validate_cluster(inode,
+		(struct defrag_chunk_info *)chunk, skip_prev);
 	mutex_unlock(&(SDFAT_SB(sb)->s_vlock));
-	return(err);
+	return err;
 }
 EXPORT_SYMBOL(fsapi_dfr_validate_clus);
-
 
 s32 fsapi_dfr_reserve_clus(struct super_block *sb, s32 nr_clus)
 {
 	s32 err;
+
 	mutex_lock(&(SDFAT_SB(sb)->s_vlock));
 	err = defrag_reserve_clusters(sb, nr_clus);
 	mutex_unlock(&(SDFAT_SB(sb)->s_vlock));
 	return err;
 }
 EXPORT_SYMBOL(fsapi_dfr_reserve_clus);
-
 
 s32 fsapi_dfr_mark_ignore(struct super_block *sb, unsigned int clus)
 {
@@ -537,14 +536,12 @@ s32 fsapi_dfr_mark_ignore(struct super_block *sb, unsigned int clus)
 }
 EXPORT_SYMBOL(fsapi_dfr_mark_ignore);
 
-
 void fsapi_dfr_unmark_ignore_all(struct super_block *sb)
 {
 	/* volume lock is not required */
 	defrag_unmark_ignore_all(sb);
 }
 EXPORT_SYMBOL(fsapi_dfr_unmark_ignore_all);
-
 
 s32 fsapi_dfr_map_clus(struct inode *inode, u32 clu_offset, u32 *clu)
 {
@@ -562,14 +559,12 @@ s32 fsapi_dfr_map_clus(struct inode *inode, u32 clu_offset, u32 *clu)
 }
 EXPORT_SYMBOL(fsapi_dfr_map_clus);
 
-
 void fsapi_dfr_writepage_endio(struct page *page)
 {
 	/* volume lock is not required */
 	defrag_writepage_end_io(page);
 }
 EXPORT_SYMBOL(fsapi_dfr_writepage_endio);
-
 
 void fsapi_dfr_update_fat_prev(struct super_block *sb, int force)
 {
@@ -579,7 +574,6 @@ void fsapi_dfr_update_fat_prev(struct super_block *sb, int force)
 }
 EXPORT_SYMBOL(fsapi_dfr_update_fat_prev);
 
-
 void fsapi_dfr_update_fat_next(struct super_block *sb)
 {
 	mutex_lock(&(SDFAT_SB(sb)->s_vlock));
@@ -587,7 +581,6 @@ void fsapi_dfr_update_fat_next(struct super_block *sb)
 	mutex_unlock(&(SDFAT_SB(sb)->s_vlock));
 }
 EXPORT_SYMBOL(fsapi_dfr_update_fat_next);
-
 
 void fsapi_dfr_check_discard(struct super_block *sb)
 {
@@ -597,7 +590,6 @@ void fsapi_dfr_check_discard(struct super_block *sb)
 }
 EXPORT_SYMBOL(fsapi_dfr_check_discard);
 
-
 void fsapi_dfr_free_clus(struct super_block *sb, u32 clus)
 {
 	mutex_lock(&(SDFAT_SB(sb)->s_vlock));
@@ -606,14 +598,12 @@ void fsapi_dfr_free_clus(struct super_block *sb, u32 clus)
 }
 EXPORT_SYMBOL(fsapi_dfr_free_clus);
 
-
 s32 fsapi_dfr_check_dfr_required(struct super_block *sb, int *totalau, int *cleanau, int *fullau)
 {
 	/* volume lock is not required */
 	return defrag_check_defrag_required(sb, totalau, cleanau, fullau);
 }
 EXPORT_SYMBOL(fsapi_dfr_check_dfr_required);
-
 
 s32 fsapi_dfr_check_dfr_on(struct inode *inode, loff_t start, loff_t end, s32 cancel, const char *caller)
 {

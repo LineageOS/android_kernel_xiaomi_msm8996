@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -70,7 +68,7 @@ void __sdfat_fs_error(struct super_block *sb, int report, const char *fmt, ...)
 		va_start(args, fmt);
 		vaf.fmt = fmt;
 		vaf.va = &args;
-		printk(KERN_ERR "[SDFAT](%s[%d:%d]):ERR: %pV\n", 
+		pr_err("[SDFAT](%s[%d:%d]):ERR: %pV\n",
 			sb->s_id, MAJOR(bd_dev), MINOR(bd_dev), &vaf);
 #ifdef CONFIG_SDFAT_SUPPORT_STLOG
 		if (opts->errors == SDFAT_ERRORS_RO && !(sb->s_flags & MS_RDONLY)) {
@@ -82,11 +80,11 @@ void __sdfat_fs_error(struct super_block *sb, int report, const char *fmt, ...)
 	}
 
 	if (opts->errors == SDFAT_ERRORS_PANIC) {
-		panic("[SDFAT](%s[%d:%d]): fs panic from previous error\n", 
+		panic("[SDFAT](%s[%d:%d]): fs panic from previous error\n",
 			sb->s_id, MAJOR(bd_dev), MINOR(bd_dev));
 	} else if (opts->errors == SDFAT_ERRORS_RO && !(sb->s_flags & MS_RDONLY)) {
 		sb->s_flags |= MS_RDONLY;
-		printk(KERN_ERR "[SDFAT](%s[%d:%d]): Filesystem has been set "
+		pr_err("[SDFAT](%s[%d:%d]): Filesystem has been set "
 			"read-only\n", sb->s_id, MAJOR(bd_dev), MINOR(bd_dev));
 #ifdef CONFIG_SDFAT_SUPPORT_STLOG
 		ST_LOG("[SDFAT](%s[%d:%d]): Filesystem has been set read-only\n",
@@ -97,9 +95,9 @@ void __sdfat_fs_error(struct super_block *sb, int report, const char *fmt, ...)
 EXPORT_SYMBOL(__sdfat_fs_error);
 
 /**
- * __sdfat_msg() - print preformated FAT specific messages. 
- * Every thing what is not sdfat_fs_error() should be __sdfat_msg().
- * If 'st' is set to 1, it means that this message should be saved on ST_LOG.
+ * __sdfat_msg() - print preformated SDFAT specific messages.
+ * All logs except what uses sdfat_fs_error() should be written by __sdfat_msg()
+ * If 'st' is set, the log is propagated to ST_LOG.
  */
 void __sdfat_msg(struct super_block *sb, const char *level, int st, const char *fmt, ...)
 {
@@ -111,11 +109,12 @@ void __sdfat_msg(struct super_block *sb, const char *level, int st, const char *
 	va_start(args, fmt);
 	vaf.fmt = fmt;
 	vaf.va = &args;
+	/* level means KERN_ pacility level */
 	printk("%s[SDFAT](%s[%d:%d]): %pV\n", level,
 			sb->s_id, MAJOR(bd_dev), MINOR(bd_dev), &vaf);
 #ifdef CONFIG_SDFAT_SUPPORT_STLOG
 	if (st) {
-		ST_LOG("[SDFAT](%s[%d:%d]): %pV\n", 
+		ST_LOG("[SDFAT](%s[%d:%d]): %pV\n",
 				sb->s_id, MAJOR(bd_dev), MINOR(bd_dev), &vaf);
 	}
 #endif
@@ -125,15 +124,16 @@ EXPORT_SYMBOL(__sdfat_msg);
 
 void sdfat_log_version(void)
 {
-	printk(KERN_INFO "[SDFAT] Filesystem version %s\n", SDFAT_VERSION);
+	pr_info("[SDFAT] Filesystem version %s\n", SDFAT_VERSION);
 #ifdef CONFIG_SDFAT_SUPPORT_STLOG
 	ST_LOG("[SDFAT] Filesystem version %s\n", SDFAT_VERSION);
 #endif
 }
 EXPORT_SYMBOL(sdfat_log_version);
 
-extern struct timezone sys_tz;
-
+/* <linux/time.h> externs sys_tz
+ * extern struct timezone sys_tz;
+ */
 #define UNIX_SECS_1980    315532800L
 
 #if BITS_PER_LONG == 64
@@ -154,15 +154,15 @@ extern struct timezone sys_tz;
 	do {                                                    \
 		/* 2100 isn't leap year */                      \
 		if (unlikely(year > NO_LEAP_YEAR_2100))         \
-		leap_year = ((year + 3) / 4) - 1;       \
+			leap_year = ((year + 3) / 4) - 1;       \
 		else                                            \
-		leap_year = ((year + 3) / 4);           \
-	} while(0)
+			leap_year = ((year + 3) / 4);           \
+	} while (0)
 
 /* Linear day numbers of the respective 1sts in non-leap years. */
 static time_t accum_days_in_year[] = {
-	/* Month : 01  02  03  04  05  06  07  08  09  10  11  12 */
-	0,   0, 31, 59, 90,120,151,181,212,243,273,304,334, 0, 0, 0,
+	/* Month : N 01  02  03  04  05  06  07  08  09  10  11  12 */
+	0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 0, 0, 0,
 };
 
 /* Convert a FAT time/date pair to a UNIX date (seconds since 1 1 70). */
@@ -179,10 +179,10 @@ void sdfat_time_fat2unix(struct sdfat_sb_info *sbi, struct timespec *ts,
 
 	ts->tv_sec =  tp->Second  + tp->Minute * SECS_PER_MIN
 			+ tp->Hour * SECS_PER_HOUR
-			+ (year * 365 + ld + accum_days_in_year[(tp->Month)] 
+			+ (year * 365 + ld + accum_days_in_year[tp->Month]
 			+ (tp->Day - 1) + DAYS_DELTA_DECADE) * SECS_PER_DAY;
 
-	if(!sbi->options.tz_utc)
+	if (!sbi->options.tz_utc)
 		ts->tv_sec += sys_tz.tz_minuteswest * SECS_PER_MIN;
 
 	ts->tv_nsec = 0;
@@ -255,6 +255,7 @@ TIMESTAMP_T *tm_now(struct sdfat_sb_info *sbi, TIMESTAMP_T *tp)
 {
 	struct timespec ts = CURRENT_TIME_SEC;
 	DATE_TIME_T dt;
+
 	sdfat_time_unix2fat(sbi, &ts, &dt);
 
 	tp->year = dt.Year;
@@ -264,7 +265,7 @@ TIMESTAMP_T *tm_now(struct sdfat_sb_info *sbi, TIMESTAMP_T *tp)
 	tp->min = dt.Minute;
 	tp->sec = dt.Second;
 
-	return(tp);
+	return tp;
 }
 
 u8 calc_chksum_1byte(void *data, s32 len, u8 chksum)
@@ -275,7 +276,7 @@ u8 calc_chksum_1byte(void *data, s32 len, u8 chksum)
 	for (i = 0; i < len; i++, c++)
 		chksum = (((chksum & 1) << 7) | ((chksum & 0xFE) >> 1)) + *c;
 
-	return(chksum);
+	return chksum;
 }
 
 u16 calc_chksum_2byte(void *data, s32 len, u16 chksum, s32 type)
@@ -302,7 +303,8 @@ u32 sdfat_time_current_usec(struct timeval *tv)
 
 #ifdef CONFIG_SDFAT_DBG_CAREFUL
 /* Check the consistency of i_size_ondisk (FAT32, or flags 0x01 only) */
-void sdfat_debug_check_clusters(struct inode *inode){
+void sdfat_debug_check_clusters(struct inode *inode)
+{
 	int num_clusters;
 	volatile uint32_t tmp_fat_chain[50];
 	volatile int num_clusters_org, tmp_i = 0;
@@ -321,7 +323,8 @@ void sdfat_debug_check_clusters(struct inode *inode){
 
 	num_clusters_org = num_clusters;
 
-	if (clu.flags == 0x03) return;
+	if (clu.flags == 0x03)
+		return;
 
 	while (num_clusters > 0) {
 		/* FAT chain logging */
@@ -357,6 +360,7 @@ void __sdfat_dmsg(int level, const char *fmt, ...)
 	va_start(args, fmt);
 	vaf.fmt = fmt;
 	vaf.va = &args;
+	/* fmt already includes KERN_ pacility level */
 	printk("[%u] %pV", current->pid,  &vaf);
 	va_end(args);
 #else
@@ -367,6 +371,7 @@ void __sdfat_dmsg(int level, const char *fmt, ...)
 		return;
 
 	va_start(args, fmt);
+	/* fmt already includes KERN_ pacility level */
 	vprintk(fmt, args);
 	va_end(args);
 #endif

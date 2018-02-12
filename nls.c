@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /************************************************************************/
@@ -52,7 +50,7 @@ static u16 bad_dos_chars[] = {
 /*
  * Allow full-width illegal characters :
  * "MS windows 7" supports full-width-invalid-name-characters.
- * So we should check half-width-invalid-name-characters(ASCII) only 
+ * So we should check half-width-invalid-name-characters(ASCII) only
  * for compatibility.
  *
  * " * / : < > ? \ |
@@ -62,10 +60,10 @@ static u16 bad_dos_chars[] = {
 static u16 bad_uni_chars[] = {
 	0x0022,         0x002A, 0x002F, 0x003A,
 	0x003C, 0x003E, 0x003F, 0x005C, 0x007C,
-	/*
+#if 0 /* allow full-width characters */
 	0x201C, 0x201D, 0xFF0A, 0xFF0F, 0xFF1A,
 	0xFF1C, 0xFF1E, 0xFF1F, 0xFF3C, 0xFF5C,
-	*/
+#endif
 	0
 };
 
@@ -101,7 +99,7 @@ u16 *nls_wstrchr(u16 *str, u16 wchar)
 
 s32 nls_cmp_sfn(struct super_block *sb, u8 *a, u8 *b)
 {
-	return(strncmp((void *) a, (void *) b, DOS_NAME_LENGTH));
+	return strncmp((void *)a, (void *)b, DOS_NAME_LENGTH);
 }
 
 s32 nls_cmp_uniname(struct super_block *sb, u16 *a, u16 *b)
@@ -109,10 +107,10 @@ s32 nls_cmp_uniname(struct super_block *sb, u16 *a, u16 *b)
 	s32 i;
 
 	for (i = 0; i < MAX_NAME_LENGTH; i++, a++, b++) {
-		if (nls_upper(sb, *a) != nls_upper(sb, *b)) 
-				return 1;
-		if (*a == 0x0) 
-				return 0;
+		if (nls_upper(sb, *a) != nls_upper(sb, *b))
+			return 1;
+		if (*a == 0x0)
+			return 0;
 	}
 	return 0;
 }
@@ -146,7 +144,8 @@ s32 nls_uni16s_to_sfn(struct super_block *sb, UNI_NAME_T *p_uniname, DOS_NAME_T 
 	i = 0;
 	while (i < DOS_NAME_LENGTH) {
 		if (i == 8) {
-			if (last_period == NULL) break;
+			if (last_period == NULL)
+				break;
 
 			if (uniname <= last_period) {
 				if (uniname < last_period)
@@ -172,9 +171,9 @@ s32 nls_uni16s_to_sfn(struct super_block *sb, UNI_NAME_T *p_uniname, DOS_NAME_T 
 			len = convert_uni_to_ch(nls, *uniname, buf, &lossy);
 
 			if (len > 1) {
-				if ((i >= 8) && ((i+len) > DOS_NAME_LENGTH)) {
+				if ((i >= 8) && ((i+len) > DOS_NAME_LENGTH))
 					break;
-				}
+
 				if ((i <  8) && ((i+len) > 8)) {
 					i = 8;
 					continue;
@@ -182,9 +181,8 @@ s32 nls_uni16s_to_sfn(struct super_block *sb, UNI_NAME_T *p_uniname, DOS_NAME_T 
 
 				lower = 0xFF;
 
-				for (j = 0; j < len; j++, i++) {
+				for (j = 0; j < len; j++, i++)
 					*(dosname+i) = *(buf+j);
-				}
 			} else { /* len == 1 */
 				if ((*buf >= 'a') && (*buf <= 'z')) {
 					*(dosname+i) = *buf - ('a' - 'A');
@@ -208,18 +206,18 @@ s32 nls_uni16s_to_sfn(struct super_block *sb, UNI_NAME_T *p_uniname, DOS_NAME_T 
 		uniname++;
 	}
 
-	if (*dosname == 0xE5) 
-			*dosname = 0x05;
-	if (*uniname != 0x0) 
-			lossy |= NLS_NAME_OVERLEN;
+	if (*dosname == 0xE5)
+		*dosname = 0x05;
+	if (*uniname != 0x0)
+		lossy |= NLS_NAME_OVERLEN;
 
-	if (upper & lower) 
-			p_dosname->name_case = 0xFF;
-	else 
-			p_dosname->name_case = lower;
+	if (upper & lower)
+		p_dosname->name_case = 0xFF;
+	else
+		p_dosname->name_case = lower;
 
-	if (p_lossy) 
-			*p_lossy = lossy;
+	if (p_lossy)
+		*p_lossy = lossy;
 	return i;
 }
 
@@ -266,7 +264,7 @@ s32 nls_sfn_to_uni16s(struct super_block *sb, DOS_NAME_T *p_dosname, UNI_NAME_T 
 
 	i = j = 0;
 	while (j < MAX_NAME_LENGTH) {
-		if (*(buf+i) == '\0') 
+		if (*(buf+i) == '\0')
 			break;
 
 		i += convert_ch_to_uni(nls, (buf+i), uniname, NULL);
@@ -291,7 +289,8 @@ static s32 __nls_utf16s_to_vfsname(struct super_block *sb, UNI_NAME_T *p_uniname
 	return len;
 }
 
-static s32 __nls_vfsname_to_utf16s(struct super_block *sb, const u8 *p_cstring, const s32 len, UNI_NAME_T *p_uniname, s32 *p_lossy)
+static s32 __nls_vfsname_to_utf16s(struct super_block *sb, const u8 *p_cstring,
+		const s32 len, UNI_NAME_T *p_uniname, s32 *p_lossy)
 {
 	s32 i, unilen, lossy = NLS_NAME_NO_LOSSY;
 	u16 upname[MAX_NAME_LENGTH+1];
@@ -307,7 +306,7 @@ static s32 __nls_vfsname_to_utf16s(struct super_block *sb, const u8 *p_cstring, 
 		return unilen;
 	}
 
-	if (unilen > MAX_NAME_LENGTH ) {
+	if (unilen > MAX_NAME_LENGTH) {
 		MMSG("%s: failed to vfsname_to_utf16(estr:ENAMETOOLONG) "
 			"vfsnamelen:%d, unilen:%d>%d",
 			__func__, len, unilen, MAX_NAME_LENGTH);
@@ -316,7 +315,7 @@ static s32 __nls_vfsname_to_utf16s(struct super_block *sb, const u8 *p_cstring, 
 
 	p_uniname->name_len = (u8)(unilen & 0xFF);
 
-	for (i=0; i<unilen; i++) {
+	for (i = 0; i < unilen; i++) {
 		if ((*uniname < 0x0020) || nls_wstrchr(bad_uni_chars, *uniname))
 			lossy |= NLS_NAME_LOSSY;
 
@@ -344,8 +343,8 @@ static s32 __nls_uni16s_to_vfsname(struct super_block *sb, UNI_NAME_T *p_uniname
 
 	i = 0;
 	while ((i < MAX_NAME_LENGTH) && (out_len < (buflen-1))) {
-		if (*uniname == (u16) '\0') 
-				break;
+		if (*uniname == (u16)'\0')
+			break;
 
 		len = convert_uni_to_ch(nls, *uniname, buf, NULL);
 
@@ -369,7 +368,8 @@ static s32 __nls_uni16s_to_vfsname(struct super_block *sb, UNI_NAME_T *p_uniname
 	return out_len;
 }
 
-static s32 __nls_vfsname_to_uni16s(struct super_block *sb, const u8 *p_cstring, const s32 len, UNI_NAME_T *p_uniname, s32 *p_lossy)
+static s32 __nls_vfsname_to_uni16s(struct super_block *sb, const u8 *p_cstring,
+		const s32 len, UNI_NAME_T *p_uniname, s32 *p_lossy)
 {
 	s32 i, unilen, lossy = NLS_NAME_NO_LOSSY;
 	u16 upname[MAX_NAME_LENGTH+1];
@@ -379,8 +379,8 @@ static s32 __nls_vfsname_to_uni16s(struct super_block *sb, const u8 *p_cstring, 
 	BUG_ON(!len);
 
 	i = unilen = 0;
-	while ( (unilen < MAX_NAME_LENGTH) && (i < len)) {
-		i += convert_ch_to_uni(nls, (u8*)(p_cstring+i), uniname, &lossy);
+	while ((unilen < MAX_NAME_LENGTH) && (i < len)) {
+		i += convert_ch_to_uni(nls, (u8 *)(p_cstring+i), uniname, &lossy);
 
 		if ((*uniname < 0x0020) || nls_wstrchr(bad_uni_chars, *uniname))
 			lossy |= NLS_NAME_LOSSY;
@@ -393,13 +393,13 @@ static s32 __nls_vfsname_to_uni16s(struct super_block *sb, const u8 *p_cstring, 
 
 	if (*(p_cstring+i) != '\0')
 		lossy |= NLS_NAME_OVERLEN;
-	
+
 	*uniname = (u16)'\0';
 	p_uniname->name_len = unilen;
 	p_uniname->name_hash =
 		calc_chksum_2byte((void *) upname, unilen<<1, 0, CS_DEFAULT);
 
-	if (p_lossy) 
+	if (p_lossy)
 		*p_lossy = lossy;
 
 	return unilen;
@@ -435,16 +435,16 @@ static s32 convert_ch_to_uni(struct nls_table *nls, u8 *ch, u16 *uni, s32 *lossy
 		return 1;
 	}
 
-	if ((len = nls->char2uni(ch, MAX_CHARSET_SIZE, uni)) < 0) {
+	len = nls->char2uni(ch, MAX_CHARSET_SIZE, uni);
+	if (len < 0) {
 		/* conversion failed */
-		DMSG("%s: fail to use nls \n", __func__);
+		DMSG("%s: fail to use nls\n", __func__);
 		if (lossy != NULL)
 			*lossy |= NLS_NAME_LOSSY;
 		*uni = (u16) '_';
-		if (!strcmp(nls->charset, "utf8")) 
+		if (!strcmp(nls->charset, "utf8"))
 			return 1;
-		else 
-			return 2;
+		return 2;
 	}
 
 	return len;
@@ -461,9 +461,10 @@ static s32 convert_uni_to_ch(struct nls_table *nls, u16 uni, u8 *ch, s32 *lossy)
 		return 1;
 	}
 
-	if ((len = nls->uni2char(uni, ch, MAX_CHARSET_SIZE)) < 0) {
+	len = nls->uni2char(uni, ch, MAX_CHARSET_SIZE);
+	if (len < 0) {
 		/* conversion failed */
-		DMSG("%s: fail to use nls \n", __func__);
+		DMSG("%s: fail to use nls\n", __func__);
 		if (lossy != NULL)
 			*lossy |= NLS_NAME_LOSSY;
 		ch[0] = '_';

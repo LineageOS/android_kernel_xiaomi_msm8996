@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -272,7 +270,7 @@ static inline void cache_init(struct extent_cache_id *cid, s32 fclus, u32 dclus)
 }
 
 s32 extent_get_clus(struct inode *inode, s32 cluster, s32 *fclus,
-	       	u32 *dclus, u32 *last_dclus, s32 allow_eof)
+		u32 *dclus, u32 *last_dclus, s32 allow_eof)
 {
 	struct super_block *sb = inode->i_sb;
 	FS_INFO_T *fsi = &(SDFAT_SB(sb)->fsi);
@@ -347,11 +345,11 @@ s32 extent_get_clus(struct inode *inode, s32 cluster, s32 *fclus,
 
 			break;
 		}
-		
+
 		if (!cache_contiguous(&cid, *dclus))
 			cache_init(&cid, *fclus, *dclus);
 	}
-	
+
 	extent_cache_add(inode, &cid);
 	return 0;
 }

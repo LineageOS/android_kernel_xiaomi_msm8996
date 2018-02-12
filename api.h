@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _SDFAT_API_H
@@ -83,13 +81,13 @@ extern "C" {
 /*  NLS Type Definitions                                                    */
 /*----------------------------------------------------------------------*/
 
-/* DOS name stucture */
+/* DOS name structure */
 typedef struct {
 	u8       name[DOS_NAME_LENGTH];
 	u8       name_case;
 } DOS_NAME_T;
 
-/* unicode name stucture */
+/* unicode name structure */
 typedef struct {
 	u16      name[MAX_NAME_LENGTH+3]; /* +3 for null and for converting */
 	u16      name_hash;
@@ -187,8 +185,8 @@ typedef struct {
 } FILE_ID_T;
 
 typedef struct {
-	s8* lfn;
-	s8* sfn;
+	s8 *lfn;
+	s8 *sfn;
 	s32 lfnbuf_len;	//usally MAX_UNINAME_BUF_SIZE
 	s32 sfnbuf_len; //usally MAX_DOSNAME_BUF_SIZE, used only for vfat, not for exfat
 } DENTRY_NAMEBUF_T;
@@ -225,31 +223,31 @@ typedef struct __FATENT_OPS_T {
 } FATENT_OPS_T;
 
 typedef struct {
-	s32      (*alloc_cluster)(struct super_block *sb, s32 num_alloc, CHAIN_T *p_chain, int dest);
-	s32      (*free_cluster)(struct super_block *sb, CHAIN_T *p_chain, s32 do_relse);
-	s32      (*count_used_clusters)(struct super_block *sb, u32* ret_count);
-	s32      (*init_dir_entry)(struct super_block *sb, CHAIN_T *p_dir, s32 entry, u32 type,u32 start_clu, u64 size);
-	s32      (*init_ext_entry)(struct super_block *sb, CHAIN_T *p_dir, s32 entry, s32 num_entries, UNI_NAME_T *p_uniname, DOS_NAME_T *p_dosname);
-	s32      (*find_dir_entry)(struct super_block *sb, FILE_ID_T *fid, CHAIN_T *p_dir, UNI_NAME_T *p_uniname, s32 num_entries, DOS_NAME_T *p_dosname, u32 type);
-	s32      (*delete_dir_entry)(struct super_block *sb, CHAIN_T *p_dir, s32 entry, s32 offset, s32 num_entries);
-	void     (*get_uniname_from_ext_entry)(struct super_block *sb, CHAIN_T *p_dir, s32 entry, u16 *uniname);
-	s32      (*count_ext_entries)(struct super_block *sb, CHAIN_T *p_dir, s32 entry, DENTRY_T *p_entry);
-	s32      (*calc_num_entries)(UNI_NAME_T *p_uniname);
-	u32      (*get_entry_type)(DENTRY_T *p_entry);
-	void     (*set_entry_type)(DENTRY_T *p_entry, u32 type);
-	u32      (*get_entry_attr)(DENTRY_T *p_entry);
-	void     (*set_entry_attr)(DENTRY_T *p_entry, u32 attr);
-	u8       (*get_entry_flag)(DENTRY_T *p_entry);
-	void     (*set_entry_flag)(DENTRY_T *p_entry, u8 flag);
-	u32      (*get_entry_clu0)(DENTRY_T *p_entry);
-	void     (*set_entry_clu0)(DENTRY_T *p_entry, u32 clu0);
-	u64      (*get_entry_size)(DENTRY_T *p_entry);
-	void     (*set_entry_size)(DENTRY_T *p_entry, u64 size);
-	void     (*get_entry_time)(DENTRY_T *p_entry, TIMESTAMP_T *tp, u8 mode);
-	void     (*set_entry_time)(DENTRY_T *p_entry, TIMESTAMP_T *tp, u8 mode);
-	u32      (*get_au_stat)(struct super_block *sb, s32 mode);
+	s32      (*alloc_cluster)(struct super_block *, s32, CHAIN_T *, int);
+	s32      (*free_cluster)(struct super_block *, CHAIN_T *, s32);
+	s32      (*count_used_clusters)(struct super_block *, u32 *);
+	s32      (*init_dir_entry)(struct super_block *, CHAIN_T *, s32, u32, u32, u64);
+	s32      (*init_ext_entry)(struct super_block *, CHAIN_T *, s32, s32, UNI_NAME_T *, DOS_NAME_T *);
+	s32      (*find_dir_entry)(struct super_block *, FILE_ID_T *, CHAIN_T *, UNI_NAME_T *, s32, DOS_NAME_T *, u32);
+	s32      (*delete_dir_entry)(struct super_block *, CHAIN_T *, s32, s32, s32);
+	void     (*get_uniname_from_ext_entry)(struct super_block *, CHAIN_T *, s32, u16 *);
+	s32      (*count_ext_entries)(struct super_block *, CHAIN_T *, s32, DENTRY_T *);
+	s32      (*calc_num_entries)(UNI_NAME_T *);
+	s32      (*check_max_dentries)(FILE_ID_T *);
+	u32      (*get_entry_type)(DENTRY_T *);
+	void     (*set_entry_type)(DENTRY_T *, u32);
+	u32      (*get_entry_attr)(DENTRY_T *);
+	void     (*set_entry_attr)(DENTRY_T *, u32);
+	u8       (*get_entry_flag)(DENTRY_T *);
+	void     (*set_entry_flag)(DENTRY_T *, u8);
+	u32      (*get_entry_clu0)(DENTRY_T *);
+	void     (*set_entry_clu0)(DENTRY_T *, u32);
+	u64      (*get_entry_size)(DENTRY_T *);
+	void     (*set_entry_size)(DENTRY_T *, u64);
+	void     (*get_entry_time)(DENTRY_T *, TIMESTAMP_T *, u8);
+	void     (*set_entry_time)(DENTRY_T *, TIMESTAMP_T *, u8);
+	u32      (*get_au_stat)(struct super_block *, s32);
 } FS_FUNC_T;
-
 
 typedef struct __FS_INFO_T {
 	s32	 bd_opened;              // opened or not
@@ -270,7 +268,7 @@ typedef struct __FS_INFO_T {
 	u32      dentries_in_root;       // num of dentries in root dir
 	u32      dentries_per_clu;       // num of dentries per cluster
 	u32      vol_flag;               // volume dirty flag
-	struct buffer_head *pbr_bh;      // buffer_head of PBR sector 
+	struct buffer_head *pbr_bh;      // buffer_head of PBR sector
 
 	u32      map_clu;                // allocation bitmap start cluster
 	u32      map_sectors;            // num of allocation bitmap sectors
@@ -334,7 +332,8 @@ s32 fsapi_read_link(struct inode *inode, FILE_ID_T *fid, void *buffer, u64 count
 s32 fsapi_write_link(struct inode *inode, FILE_ID_T *fid, void *buffer, u64 count, u64 *wcount);
 s32 fsapi_remove(struct inode *inode, FILE_ID_T *fid); /* unlink and truncate */
 s32 fsapi_truncate(struct inode *inode, u64 old_size, u64 new_size);
-s32 fsapi_rename(struct inode *old_parent_inode, FILE_ID_T *fid, struct inode *new_parent_inode, struct dentry *new_dentry);
+s32 fsapi_rename(struct inode *old_parent_inode, FILE_ID_T *fid,
+		struct inode *new_parent_inode, struct dentry *new_dentry);
 s32 fsapi_unlink(struct inode *inode, FILE_ID_T *fid);
 s32 fsapi_read_inode(struct inode *inode, DIR_ENTRY_T *info);
 s32 fsapi_write_inode(struct inode *inode, DIR_ENTRY_T *info, int sync);

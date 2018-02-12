@@ -12,9 +12,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- *  MA  02110-1301, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _UPCASE_H
@@ -30,11 +28,11 @@
 
 static inline u16 get_col_index(u16 i)
 {
-	        return i >> LOW_INDEX_BIT;
+	return i >> LOW_INDEX_BIT;
 }
 static inline u16 get_row_index(u16 i)
 {
-	        return i & ~HIGH_INDEX_MASK;
+	return i & ~HIGH_INDEX_MASK;
 }
 
 
