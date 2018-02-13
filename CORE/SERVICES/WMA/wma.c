@@ -10382,11 +10382,11 @@ static inline void wma_get_link_probe_timeout(struct sAniSirGlobal *mac,
 /**
  * wma_verify_rate_code() - verify if rate code is valid.
  * @rate_code:     rate code
- * @curr_band:     current band that device working on
+ * @band:     band information
  *
  * Return: verify result
  */
-static bool wma_verify_rate_code(u_int32_t rate_code, uint8_t curr_band)
+static bool wma_verify_rate_code(u_int32_t rate_code, uint8_t band)
 {
 	uint8_t preamble, nss, rate;
 	bool valid = true;
@@ -10397,7 +10397,7 @@ static bool wma_verify_rate_code(u_int32_t rate_code, uint8_t curr_band)
 
 	switch (preamble) {
 	case WMI_RATE_PREAMBLE_CCK:
-		if (nss != 0 || rate > 3 || curr_band == VOS_BAND_5GHZ)
+		if (nss != 0 || rate > 3 || band == VOS_BAND_5GHZ)
 			valid = false;
 		break;
 	case WMI_RATE_PREAMBLE_OFDM:
@@ -10435,8 +10435,7 @@ static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id)
 	uint32_t cfg_val;
 	int ret;
 	uint32_t per_band_mgmt_tx_rate = 0;
-	uint32_t current_chan;
-	uint8_t current_band;
+	uint8_t band = 0;
 	struct sAniSirGlobal *mac =
 	    (struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
 						       wma->vos_context);
@@ -10446,13 +10445,11 @@ static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id)
 		return;
 	}
 
-	current_chan = vos_freq_to_chan(wma->interfaces[vdev_id].mhz);
-	current_band = vos_chan_to_band(current_chan);
-
 	if (wlan_cfgGetInt(mac, WNI_CFG_RATE_FOR_TX_MGMT,
 			   &cfg_val) == eSIR_SUCCESS) {
+		band = 0;
 		if ((cfg_val == WNI_CFG_RATE_FOR_TX_MGMT_STADEF) ||
-		    !wma_verify_rate_code(cfg_val, current_band)) {
+		    !wma_verify_rate_code(cfg_val, band)) {
 			WMA_LOGE("invalid rate code, ignore.");
 		} else {
 			ret = wmi_unified_vdev_set_param_send(
@@ -10471,8 +10468,10 @@ static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id)
 
 	if (wlan_cfgGetInt(mac, WNI_CFG_RATE_FOR_TX_MGMT_2G,
 			   &cfg_val) == eSIR_SUCCESS) {
+		band = VOS_BAND_2GHZ;
 		if ((cfg_val == WNI_CFG_RATE_FOR_TX_MGMT_2G_STADEF) ||
-		    !wma_verify_rate_code(cfg_val, current_band)) {
+		    !wma_verify_rate_code(cfg_val, band)) {
+			WMA_LOGD("use default 2G MGMT rate.");
 			per_band_mgmt_tx_rate &=
 			    ~(1 << TX_MGMT_RATE_2G_ENABLE_OFFSET);
 		} else {
@@ -10487,8 +10486,10 @@ static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id)
 
 	if (wlan_cfgGetInt(mac, WNI_CFG_RATE_FOR_TX_MGMT_5G,
 			   &cfg_val) == eSIR_SUCCESS) {
+		band = VOS_BAND_5GHZ;
 		if ((cfg_val == WNI_CFG_RATE_FOR_TX_MGMT_5G_STADEF) ||
-		    !wma_verify_rate_code(cfg_val, current_band)) {
+		    !wma_verify_rate_code(cfg_val, band)) {
+			WMA_LOGD("use default 5G MGMT rate.");
 			per_band_mgmt_tx_rate &=
 			    ~(1 << TX_MGMT_RATE_5G_ENABLE_OFFSET);
 		} else {
