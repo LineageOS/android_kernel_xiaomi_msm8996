@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4ba2191c_15ea65e4",
+        "filename": "drivers/input/touchscreen/ft5x46/ft5x46_ts.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 14719
+      },
+      "writtenOn": "2018-02-14T23:19:39Z",
+      "side": 1,
+      "message": "What the fuck?\nWhy?\nJust ifdef the if",
+      "revId": "42a64be1431033426c593c50f83a7c5586dcfcc8",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
