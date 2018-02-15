@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1513,5 +1513,12 @@ struct hal_apfind_request
     u_int8_t  request_data[];
 };
 #endif
+
+struct hal_mnt_filter_type_request
+{
+    u_int32_t vdev_id;
+    u_int16_t request_data_len;
+    u_int8_t  request_data[];
+};
 
 #endif /* _HALMSGAPI_H_ */
