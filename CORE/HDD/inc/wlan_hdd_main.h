@@ -2133,6 +2133,7 @@ struct hdd_context_s
 #endif
     /* flag to show whether moniotr mode is enabled */
     bool is_mon_enable;
+    v_MACADDR_t hw_macaddr;
 };
 
 /*---------------------------------------------------------------------------
