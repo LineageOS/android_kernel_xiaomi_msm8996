@@ -34,6 +34,24 @@
       "revId": "42a64be1431033426c593c50f83a7c5586dcfcc8",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "97b4cf11_019995be",
+        "filename": "drivers/input/touchscreen/ft5x46/ft5x46_ts.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 16
+      },
+      "writtenOn": "2018-02-15T00:03:03Z",
+      "side": 1,
+      "message": "We discussed it yesterday and to me this code is more clear than ifdeffing away the if statement, even if it requires a few extra lines of code. The others didn\u0027t object.",
+      "parentUuid": "4ba2191c_15ea65e4",
+      "revId": "42a64be1431033426c593c50f83a7c5586dcfcc8",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
     }
   ]
 }
