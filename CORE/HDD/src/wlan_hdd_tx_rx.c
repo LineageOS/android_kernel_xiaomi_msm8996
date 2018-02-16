@@ -1143,29 +1143,37 @@ bool drop_ip6_mcast(struct sk_buff *skb)
  * For HL monitor mode, radiotap is appended to tail when update radiotap
  * info in htt layer. Need to copy it ahead of skb before indicating to OS.
  */
-static void hdd_move_radiotap_header_forward(struct sk_buff *skb)
+static VOS_STATUS hdd_move_radiotap_header_forward(struct sk_buff *skb)
 {
 	adf_nbuf_t msdu = (adf_nbuf_t)skb;
 	struct ieee80211_radiotap_header *rthdr;
 	uint8_t rtap_len;
 
-	adf_nbuf_put_tail(msdu,
+	if (!adf_nbuf_put_tail(msdu,
+		sizeof(struct ieee80211_radiotap_header)))
+		return VOS_STATUS_E_NOMEM;
+	else {
+		rthdr = (struct ieee80211_radiotap_header *)
+		(adf_nbuf_data(msdu) + adf_nbuf_len(msdu) -
 		sizeof(struct ieee80211_radiotap_header));
-	rthdr = (struct ieee80211_radiotap_header *)
-	    (adf_nbuf_data(msdu) + adf_nbuf_len(msdu) -
-	     sizeof(struct ieee80211_radiotap_header));
-	rtap_len = rthdr->it_len;
-	adf_nbuf_put_tail(msdu,
+		rtap_len = rthdr->it_len;
+		if (!adf_nbuf_put_tail(msdu,
 			  rtap_len -
-			  sizeof(struct ieee80211_radiotap_header));
-	adf_nbuf_push_head(msdu, rtap_len);
-	adf_os_mem_copy(adf_nbuf_data(msdu), rthdr, rtap_len);
-	adf_nbuf_trim_tail(msdu, rtap_len);
+			  sizeof(struct ieee80211_radiotap_header)))
+			return VOS_STATUS_E_NOMEM;
+		else {
+			adf_nbuf_push_head(msdu, rtap_len);
+			adf_os_mem_copy(adf_nbuf_data(msdu), rthdr, rtap_len);
+			adf_nbuf_trim_tail(msdu, rtap_len);
+		}
+	}
+	return VOS_STATUS_SUCCESS;
 }
 #else
-static inline void hdd_move_radiotap_header_forward(struct sk_buff *skb)
+static inline VOS_STATUS hdd_move_radiotap_header_forward(struct sk_buff *skb)
 {
     /* no-op */
+	return VOS_STATUS_SUCCESS;
 }
 #endif
 
@@ -1218,10 +1226,13 @@ VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 	/* walk the chain until all are processed */
 	skb = (struct sk_buff *) rx_buf;
 	while (NULL != skb) {
-		hdd_move_radiotap_header_forward(skb);
-
 		skb_next = skb->next;
 		skb->dev = adapter->dev;
+
+		if(hdd_move_radiotap_header_forward(skb)) {
+			skb = skb_next;
+			continue;
+		}
 
 		++adapter->hdd_stats.hddTxRxStats.rxPackets[cpu_index];
 		++adapter->stats.rx_packets;
