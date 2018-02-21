@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3357,6 +3357,50 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_THERMAL_TEMP_MAX_LEVEL3_MIN,
                  CFG_THERMAL_TEMP_MAX_LEVEL3_MAX ),
 
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+   REG_VARIABLE( CFG_THERMAL_SHUTDOWN_ENABLE_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, thermal_shutdown_enabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_THERMAL_SHUTDOWN_ENABLE_DEFAULT,
+                 CFG_THERMAL_SHUTDOWN_ENABLE_MIN,
+                 CFG_THERMAL_SHUTDOWN_ENABLE_MAX),
+
+   REG_VARIABLE( CFG_THERMAL_SHUTDOWN_AUTO_ENABLE_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, thermal_shutdown_auto_enabled,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_THERMAL_SHUTDOWN_AUTO_ENABLE_DEFAULT,
+                 CFG_THERMAL_SHUTDOWN_AUTO_ENABLE_MIN,
+                 CFG_THERMAL_SHUTDOWN_AUTO_ENABLE_MAX),
+
+   REG_VARIABLE( CFG_THERMAL_SHUTDOWN_TEMP_RESUME_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, thermal_resume_threshold,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_THERMAL_SHUTDOWN_TEMP_RESUME_DEFAULT,
+                 CFG_THERMAL_SHUTDOWN_TEMP_RESUME_MIN,
+                 CFG_THERMAL_SHUTDOWN_TEMP_RESUME_MAX),
+
+   REG_VARIABLE( CFG_THERMAL_SHUTDOWN_TEMP_WARNING_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, thermal_warning_threshold,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_THERMAL_SHUTDOWN_TEMP_WARNING_DEFAULT,
+                 CFG_THERMAL_SHUTDOWN_TEMP_WARNING_MIN,
+                 CFG_THERMAL_SHUTDOWN_TEMP_WARNING_MAX),
+
+   REG_VARIABLE( CFG_THERMAL_SHUTDOWN_TEMP_SUSPEND_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, thermal_suspend_threshold,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_THERMAL_SHUTDOWN_TEMP_SUSPEND_DEFAULT,
+                 CFG_THERMAL_SHUTDOWN_TEMP_SUSPEND_MIN,
+                 CFG_THERMAL_SHUTDOWN_TEMP_SUSPEND_MAX),
+
+   REG_VARIABLE( CFG_THERMAL_SAMPLE_RATE_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, thermal_sample_rate,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_THERMAL_SAMPLE_RATE_DEFAULT,
+                 CFG_THERMAL_SAMPLE_RATE_MIN,
+                 CFG_THERMAL_SAMPLE_RATE_MAX),
+#endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
+
   REG_VARIABLE( CFG_SET_TXPOWER_LIMIT2G_NAME , WLAN_PARAM_Integer,
                 hdd_config_t, TxPower2g,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -5195,6 +5239,13 @@ REG_TABLE_ENTRY g_registry_table[] =
 		CFG_CCA_THRESHOLD_5G_DEFAULT,
 		CFG_CCA_THRESHOLD_5G_MIN,
 		CFG_CCA_THRESHOLD_5G_MAX),
+
+	REG_VARIABLE(CFG_ENABLE_MONITOR_ON_STA, WLAN_PARAM_Integer,
+		     hdd_config_t, mon_on_sta_enable,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_ENABLE_MONITOR_ON_STA_DEFAULT,
+		     CFG_ENABLE_MONITOR_ON_STA_MIN,
+		     CFG_ENABLE_MONITOR_ON_STA_MAX),
 };
 
 

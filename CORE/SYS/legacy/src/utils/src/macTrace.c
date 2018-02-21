@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -565,6 +565,9 @@ tANI_U8* macTraceGetSmeMsgString(tANI_U16 smeMsg)
 	CASE_RETURN_STRING(eWNI_SME_EPNO_NETWORK_FOUND_IND);
 #endif
 	CASE_RETURN_STRING(eWNI_SME_SET_THERMAL_LEVEL_IND);
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+	CASE_RETURN_STRING(eWNI_SME_THERMAL_TEMPERATURE_IND);
+#endif
 	CASE_RETURN_STRING(eWNI_SME_OCB_SET_CONFIG_RSP);
 	CASE_RETURN_STRING(eWNI_SME_OCB_GET_TSF_TIMER_RSP);
 	CASE_RETURN_STRING(eWNI_SME_DCC_GET_STATS_RSP);

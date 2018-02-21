@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -386,7 +386,9 @@ enum eWniMsgTypes
 #endif
     eWNI_SME_FW_STATUS_IND,
     eWNI_SME_SET_THERMAL_LEVEL_IND,
-
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+    eWNI_SME_THERMAL_TEMPERATURE_IND,
+#endif
     eWNI_SME_OCB_SET_CONFIG_RSP,
     eWNI_SME_OCB_GET_TSF_TIMER_RSP,
     eWNI_SME_DCC_GET_STATS_RSP,

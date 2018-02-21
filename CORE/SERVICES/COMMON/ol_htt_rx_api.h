@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015, 2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -892,4 +892,19 @@ htt_rx_offload_paddr_msdu_pop_ll(
     u_int8_t *fw_desc,
     adf_nbuf_t *head_buf,
     adf_nbuf_t *tail_buf);
+
+/**
+ * @brief parse the htt msg to get necessary info
+ * @param pdev - the HTT instance the rx data was received on
+ * @param rx_ind_msg - the nbuf pointer containing the htt msg content
+ * @param head_buf - reference to the head buffer
+ * @param tail_buf - reference to the tail buffer
+ */
+int
+htt_rx_mac_header_mon_process(
+	htt_pdev_handle pdev,
+	adf_nbuf_t rx_ind_msg,
+	adf_nbuf_t *head_msdu,
+	adf_nbuf_t *tail_msdu);
+
 #endif /* _OL_HTT_RX_API__H_ */

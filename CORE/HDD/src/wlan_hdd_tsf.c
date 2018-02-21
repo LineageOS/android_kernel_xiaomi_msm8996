@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -44,6 +44,9 @@ enum hdd_tsf_op_result {
 	HDD_TSF_OP_SUCC,
 	HDD_TSF_OP_FAIL
 };
+
+#define WLAN_HDD_CAPTURE_TSF_REQ_TIMEOUT_MS 500
+static void hdd_capture_req_timer_expired_handler(void *arg);
 
 #ifdef WLAN_FEATURE_TSF_PLUS
 static inline void hdd_set_th_sync_status(hdd_adapter_t *adapter,
@@ -173,16 +176,24 @@ static enum hdd_tsf_op_result hdd_capture_tsf_internal(
 	adapter->cur_target_time = 0;
 
 	buf[0] = TSF_RETURN;
+
+	vos_timer_init(&adapter->host_capture_req_timer, VOS_TIMER_TYPE_SW,
+		       hdd_capture_req_timer_expired_handler,
+		       (void *)adapter);
+	vos_timer_start(&adapter->host_capture_req_timer,
+			WLAN_HDD_CAPTURE_TSF_REQ_TIMEOUT_MS);
+
 	ret = process_wma_set_command((int)adapter->sessionId,
 			(int)GEN_PARAM_CAPTURE_TSF,
 			adapter->sessionId,
 			GEN_CMD);
-
 	if (0 != ret) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, FL("cap tsf fail"));
 		buf[0] = TSF_CAPTURE_FAIL;
 		hddctx->cap_tsf_context = NULL;
 		adf_os_atomic_set(&hddctx->cap_tsf_flag, 0);
+		vos_timer_stop(&adapter->host_capture_req_timer);
+		vos_timer_destroy(&adapter->host_capture_req_timer);
 		return HDD_TSF_OP_SUCC;
 	}
 	hddLog(VOS_TRACE_LEVEL_INFO,
@@ -275,6 +286,7 @@ static enum hdd_tsf_op_result hdd_indicate_tsf_internal(
 #define MAX_UINT64 ((uint64_t)0xffffffffffffffff)
 #define MASK_UINT32 0xffffffff
 #define CAP_TSF_TIMER_FIX_SEC 1
+#define WLAN_HDD_CAPTURE_TSF_RESYNC_INTERVAL 9
 
 /**
  * TS_STATUS - timestamp status
@@ -720,6 +732,55 @@ static irqreturn_t hdd_tsf_captured_irq_handler(int irq, void *arg)
 	return IRQ_HANDLED;
 }
 
+static void hdd_capture_req_timer_expired_handler(void *arg)
+{
+	hdd_adapter_t *adapter;
+	hdd_context_t *hdd_ctx;
+	VOS_TIMER_STATE capture_req_timer_status;
+	int interval;
+	int ret;
+
+	if (!arg)
+		return;
+	adapter = (hdd_adapter_t *)arg;
+
+	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	if (!hdd_ctx) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("invalid hdd context"));
+		return;
+	}
+
+	if (!hdd_tsf_is_initialized(adapter)) {
+		vos_timer_destroy(&adapter->host_capture_req_timer);
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("tsf not init"));
+		return;
+	}
+
+	spin_lock_bh(&adapter->host_target_sync_lock);
+	adapter->cur_host_time = 0;
+	adapter->cur_target_time = 0;
+	spin_unlock_bh(&adapter->host_target_sync_lock);
+
+	ret = hdd_reset_tsf_gpio(adapter);
+	if (0 != ret)
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				FL("reset tsf gpio fail"));
+	hdd_ctx->cap_tsf_context = NULL;
+	adf_os_atomic_set(&hdd_ctx->cap_tsf_flag, 0);
+	vos_timer_destroy(&adapter->host_capture_req_timer);
+
+	capture_req_timer_status =
+		vos_timer_getCurrentState(&adapter->host_target_sync_timer);
+	if (capture_req_timer_status == VOS_TIMER_STATE_UNUSED)
+	{
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("invalid timer status"));
+		return;
+	}
+	interval = WLAN_HDD_CAPTURE_TSF_RESYNC_INTERVAL * MSEC_PER_SEC;
+	vos_timer_start(&adapter->host_target_sync_timer, interval);
+}
+
 static enum hdd_tsf_op_result hdd_tsf_sync_init(hdd_adapter_t *adapter)
 {
 	VOS_STATUS ret;
@@ -1079,6 +1140,31 @@ static inline int __hdd_capture_tsf(hdd_adapter_t *adapter,
 		HDD_TSF_OP_SUCC ? 0 : -EINVAL);
 }
 
+static void hdd_capture_req_timer_expired_handler(void *arg)
+{
+	hdd_adapter_t *adapter;
+	hdd_context_t *hdd_ctx;
+	int ret;
+
+	if (!arg)
+		return;
+	adapter = (hdd_adapter_t *)arg;
+
+	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	if (!hdd_ctx) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("invalid hdd context"));
+		return;
+	}
+	hddLog(VOS_TRACE_LEVEL_WARN, FL("tsf ind timeout"));
+	adapter->cur_target_time = 0;
+	ret = hdd_reset_tsf_gpio(adapter);
+	if (0 != ret)
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("reset tsf gpio fail"));
+	hdd_ctx->cap_tsf_context = NULL;
+	adf_os_atomic_set(&hdd_ctx->cap_tsf_flag, 0);
+	vos_timer_destroy(&adapter->host_capture_req_timer);
+}
+
 static inline
 enum hdd_tsf_op_result wlan_hdd_tsf_plus_init(hdd_context_t *hdd_ctx)
 {
@@ -1120,6 +1206,7 @@ static int hdd_get_tsf_cb(void *pcb_cxt, struct stsf *ptsf)
 	hdd_context_t *hddctx;
 	hdd_adapter_t *adapter;
 	int status;
+	VOS_TIMER_STATE capture_req_timer_status;
 
 	if (pcb_cxt == NULL || ptsf == NULL) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -1145,6 +1232,20 @@ static int hdd_get_tsf_cb(void *pcb_cxt, struct stsf *ptsf)
 			FL("tsf is not init, ignore tsf event"));
 		return -EINVAL;
 	}
+
+	capture_req_timer_status =
+		vos_timer_getCurrentState(&adapter->host_capture_req_timer);
+	if (capture_req_timer_status == VOS_TIMER_STATE_UNUSED)
+	{
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("invalid timer status"));
+		return -EINVAL;
+	}
+	vos_timer_stop(&adapter->host_capture_req_timer);
+	status = vos_timer_destroy(&adapter->host_capture_req_timer);
+	if (status != VOS_STATUS_SUCCESS)
+		hddLog(VOS_TRACE_LEVEL_WARN,
+		       FL("destroy cap req timer fail, ret: %d"),
+		       status);
 
 	hddLog(VOS_TRACE_LEVEL_INFO,
 		FL("tsf cb handle event, device_mode is %d"),

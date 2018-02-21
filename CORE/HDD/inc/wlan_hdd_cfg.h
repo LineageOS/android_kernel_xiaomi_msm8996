@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2260,6 +2260,139 @@ typedef enum
 #define CFG_THERMAL_TEMP_MAX_LEVEL3_MAX       ( 1000 )
 #define CFG_THERMAL_TEMP_MAX_LEVEL3_DEFAULT   ( 0 )
 
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+/*
+ * <ini>
+ * gThermalShutdownEnable - Enable/Disable Thermal Shutdown feature to protect
+                            IC too hot and die
+ * @Min: 0
+ * @Max: 1
+ * @Default: 1
+ *
+ * This ini is used to enable/disable Thermal Shutdown feature
+ *
+ *
+ * Supported Feature: Thermal Shutdown
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_THERMAL_SHUTDOWN_ENABLE_NAME      "gThermalShutdownEnable"
+#define CFG_THERMAL_SHUTDOWN_ENABLE_MIN       ( 0 )
+#define CFG_THERMAL_SHUTDOWN_ENABLE_MAX       ( 1 )
+#define CFG_THERMAL_SHUTDOWN_ENABLE_DEFAULT   ( 1 )
+
+/*
+ * <ini>
+ * gThermalShutdownAutoEnable - Enable/Disable Automatic Thermal Shutdown
+ * @Min: 0
+ * @Max: 1
+ * @Default: 1
+ *
+ * In Automatic mode, host driver send the suspend command if the condition is
+ * meet, or else the command is send by host app.
+ *
+ * Supported Feature: Thermal Shutdown
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_THERMAL_SHUTDOWN_AUTO_ENABLE_NAME      "gThermalShutdownAutoEnable"
+#define CFG_THERMAL_SHUTDOWN_AUTO_ENABLE_MIN       ( 0 )
+#define CFG_THERMAL_SHUTDOWN_AUTO_ENABLE_MAX       ( 1 )
+#define CFG_THERMAL_SHUTDOWN_AUTO_ENABLE_DEFAULT   ( 1 )
+
+/*
+ * <ini>
+ * gThermalShutdownTempSuspend - Temperature threshold of suspend
+ * @Min: 0
+ * @Max: 1000
+ * @Default: 117
+ *
+ * If the reported temperature from firmware is higher than this threshold,
+ * the suspend command will be sent to shutdown the target.
+ *
+ * Supported Feature: Thermal Shutdown
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_THERMAL_SHUTDOWN_TEMP_SUSPEND_NAME      "gThermalShutdownTempSuspend"
+#define CFG_THERMAL_SHUTDOWN_TEMP_SUSPEND_MIN       ( 0 )
+#define CFG_THERMAL_SHUTDOWN_TEMP_SUSPEND_MAX       ( 1000 )
+#define CFG_THERMAL_SHUTDOWN_TEMP_SUSPEND_DEFAULT   ( 117 )
+
+/*
+ * <ini>
+ * gThermalShutdownTempWarning - Temperature threshold of warning.
+ * @Min: 0
+ * @Max: 1000
+ * @Default: 115
+ *
+ * Firmware report temperature to host as indication if the temperature is
+ * higher than this threshold.
+ *
+ * Supported Feature: Thermal Shutdown
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_THERMAL_SHUTDOWN_TEMP_WARNING_NAME      "gThermalShutdownTempWarning"
+#define CFG_THERMAL_SHUTDOWN_TEMP_WARNING_MIN       ( 0 )
+#define CFG_THERMAL_SHUTDOWN_TEMP_WARNING_MAX       ( 1000 )
+#define CFG_THERMAL_SHUTDOWN_TEMP_WARNING_DEFAULT   ( 115 )
+
+/*
+ * <ini>
+ * gThermalShutdownTempResume - Temperature threshold of resume
+ * @Min: 0
+ * @Max: 1000
+ * @Default: 113
+ *
+ * If the reported temperature from firmware is lower than this threshold,
+ * the resume command will be sent to shutdown the target.
+ *
+ * Supported Feature: Thermal Shutdown
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_THERMAL_SHUTDOWN_TEMP_RESUME_NAME      "gThermalShutdownTempResume"
+#define CFG_THERMAL_SHUTDOWN_TEMP_RESUME_MIN       ( 0 )
+#define CFG_THERMAL_SHUTDOWN_TEMP_RESUME_MAX       ( 1000 )
+#define CFG_THERMAL_SHUTDOWN_TEMP_RESUME_DEFAULT   ( 113 )
+
+/*
+ * <ini>
+ * gThermalSampleRate - The sample rate of temperature for firmware
+ * @Min: 1000
+ * @Max: 10000
+ * @Default: 5000
+ *
+ * Thermal Sample Rate (in milliseconds) used by FW to sample temperature of IC
+ *
+ *
+ * Supported Feature: Thermal Shutdown
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_THERMAL_SAMPLE_RATE_NAME      "gThermalSampleRate"
+#define CFG_THERMAL_SAMPLE_RATE_MIN       ( 1000 )
+#define CFG_THERMAL_SAMPLE_RATE_MAX       ( 10000 )
+#define CFG_THERMAL_SAMPLE_RATE_DEFAULT   ( 5000 )
+#endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
 
 /*
  * Enable/Disable Modulated DTIM feature
@@ -4908,6 +5041,26 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_CCA_THRESHOLD_5G_MAX     (127)
 #define CFG_CCA_THRESHOLD_5G_DEFAULT (28)
 
+/*
+ * <ini>
+ * gEnableMonOnSta - extend the monitor capability for STA
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * this is used to control monitor feature for STA.
+ *
+ * Related: none
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_ENABLE_MONITOR_ON_STA	  "gEnableMonOnSta"
+#define CFG_ENABLE_MONITOR_ON_STA_MIN     (0)
+#define CFG_ENABLE_MONITOR_ON_STA_MAX     (1)
+#define CFG_ENABLE_MONITOR_ON_STA_DEFAULT (0)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -5404,6 +5557,17 @@ struct hdd_config {
    v_U16_t                     thermalTempMaxLevel2;
    v_U16_t                     thermalTempMinLevel3;
    v_U16_t                     thermalTempMaxLevel3;
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+   /* Thermal Shutdown feature is enabled or not. */
+   bool                    thermal_shutdown_enabled;
+   /* Thermal Shutdown is autonomous in driver or requested by user app. */
+   bool                    thermal_shutdown_auto_enabled;
+   uint16_t                     thermal_resume_threshold;
+   uint16_t                     thermal_warning_threshold;
+   uint16_t                     thermal_suspend_threshold;
+   uint16_t                     thermal_sample_rate;
+#endif
+
    v_U32_t                     TxPower2g;
    v_U32_t                     TxPower5g;
    v_U32_t                     gEnableDebugLog;
@@ -5792,6 +5956,7 @@ struct hdd_config {
    bool      cca_threshold_enable;
    uint32_t  cca_threshold_2g;
    uint32_t  cca_threshold_5g;
+   uint8_t                     mon_on_sta_enable;
 };
 
 typedef struct hdd_config hdd_config_t;

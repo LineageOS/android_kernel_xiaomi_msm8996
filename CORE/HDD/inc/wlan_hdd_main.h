@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -109,6 +109,7 @@
 
 /** Maximum time(ms)to wait for disconnect to complete **/
 #define WLAN_WAIT_TIME_DISCONNECT  5000
+#define WLAN_WAIT_DISCONNECT_ALREADY_IN_PROGRESS  1000
 #define WLAN_WAIT_TIME_STATS       800
 #define WLAN_WAIT_TIME_POWER       800
 #define WLAN_WAIT_TIME_COUNTRY     1000
@@ -1237,6 +1238,9 @@ struct hdd_adapter_s
    sHddMib_t  hdd_mib;
 
    tANI_U8 sessionId;
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+   bool netif_carrier_on;
+#endif
 
    /* Completion variable for session close */
    struct completion session_close_comp_var;
@@ -1341,7 +1345,7 @@ struct hdd_adapter_s
 #ifdef WLAN_FEATURE_TSF
    /* tsf value get from firmware */
    uint64_t cur_target_time;
-
+   vos_timer_t host_capture_req_timer;
 #ifdef WLAN_FEATURE_TSF_PLUS
    /* spin lock for read/write timestamps */
    spinlock_t host_target_sync_lock;
@@ -1800,6 +1804,13 @@ struct hdd_context_s
    v_BOOL_t isLoadInProgress;
 
    v_BOOL_t isUnloadInProgress;
+#ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
+   bool system_suspended;
+   volatile int thermal_suspend_state;
+   spinlock_t thermal_suspend_lock;
+   struct workqueue_struct *thermal_suspend_wq;
+   struct delayed_work thermal_suspend_work;
+#endif
 
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;
@@ -2120,6 +2131,8 @@ struct hdd_context_s
     /* the context that is capturing tsf */
     hdd_adapter_t *cap_tsf_context;
 #endif
+    /* flag to show whether moniotr mode is enabled */
+    bool is_mon_enable;
 };
 
 /*---------------------------------------------------------------------------
@@ -2233,6 +2246,17 @@ void hdd_set_ssr_required(e_hdd_ssr_required value);
 
 VOS_STATUS hdd_enable_bmps_imps(hdd_context_t *pHddCtx);
 VOS_STATUS hdd_disable_bmps_imps(hdd_context_t *pHddCtx, tANI_U8 session_type);
+
+/**
+ * hdd_thermal_suspend_queue_work() - Queue a thermal suspend work
+ * @hdd_ctx:     Pointer to hdd_context_t
+ * @ms: Delay time in milliseconds to execute the work
+ *
+ * Queue thermal suspend work on the workqueue after delay
+ *
+ * Return: false if work was already on a queue, true otherwise.
+ */
+bool hdd_thermal_suspend_queue_work(hdd_context_t *hdd_ctx, unsigned long ms);
 
 void wlan_hdd_cfg80211_update_wiphy_caps(struct wiphy *wiphy);
 VOS_STATUS hdd_setIbssPowerSaveParams(hdd_adapter_t *pAdapter);
@@ -2657,5 +2681,14 @@ void hdd_chip_pwr_save_fail_detected_cb(void *hddctx,
  * Return: 0 for success non-zero for failure
  */
 int hdd_drv_cmd_validate(tANI_U8 *command, int len);
+
+/**
+ * wlan_hdd_monitor_mode_enable() - function to enable/disable monitor mode
+ * @hdd_ctx: pointer to HDD context
+ * @enable: 0 - disable, 1 - enable
+ *
+ * Return: 0 for success and error number for failure
+ */
+int wlan_hdd_monitor_mode_enable(hdd_context_t *hdd_ctx, bool enable);
 
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
