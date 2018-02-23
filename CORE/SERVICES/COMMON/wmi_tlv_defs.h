@@ -866,6 +866,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_pdev_set_rx_filter_promiscuous_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_sar2_result_event_fixed_param,
     WMITLV_TAG_STRUC_WMI_SAR_CAPABILITIES,
+    WMITLV_TAG_STRUC_wmi_sap_obss_detection_cfg_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_sap_obss_detection_info_evt_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -1216,6 +1218,7 @@ typedef enum {
     OP(WMI_PDEV_SET_AC_TX_QUEUE_OPTIMIZED_CMDID) \
     OP(WMI_PEER_TID_MSDUQ_QDEPTH_THRESH_UPDATE_CMDID) \
     OP(WMI_PDEV_SET_RX_FILTER_PROMISCUOUS_CMDID) \
+    OP(WMI_SAP_OBSS_DETECTION_CFG_CMDID) \
     /* add new CMD_LIST elements above this line */
 
 /*
@@ -1405,6 +1408,7 @@ typedef enum {
     OP(WMI_PDEV_UPDATE_CTLTABLE_EVENTID) \
     OP(WMI_HOST_SWFDA_EVENTID) \
     OP(WMI_NDL_SCHEDULE_UPDATE_EVENTID) \
+    OP(WMI_SAP_OBSS_DETECTION_REPORT_EVENTID) \
     /* add new EVT_LIST elements above this line */
 
 
@@ -3005,6 +3009,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_ENABLE_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_set_blacklist_param_cmd_fixed_param, wmi_sap_set_blacklist_param_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_SAP_SET_BLACKLIST_PARAM_CMDID);
 
+/* SAP OBSS detection offload param Cmd */
+#define WMITLV_TABLE_WMI_SAP_OBSS_DETECTION_CFG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_obss_detection_cfg_cmd_fixed_param, wmi_sap_obss_detection_cfg_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OBSS_DETECTION_CFG_CMDID);
+
 /* APFIND Request */
 #define WMITLV_TABLE_WMI_APFIND_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_apfind_cmd_param, wmi_apfind_cmd_param, fixed_param, WMITLV_SIZE_FIX) \
@@ -4294,6 +4303,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_ADD_STA_EVENTID);
 #define WMITLV_TABLE_WMI_SAP_OFL_DEL_STA_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_ofl_del_sta_event_fixed_param, wmi_sap_ofl_del_sta_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OFL_DEL_STA_EVENTID);
+
+/* SAP OBSS detection offload event */
+#define WMITLV_TABLE_WMI_SAP_OBSS_DETECTION_REPORT_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sap_obss_detection_info_evt_fixed_param, wmi_sap_obss_detection_info_evt_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_SAP_OBSS_DETECTION_REPORT_EVENTID);
 
 /* Set OCB schedule cmd, DEPRECATED */
 #define WMITLV_TABLE_WMI_OCB_SET_SCHED_EVENTID(id,op,buf,len) \
