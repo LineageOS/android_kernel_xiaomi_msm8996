@@ -9395,13 +9395,12 @@ void hdd_update_tgt_cfg(void *context, void *param)
 
     if (!vos_is_macaddr_zero(&cfg->hw_macaddr))
     {
-        hdd_update_macaddr(hdd_ctx->cfg_ini, cfg->hw_macaddr);
+        vos_mem_copy(&hdd_ctx->hw_macaddr, &cfg->hw_macaddr,
+                     VOS_MAC_ADDR_SIZE);
     }
     else {
         hddLog(VOS_TRACE_LEVEL_ERROR,
-               "%s: Invalid MAC passed from target, using MAC from ini file"
-               MAC_ADDRESS_STR, __func__,
-               MAC_ADDR_ARRAY(hdd_ctx->cfg_ini->intfMacAddr[0].bytes));
+               "%s: HW MAC is zero", __func__);
     }
 
     hdd_ctx->target_fw_version = cfg->target_fw_version;
@@ -16199,6 +16198,22 @@ static int hdd_initialize_mac_address(hdd_context_t *hdd_ctx)
 			      WLAN_MAC_FILE, status);
 			return -EIO;
 		}
+		return 0;
+	}
+
+	if (!vos_is_macaddr_zero(&hdd_ctx->hw_macaddr)) {
+		hdd_update_macaddr(hdd_ctx->cfg_ini, hdd_ctx->hw_macaddr);
+	} else {
+		tSirMacAddr customMacAddr;
+
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Invalid MAC passed from target, using MAC from ini"
+		       MAC_ADDRESS_STR, __func__,
+		       MAC_ADDR_ARRAY(hdd_ctx->cfg_ini->intfMacAddr[0].bytes));
+		vos_mem_copy(&customMacAddr,
+			     &hdd_ctx->cfg_ini->intfMacAddr[0].bytes,
+			     VOS_MAC_ADDR_SIZE);
+			     sme_SetCustomMacAddr(customMacAddr);
 	}
 	return 0;
 }
