@@ -7215,8 +7215,9 @@ static int put_wifi_ll_ext_stats(struct sir_wifi_ll_ext_stats *stats,
 	struct sir_wifi_ll_ext_period *period;
 
 	period = &stats->time_stamp;
-	if (nla_put_u64(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_REPORT_TIME,
-			period->end_time) ||
+	if (hdd_wlan_nla_put_u64(skb,
+				 QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_REPORT_TIME,
+				 period->end_time) ||
 	    nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_MEASUREMENT_TIME,
 			period->duration) ||
 	    nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_EVENT_MODE,
