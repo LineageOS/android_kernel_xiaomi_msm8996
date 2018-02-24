@@ -33,7 +33,6 @@
 #include <linux/notifier.h>
 #include <linux/fb.h>
 #endif
-#include <linux/proc_fs.h>
 
 /* Version */
 #define MXT_VER_20		20
