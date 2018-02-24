@@ -1181,32 +1181,32 @@ static const struct attribute_group cyttsp_attr_group = {
 	.attrs = cyttsp_attrs,
 };
 
-static int cyttsp_proc_init(struct cyttsp_button_data *data)
+static int cyttsp_proc_init(struct kernfs_node *sysfs_node_parent)
 {
 	int ret = 0;
 	char *buf, *path = NULL;
 	char *reversed_keys_sysfs_node;
-	struct proc_dir_entry *proc_entry_tp = NULL;
+	struct proc_dir_entry *proc_entry_buttons = NULL;
 	struct proc_dir_entry *proc_symlink_tmp  = NULL;
 
-	buf = kzalloc(sizeof(struct cyttsp_button_data), GFP_KERNEL);
+	buf = kzalloc(PATH_MAX, GFP_KERNEL);
 	if (buf)
-		path = "/devices/soc/75ba000.i2c/i2c-12/12-0028";
+		path = kernfs_path(sysfs_node_parent, buf, PATH_MAX);
 
-	proc_entry_tp = proc_mkdir("touchpanel", NULL);
-	if (proc_entry_tp == NULL) {
-		dev_err(&data->client->dev, "cyttsp_button: Couldn't create touchpanel dir in procfs\n");
+	proc_entry_buttons = proc_mkdir("buttons", NULL);
+	if (proc_entry_buttons == NULL) {
 		ret = -ENOMEM;
+		pr_err("%s: Couldn't create buttons\n", __func__);
 	}
 
-	reversed_keys_sysfs_node = kzalloc(sizeof(struct cyttsp_button_data), GFP_KERNEL);
+	reversed_keys_sysfs_node = kzalloc(PATH_MAX, GFP_KERNEL);
 	if (reversed_keys_sysfs_node)
 		sprintf(reversed_keys_sysfs_node, "/sys%s/%s", path, "reversed_keys");
 	proc_symlink_tmp = proc_symlink("reversed_keys_enable",
-			proc_entry_tp, reversed_keys_sysfs_node);
+			proc_entry_buttons, reversed_keys_sysfs_node);
 	if (proc_symlink_tmp == NULL) {
-		dev_err(&data->client->dev, "cyttsp_button: Couldn't create reversed_keys_enable symlink\n");
 		ret = -ENOMEM;
+		pr_err("%s: Couldn't create reversed_keys_enable symlink\n", __func__);
 	}
 
 	kfree(buf);
@@ -1480,7 +1480,7 @@ static int cyttsp_button_probe(struct i2c_client *client,
 		dev_err(&client->dev, "Failure %d creating sysfs group\n",
 			error);
 
-	cyttsp_proc_init(data);
+	cyttsp_proc_init(client->dev.kobj.sd);
 
 	data->glove_mode_notif.notifier_call = cyttsp_glove_mode_notifier_callback;
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_CORE_INCELL
