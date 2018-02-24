@@ -5172,7 +5172,10 @@ static int mxt_proc_init(struct kernfs_node *sysfs_node_parent)
 {
 	int ret = 0;
 	char *buf, *path = NULL;
-	char *double_tap_sysfs_node, *swap_keys_sysfs_node;
+	char *double_tap_sysfs_node;
+#ifndef CONFIG_TOUCHSCREEN_CYTTSP_BUTTON
+	char *swap_keys_sysfs_node;
+#endif
 	struct proc_dir_entry *proc_entry_tp = NULL;
 	struct proc_dir_entry *proc_symlink_tmp  = NULL;
 
@@ -5196,6 +5199,7 @@ static int mxt_proc_init(struct kernfs_node *sysfs_node_parent)
 		pr_err("%s: Couldn't create double_tap_enable symlink\n", __func__);
 	}
 
+#ifndef CONFIG_TOUCHSCREEN_CYTTSP_BUTTON
 	swap_keys_sysfs_node = kzalloc(PATH_MAX, GFP_KERNEL);
 	if (swap_keys_sysfs_node)
 		sprintf(swap_keys_sysfs_node, "/sys%s/%s", path, "reversed_keys");
@@ -5205,10 +5209,13 @@ static int mxt_proc_init(struct kernfs_node *sysfs_node_parent)
 		ret = -ENOMEM;
 		pr_err("%s: Couldn't create reversed_keys_enable symlink\n", __func__);
 	}
+#endif
 
 	kfree(buf);
 	kfree(double_tap_sysfs_node);
+#ifndef CONFIG_TOUCHSCREEN_CYTTSP_BUTTON
 	kfree(swap_keys_sysfs_node);
+#endif
 
 	return ret;
 }
