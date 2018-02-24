@@ -750,10 +750,10 @@ static void cyttsp_report_key(struct cyttsp_button_data *data,
 {
 	if (key == KEY_MENU)
 		input_report_key(data->input_dev,
-				data->enable_reversed_keys ? KEY_MENU : KEY_BACK, status);
+				data->enable_reversed_keys ? KEY_BACK : KEY_MENU, status);
 	else if (key == KEY_BACK)
 		input_report_key(data->input_dev,
-				data->enable_reversed_keys ? KEY_BACK : KEY_MENU, status);
+				data->enable_reversed_keys ? KEY_MENU : KEY_BACK, status);
 	else
 		input_report_key(data->input_dev, key, status);
 }
