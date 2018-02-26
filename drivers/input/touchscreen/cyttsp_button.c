@@ -18,6 +18,7 @@
 #include <linux/input.h>
 #include <linux/delay.h>
 #include <linux/module.h>
+#include <linux/proc_fs.h>
 #include <linux/interrupt.h>
 #include <linux/debugfs.h>
 #include <linux/gpio.h>
@@ -100,6 +101,7 @@ struct cyttsp_button_data {
 #endif
 	struct notifier_block glove_mode_notif;
 	bool glove_mode;
+	bool enable_reversed_keys;
 };
 
 static int cyttsp_i2c_recv(struct device *dev,
@@ -743,6 +745,19 @@ static int fb_notifier_callback(struct notifier_block *self,
 }
 #endif
 
+static void cyttsp_report_key(struct cyttsp_button_data *data,
+		int key, int status)
+{
+	if (key == KEY_MENU)
+		input_report_key(data->input_dev,
+				data->enable_reversed_keys ? KEY_MENU : KEY_BACK, status);
+	else if (key == KEY_BACK)
+		input_report_key(data->input_dev,
+				data->enable_reversed_keys ? KEY_BACK : KEY_MENU, status);
+	else
+		input_report_key(data->input_dev, key, status);
+}
+
 static irqreturn_t cyttsp_button_interrupt(int irq, void *dev_id)
 {
 	struct cyttsp_button_data *data = dev_id;
@@ -777,8 +792,8 @@ static irqreturn_t cyttsp_button_interrupt(int irq, void *dev_id)
 			new_state = test_bit(key, &keystates);
 
 			if (curr_state ^ new_state) {
-				input_event(data->input_dev, EV_KEY,
-					pdata->key_code[key], !!(keystates & (1 << key)));
+				cyttsp_report_key(data, pdata->key_code[key],
+						!!(keystates & (1 << key)));
 				sync = true;
 			}
 
@@ -1121,23 +1136,84 @@ static ssize_t cyttsp_firmware_version_show(struct device *dev,
 	count = sprintf(buf, "0x%x 0x%x\n", in_chip_id[0], in_chip_id[1]);
 	return count;
 }
+
+static ssize_t cyttsp_reversed_keys_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct cyttsp_button_data *data = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u\n",
+			data->enable_reversed_keys);
+}
+
+static ssize_t cyttsp_reversed_keys_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct cyttsp_button_data *data = dev_get_drvdata(dev);
+	int i;
+
+	if (sscanf(buf, "%u", &i) == 1 && i < 2)
+		data->enable_reversed_keys = (i == 1);
+	else
+		return -EINVAL;
+
+	return count;
+}
+
 static DEVICE_ATTR(firmware_update, S_IWUSR, NULL, cyttsp_firmware_update_store);
 static DEVICE_ATTR(debug_enable, S_IWUSR | S_IRUSR, cyttsp_debug_enable_show,
 			cyttsp_debug_enable_store);
 static DEVICE_ATTR(rawdata, S_IRUGO, cyttsp_rawdata_show, NULL);
 static DEVICE_ATTR(firmware_version, S_IRUGO, cyttsp_firmware_version_show, NULL);
+static DEVICE_ATTR(reversed_keys, S_IRUGO | S_IWUSR, cyttsp_reversed_keys_show,
+			cyttsp_reversed_keys_store);
 
 static struct attribute *cyttsp_attrs[] = {
 	&dev_attr_firmware_update.attr,
 	&dev_attr_debug_enable.attr,
 	&dev_attr_rawdata.attr,
 	&dev_attr_firmware_version.attr,
+	&dev_attr_reversed_keys.attr,
 	NULL
 };
 
 static const struct attribute_group cyttsp_attr_group = {
 	.attrs = cyttsp_attrs,
 };
+
+static int cyttsp_proc_init(struct kernfs_node *sysfs_node_parent)
+{
+	int ret = 0;
+	char *buf, *path = NULL;
+	char *reversed_keys_sysfs_node;
+	struct proc_dir_entry *proc_entry_buttons = NULL;
+	struct proc_dir_entry *proc_symlink_tmp  = NULL;
+
+	buf = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (buf)
+		path = kernfs_path(sysfs_node_parent, buf, PATH_MAX);
+
+	proc_entry_buttons = proc_mkdir("buttons", NULL);
+	if (proc_entry_buttons == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create buttons\n", __func__);
+	}
+
+	reversed_keys_sysfs_node = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (reversed_keys_sysfs_node)
+		sprintf(reversed_keys_sysfs_node, "/sys%s/%s", path, "reversed_keys");
+	proc_symlink_tmp = proc_symlink("reversed_keys_enable",
+			proc_entry_buttons, reversed_keys_sysfs_node);
+	if (proc_symlink_tmp == NULL) {
+		ret = -ENOMEM;
+		pr_err("%s: Couldn't create reversed_keys_enable symlink\n", __func__);
+	}
+
+	kfree(buf);
+	kfree(reversed_keys_sysfs_node);
+
+	return ret;
+}
 
 static int cyttsp_button_pinctrl_init(struct cyttsp_button_data *data)
 {
@@ -1403,6 +1479,8 @@ static int cyttsp_button_probe(struct i2c_client *client,
 	if (error)
 		dev_err(&client->dev, "Failure %d creating sysfs group\n",
 			error);
+
+	cyttsp_proc_init(client->dev.kobj.sd);
 
 	data->glove_mode_notif.notifier_call = cyttsp_glove_mode_notifier_callback;
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_CORE_INCELL
