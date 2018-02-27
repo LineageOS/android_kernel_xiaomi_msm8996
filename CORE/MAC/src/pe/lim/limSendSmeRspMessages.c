@@ -3501,6 +3501,8 @@ limProcessBeaconTxSuccessInd(tpAniSirGlobal pMac, tANI_U16 msgType, void *event)
 
    if (LIM_IS_AP_ROLE(psessionEntry) &&
        VOS_TRUE == psessionEntry->dfsIncludeChanSwIe) {
+      /* Decrement the Channel Switch Count in CSAIE */
+          psessionEntry->gLimChannelSwitch.switchCount--;
       /* Send only 5 beacons with CSA IE Set in when a radar is detected */
       if (psessionEntry->gLimChannelSwitch.switchCount > 0)
       {
@@ -3517,8 +3519,6 @@ limProcessBeaconTxSuccessInd(tpAniSirGlobal pMac, tANI_U16 msgType, void *event)
                   psessionEntry);
           }
 
-          /* Decrement the IE count */
-          psessionEntry->gLimChannelSwitch.switchCount--;
       }
       else
       {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -7612,8 +7612,6 @@ limProcessSmeDfsCsaIeRequest(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                      psessionEntry->gLimChannelSwitch.secondarySubBand,
                      psessionEntry);
         }
-
-        psessionEntry->gLimChannelSwitch.switchCount--;
     }
     return;
 }
