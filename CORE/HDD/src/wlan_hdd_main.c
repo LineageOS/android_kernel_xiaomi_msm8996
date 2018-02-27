@@ -1790,6 +1790,15 @@ hdd_system_suspend_state(hdd_context_t *hdd_ctx)
 	return s;
 }
 
+/**
+ * hdd_system_suspend_state_set() - Set the system suspended state
+ * @hdd_ctx: Pointer to hdd_context_t
+ * @state: The target state to be set
+ *
+ * Set the system suspended state
+ *
+ * Return: The state before set.
+ */
 bool
 hdd_system_suspend_state_set(hdd_context_t *hdd_ctx, bool state)
 {
@@ -1804,7 +1813,14 @@ hdd_system_suspend_state_set(hdd_context_t *hdd_ctx, bool state)
 	return old;
 }
 
-
+/**
+ * hdd_thermal_suspend_state() - Get the thermal suspend state
+ * @hdd_ctx: Pointer to hdd_context_t
+ *
+ * Get the thermal suspend state
+ *
+ * Return: The current thermal suspend state
+ */
 int
 hdd_thermal_suspend_state(hdd_context_t *hdd_ctx)
 {
@@ -1888,6 +1904,30 @@ hdd_thermal_suspend_cleanup(hdd_context_t *hdd_ctx)
 	}
 }
 
+static inline void
+hdd_thermal_resume_complete_ind(struct wiphy *wiphy)
+{
+	struct sk_buff *vendor_event;
+
+	hddLog(LOG1, FL("Thermal resume complete indication"));
+
+	vendor_event = cfg80211_vendor_event_alloc(wiphy, NULL,
+		sizeof(uint8_t) + NLMSG_HDRLEN,
+		QCA_NL80211_VENDOR_SUBCMD_THERMAL_EVENT_INDEX,
+		GFP_KERNEL);
+	if (!vendor_event) {
+		hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
+		return;
+	}
+
+	nla_put_flag(vendor_event,
+		QCA_WLAN_VENDOR_ATTR_THERMAL_EVENT_RESUME_COMPLETE);
+
+	cfg80211_vendor_event(vendor_event, GFP_KERNEL);
+}
+
+
+
 static void
 hdd_thermal_suspend_work(struct work_struct *work)
 {
@@ -1952,6 +1992,26 @@ hdd_thermal_suspend_queue_work(hdd_context_t *hdd_ctx, unsigned long ms)
 static void
 hdd_thermal_temp_ind_event_cb(hdd_context_t *hdd_ctx, uint32_t degreeC)
 {
+	struct sk_buff *vendor_event;
+
+	vendor_event = cfg80211_vendor_event_alloc(hdd_ctx->wiphy,
+			NULL, sizeof(uint32_t) + NLMSG_HDRLEN,
+			QCA_NL80211_VENDOR_SUBCMD_THERMAL_EVENT_INDEX,
+			GFP_KERNEL);
+	if (!vendor_event) {
+		hddLog(LOGE, FL("cfg80211_vendor_event_alloc failed"));
+		return;
+	}
+
+	if (nla_put_u32(vendor_event,
+		QCA_WLAN_VENDOR_ATTR_THERMAL_EVENT_TEMPERATURE, degreeC)) {
+		hddLog(LOGE, FL("nla put failed"));
+		kfree_skb(vendor_event);
+		return;
+	}
+
+	cfg80211_vendor_event(vendor_event, GFP_KERNEL);
+
 	if (!hdd_ctx->cfg_ini->thermal_shutdown_auto_enabled) {
 		return;
 	}
@@ -1960,10 +2020,9 @@ hdd_thermal_temp_ind_event_cb(hdd_context_t *hdd_ctx, uint32_t degreeC)
 	 * Here, we only do thermal suspend.
 	 *
 	 * We can only resume FW elsewhere in two ways:
-	 * 1. triggered by wakeup interrupt from FW when it detects T < Tresume
+	 * 1. triggered by host when it detects FW reported T is less than Tr
 	 * 2. user space app launch thermal resume after suspend as app wants
 	 *
-	 * Key factor: FW cannot provide temperature when it suspended.
 	 */
 	if ((hdd_thermal_suspend_state(hdd_ctx) == HDD_WLAN_THERMAL_ACTIVE &&
 		degreeC >= hdd_ctx->cfg_ini->thermal_suspend_threshold) ||
