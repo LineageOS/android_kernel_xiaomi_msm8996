@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2357,7 +2357,7 @@ static VOS_STATUS sap_check_mcc_valid(
 	/*
 	 * 3. Don't support MCC on DFS channel.
 	 */
-	if (chan_cnt > 1) {
+	if (chan_cnt > 0) {
 		for (j = 0; j < chan_cnt; j++) {
 			if (channels[j] != 0
 			    && vos_nv_getChannelEnabledState(channels[j])
