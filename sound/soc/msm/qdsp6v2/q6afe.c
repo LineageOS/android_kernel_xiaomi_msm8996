@@ -343,7 +343,7 @@ static int32_t afe_callback(struct apr_client_data *data, void *priv)
 		wake_up(&this_afe.wait[data->token]);
 	} else if (data->opcode == ULTRASOUND_OPCODE) {
 		if (data->payload != NULL)
-			process_us_payload(data->payload);
+			elliptic_process_apr_payload(data->payload);
 		else
 			pr_err("%s: payload == NULL !\n", __func__);
 	} else if (data->payload_size) {
