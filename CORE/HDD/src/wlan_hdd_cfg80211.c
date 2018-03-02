@@ -22222,6 +22222,10 @@ void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel,
               hddDot11Mode = eHDD_DOT11_MODE_11ac;
           else
               hddDot11Mode = eHDD_DOT11_MODE_11n;
+#if defined(FEATURE_WLAN_WAPI) && defined(FEATURE_WLAN_WAPI_MODE_11AC_DISABLE)
+          if (pAdapter->wapi_info.nWapiMode)
+              hddDot11Mode = eHDD_DOT11_MODE_11n;
+#endif
 #else
           hddDot11Mode = eHDD_DOT11_MODE_11n;
 #endif
