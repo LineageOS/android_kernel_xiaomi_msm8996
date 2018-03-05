@@ -22881,6 +22881,8 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
         vos_mem_copy((void *)(pRoamProfile->SSIDs.SSIDList->SSID.ssId),
                 ssid, ssid_len);
 
+        pRoamProfile->do_not_roam = false;
+
         /* cleanup bssid hint and bssid */
         vos_mem_zero(pRoamProfile->bssid_hint, VOS_MAC_ADDR_SIZE);
         vos_mem_zero(pRoamProfile->BSSIDs.bssid, VOS_MAC_ADDR_SIZE);
