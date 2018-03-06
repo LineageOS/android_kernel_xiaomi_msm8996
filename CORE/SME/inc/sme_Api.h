@@ -4524,6 +4524,14 @@ eHalStatus sme_set_tsfcb(tHalHandle hHal,
 VOS_STATUS sme_apfind_set_cmd(struct sme_ap_find_request_req *input);
 #endif /* WLAN_FEATURE_APFIND */
 
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+eHalStatus sme_AddCSAIndCallback
+(
+   tHalHandle hHal,
+   void (*pCallbackfn)(void *pAdapter, void *CSAindParam)
+);
+#endif//#ifdef
+
 /**
  * sme_enable_disable_mas() - Function to set MAS value to UMAC
  * @val:        1-Enable, 0-Disable

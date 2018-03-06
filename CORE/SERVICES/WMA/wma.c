@@ -7131,11 +7131,17 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 		csa_ie = (struct ieee80211_channelswitch_ie *)(&csa_event->csa_ie[0]);
 		csa_offload_event->channel = csa_ie->newchannel;
 		csa_offload_event->switchmode = csa_ie->switchmode;
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+		csa_offload_event->csa_tbtt_count = csa_ie->tbttcount;
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 	} else if (csa_event->ies_present_flag & WMI_XCSA_IE_PRESENT) {
 		xcsa_ie = (struct ieee80211_extendedchannelswitch_ie*)(&csa_event->xcsa_ie[0]);
 		csa_offload_event->channel = xcsa_ie->newchannel;
 		csa_offload_event->switchmode = xcsa_ie->switchmode;
 		csa_offload_event->new_op_class = xcsa_ie->newClass;
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+		csa_offload_event->csa_tbtt_count = xcsa_ie->tbttcount;
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 	} else {
 		WMA_LOGE("CSA Event error: No CSA IE present");
 		vos_mem_free(csa_offload_event);

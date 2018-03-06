@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1406,6 +1406,9 @@ typedef struct tagCsrConfigParam
 #ifdef WLAN_FEATURE_FILS_SK
     uint8_t fils_max_chan_guard_time;
 #endif
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+    tANI_U32    sap_ch_switch_with_csa;
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 }tCsrConfigParam;
 
 //Tush

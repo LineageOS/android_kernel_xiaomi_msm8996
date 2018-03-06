@@ -75,6 +75,10 @@
 
 #include "adf_trace.h"
 
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+#include "wlan_hdd_hostapd.h"
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
 struct ether_addr
 {
     u_char  ether_addr_octet[6];
@@ -1634,6 +1638,21 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
                 }
             }
 #endif
+
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+            if((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) &&
+                    vos_is_ch_switch_with_csa_enabled())
+            {
+                struct wlan_sap_csa_info csa_info;
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH,
+                    "%s: Indicate disconnected event to HostApd",
+                    __func__);
+
+                csa_info.sta_channel = 0;
+                /*Indicate to HostApd about Station interface state change*/
+                hdd_sta_state_sap_notify(pHddCtx, STA_NOTIFY_DISCONNECTED, csa_info);
+            }
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 
             //If the Device Mode is Station
             // and the P2P Client is Connected

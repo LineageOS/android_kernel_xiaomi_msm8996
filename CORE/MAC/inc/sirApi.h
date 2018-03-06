@@ -3186,6 +3186,10 @@ typedef struct sSmeCsaOffloadInd
     tANI_U16    mesgType;    // eWNI_SME_CSA_OFFLOAD_EVENT
     tANI_U16    mesgLen;
     tSirMacAddr bssId;       // BSSID
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+    tANI_U16    channel;
+    tANI_U16    tbtt_count;
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 } tSmeCsaOffloadInd, *tpSmeCsaOffloadInd;
 
 /// WOW related structures
@@ -5259,6 +5263,9 @@ typedef struct sSirDfsCsaIeRequest
     uint8_t  ch_switch_mode;
     uint8_t  dfs_ch_switch_disable;
     uint8_t  sub20_switch_mode;
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+    tANI_U8  csaSwitchCount;
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 }tSirDfsCsaIeRequest, *tpSirDfsCsaIeRequest;
 
 /* Indication from lower layer indicating the completion of first beacon send

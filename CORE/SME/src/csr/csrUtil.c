@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -44,7 +44,9 @@
 #include "smeQosInternal.h"
 #include "wlan_qct_wda.h"
 #include "vos_utils.h"
-
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+#include "limApi.h"
+#endif
 #if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
 #include "csrEse.h"
 #endif /* FEATURE_WLAN_ESE && !FEATURE_WLAN_ESE_UPLOAD*/
@@ -1108,6 +1110,7 @@ tANI_BOOLEAN csr_find_sta_session_info(
 	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 	tCsrRoamSession *pSession = NULL;
 	v_U8_t i = 0;
+	tpPESession psessionEntry;
 
 	for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ ) {
 		if( !CSR_IS_SESSION_VALID( pMac, i ) )
@@ -1121,8 +1124,21 @@ tANI_BOOLEAN csr_find_sta_session_info(
 				VOS_P2P_CLIENT_MODE)) &&
 			(pSession->connectState ==
 				eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED)) {
-			info->och =
-				pSession->connectedProfile.operationChannel;
+			if(vos_is_ch_switch_with_csa_enabled()){
+				psessionEntry = peFindSessionBySessionId(pMac,
+						pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId);
+				if (psessionEntry && LIM_IS_STA_ROLE(psessionEntry)) {
+					info->och = psessionEntry->gLimChannelSwitch.primaryChannel;
+					smsLog(pMac, LOGP,
+						FL("SAP channel switch with CSA enabled (SAP new ch: %d)"), info->och);
+				}else{
+					info->och =
+						pSession->connectedProfile.operationChannel;
+				}
+			}else{
+				info->och =
+					pSession->connectedProfile.operationChannel;
+			}
 			csrGetChFromHTProfile(pMac,
 				&pSession->connectedProfile.HTProfile,
 				info->och, &info->cfreq, &info->hbw);

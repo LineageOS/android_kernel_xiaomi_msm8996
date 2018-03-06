@@ -4279,6 +4279,16 @@ REG_TABLE_ENTRY g_registry_table[] =
               CFG_CONNECT_BLOCK_DURATION_MAX ),
 #endif /* SAP_AUTH_OFFLOAD */
 
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+   REG_VARIABLE( CFG_SAP_CHANNEL_SWITCH_WITH_CSA_NAME, WLAN_PARAM_Integer,
+              hdd_config_t, sap_ch_switch_with_csa,
+              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+              CFG_SAP_CHANNEL_SWITCH_WITH_CSA_DEFAULT,
+              CFG_SAP_CHANNEL_SWITCH_WITH_CSA_MIN,
+              CFG_SAP_CHANNEL_SWITCH_WITH_CSA_MAX ),
+
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
    REG_VARIABLE(CFG_DOT11P_MODE_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, dot11p_mode,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -8276,6 +8286,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig->sta_change_cc_via_beacon =
 	 pHddCtx->cfg_ini->sta_change_cc_via_beacon;
 
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+   smeConfig->csrConfig.sap_ch_switch_with_csa = pHddCtx->cfg_ini->sap_ch_switch_with_csa;
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {

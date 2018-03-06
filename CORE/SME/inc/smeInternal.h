@@ -266,6 +266,10 @@ typedef struct tagSmeStruct
     void (*stats_ext2_cb)(void *, struct stats_ext2_event *);
     void (*chip_power_save_fail_cb)(void *,
 			struct chip_pwr_save_fail_detected_params *);
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+    /*call back to indicate CSA notification received on STA interfce to SAP*/
+    void (*pCSASAPIndCb) (void * hdd_context, void *indi_param);
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 } tSmeStruct, *tpSmeStruct;
 
 
