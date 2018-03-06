@@ -455,7 +455,8 @@ void wma_process_roam_synch_fail(WMA_HANDLE handle,
 
 static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
 				t_thermal_cmd_params thermal_info);
-
+static VOS_STATUS wma_set_dpd_recal_mgmt(tp_wma_handle wma_handle,
+                    t_dpd_recal_cmd_params recal_info);
 #ifdef FEATURE_WLAN_CH_AVOID
 VOS_STATUS wma_process_ch_avoid_update_req(tp_wma_handle wma_handle,
 				tSirChAvoidUpdateReq *ch_avoid_update_req);
@@ -29181,6 +29182,57 @@ VOS_STATUS wma_process_init_thermal_info(tp_wma_handle wma,
 	return VOS_STATUS_SUCCESS;
 }
 
+/* function   : wma_process_init_dpd_recal_info
+ * Description : This function initializes the dpd recaliberation in WMA,
+                sends down the initial high/low temperature limits to the firmware.
+ * Args       :
+                wma            : Pointer to WMA handle
+ *              pDPDRecalParams: Pointer to DPD Recal parameters
+ * Returns    :
+ *              VOS_STATUS_SUCCESS for success otherwise failure
+ */
+VOS_STATUS wma_process_init_dpd_recal_info(tp_wma_handle wma,
+					t_dpd_recal_mgmt *pDPDRecalParams)
+{
+	t_dpd_recal_cmd_params dpd_recal_params;
+
+	if (NULL == wma || NULL == pDPDRecalParams) {
+		WMA_LOGE("DPD Recal Invalid input");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	wma->dpd_recal_info.dpd_enable = pDPDRecalParams->dpd_enable;
+	wma->dpd_recal_info.dpd_delta_degreeHigh = pDPDRecalParams->dpd_delta_degreeHigh;
+	wma->dpd_recal_info.dpd_delta_degreeLow = pDPDRecalParams->dpd_delta_degreeLow;
+	wma->dpd_recal_info.dpd_cooling_time = pDPDRecalParams->dpd_cooling_time;
+	wma->dpd_recal_info.dpd_duration_max = pDPDRecalParams->dpd_duration_max;
+	if (wma->dpd_recal_info.dpd_enable)
+	{
+		/* Get the temperature thresholds to set in firmware */
+		dpd_recal_params.enable = wma->dpd_recal_info.dpd_enable;
+		dpd_recal_params.delta_degreeHigh = wma->dpd_recal_info.dpd_delta_degreeHigh;
+		dpd_recal_params.delta_degreeLow = wma->dpd_recal_info.dpd_delta_degreeLow;
+		dpd_recal_params.cooling_time = wma->dpd_recal_info.dpd_cooling_time;
+		dpd_recal_params.dpd_dur_max = wma->dpd_recal_info.dpd_duration_max;
+
+		WMA_LOGE("DPD Recal sending the following to firmware: delta_degreeLow %d "
+                                    "delta_degreehigh %d enable %d cooling_time %d "
+                                    "dpd_max_duration %d ",
+			        dpd_recal_params.delta_degreeLow,
+                                dpd_recal_params.delta_degreeHigh,
+                                dpd_recal_params.enable,
+                                dpd_recal_params.cooling_time,
+                                dpd_recal_params.dpd_dur_max);
+
+		if(VOS_STATUS_SUCCESS != wma_set_dpd_recal_mgmt(wma, dpd_recal_params))
+		{
+			WMA_LOGE("Could not send thermal mgmt command to the firmware!");
+		}
+	}else
+			WMA_LOGE("Runtime DPD Recaliberation not enable!");
+
+	return VOS_STATUS_SUCCESS;
+}
 
 static void wma_set_thermal_level_ind(u_int8_t level)
 {
@@ -34218,6 +34270,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			wma_process_init_thermal_info(wma_handle, (t_thermal_mgmt *)msg->bodyptr);
                         vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_INIT_DPD_RECAL_INFO_CMD:
+			wma_process_init_dpd_recal_info(wma_handle, (t_dpd_recal_mgmt *)msg->bodyptr);
+			break;
 
 		case WDA_SET_THERMAL_LEVEL:
 			wma_process_set_thermal_level(wma_handle, msg->bodyval);
@@ -35569,6 +35624,61 @@ static VOS_STATUS wma_set_thermal_mgmt(tp_wma_handle wma_handle,
 
 	return eHAL_STATUS_SUCCESS;
 }
+
+/* function   : wma_set_dpd_recal_mgmt
+ * Description : This function sends the runtime DPD recaliberation params to the firmware
+ * Args       :
+                wma_handle     : Pointer to WMA handle
+ *              dpd_recal_info   : DPD recaliberation data
+ * Returns    :
+ *              VOS_STATUS_SUCCESS for success otherwise failure
+ */
+static VOS_STATUS wma_set_dpd_recal_mgmt(tp_wma_handle wma_handle,
+					t_dpd_recal_cmd_params recal_info)
+{
+	wmi_runtime_dpd_recal_cmd_fixed_param *cmd = NULL;
+	wmi_buf_t buf = NULL;
+	int status = 0;
+	u_int32_t len = 0;
+
+	len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send set key cmd");
+		return eHAL_STATUS_FAILURE;
+	}
+
+	cmd = (wmi_runtime_dpd_recal_cmd_fixed_param *) wmi_buf_data (buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+				   WMITLV_TAG_STRUC_wmi_runtime_dpd_recal_cmd_fixed_param,
+				   WMITLV_GET_STRUCT_TLVLEN(wmi_runtime_dpd_recal_cmd_fixed_param));
+
+	cmd->enable = recal_info.enable;
+	cmd->dlt_tmpt_c_l = recal_info.delta_degreeLow;
+	cmd->dlt_tmpt_c_h = recal_info.delta_degreeHigh;
+	cmd->cooling_time_ms = recal_info.cooling_time;
+	cmd->dpd_dur_max_ms = recal_info.dpd_dur_max;
+
+	WMA_LOGE("Sending DPD Recal cmd: low temp %d, high temp %d, enabled %d "
+                                    "cooling_time %d, dpd_dur_max %d",
+                                    cmd->dlt_tmpt_c_l,
+                                    cmd->dlt_tmpt_c_h,
+                                    cmd->enable,cmd->cooling_time_ms,
+                                    cmd->dpd_dur_max_ms);
+
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				  WMI_RUNTIME_DPD_RECAL_CMDID);
+	if (status) {
+		wmi_buf_free(buf);
+		WMA_LOGE("%s:Failed to send dpd runtime recal command", __func__);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
 
 /* function   : wma_thermal_mgmt_get_level
  * Description : This function returns the thermal(throttle) level given the temperature

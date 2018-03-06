@@ -16256,6 +16256,21 @@ static int hdd_initialize_mac_address(hdd_context_t *hdd_ctx)
 	return 0;
 }
 
+static void hdd_get_DPD_Recaliberation_ini_param(tSmeDPDRecalParams  *pDPDParam,
+						                         hdd_context_t *pHddCtx)
+{
+	pDPDParam->enable =
+	  pHddCtx->cfg_ini->dpd_recalib_enabled;
+	pDPDParam->delta_degreeHigh =
+	  pHddCtx->cfg_ini->dpd_recalib_delta_degreehigh;
+	pDPDParam->delta_degreeLow =
+	  pHddCtx->cfg_ini->dpd_recalib_delta_degreelow;
+	pDPDParam->cooling_time =
+	  pHddCtx->cfg_ini->dpd_recalib_cooling_time;
+	pDPDParam->dpd_dur_max =
+	  pHddCtx->cfg_ini->dpd_recalib_duration_max;
+}
+
 #ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
 static VOS_STATUS hdd_init_thermal_ctx(hdd_context_t *pHddCtx)
 {
@@ -16325,6 +16340,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    struct wiphy *wiphy;
    unsigned long rc;
    tSmeThermalParams thermalParam;
+   tSmeDPDRecalParams DPDParam;
    tSirTxPowerLimit *hddtxlimit;
 #ifdef FEATURE_WLAN_CH_AVOID
 #ifdef CONFIG_CNSS
@@ -17290,6 +17306,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    {
        hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: Error while initializing thermal information", __func__);
+   }
+
+   /* Runtime DPD Recaliberation config*/
+   hdd_get_DPD_Recaliberation_ini_param(&DPDParam, pHddCtx);
+
+   if (eHAL_STATUS_SUCCESS != sme_InitDPDRecalInfo(pHddCtx->hHal, DPDParam))
+   {
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: Error while initializing Runtime DPD Recaliberation information", __func__);
    }
 
    /* Plug in set thermal level callback */

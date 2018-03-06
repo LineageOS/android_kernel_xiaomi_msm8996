@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -954,6 +954,7 @@ typedef struct wma_handle {
 	tSirAddonPsReq psSetting;
 	bool sub_20_support;
 	bool get_one_peer_info;
+    t_dpd_recal_mgmt dpd_recal_info;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1411,6 +1412,14 @@ typedef struct {
 	u_int16_t maxTemp;
 	u_int8_t thermalEnable;
 } t_thermal_cmd_params, *tp_thermal_cmd_params;
+
+typedef struct {
+	u_int8_t enable;
+    u_int32_t delta_degreeHigh;
+    u_int32_t delta_degreeLow;
+    u_int32_t cooling_time; //time in ms
+    u_int32_t dpd_dur_max; //time in ms
+} t_dpd_recal_cmd_params, *tp_dpd_recal_cmd_params;
 
 /* Powersave Related */
 /* Default InActivity Time is 200 ms */
