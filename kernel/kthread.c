@@ -336,6 +336,7 @@ static void __kthread_bind_mask(struct task_struct *p, const struct cpumask *mas
 
 	/* It's safe because the task is inactive. */
 	raw_spin_lock_irqsave(&p->pi_lock, flags);
+	p->kthread_per_cpu = true;
 	do_set_cpus_allowed(p, mask);
 	p->flags |= PF_NO_SETAFFINITY;
 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
@@ -387,6 +388,7 @@ struct task_struct *kthread_create_on_cpu(int (*threadfn)(void *data),
 				   cpu);
 	if (IS_ERR(p))
 		return p;
+	p->kthread_per_cpu = true;
 	set_bit(KTHREAD_IS_PER_CPU, &to_kthread(p)->flags);
 	to_kthread(p)->cpu = cpu;
 	/* Park the thread to get it out of TASK_UNINTERRUPTIBLE state */

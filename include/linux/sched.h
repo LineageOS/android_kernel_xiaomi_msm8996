@@ -354,9 +354,6 @@ extern void show_regs(struct pt_regs *);
  */
 extern void show_stack(struct task_struct *task, unsigned long *sp);
 
-void io_schedule(void);
-long io_schedule_timeout(long timeout);
-
 extern void cpu_init (void);
 extern void trap_init(void);
 extern void update_process_times(int user);
@@ -412,6 +409,13 @@ extern signed long schedule_timeout_killable(signed long timeout);
 extern signed long schedule_timeout_uninterruptible(signed long timeout);
 asmlinkage void schedule(void);
 extern void schedule_preempt_disabled(void);
+
+extern long io_schedule_timeout(long timeout);
+
+static inline void io_schedule(void)
+{
+	io_schedule_timeout(MAX_SCHEDULE_TIMEOUT);
+}
 
 struct nsproxy;
 struct user_namespace;
@@ -1308,10 +1312,12 @@ struct sched_dl_entity {
 
 union rcu_special {
 	struct {
-		bool blocked;
-		bool need_qs;
-	} b;
-	short s;
+		u8 blocked;
+		u8 need_qs;
+		u8 exp_need_qs;
+		u8 pad;	/* Otherwise the compiler can store garbage here. */
+	} b; /* Bits. */
+	u32 s; /* Set of bits. */
 };
 struct rcu_node;
 
@@ -1385,9 +1391,9 @@ struct task_struct {
 	union rcu_special rcu_read_unlock_special;
 	struct list_head rcu_node_entry;
 #endif /* #ifdef CONFIG_PREEMPT_RCU */
-#ifdef CONFIG_TREE_PREEMPT_RCU
+#ifdef CONFIG_PREEMPT_RCU
 	struct rcu_node *rcu_blocked_node;
-#endif /* #ifdef CONFIG_TREE_PREEMPT_RCU */
+#endif /* #ifdef CONFIG_PREEMPT_RCU */
 #ifdef CONFIG_TASKS_RCU
 	unsigned long rcu_tasks_nvcsw;
 	bool rcu_tasks_holdout;
@@ -1431,6 +1437,7 @@ struct task_struct {
 	/* Revert to default priority/policy when forking */
 	unsigned sched_reset_on_fork:1;
 	unsigned sched_contributes_to_load:1;
+	unsigned sched_remote_wakeup:1;
 
 	unsigned long atomic_flags; /* Flags needing atomic access. */
 
@@ -1789,6 +1796,9 @@ struct task_struct {
 	unsigned int	sequential_io;
 	unsigned int	sequential_io_avg;
 #endif
+
+	/* CPU-bound kernel thread */
+	bool kthread_per_cpu;
 };
 
 /* Future-safe accessor for struct task_struct's cpus_allowed. */

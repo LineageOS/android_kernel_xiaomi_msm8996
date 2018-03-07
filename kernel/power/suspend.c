@@ -302,6 +302,9 @@ void __weak arch_suspend_enable_irqs(void)
  *
  * This function should be called after devices have been suspended.
  */
+#ifdef CONFIG_QUICK_THAW_FINGERPRINTD
+extern void thaw_fingerprintd(void);
+#endif
 static int suspend_enter(suspend_state_t state, bool *wakeup)
 {
 	char suspend_abort[MAX_SUSPEND_ABORT_LEN];
@@ -391,6 +394,9 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 
  Platform_wake:
 	platform_resume_noirq(state);
+#ifdef CONFIG_QUICK_THAW_FINGERPRINTD
+	thaw_fingerprintd();
+#endif
 	dpm_resume_noirq(PMSG_RESUME);
 
  Platform_early_resume:

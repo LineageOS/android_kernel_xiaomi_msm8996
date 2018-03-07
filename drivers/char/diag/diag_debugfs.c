@@ -1069,7 +1069,6 @@ int diag_debugfs_init(void)
 	mutex_init(&diag_dci_dbgfs_mutex);
 	return 0;
 err:
-	kfree(dci_traffic);
 	debugfs_remove_recursive(diag_dbgfs_dent);
 	return -ENOMEM;
 }

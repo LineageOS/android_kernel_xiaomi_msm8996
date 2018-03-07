@@ -330,14 +330,14 @@ static void copy_workqueue_attrs(struct workqueue_attrs *to,
 #include <trace/events/workqueue.h>
 
 #define assert_rcu_or_pool_mutex()					\
-	rcu_lockdep_assert(rcu_read_lock_sched_held() ||		\
-			   lockdep_is_held(&wq_pool_mutex),		\
-			   "sched RCU or wq_pool_mutex should be held")
+	RCU_LOCKDEP_WARN(!rcu_read_lock_sched_held() &&			\
+			 !lockdep_is_held(&wq_pool_mutex),		\
+			 "sched RCU or wq_pool_mutex should be held")
 
 #define assert_rcu_or_wq_mutex(wq)					\
-	rcu_lockdep_assert(rcu_read_lock_sched_held() ||		\
-			   lockdep_is_held(&wq->mutex),			\
-			   "sched RCU or wq->mutex should be held")
+	RCU_LOCKDEP_WARN(!rcu_read_lock_sched_held() &&			\
+			 !lockdep_is_held(&wq->mutex),			\
+			 "sched RCU or wq->mutex should be held")
 
 #define for_each_cpu_worker_pool(pool, cpu)				\
 	for ((pool) = &per_cpu(cpu_worker_pools, cpu)[0];		\
@@ -1331,10 +1331,10 @@ static void __queue_work(int cpu, struct workqueue_struct *wq,
 	if (unlikely(wq->flags & __WQ_DRAINING) &&
 	    WARN_ON_ONCE(!is_chained_work(wq)))
 		return;
-retry:
-	if (req_cpu == WORK_CPU_UNBOUND)
-		cpu = raw_smp_processor_id();
 
+	if (req_cpu == WORK_CPU_UNBOUND)
+		cpu = 0;
+retry:
 	/* pwq which will be used unless @work is executing elsewhere */
 	if (!(wq->flags & WQ_UNBOUND))
 		pwq = per_cpu_ptr(wq->cpu_pwqs, cpu);
@@ -1472,13 +1472,13 @@ static void __queue_delayed_work(int cpu, struct workqueue_struct *wq,
 	timer_stats_timer_set_start_info(&dwork->timer);
 
 	dwork->wq = wq;
+	/* timer isn't guaranteed to run in this cpu, record earlier */
+	if (cpu == WORK_CPU_UNBOUND)
+		cpu = raw_smp_processor_id();
 	dwork->cpu = cpu;
 	timer->expires = jiffies + delay;
 
-	if (unlikely(cpu != WORK_CPU_UNBOUND))
-		add_timer_on(timer, cpu);
-	else
-		add_timer(timer);
+	add_timer_on(timer, 0);
 }
 
 /**
@@ -1729,6 +1729,10 @@ static struct worker *create_worker(struct worker_pool *pool)
 
 	set_user_nice(worker->task, pool->attrs->nice);
 	kthread_bind_mask(worker->task, pool->attrs->cpumask);
+
+	/* prevent anyone from meddling with cpumask of workqueue workers */
+	worker->task->flags |= PF_NO_SETAFFINITY;
+	worker->task->kthread_per_cpu = true;
 
 	/* successful, attach the worker to the pool */
 	worker_attach_to_pool(worker, pool);
@@ -3344,6 +3348,7 @@ void free_workqueue_attrs(struct workqueue_attrs *attrs)
 struct workqueue_attrs *alloc_workqueue_attrs(gfp_t gfp_mask)
 {
 	struct workqueue_attrs *attrs;
+	const unsigned long allowed_cpus = 0x3;
 
 	attrs = kzalloc(sizeof(*attrs), gfp_mask);
 	if (!attrs)
@@ -3351,7 +3356,7 @@ struct workqueue_attrs *alloc_workqueue_attrs(gfp_t gfp_mask)
 	if (!alloc_cpumask_var(&attrs->cpumask, gfp_mask))
 		goto fail;
 
-	cpumask_copy(attrs->cpumask, cpu_possible_mask);
+	cpumask_copy(attrs->cpumask, to_cpumask(&allowed_cpus));
 	return attrs;
 fail:
 	free_workqueue_attrs(attrs);
@@ -4339,7 +4344,7 @@ bool workqueue_congested(int cpu, struct workqueue_struct *wq)
 	rcu_read_lock_sched();
 
 	if (cpu == WORK_CPU_UNBOUND)
-		cpu = smp_processor_id();
+		cpu = 0;
 
 	if (!(wq->flags & WQ_UNBOUND))
 		pwq = per_cpu_ptr(wq->cpu_pwqs, cpu);

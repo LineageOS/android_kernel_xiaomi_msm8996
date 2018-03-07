@@ -1321,7 +1321,9 @@ static int vmstat_show(struct seq_file *m, void *arg)
 	unsigned long *l = arg;
 	unsigned long off = l - (unsigned long *)m->private;
 
-	seq_printf(m, "%s %lu\n", vmstat_text[off], *l);
+	seq_puts(m, vmstat_text[off]);
+	seq_put_decimal_ull(m, ' ', *l);
+	seq_putc(m, '\n');
 	return 0;
 }
 
@@ -1440,8 +1442,8 @@ static void vmstat_shepherd(struct work_struct *w)
 		if (need_update(cpu) &&
 			cpumask_test_and_clear_cpu(cpu, cpu_stat_off))
 
-			schedule_delayed_work_on(cpu, &per_cpu(vmstat_work, cpu),
-				__round_jiffies_relative(sysctl_stat_interval, cpu));
+			schedule_delayed_work_on(cpu,
+				&per_cpu(vmstat_work, cpu), 0);
 
 	put_online_cpus();
 

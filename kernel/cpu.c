@@ -103,19 +103,6 @@ void get_online_cpus(void)
 }
 EXPORT_SYMBOL_GPL(get_online_cpus);
 
-bool try_get_online_cpus(void)
-{
-	if (cpu_hotplug.active_writer == current)
-		return true;
-	if (!mutex_trylock(&cpu_hotplug.lock))
-		return false;
-	cpuhp_lock_acquire_tryread();
-	atomic_inc(&cpu_hotplug.refcount);
-	mutex_unlock(&cpu_hotplug.lock);
-	return true;
-}
-EXPORT_SYMBOL_GPL(try_get_online_cpus);
-
 void put_online_cpus(void)
 {
 	int refcount;
@@ -391,8 +378,10 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen)
 	 *
 	 * Wait for the stop thread to go away.
 	 */
-	while (!idle_cpu(cpu))
+	while (!per_cpu(cpu_dead_idle, cpu))
 		cpu_relax();
+	smp_mb(); /* Read from cpu_dead_idle before __cpu_die(). */
+	per_cpu(cpu_dead_idle, cpu) = false;
 
 	hotplug_cpu__broadcast_tick_pull(cpu);
 	/* This actually kills the CPU. */
@@ -413,7 +402,12 @@ out_release:
 
 int __ref cpu_down(unsigned int cpu)
 {
+	const unsigned int blocked_cpus = 0x3;
 	int err;
+
+	/* kthreads and workqueues require the little cluster to stay online */
+	if ((1U << cpu) & blocked_cpus)
+		return -EINVAL;
 
 	cpu_maps_update_begin();
 
@@ -514,9 +508,41 @@ out:
 	return ret;
 }
 
+static int switch_to_rt_policy(void)
+{
+	struct sched_param param = { .sched_priority = MAX_RT_PRIO - 1 };
+	unsigned int policy = current->policy;
+	int err;
+
+	/* Nobody should be attempting hotplug from these policy contexts. */
+	if (policy == SCHED_BATCH || policy == SCHED_IDLE ||
+					policy == SCHED_DEADLINE)
+		return -EPERM;
+
+	if (policy == SCHED_FIFO || policy == SCHED_RR)
+		return 1;
+
+	/* Only SCHED_NORMAL left. */
+	err = sched_setscheduler_nocheck(current, SCHED_FIFO, &param);
+	return err;
+
+}
+
+static int switch_to_fair_policy(void)
+{
+	struct sched_param param = { .sched_priority = 0 };
+
+	return sched_setscheduler_nocheck(current, SCHED_NORMAL, &param);
+}
+
 int cpu_up(unsigned int cpu)
 {
 	int err = 0;
+	int switch_err = 0;
+
+	switch_err = switch_to_rt_policy();
+	if (switch_err < 0)
+		return switch_err;
 
 	if (!cpu_possible(cpu)) {
 		pr_err("can't online cpu %d because it is not configured as may-hotadd at boot time\n",
@@ -542,6 +568,13 @@ int cpu_up(unsigned int cpu)
 
 out:
 	cpu_maps_update_done();
+
+	if (!switch_err) {
+		switch_err = switch_to_fair_policy();
+		pr_err("Hotplug policy switch err. Task %s pid=%d\n",
+					current->comm, current->pid);
+	}
+
 	return err;
 }
 EXPORT_SYMBOL_GPL(cpu_up);

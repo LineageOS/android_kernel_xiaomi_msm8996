@@ -264,6 +264,7 @@ config APM_EMULATION
 
 config PM_OPP
 	bool
+	select SRCU
 	---help---
 	  SOCs have a standard set of tuples consisting of frequency and
 	  voltage pairs that the device will support per voltage domain. This
@@ -329,3 +330,14 @@ config SUSPEND_TIME
 config DEDUCE_WAKEUP_REASONS
 	bool
 	default n
+
+config QUICK_THAW_FINGERPRINTD
+	bool "Quickly resume fingerprintd"
+	depends on SUSPEND
+	default y
+
+config	BOEFFLA_WL_BLOCKER
+		bool "Boeffla generic wakelock blocker driver"
+		depends on PM
+		default N
+

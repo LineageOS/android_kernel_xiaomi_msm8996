@@ -100,6 +100,7 @@ struct uic_command {
 	int cmd_active;
 	int result;
 	struct completion done;
+	bool comp_inited;
 };
 
 /* Used to differentiate the power management options */

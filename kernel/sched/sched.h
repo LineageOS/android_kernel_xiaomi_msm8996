@@ -8,6 +8,7 @@
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/stop_machine.h>
+#include <linux/irq_work.h>
 #include <linux/tick.h>
 #include <linux/slab.h>
 
@@ -117,11 +118,6 @@ static inline int task_has_dl_policy(struct task_struct *p)
 	return dl_policy(p->policy);
 }
 
-static inline bool dl_time_before(u64 a, u64 b)
-{
-	return (s64)(a - b) < 0;
-}
-
 /*
  * Tells if entity @a should preempt entity @b.
  */
@@ -145,6 +141,7 @@ struct rt_bandwidth {
 	ktime_t			rt_period;
 	u64			rt_runtime;
 	struct hrtimer		rt_period_timer;
+	unsigned int		rt_period_active;
 };
 
 void __dl_clear_params(struct task_struct *p);
@@ -210,7 +207,7 @@ struct cfs_bandwidth {
 	s64 hierarchical_quota;
 	u64 runtime_expires;
 
-	int idle, timer_active;
+	int idle, period_active;
 	struct hrtimer period_timer, slack_timer;
 	struct list_head throttled_cfs_rq;
 
@@ -306,7 +303,7 @@ extern void init_cfs_bandwidth(struct cfs_bandwidth *cfs_b);
 extern int sched_group_set_shares(struct task_group *tg, unsigned long shares);
 
 extern void __refill_cfs_bandwidth_runtime(struct cfs_bandwidth *cfs_b);
-extern void __start_cfs_bandwidth(struct cfs_bandwidth *cfs_b, bool force);
+extern void start_cfs_bandwidth(struct cfs_bandwidth *cfs_b);
 extern void unthrottle_cfs_rq(struct cfs_rq *cfs_rq);
 
 extern void free_rt_sched_group(struct task_group *tg);
@@ -500,6 +497,11 @@ static inline int rt_bandwidth_enabled(void)
 	return sysctl_sched_rt_runtime >= 0;
 }
 
+/* RT IPI pull logic requires IRQ_WORK */
+#ifdef CONFIG_IRQ_WORK
+# define HAVE_RT_PUSH_IPI
+#endif
+
 /* Real-Time classes' related field in a runqueue: */
 struct rt_rq {
 	struct rt_prio_array active;
@@ -517,7 +519,13 @@ struct rt_rq {
 	unsigned long rt_nr_total;
 	int overloaded;
 	struct plist_head pushable_tasks;
+#ifdef HAVE_RT_PUSH_IPI
+	int push_flags;
+	int push_cpu;
+	struct irq_work push_work;
+	raw_spinlock_t push_lock;
 #endif
+#endif /* CONFIG_SMP */
 	int rt_queued;
 
 	int rt_throttled;
@@ -681,9 +689,10 @@ struct rq {
 
 	unsigned long cpu_capacity;
 
+	struct callback_head *balance_callback;
+
 	unsigned char idle_balance;
 	/* For active balancing */
-	int post_schedule;
 	int active_balance;
 	int push_cpu;
 	struct task_struct *push_task;
@@ -817,6 +826,21 @@ extern int migrate_swap(struct task_struct *, struct task_struct *);
 #endif /* CONFIG_NUMA_BALANCING */
 
 #ifdef CONFIG_SMP
+
+static inline void
+queue_balance_callback(struct rq *rq,
+		       struct callback_head *head,
+		       void (*func)(struct rq *rq))
+{
+	lockdep_assert_held(&rq->lock);
+
+	if (unlikely(head->next))
+		return;
+
+	head->func = (void (*)(struct callback_head *))func;
+	head->next = rq->balance_callback;
+	rq->balance_callback = head;
+}
 
 extern void sched_ttwu_pending(void);
 
@@ -979,11 +1003,6 @@ extern unsigned int sched_init_task_load_windows;
 extern unsigned int up_down_migrate_scale_factor;
 extern unsigned int sysctl_sched_restrict_cluster_spill;
 extern unsigned int sched_pred_alert_load;
-
-#ifdef CONFIG_SCHED_FREQ_INPUT
-#define MAJOR_TASK_PCT 85
-extern unsigned int sched_major_task_runtime;
-#endif
 
 extern void reset_cpu_hmp_stats(int cpu, int reset_cra);
 extern unsigned int max_task_load(void);
@@ -1702,9 +1721,9 @@ static const u32 prio_to_wmult[40] = {
 #define ENQUEUE_HEAD		0x08
 #define ENQUEUE_REPLENISH	0x10
 #ifdef CONFIG_SMP
-#define ENQUEUE_WAKING		0x20
+#define ENQUEUE_MIGRATED	0x20
 #else
-#define ENQUEUE_WAKING		0x00
+#define ENQUEUE_MIGRATED	0x00
 #endif
 #define ENQUEUE_MIGRATING	0x40
 
@@ -1737,7 +1756,6 @@ struct sched_class {
 	void (*migrate_task_rq)(struct task_struct *p, int next_cpu);
 
 	void (*post_schedule) (struct rq *this_rq);
-	void (*task_waking) (struct task_struct *task);
 	void (*task_woken) (struct rq *this_rq, struct task_struct *task);
 
 	void (*set_cpus_allowed)(struct task_struct *p,
@@ -1953,7 +1971,8 @@ static inline void sched_rt_avg_update(struct rq *rq, u64 rt_delta) { }
 static inline void sched_avg_update(struct rq *rq) { }
 #endif
 
-extern void start_bandwidth_timer(struct hrtimer *period_timer, ktime_t period);
+extern struct rq *lock_rq_of(struct task_struct *p, unsigned long *flags);
+extern void unlock_rq_of(struct rq *rq, struct task_struct *p, unsigned long *flags);
 
 #ifdef CONFIG_SMP
 #ifdef CONFIG_PREEMPT

@@ -75,11 +75,19 @@ struct tick_sched {
 	int				do_timer_last;
 };
 
+enum tick_broadcast_state {
+	TICK_BROADCAST_EXIT,
+	TICK_BROADCAST_ENTER,
+};
+
 extern void __init tick_init(void);
 extern int tick_is_oneshot_available(void);
 extern u64 jiffy_to_sched_clock(u64 *now, u64 *jiffy_sched_clock);
 extern u64 jiffy_to_ktime_ns(u64 *now, u64 *jiffy_ktime_ns);
 extern struct tick_device *tick_get_device(int cpu);
+
+extern void tick_freeze(void);
+extern void tick_unfreeze(void);
 
 # ifdef CONFIG_HIGH_RES_TIMERS
 extern int tick_init_highres(void);
@@ -96,6 +104,12 @@ static inline void tick_cancel_sched_timer(int cpu) { }
 # ifdef CONFIG_GENERIC_CLOCKEVENTS_BROADCAST
 extern struct tick_device *tick_get_broadcast_device(void);
 extern struct cpumask *tick_get_broadcast_mask(void);
+
+#if defined(CONFIG_GENERIC_CLOCKEVENTS_BROADCAST) && defined(CONFIG_TICK_ONESHOT)
+extern int tick_broadcast_oneshot_control(enum tick_broadcast_state state);
+#else
+static inline int tick_broadcast_oneshot_control(enum tick_broadcast_state state) { return 0; }
+#endif
 
 #  ifdef CONFIG_TICK_ONESHOT
 extern struct cpumask *tick_get_broadcast_oneshot_mask(void);
@@ -121,6 +135,8 @@ static inline int tick_oneshot_mode_active(void) { return 0; }
 
 #else /* CONFIG_GENERIC_CLOCKEVENTS */
 static inline void tick_init(void) { }
+static inline void tick_freeze(void) { }
+static inline void tick_unfreeze(void) { }
 static inline void tick_cancel_sched_timer(int cpu) { }
 static inline void tick_clock_notify(void) { }
 static inline int tick_check_oneshot_change(int allow_nohz) { return 0; }
@@ -134,6 +150,14 @@ DECLARE_PER_CPU(struct tick_sched, tick_cpu_sched);
 static inline int tick_nohz_tick_stopped(void)
 {
 	return __this_cpu_read(tick_cpu_sched.tick_stopped);
+}
+static inline int tick_broadcast_enter(void)
+{
+	return tick_broadcast_oneshot_control(TICK_BROADCAST_ENTER);
+}
+static inline void tick_broadcast_exit(void)
+{
+	tick_broadcast_oneshot_control(TICK_BROADCAST_EXIT);
 }
 
 #if defined(CONFIG_GENERIC_CLOCKEVENTS_BROADCAST) && defined(CONFIG_TICK_ONESHOT)
@@ -233,6 +257,5 @@ static inline void tick_nohz_task_switch(struct task_struct *tsk)
 	if (tick_nohz_full_enabled())
 		__tick_nohz_task_switch(tsk);
 }
-
 
 #endif

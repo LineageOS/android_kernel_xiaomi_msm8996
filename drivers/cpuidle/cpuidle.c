@@ -19,6 +19,8 @@
 #include <linux/ktime.h>
 #include <linux/hrtimer.h>
 #include <linux/module.h>
+#include <linux/suspend.h>
+#include <linux/tick.h>
 #include <trace/events/power.h>
 
 #include "cpuidle.h"
@@ -32,7 +34,6 @@ LIST_HEAD(cpuidle_detected_devices);
 static int enabled_devices;
 static int off __read_mostly;
 static int initialized __read_mostly;
-static bool use_deepest_state __read_mostly;
 
 int cpuidle_disabled(void)
 {
@@ -41,6 +42,12 @@ int cpuidle_disabled(void)
 void disable_cpuidle(void)
 {
 	off = 1;
+}
+
+bool cpuidle_not_available(struct cpuidle_driver *drv,
+			   struct cpuidle_device *dev)
+{
+	return off || !initialized || !drv || !dev || !dev->enabled;
 }
 
 /**
@@ -58,44 +65,30 @@ int cpuidle_play_dead(void)
 		return -ENODEV;
 
 	/* Find lowest-power state that supports long-term idle */
-	for (i = drv->state_count - 1; i >= CPUIDLE_DRIVER_STATE_START; i--)
+	for (i = drv->state_count - 1; i >= 0; i--)
 		if (drv->states[i].enter_dead)
 			return drv->states[i].enter_dead(dev, i);
 
 	return -ENODEV;
 }
 
-/**
- * cpuidle_use_deepest_state - Enable/disable the "deepest idle" mode.
- * @enable: Whether enable or disable the feature.
- *
- * If the "deepest idle" mode is enabled, cpuidle will ignore the governor and
- * always use the state with the greatest exit latency (out of the states that
- * are not disabled).
- *
- * This function can only be called after cpuidle_pause() to avoid races.
- */
-void cpuidle_use_deepest_state(bool enable)
-{
-	use_deepest_state = enable;
-}
-
-/**
- * cpuidle_find_deepest_state - Find the state of the greatest exit latency.
- * @drv: cpuidle driver for a given CPU.
- * @dev: cpuidle device for a given CPU.
- */
-static int cpuidle_find_deepest_state(struct cpuidle_driver *drv,
-				      struct cpuidle_device *dev)
+static int find_deepest_state(struct cpuidle_driver *drv,
+			      struct cpuidle_device *dev,
+			      unsigned int max_latency,
+			      unsigned int forbidden_flags,
+			      bool freeze)
 {
 	unsigned int latency_req = 0;
-	int i, ret = CPUIDLE_DRIVER_STATE_START - 1;
+	int i, ret = -ENXIO;
 
-	for (i = CPUIDLE_DRIVER_STATE_START; i < drv->state_count; i++) {
+	for (i = 0; i < drv->state_count; i++) {
 		struct cpuidle_state *s = &drv->states[i];
 		struct cpuidle_state_usage *su = &dev->states_usage[i];
 
-		if (s->disabled || su->disable || s->exit_latency <= latency_req)
+		if (s->disabled || su->disable || s->exit_latency <= latency_req
+		    || s->exit_latency > max_latency
+		    || (s->flags & forbidden_flags)
+		    || (freeze && !s->enter_freeze))
 			continue;
 
 		latency_req = s->exit_latency;
@@ -105,10 +98,69 @@ static int cpuidle_find_deepest_state(struct cpuidle_driver *drv,
 }
 
 /**
+ * cpuidle_find_deepest_state - Find the deepest available idle state.
+ * @drv: cpuidle driver for the given CPU.
+ * @dev: cpuidle device for the given CPU.
+ */
+int cpuidle_find_deepest_state(struct cpuidle_driver *drv,
+			       struct cpuidle_device *dev)
+{
+	return find_deepest_state(drv, dev, UINT_MAX, 0, false);
+}
+
+static void enter_freeze_proper(struct cpuidle_driver *drv,
+				struct cpuidle_device *dev, int index)
+{
+	/*
+	 * trace_suspend_resume() called by tick_freeze() for the last CPU
+	 * executing it contains RCU usage regarded as invalid in the idle
+	 * context, so tell RCU about that.
+	 */
+	RCU_NONIDLE(tick_freeze());
+	/*
+	 * The state used here cannot be a "coupled" one, because the "coupled"
+	 * cpuidle mechanism enables interrupts and doing that with timekeeping
+	 * suspended is generally unsafe.
+	 */
+	drv->states[index].enter_freeze(dev, drv, index);
+	WARN_ON(!irqs_disabled());
+	/*
+	 * timekeeping_resume() that will be called by tick_unfreeze() for the
+	 * first CPU executing it calls functions containing RCU read-side
+	 * critical sections, so tell RCU about that.
+	 */
+	RCU_NONIDLE(tick_unfreeze());
+}
+
+/**
+ * cpuidle_enter_freeze - Enter an idle state suitable for suspend-to-idle.
+ * @drv: cpuidle driver for the given CPU.
+ * @dev: cpuidle device for the given CPU.
+ *
+ * If there are states with the ->enter_freeze callback, find the deepest of
+ * them and enter it with frozen tick.
+ */
+int cpuidle_enter_freeze(struct cpuidle_driver *drv, struct cpuidle_device *dev)
+{
+	int index;
+
+	/*
+	 * Find the deepest state with ->enter_freeze present, which guarantees
+	 * that interrupts won't be enabled when it exits and allows the tick to
+	 * be frozen safely.
+	 */
+	index = find_deepest_state(drv, dev, UINT_MAX, 0, true);
+	if (index >= 0)
+		enter_freeze_proper(drv, dev, index);
+
+	return index;
+}
+
+/**
  * cpuidle_enter_state - enter the state and update stats
  * @dev: cpuidle device for this cpu
  * @drv: cpuidle driver for this cpu
- * @next_state: index into drv->states of the state to enter
+ * @index: index into the states table in @drv of the state to enter
  */
 int cpuidle_enter_state(struct cpuidle_device *dev, struct cpuidle_driver *drv,
 			int index)
@@ -127,7 +179,7 @@ int cpuidle_enter_state(struct cpuidle_device *dev, struct cpuidle_driver *drv,
 	time_end = ktime_get();
 	trace_cpu_idle_rcuidle(PWR_EVENT_EXIT, dev->cpu);
 
-	if (!cpuidle_state_is_coupled(dev, drv, entered_state))
+	if (!cpuidle_state_is_coupled(drv, index))
 		local_irq_enable();
 
 	diff = ktime_to_us(ktime_sub(time_end, time_start));
@@ -160,15 +212,6 @@ int cpuidle_enter_state(struct cpuidle_device *dev, struct cpuidle_driver *drv,
  */
 int cpuidle_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 {
-	if (off || !initialized)
-		return -ENODEV;
-
-	if (!drv || !dev || !dev->enabled)
-		return -EBUSY;
-
-	if (unlikely(use_deepest_state))
-		return cpuidle_find_deepest_state(drv, dev);
-
 	return cpuidle_curr_governor->select(drv, dev);
 }
 
@@ -185,7 +228,7 @@ int cpuidle_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 int cpuidle_enter(struct cpuidle_driver *drv, struct cpuidle_device *dev,
 		  int index)
 {
-	if (cpuidle_state_is_coupled(dev, drv, index))
+	if (cpuidle_state_is_coupled(drv, index))
 		return cpuidle_enter_state_coupled(dev, drv, index);
 	return cpuidle_enter_state(dev, drv, index);
 }
@@ -200,7 +243,7 @@ int cpuidle_enter(struct cpuidle_driver *drv, struct cpuidle_device *dev,
  */
 void cpuidle_reflect(struct cpuidle_device *dev, int index)
 {
-	if (cpuidle_curr_governor->reflect && !unlikely(use_deepest_state))
+	if (cpuidle_curr_governor->reflect && index >= 0)
 		cpuidle_curr_governor->reflect(dev, index);
 }
 

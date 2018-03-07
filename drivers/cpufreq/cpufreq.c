@@ -27,6 +27,7 @@
 #include <linux/mutex.h>
 #include <linux/slab.h>
 #include <linux/suspend.h>
+#include <linux/syscore_ops.h>
 #include <linux/tick.h>
 #ifdef CONFIG_SMP
 #include <linux/sched.h>
@@ -1304,6 +1305,9 @@ static int __cpufreq_add_dev(struct device *dev, struct subsys_interface *sif)
 	if (!recover_policy) {
 		policy->user_policy.min = policy->min;
 		policy->user_policy.max = policy->max;
+	} else {
+		policy->min = policy->user_policy.min;
+		policy->max = policy->user_policy.max;
 	}
 
 	down_write(&policy->rwsem);
@@ -2701,6 +2705,14 @@ int cpufreq_unregister_driver(struct cpufreq_driver *driver)
 }
 EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 
+/*
+ * Stop cpufreq at shutdown to make sure it isn't holding any locks
+ * or mutexes when secondary CPUs are halted.
+ */
+static struct syscore_ops cpufreq_syscore_ops = {
+	.shutdown = cpufreq_suspend,
+};
+
 static int __init cpufreq_core_init(void)
 {
 	if (cpufreq_disabled())
@@ -2708,6 +2720,8 @@ static int __init cpufreq_core_init(void)
 
 	cpufreq_global_kobject = kobject_create();
 	BUG_ON(!cpufreq_global_kobject);
+
+	register_syscore_ops(&cpufreq_syscore_ops);
 
 	return 0;
 }
