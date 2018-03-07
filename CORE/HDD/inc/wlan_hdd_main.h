@@ -2133,6 +2133,7 @@ struct hdd_context_s
 #endif
     /* flag to show whether moniotr mode is enabled */
     bool is_mon_enable;
+    v_MACADDR_t hw_macaddr;
 };
 
 /*---------------------------------------------------------------------------
@@ -2691,4 +2692,18 @@ int hdd_drv_cmd_validate(tANI_U8 *command, int len);
  */
 int wlan_hdd_monitor_mode_enable(hdd_context_t *hdd_ctx, bool enable);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0))
+static inline int
+hdd_wlan_nla_put_u64(struct sk_buff *skb, int attrtype, u64 value)
+{
+	return nla_put_u64(skb, attrtype, value);
+}
+#else
+static inline int
+hdd_wlan_nla_put_u64(struct sk_buff *skb, int attrtype, u64 value)
+{
+	return nla_put_u64_64bit(skb, attrtype, value,
+				 QCA_WLAN_VENDOR_ATTR_LL_STATS_PAD);
+}
+#endif
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

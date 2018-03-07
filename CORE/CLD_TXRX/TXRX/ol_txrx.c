@@ -1074,7 +1074,7 @@ void ol_txrx_vdev_init_tcp_del_ack(struct ol_txrx_vdev_t *vdev)
 	adf_os_hrtimer_init(vdev->pdev->osdev,
 		&vdev->tcp_ack_hash.timer, ol_tx_hl_vdev_tcp_del_ack_timer);
 	adf_os_create_bh(vdev->pdev->osdev, &vdev->tcp_ack_hash.tcp_del_ack_tq,
-		 tcp_del_ack_tasklet, (unsigned long)vdev);
+		 (adf_os_defer_fn_t)tcp_del_ack_tasklet, (void *)vdev);
 	adf_os_atomic_init(&vdev->tcp_ack_hash.is_timer_running);
 	adf_os_atomic_init(&vdev->tcp_ack_hash.tcp_node_in_use_count);
 	adf_os_spinlock_init(&vdev->tcp_ack_hash.tcp_free_list_lock);

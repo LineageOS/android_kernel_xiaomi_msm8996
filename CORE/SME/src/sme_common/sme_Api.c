@@ -17943,6 +17943,49 @@ eHalStatus sme_configure_modulated_dtim(tHalHandle h_hal, tANI_U8 session_id,
 }
 
 /**
+ * sme_mnt_filter_type_cmd() - set filter packet type to firmware
+ * @input: pointer to filter type request data.
+ *
+ * Return: VOS_STATUS.
+ */
+VOS_STATUS sme_mnt_filter_type_cmd(struct sme_mnt_filter_type_req *input)
+{
+    vos_msg_t msg;
+    struct hal_mnt_filter_type_request *data;
+    size_t data_len;
+
+    data_len = sizeof(struct hal_mnt_filter_type_request) + input->request_data_len;
+    data = vos_mem_malloc(data_len);
+
+    if (data == NULL) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("Memory allocation failure"));
+        return VOS_STATUS_E_FAULT;
+    }
+
+    vos_mem_zero(data, data_len);
+    data->request_data_len = input->request_data_len;
+    data->vdev_id = input->vdev_id;
+    if (input->request_data_len) {
+        vos_mem_copy(data->request_data,
+                input->request_data, input->request_data_len);
+    }
+
+    msg.type = WDA_MNT_FILTER_TYPE_CMD;
+    msg.reserved = 0;
+    msg.bodyptr = data;
+
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+        FL("Not able to post WDA_MNT_FILTER_TYPE_CMD message to WDA"));
+        vos_mem_free(data);
+        return VOS_STATUS_SUCCESS;
+    }
+
+    return VOS_STATUS_SUCCESS;
+}
+
+/**
  * sme_set_tsfcb() - set callback which to handle WMI_VDEV_TSF_REPORT_EVENTID
  *
  * @hHal: Handler return by macOpen.

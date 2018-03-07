@@ -4969,7 +4969,7 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 		WMA_LOGA("%s: Invalid param_tlvs for Iface Stats", __func__);
 		return -EINVAL;
 	}
-	if (link_stats->num_ac >= WIFI_AC_MAX) {
+	if (link_stats->num_ac > WIFI_AC_MAX) {
 		WMA_LOGE("%s: Excess data received from firmware num_ac %d",
 			__func__, link_stats->num_ac);
 		return -EINVAL;
@@ -9281,7 +9281,10 @@ wma_action_frame_filter_mac_event_handler(void *handle, u_int8_t *event_buf,
 		WMA_LOGA(FL("Invalid fixed param"));
 		return -EINVAL;
 	}
-
+	if (event->vdev_id >= wma_handle->max_bssid) {
+		WMA_LOGA(FL("Invalid vdev id"));
+		return -EINVAL;
+	}
 	intr = &wma_handle->interfaces[event->vdev_id];
 	/* command is in progess */
 	if(!intr->action_frame_filter) {
@@ -10382,10 +10385,11 @@ static inline void wma_get_link_probe_timeout(struct sAniSirGlobal *mac,
 /**
  * wma_verify_rate_code() - verify if rate code is valid.
  * @rate_code:     rate code
+ * @curr_band:     current band that device working on
  *
  * Return: verify result
  */
-static bool wma_verify_rate_code(u_int32_t rate_code)
+static bool wma_verify_rate_code(u_int32_t rate_code, uint8_t curr_band)
 {
 	uint8_t preamble, nss, rate;
 	bool valid = true;
@@ -10396,7 +10400,7 @@ static bool wma_verify_rate_code(u_int32_t rate_code)
 
 	switch (preamble) {
 	case WMI_RATE_PREAMBLE_CCK:
-		if (nss != 0 || rate > 3)
+		if (nss != 0 || rate > 3 || curr_band == VOS_BAND_5GHZ)
 			valid = false;
 		break;
 	case WMI_RATE_PREAMBLE_OFDM:
@@ -10404,11 +10408,11 @@ static bool wma_verify_rate_code(u_int32_t rate_code)
 			valid = false;
 		break;
 	case WMI_RATE_PREAMBLE_HT:
-		if (nss > 1 || rate > 7)
+		if (nss != 0 || rate > 7)
 			valid = false;
 		break;
 	case WMI_RATE_PREAMBLE_VHT:
-		if (nss > 1 || rate > 9)
+		if (nss != 0 || rate > 9)
 			valid = false;
 		break;
 	default:
@@ -10434,6 +10438,8 @@ static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id)
 	uint32_t cfg_val;
 	int ret;
 	uint32_t per_band_mgmt_tx_rate = 0;
+	uint32_t current_chan;
+	uint8_t current_band;
 	struct sAniSirGlobal *mac =
 	    (struct sAniSirGlobal*)vos_get_context(VOS_MODULE_ID_PE,
 						       wma->vos_context);
@@ -10443,10 +10449,13 @@ static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id)
 		return;
 	}
 
+	current_chan = vos_freq_to_chan(wma->interfaces[vdev_id].mhz);
+	current_band = vos_chan_to_band(current_chan);
+
 	if (wlan_cfgGetInt(mac, WNI_CFG_RATE_FOR_TX_MGMT,
 			   &cfg_val) == eSIR_SUCCESS) {
 		if ((cfg_val == WNI_CFG_RATE_FOR_TX_MGMT_STADEF) ||
-		    !wma_verify_rate_code(cfg_val)) {
+		    !wma_verify_rate_code(cfg_val, current_band)) {
 			WMA_LOGE("invalid rate code, ignore.");
 		} else {
 			ret = wmi_unified_vdev_set_param_send(
@@ -10466,7 +10475,7 @@ static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id)
 	if (wlan_cfgGetInt(mac, WNI_CFG_RATE_FOR_TX_MGMT_2G,
 			   &cfg_val) == eSIR_SUCCESS) {
 		if ((cfg_val == WNI_CFG_RATE_FOR_TX_MGMT_2G_STADEF) ||
-		    !wma_verify_rate_code(cfg_val)) {
+		    !wma_verify_rate_code(cfg_val, current_band)) {
 			per_band_mgmt_tx_rate &=
 			    ~(1 << TX_MGMT_RATE_2G_ENABLE_OFFSET);
 		} else {
@@ -10482,7 +10491,7 @@ static void wma_set_vdev_mgmt_rate(tp_wma_handle wma, u_int8_t vdev_id)
 	if (wlan_cfgGetInt(mac, WNI_CFG_RATE_FOR_TX_MGMT_5G,
 			   &cfg_val) == eSIR_SUCCESS) {
 		if ((cfg_val == WNI_CFG_RATE_FOR_TX_MGMT_5G_STADEF) ||
-		    !wma_verify_rate_code(cfg_val)) {
+		    !wma_verify_rate_code(cfg_val, current_band)) {
 			per_band_mgmt_tx_rate &=
 			    ~(1 << TX_MGMT_RATE_5G_ENABLE_OFFSET);
 		} else {
@@ -33734,6 +33743,59 @@ static void wma_peer_flush_pending(tp_wma_handle wma,
 					 peer_tid_bitmap, vdev_id);
 }
 
+/**
+ * wma_mnt_filter_type_cmd() - set filter packet type to firmware
+ * in monitor mode.
+ * @wda_handle: pointer to wma handle.
+ * @enable_monitor_req: pointer to filter type request.
+ *
+ * This is called to filter type to firmware via WMI command.
+ *
+ * Return: VOS_STATUS.
+ */
+VOS_STATUS wma_mnt_filter_type_cmd(tp_wma_handle wma_handle,
+                           struct hal_mnt_filter_type_request *filter_type_req)
+{
+    wmi_mnt_filter_cmd_fixed_param *cmd;
+    int status = 0;
+    wmi_buf_t buf;
+    u_int8_t *buf_ptr;
+    int32_t len = sizeof(wmi_mnt_filter_cmd_fixed_param);
+
+    if (!wma_handle || !wma_handle->wmi_handle) {
+        WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+        return VOS_STATUS_E_INVAL;
+    }
+
+    buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+    if (!buf) {
+        WMA_LOGP(FL("wmi_buf_alloc failed"));
+        return -ENOMEM;
+    }
+    buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+    cmd = (wmi_mnt_filter_cmd_fixed_param *) buf_ptr;
+    WMITLV_SET_HDR(&cmd->tlv_header,
+                    WMITLV_TAG_STRUC_wmi_mnt_filter_cmd_fixed_param,
+                    WMITLV_GET_STRUCT_TLVLEN(
+                    wmi_mnt_filter_cmd_fixed_param));
+    cmd->vdev_id = filter_type_req->vdev_id;
+    if (filter_type_req->request_data_len) {
+        vos_mem_copy(&(cmd->configure_type),
+        filter_type_req->request_data, filter_type_req->request_data_len);
+    }
+    WMA_LOGI("%s: Filter type=0x%x",__func__,cmd->configure_type);
+    status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+                                    WMI_MNT_FILTER_CMDID);
+    if (status != EOK) {
+        WMA_LOGE("%s: wmi_unified_cmd_send WMI_MNT_FILTER_CMDID"
+                 " returned Error %d",
+                 __func__, status);
+        wmi_buf_free(buf);
+        return VOS_STATUS_E_FAILURE;
+    }
+    return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -34664,15 +34726,20 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			     (struct action_frame_random_filter *)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
-        case WDA_GET_ISOLATION:
-            wma_get_isolation(wma_handle);
-            break;
+		case WDA_GET_ISOLATION:
+			wma_get_isolation(wma_handle);
+			break;
 		case WDA_PEER_FLUSH_PENDING:
 			wma_peer_flush_pending(wma_handle, msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_SET_AC_TXQ_OPTIMIZE:
 			wma_set_ac_txq_optimize(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_MNT_FILTER_TYPE_CMD:
+			wma_mnt_filter_type_cmd(wma_handle,
+				(struct hal_mnt_filter_type_request*)msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:
@@ -35293,6 +35360,7 @@ static int wma_apfind_evt_handler(void *handle, u_int8_t *event,
 	u_int8_t ssid_tmp[WMI_MAX_SSID_LEN + 1];
 	u_int8_t *mac;
 	u_int32_t vdev_id;
+	u_int32_t buf_len;
 
 	if (!param_buf) {
 		WMA_LOGE("Invalid APFIND event buffer");
@@ -35300,8 +35368,36 @@ static int wma_apfind_evt_handler(void *handle, u_int8_t *event,
 	}
 
 	apfind_event_hdr = param_buf->hdr;
-	WMA_LOGD("APFIND event received, id=%d, data_length=%d",
-		apfind_event_hdr->event_type, apfind_event_hdr->data_len);
+	WMA_LOGD("APFIND event received, id=%d, data_len=%d",
+		 apfind_event_hdr->event_type, apfind_event_hdr->data_len);
+
+	/* data_len = WMI_TLV_HDR_SIZE + length of data */
+	if (apfind_event_hdr->data_len <= WMI_TLV_HDR_SIZE) {
+		WMA_LOGE("APFIND event with no data");
+		return -EINVAL;
+	}
+
+	buf_len = param_buf->num_data;
+	if (buf_len != (apfind_event_hdr->data_len - WMI_TLV_HDR_SIZE)) {
+		WMA_LOGE("APFIND event with unmatched len: %u - %u",
+			 buf_len, apfind_event_hdr->data_len);
+		return -EINVAL;
+	}
+
+	if ((apfind_event_hdr->data_len >
+	     (len - sizeof(wmi_apfind_event_hdr))) ||
+	    (apfind_event_hdr->data_len >
+	     (WMA_SVC_MSG_MAX_SIZE - sizeof(wmi_apfind_event_hdr)))) {
+		WMA_LOGE("APFIND event with invalid data_len: %u",
+			 apfind_event_hdr->data_len);
+		return -EINVAL;
+	}
+
+	if (buf_len < WMI_MAX_SSID_LEN + IEEE80211_ADDR_LEN) {
+		WMA_LOGE("APFIND event with invalid buf_len: %u", buf_len);
+		return -EINVAL;
+	}
+
 	buf = param_buf->data;
 	A_MEMZERO(ssid_tmp, sizeof(ssid_tmp));
 	A_MEMCPY(ssid_tmp, buf, WMI_MAX_SSID_LEN);
@@ -35310,12 +35406,10 @@ static int wma_apfind_evt_handler(void *handle, u_int8_t *event,
 
 	buf = &param_buf->data[WMI_MAX_SSID_LEN];
 	mac = buf;
-	WMA_LOGD("%s, APFIND dump mac=0x%08X-0x%08X",
-		__func__, *(u_int32_t *)buf, *(u_int32_t *)(buf + sizeof(u_int32_t)));
+	WMA_LOGD("%s, APFIND dump mac=%pM", __func__, mac);
 
-	if (apfind_event_hdr->data_len >=
-		(WMI_MAX_SSID_LEN + IEEE80211_ADDR_LEN + sizeof(vdev_id)
-		+ sizeof(apfind_event_hdr->tlv_header))) {
+	if (buf_len >=
+	    (WMI_MAX_SSID_LEN + IEEE80211_ADDR_LEN + sizeof(vdev_id))) {
 		/* FW had the tlv_header len calculated into the data_len */
 		buf = &param_buf->data[WMI_MAX_SSID_LEN + IEEE80211_ADDR_LEN];
 		vdev_id = *(u_int32_t*) buf;
