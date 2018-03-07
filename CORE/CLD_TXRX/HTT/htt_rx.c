@@ -1646,14 +1646,18 @@ htt_rx_mon_amsdu_rx_in_order_pop_ll(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
 	uint32_t msdu_count = 0;
 	struct htt_host_rx_desc_base *rx_desc;
 	struct mon_rx_status rx_status = {0};
+	struct htt_rx_in_ord_paddr_ind_hdr_t *host_msg_hdr;
 	uint32_t amsdu_len;
 	uint32_t len;
 	uint32_t last_frag;
+	uint32_t ch_freq;
 
 	HTT_ASSERT1(htt_rx_in_order_ring_elems(pdev) != 0);
 
 	rx_ind_data = adf_nbuf_data(rx_ind_msg);
 	msg_word = (uint32_t *)rx_ind_data;
+	host_msg_hdr = (struct htt_rx_in_ord_paddr_ind_hdr_t *)rx_ind_data;
+	ch_freq = vos_chan_to_freq(host_msg_hdr->reserved_1);
 
 	HTT_PKT_DUMP(vos_trace_hex_dump(VOS_MODULE_ID_TXRX,
 					VOS_TRACE_LEVEL_FATAL,
@@ -1695,6 +1699,7 @@ htt_rx_mon_amsdu_rx_in_order_pop_ll(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
 		 * Make the netbuf's data pointer point to the payload rather
 		 * than the descriptor.
 		 */
+		rx_status.chan = (uint16_t)ch_freq;
 		htt_get_radiotap_rx_status(rx_desc, &rx_status);
 		/*
 		 * 250 bytes of RX_STD_DESC size should be sufficient for
