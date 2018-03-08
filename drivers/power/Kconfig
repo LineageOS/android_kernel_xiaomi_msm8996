@@ -636,6 +636,13 @@ config MSM_BCL_PERIPHERAL_CTL
 	  provides routines to configure and monitor the BCL
 	  PMIC peripheral.
 
+config CHARGE_CONTROL
+	bool "Charge controller for Qualcomm devices"
+	default y
+	help
+	  Say Y here to enable charge control interface. @xNombre
+	  You will be able to manipulate charging processes.
+
 source "drivers/power/reset/Kconfig"
 
 endif # POWER_SUPPLY
