@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -79,6 +79,7 @@ typedef enum {
     GEN_PARAM_MODULATED_DTIM,
     GEN_PARAM_CAPTURE_TSF,
     GEN_PARAM_RESET_TSF_GPIO,
+    GEN_PDEV_MONITOR_MODE,
 } GEN_PARAM;
 
 #define VDEV_CMD 1

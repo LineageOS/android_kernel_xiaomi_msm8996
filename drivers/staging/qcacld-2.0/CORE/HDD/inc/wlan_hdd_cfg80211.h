@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2772,8 +2772,8 @@ void wlan_hdd_testmode_rx_event(void *buf, size_t buf_len);
 #endif
 
 void hdd_suspend_wlan(void (*callback)(void *callbackContext, boolean suspended),
-                      void *callbackContext);
-void hdd_resume_wlan(void);
+                      void *callbackContext, bool thermal);
+void hdd_resume_wlan(bool thermal);
 
 #if defined(FEATURE_WLAN_CH_AVOID) || defined(FEATURE_WLAN_FORCE_SAP_SCC)
 int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
@@ -2793,9 +2793,17 @@ void hdd_rssi_threshold_breached(void *hddctx,
 
 struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_list(
    hdd_adapter_t *pAdapter, tSirMacAddr bssid);
+int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
+                                   struct cfg80211_wowlan *wow, bool thermal);
 
 int wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                                    struct cfg80211_wowlan *wow);
+int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy, bool thermal);
+int wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy);
+
+bool hdd_system_suspend_state_set(hdd_context_t *hdd_ctx, bool state);
+int hdd_thermal_suspend_state(hdd_context_t *hdd_ctx);
+
 void wlan_hdd_cfg80211_acs_ch_select_evt(hdd_adapter_t *adapter);
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
 int wlan_hdd_send_roam_auth_event(hdd_context_t *hdd_ctx_ptr, uint8_t *bssid,

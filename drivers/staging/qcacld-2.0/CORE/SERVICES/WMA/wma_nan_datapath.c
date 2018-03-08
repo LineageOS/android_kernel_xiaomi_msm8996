@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -487,6 +487,18 @@ static int wma_ndp_indication_event_handler(void *handle, uint8_t  *event_info,
 	fixed_params =
 		(wmi_ndp_indication_event_fixed_param *)event->fixed_param;
 
+	if (fixed_params->ndp_cfg_len > event->num_ndp_cfg) {
+		WMA_LOGE("FW message ndp cfg length %d larger than TLV hdr %d",
+			 fixed_params->ndp_cfg_len, event->num_ndp_cfg);
+		return -EINVAL;
+	}
+
+	if (fixed_params->ndp_app_info_len > event->num_ndp_app_info) {
+		WMA_LOGE("FW message ndp app info length %d more than TLV hdr %d",
+			 fixed_params->ndp_app_info_len, event->num_ndp_app_info);
+		return -EINVAL;
+	}
+
 	ind_event = vos_mem_malloc(sizeof(*ind_event));
 	if (!ind_event) {
 		WMA_LOGP(FL("Failed to allocate memory"));
@@ -648,10 +660,20 @@ static int wma_ndp_confirm_event_handler(void *handle, uint8_t *event_info,
 		 fixed_params->reason_code,
 		 fixed_params->num_active_ndps_on_peer);
 
+	if (fixed_params->ndp_cfg_len > event->num_ndp_cfg) {
+		WMA_LOGE("FW message ndp cfg length %d larger than TLV hdr %d",
+			 fixed_params->ndp_cfg_len, event->num_ndp_cfg);
+		return -EINVAL;
+	}
 	WMA_LOGE(FL("ndp_cfg - %d bytes"), fixed_params->ndp_cfg_len);
 	VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
 		&event->ndp_cfg, fixed_params->ndp_cfg_len);
 
+	if (fixed_params->ndp_app_info_len > event->num_ndp_app_info) {
+		WMA_LOGE("FW message ndp app info length %d more than TLV hdr %d",
+			 fixed_params->ndp_app_info_len, event->num_ndp_app_info);
+		return -EINVAL;
+	}
 	WMA_LOGE(FL("ndp_app_info - %d bytes"), fixed_params->ndp_app_info_len);
 	VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_DEBUG,
 		&event->ndp_app_info, fixed_params->ndp_app_info_len);

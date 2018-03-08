@@ -54,6 +54,12 @@ ifeq ($(KERNEL_BUILD), 0)
 		endif
 	endif
 
+	ifeq ($(CONFIG_ARCH_MSM8909), y)
+		ifeq ($(CONFIG_ROME_IF), sdio)
+			CONFIG_WLAN_SYNC_TSF_PLUS := y
+		endif
+	endif
+
 	# As per target team, build is done as follows:
 	# Defconfig : build with default flags
 	# Slub      : defconfig  + CONFIG_SLUB_DEBUG=y +
@@ -339,6 +345,9 @@ CONFIG_FEATURE_STATS_EXT := 1
 #Flag to force the inclusion of the 802.11p channels because support
 #for these channels has not yet been added to the kernel.
 CONFIG_STATICALLY_ADD_11P_CHANNELS := n
+
+#Enable thermal shutdown
+CONFIG_WLAN_THERMAL_SHUTDOWN := 1
 
 ifeq ($(CONFIG_CFG80211),y)
 HAVE_CFG80211 := 1
@@ -1054,6 +1063,11 @@ ifeq ($(CONFIG_FEATURE_COEX_PTA_CONFIG_ENABLE), y)
 CDEFINES += -DFEATURE_COEX_PTA_CONFIG_ENABLE
 endif
 
+ifeq ($(CONFIG_QCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK), y)
+CDEFINES += -DQCA_SUPPORT_TXRX_DRIVER_TCP_DEL_ACK
+CDEFINES += -DFEATURE_BUS_BANDWIDTH
+endif
+
 ifeq ($(CONFIG_WLAN_FEATURE_FILS),y)
 CDEFINES += -DWLAN_FEATURE_FILS_SK
 endif
@@ -1669,6 +1683,11 @@ endif
 
 ifeq ($(CONFIG_HIF_PCI), 1)
 CDEFINES += -DFORCE_LEGACY_PCI_INTERRUPTS
+endif
+
+ifeq ($(CONFIG_WLAN_THERMAL_SHUTDOWN), 1)
+CDEFINES += -DFEATURE_WLAN_THERMAL_SHUTDOWN
+CDEFINES += -DFEATURE_WLAN_AUTO_SHUTDOWN
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)

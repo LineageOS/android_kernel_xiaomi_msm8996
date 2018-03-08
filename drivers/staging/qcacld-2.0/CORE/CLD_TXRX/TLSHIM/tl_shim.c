@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1186,6 +1186,29 @@ static void tl_shim_cache_flush_work(struct work_struct *work)
 	}
 }
 
+/*
+ * TLSHIM virtual monitor mode RX callback,
+ * registered for OL data indication.
+ */
+
+static void tl_shim_vir_mon_rx(adf_nbuf_t rx_buf_list)
+{
+	struct txrx_tl_shim_ctx *tl_shim;
+	void *vos_ctx = vos_get_global_context(VOS_MODULE_ID_TL, NULL);
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+
+	if (!tl_shim) {
+		TLSHIM_LOGE("%s: Failed to get TLSHIM context", __func__);
+		return;
+	}
+
+	if (tl_shim->rx_monitor_cb)
+		tl_shim->rx_monitor_cb(vos_ctx, rx_buf_list, 0);
+	else
+		TLSHIM_LOGE("%s: tl_shim->rx_monitor_cb is NULL", __func__);
+}
+
 /*************************/
 /*	TL APIs		 */
 /*************************/
@@ -1935,6 +1958,57 @@ VOS_STATUS WLANTL_RegisterSTAClient(void *vos_ctx,
 
 	/* Schedule a worker to flush cached rx frames */
 	schedule_work(&tl_shim->cache_flush_work);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS tl_register_vir_mon_cb(void *vos_ctx,
+				  WLANTL_STARxCBType rxcb)
+{
+	struct txrx_tl_shim_ctx *tl_shim;
+	ol_txrx_pdev_handle pdev;
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	if (!tl_shim) {
+		TLSHIM_LOGE("tl_shim is NULL");
+		return VOS_STATUS_E_FAULT;
+	}
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_ctx);
+	if (!pdev) {
+		TLSHIM_LOGE("%s: Failed to find pdev", __func__);
+		return VOS_STATUS_E_FAULT;
+	}
+
+	tl_shim->rx_monitor_cb = rxcb;
+
+	/* register TLSHIM RX montior callback to OL */
+	ol_txrx_osif_pdev_mon_register_cbk(pdev, tl_shim_vir_mon_rx);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS tl_deregister_vir_mon_cb(void *vos_ctx)
+{
+	struct txrx_tl_shim_ctx *tl_shim;
+	ol_txrx_pdev_handle pdev;
+
+	tl_shim = vos_get_context(VOS_MODULE_ID_TL, vos_ctx);
+	if (!tl_shim) {
+		TLSHIM_LOGE("tl_shim is NULL");
+		return VOS_STATUS_E_FAULT;
+	}
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos_ctx);
+	if (!pdev) {
+		TLSHIM_LOGE("%s: Failed to find pdev", __func__);
+		return VOS_STATUS_E_FAULT;
+	}
+
+	tl_shim->rx_monitor_cb = NULL;
+
+	/* register TLSHIM RX montior callback to OL */
+	ol_txrx_osif_pdev_mon_register_cbk(pdev, NULL);
 
 	return VOS_STATUS_SUCCESS;
 }

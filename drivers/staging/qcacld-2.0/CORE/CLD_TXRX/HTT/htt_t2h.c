@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -535,10 +535,18 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             u_int16_t peer_cnt = HTT_PEER_RATE_REPORT_MSG_PEER_COUNT_GET(*msg_word);
             u_int16_t i;
             struct rate_report_t *report, *each;
+            int max_peers;
 
             /* Param sanity check */
             if (peer_cnt == 0) {
                 adf_os_print("RATE REPORT messsage peer_cnt is 0! \n");
+                break;
+            }
+
+            max_peers = ol_cfg_max_peer_id(pdev->ctrl_pdev) + 1;
+            if (peer_cnt > max_peers) {
+                adf_os_print("RATE REPORT msg peer_cnt is larger than %d\n",
+                    max_peers);
                 break;
             }
 
@@ -856,6 +864,11 @@ if (adf_os_unlikely(pdev->rx_ring.rx_reset)) {
                                                peer_id, tid, offload_ind);
             break;
      }
+    case HTT_T2H_MSG_TYPE_MONITOR_MAC_HEADER_IND:
+        {
+            ol_rx_mon_mac_header_handler(pdev->txrx_pdev, htt_t2h_msg);
+            break;
+        }
 
     default:
         htt_t2h_lp_msg_handler(context, htt_t2h_msg);
