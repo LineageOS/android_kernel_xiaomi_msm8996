@@ -15,8 +15,8 @@
 #include <sound/apr_elliptic.h>
 #include "msm-elliptic.h"
 
-#include <drivers/elliptic/elliptic_data_io.h>
-#include <drivers/elliptic/elliptic_mixer_controls.h>
+#include <elliptic_data_io.h>
+#include <elliptic_mixer_controls.h>
 
 
 #ifndef min

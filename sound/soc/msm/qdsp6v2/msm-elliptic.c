@@ -13,9 +13,9 @@
 #include <sound/apr_audio-v2.h>
 #include "msm-elliptic.h"
 
-#include <drivers/elliptic/elliptic_data_io.h>
-#include <drivers/elliptic/elliptic_device.h>
-#include <drivers/elliptic/elliptic_mixer_controls.h>
+#include <elliptic_data_io.h>
+#include <elliptic_device.h>
+#include <elliptic_mixer_controls.h>
 
 struct elliptic_system_configuration {
 	union {
