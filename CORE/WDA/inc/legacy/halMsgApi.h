@@ -1043,6 +1043,7 @@ typedef struct
     uint32_t channelwidth;
 
     uint16_t reduced_beacon_interval;
+    uint16_t beacon_tx_rate;
 }tSwitchChannelParams, *tpSwitchChannelParams;
 
 typedef struct CSAOffloadParams {

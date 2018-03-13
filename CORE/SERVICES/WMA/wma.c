@@ -15631,6 +15631,7 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 					" interval reset req", __func__);
 			}
 		}
+		req.beacon_tx_rate= params->beacon_tx_rate;
 	}
 
 	if ((VOS_MONITOR_MODE == vos_get_conparam()) && wma_is_vdev_up(0)) {
