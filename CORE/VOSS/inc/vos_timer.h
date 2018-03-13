@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -296,6 +296,24 @@ VOS_STATUS vos_timer_start( vos_timer_t *timer, v_U32_t expirationTime );
   ------------------------------------------------------------------------*/
 VOS_STATUS vos_timer_stop( vos_timer_t *timer );
 
+/*--------------------------------------------------------------------------
+
+  \brief vos_timer_deinit() - De-init a vOSS Timer
+
+  The \a vos_timer_deinit() function stop (if the timer is in running state)
+  and destroy a timer.
+
+  \param timer - the timer object to be stopped
+
+  \return VOS_STATUS_SUCCESS - timer was successfully de-initialized.
+
+          VOS_STATUS_E_INVAL - The value specified by timer is invalid.
+
+          VOS_STATUS_E_FAULT  - timer is an invalid pointer.
+  \sa
+
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_timer_deinit(vos_timer_t *timer);
 
 /*--------------------------------------------------------------------------
 
