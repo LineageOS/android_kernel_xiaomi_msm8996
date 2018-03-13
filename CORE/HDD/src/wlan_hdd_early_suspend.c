@@ -2147,36 +2147,6 @@ VOS_STATUS hdd_wlan_shutdown(void)
    /* Reset the Suspend Variable */
    pHddCtx->isWlanSuspended = FALSE;
 
-   /* Stop all the threads; we do not want any messages to be a processed,
-    * any more and the best way to ensure that is to terminate the threads
-    * gracefully.
-    */
-   /* Wait for MC to exit */
-   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down MC thread",__func__);
-   set_bit(MC_SHUTDOWN_EVENT, &vosSchedContext->mcEventFlag);
-   set_bit(MC_POST_EVENT, &vosSchedContext->mcEventFlag);
-   wake_up_interruptible(&vosSchedContext->mcWaitQueue);
-   wait_for_completion(&vosSchedContext->McShutdown);
-
-#ifdef QCA_CONFIG_SMP
-   /* Wait for TLshim RX to exit */
-   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down TLshim RX thread",
-          __func__);
-   unregister_hotcpu_notifier(vosSchedContext->cpuHotPlugNotifier);
-   set_bit(RX_SHUTDOWN_EVENT, &vosSchedContext->tlshimRxEvtFlg);
-   set_bit(RX_POST_EVENT, &vosSchedContext->tlshimRxEvtFlg);
-   wake_up_interruptible(&vosSchedContext->tlshimRxWaitQueue);
-   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Waiting for TLshim RX thread to exit",
-          __func__);
-   wait_for_completion(&vosSchedContext->TlshimRxShutdown);
-   vosSchedContext->TlshimRxThread = NULL;
-   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Waiting for dropping RX packets",
-          __func__);
-   vos_drop_rxpkt_by_staid(vosSchedContext, WLAN_MAX_STA_COUNT);
-   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Waiting for freeing freeQ", __func__);
-   vos_free_tlshim_pkt_freeq(vosSchedContext);
-#endif
-
    tl_shim_flush_cache_rx_queue();
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing WDA STOP", __func__);
@@ -2224,16 +2194,11 @@ VOS_STATUS hdd_wlan_shutdown(void)
 
    hdd_unregister_mcast_bcast_filter(pHddCtx);
 
-   hddLog(VOS_TRACE_LEVEL_INFO, "%s: Flush Queues",__func__);
-   /* Clean up message queues of TX, RX and MC thread */
-   vos_sched_flush_mc_mqs(vosSchedContext);
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing VOS SCHED Close", __func__);
+   vos_sched_close(vosSchedContext);
 
-   /* Deinit all the TX, RX and MC queues */
-   vos_sched_deinit_mqs(vosSchedContext);
-
-   hddLog(VOS_TRACE_LEVEL_INFO, "%s: Doing VOS Shutdown",__func__);
-   /* shutdown VOSS */
-   vos_shutdown(pVosContext);
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing VOS Close", __func__);
+   vos_close(pVosContext);
 
    /*mac context has already been released in mac_close call
      so setting it to NULL in hdd context*/

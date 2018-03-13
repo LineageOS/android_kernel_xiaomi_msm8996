@@ -794,7 +794,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
                "%s: VOSS successfully Opened", __func__);
 
    *pVosContext = gpVosContext;
-
+   gpVosContext->is_closed = false;
    return VOS_STATUS_SUCCESS;
 
 
@@ -1155,6 +1155,12 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
 {
   VOS_STATUS vosStatus;
 
+  if (gpVosContext->is_closed) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                "%s: vos is already closed", __func__);
+      return VOS_STATUS_SUCCESS;
+  }
+
   /* WDA_Stop is called before the SYS so that the processing of Riva
   pending responces will not be handled during uninitialization of WLAN driver */
   vos_event_reset( &(gpVosContext->wdaCompleteEvent) );
@@ -1197,6 +1203,12 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
 VOS_STATUS vos_close( v_CONTEXT_t vosContext )
 {
   VOS_STATUS vosStatus;
+
+  if (gpVosContext->is_closed) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                "%s: already closed", __func__);
+      return VOS_STATUS_SUCCESS;
+  }
 
   vosStatus = wma_wmi_work_close( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
@@ -1303,6 +1315,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
 
   vos_wdthread_flush_timer_work();
 
+  gpVosContext->is_closed = true;
   return VOS_STATUS_SUCCESS;
 }
 

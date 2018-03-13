@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1147,7 +1147,8 @@ VosWDThread
       if (test_and_clear_bit(WD_WLAN_DETECT_THREAD_STUCK,
                                    &pWdContext->wdEventFlag)) {
 
-       if (!test_bit(MC_SUSPEND_EVENT, &gpVosSchedContext->mcEventFlag))
+       if (gpVosSchedContext &&
+           !test_bit(MC_SUSPEND_EVENT, &gpVosSchedContext->mcEventFlag))
             vos_wd_detect_thread_stuck();
        else
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
@@ -1576,8 +1577,8 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     if (gpVosSchedContext == NULL)
     {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: gpVosSchedContext == NULL",__func__);
-       return VOS_STATUS_E_FAILURE;
+           "%s: gpVosSchedContext == NULL, already closed", __func__);
+       return VOS_STATUS_SUCCESS;
     }
 
     // shut down MC Thread
@@ -1606,6 +1607,7 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     vos_free_tlshim_pkt_freeq(gpVosSchedContext);
     unregister_hotcpu_notifier(&vos_cpu_hotplug_notifier);
 #endif
+    gpVosSchedContext = NULL;
     return VOS_STATUS_SUCCESS;
 } /* vox_sched_close() */
 
