@@ -114,6 +114,7 @@ enum thermal_suspend_state {
  /* SSR shutdown & re-init functions */
  VOS_STATUS hdd_wlan_shutdown(void);
  VOS_STATUS hdd_wlan_re_init(void *hif_sc);
+ void hdd_wlan_cleanup(void);
 
 void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter);
 VOS_STATUS hdd_conf_arp_offload(hdd_adapter_t* pAdapter, int fenable);

@@ -2221,6 +2221,8 @@ again:
         sc->hdd_startup_reinit_flag = true;
         if (VOS_STATUS_SUCCESS == hdd_wlan_re_init(ol_sc))
             ret = 0;
+        else
+            ret = -EIO;
         sc->hdd_startup_reinit_flag = false;
     }
 
@@ -2579,8 +2581,10 @@ hif_pci_remove(struct pci_dev *pdev)
     /* Attach did not succeed, all resources have been
      * freed in error handler
      */
-    if (!sc)
+    if (!sc) {
+        hdd_wlan_cleanup();
         return;
+    }
 
     scn = sc->ol_sc;
 
@@ -2617,11 +2621,47 @@ hif_pci_remove(struct pci_dev *pdev)
     printk(KERN_INFO "pci_remove\n");
 }
 
+#ifdef HIF_PCI
+static void hif_pci_ssr_fail_ind(void)
+{
+	v_CONTEXT_t vos_ctx;
+	hdd_context_t *hdd_ctx;
+
+	/* Get the VOS context */
+	vos_ctx = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+	if (!vos_ctx) {
+		VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_ERROR,
+			"%s: Failed vos_get_global_context", __func__);
+		return;
+	}
+
+	/* Get the HDD context */
+	hdd_ctx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
+	if (!hdd_ctx) {
+		VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_ERROR,
+			"%s: HDD context is Null", __func__);
+		return;
+	}
+	wlan_hdd_send_svc_nlink_msg(hdd_ctx->radio_index,
+				    WLAN_SVC_SSR_FAIL_IND, NULL, 0);
+	VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_ERROR,
+		"%s: send WLAN_SVC_SSR_FAIL_IND\n", __func__);
+}
+
+void hif_pci_update_status(struct pci_dev *pdev, uint32_t status)
+{
+	VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_ERROR,
+		"%s: status=%u\n", __func__, status);
+	if (status == CNSS_SSR_FAIL) {
+		vos_set_ssr_failed(TRUE);
+		hif_pci_ssr_fail_ind();
+	}
+}
+
 /* This function will be called when SSR framework wants to
  * shutdown WLAN host driver when SSR happens. Most of this
  * function is duplicated from hif_pci_remove().
  */
-#ifdef HIF_PCI
 void hif_pci_shutdown(struct pci_dev *pdev)
 {
     void __iomem *mem;
@@ -2678,6 +2718,8 @@ void hif_pci_shutdown(struct pci_dev *pdev)
     hif_pci_pm_runtime_ssr_post_exit(sc);
     hif_deinit_adf_ctx(scn);
     A_FREE(scn);
+    vos_set_context(VOS_MODULE_ID_HIF, NULL);
+
     A_FREE(sc->hif_device);
     A_FREE(sc);
     pci_set_drvdata(pdev, NULL);
@@ -3241,6 +3283,7 @@ struct cnss_wlan_driver cnss_wlan_drv_id = {
     .shutdown   = hif_pci_shutdown,
     .crash_shutdown = hif_pci_crash_shutdown,
     .modem_status   = hif_pci_notify_handler,
+    .update_status  = hif_pci_update_status,
 #ifdef ATH_BUS_PM
     .suspend    = hif_pci_suspend,
     .resume     = hif_pci_resume,
