@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -246,8 +246,10 @@ static void epping_stop_adapter(epping_adapter_t *pAdapter)
       netif_carrier_off(pAdapter->dev);
       pAdapter->started = false;
       dev = pAdapter->pEpping_ctx->parent_dev;
+#ifdef FEATURE_BUS_BANDWIDTH
       if (dev)
          vos_request_bus_bandwidth(dev, CNSS_BUS_WIDTH_LOW);
+#endif
    }
 }
 
@@ -262,8 +264,10 @@ static int epping_start_adapter(epping_adapter_t *pAdapter)
    }
    if (!pAdapter->started) {
       dev = pAdapter->pEpping_ctx->parent_dev;
+#ifdef FEATURE_BUS_BANDWIDTH
       if (dev)
          vos_request_bus_bandwidth(dev, CNSS_BUS_WIDTH_HIGH);
+#endif
       netif_carrier_on(pAdapter->dev);
       EPPING_LOG(LOG1, FL("Enabling queues"));
       netif_tx_start_all_queues(pAdapter->dev);

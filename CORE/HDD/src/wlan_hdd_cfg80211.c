@@ -30329,7 +30329,10 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy, bool thermal)
         }
     }
     dev = pHddCtx->parent_dev;
+
+#ifdef FEATURE_BUS_BANDWIDTH
     vos_request_bus_bandwidth(dev, CNSS_BUS_WIDTH_MEDIUM);
+#endif
 
     /* Resume MC thread */
     if (pHddCtx->isMcThreadSuspended) {
@@ -30628,7 +30631,9 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
                            NO_SESSION, pHddCtx->isWiphySuspended));
     pHddCtx->isWiphySuspended = TRUE;
 
+#ifdef FEATURE_BUS_BANDWIDTH
     vos_request_bus_bandwidth(dev, CNSS_BUS_WIDTH_NONE);
+#endif
 
     if (thermal) {
         wlan_hdd_thermal_suspend(pHddCtx);
@@ -30645,7 +30650,9 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
     EXIT();
     return 0;
 fail_suspend:
+#ifdef FEATURE_BUS_BANDWIDTH
     vos_request_bus_bandwidth(dev, CNSS_BUS_WIDTH_MEDIUM);
+#endif
     pHddCtx->isWiphySuspended = FALSE;
 #ifdef QCA_CONFIG_SMP
     complete(&vosSchedContext->ResumeTlshimRxEvent);
