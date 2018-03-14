@@ -22543,10 +22543,6 @@ void hdd_select_cbmode(hdd_adapter_t *pAdapter, v_U8_t operationChannel,
               hddDot11Mode = eHDD_DOT11_MODE_11ac;
           else
               hddDot11Mode = eHDD_DOT11_MODE_11n;
-#if defined(FEATURE_WLAN_WAPI) && defined(FEATURE_WLAN_WAPI_MODE_11AC_DISABLE)
-          if (pAdapter->wapi_info.nWapiMode)
-              hddDot11Mode = eHDD_DOT11_MODE_11n;
-#endif
 #else
           hddDot11Mode = eHDD_DOT11_MODE_11n;
 #endif
@@ -22962,6 +22958,14 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
                 pRoamProfile->mcEncryptionType.numEntries = 1;
                 pRoamProfile->mcEncryptionType.encryptionType[0] = eCSR_ENCRYPT_TYPE_WPI;
             }
+#if defined(WLAN_FEATURE_11AC) && defined(WLAN_WAPI_MODE_11AC_DISABLE)
+            if( (pRoamProfile->phyMode & eCSR_DOT11_MODE_11ac) ||
+                (pRoamProfile->phyMode & eCSR_DOT11_MODE_11ac_ONLY) )
+            {
+                pRoamProfile->phyMode &= ~eCSR_DOT11_MODE_11ac;
+                pRoamProfile->phyMode &= ~eCSR_DOT11_MODE_11ac_ONLY;
+            }
+#endif
         }
 #endif /* FEATURE_WLAN_WAPI */
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
