@@ -801,6 +801,8 @@ struct hdd_station_ctx
    /**Connection information*/
    connection_info_t conn_info;
 
+   connection_info_t cache_conn_info;
+
    roaming_info_t roam_info;
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)

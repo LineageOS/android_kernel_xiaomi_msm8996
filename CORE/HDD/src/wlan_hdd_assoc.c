@@ -815,6 +815,9 @@ static void hdd_save_bss_info(hdd_adapter_t *adapter,
 	} else {
 		hdd_sta_ctx->conn_info.conn_flag.vht_op_present = false;
 	}
+	/* Cache last connection info */
+	vos_mem_copy(&hdd_sta_ctx->cache_conn_info, &hdd_sta_ctx->conn_info,
+		     sizeof(connection_info_t));
 }
 
 static void
@@ -871,15 +874,11 @@ hdd_connSaveConnectInfo(hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo,
           pHddStaCtx->conn_info.ucEncryptionType = encryptType;
 
           pHddStaCtx->conn_info.authType =  pRoamInfo->u.pConnectedProfile->AuthType;
-          pHddStaCtx->conn_info.last_auth_type = pHddStaCtx->conn_info.authType;
 
           pHddStaCtx->conn_info.operationChannel = pRoamInfo->u.pConnectedProfile->operationChannel;
 
           // Save the ssid for the connection
           vos_mem_copy( &pHddStaCtx->conn_info.SSID.SSID, &pRoamInfo->u.pConnectedProfile->SSID, sizeof( tSirMacSSid ) );
-          vos_mem_copy(&pHddStaCtx->conn_info.last_ssid.SSID,
-                       &pRoamInfo->u.pConnectedProfile->SSID,
-                       sizeof(tSirMacSSid));
 
           // Save  dot11mode in which STA associated to AP
           pHddStaCtx->conn_info.dot11Mode = pRoamInfo->u.pConnectedProfile->dot11Mode;
@@ -1481,10 +1480,10 @@ static void hdd_print_bss_info(hdd_station_ctx_t *hdd_sta_ctx)
 	hddLog(VOS_TRACE_LEVEL_INFO, "dot11mode: %d",
 	       hdd_sta_ctx->conn_info.dot11Mode);
 	hddLog(VOS_TRACE_LEVEL_INFO, "AKM: %d",
-	       hdd_sta_ctx->conn_info.last_auth_type);
+	       hdd_sta_ctx->cache_conn_info.authType);
 	hddLog(VOS_TRACE_LEVEL_INFO, "ssid: %.*s",
-	       hdd_sta_ctx->conn_info.last_ssid.SSID.length,
-	       hdd_sta_ctx->conn_info.last_ssid.SSID.ssId);
+	       hdd_sta_ctx->cache_conn_info.SSID.SSID.length,
+	       hdd_sta_ctx->cache_conn_info.SSID.SSID.ssId);
 	hddLog(VOS_TRACE_LEVEL_INFO, "roam count: %d",
 	       hdd_sta_ctx->conn_info.roam_count);
 	hddLog(VOS_TRACE_LEVEL_INFO, "ant_info: %d",
