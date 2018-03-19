@@ -2055,6 +2055,45 @@ static inline int hdd_send_roam_auth_event(hdd_context_t *hdd_ctx,
 }
 #endif
 
+/**
+ * hdd_send_roamed_ind() - send roamed indication to cfg80211
+ * @dev: network device
+ * @bss: cfg80211 roamed bss pointer
+ * @req_ie: IEs used in reassociation request
+ * @req_ie_len: Length of the @req_ie
+ * @resp_ie: IEs received in successful reassociation response
+ * @resp_ie_len: Length of @resp_ie
+ *
+ * Return: none
+ */
+#if defined CFG80211_ROAMED_API_UNIFIED || \
+       (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+static void hdd_send_roamed_ind(struct net_device *dev,
+				struct cfg80211_bss *bss, const uint8_t *req_ie,
+				size_t req_ie_len, const uint8_t *resp_ie,
+				size_t resp_ie_len)
+{
+	struct cfg80211_roam_info info = {0};
+
+	info.bss = bss;
+	info.req_ie = req_ie;
+	info.req_ie_len = req_ie_len;
+	info.resp_ie = resp_ie;
+	info.resp_ie_len = resp_ie_len;
+	cfg80211_roamed(dev, &info, GFP_KERNEL);
+}
+#else
+static inline void hdd_send_roamed_ind(struct net_device *dev,
+				       struct cfg80211_bss *bss,
+				       const uint8_t *req_ie, size_t req_ie_len,
+				       const uint8_t *resp_ie,
+				       size_t resp_ie_len)
+{
+	cfg80211_roamed_bss(dev, bss, req_ie, req_ie_len, resp_ie, resp_ie_len,
+			    GFP_KERNEL);
+}
+#endif
+
 static void hdd_SendReAssocEvent(struct net_device *dev,
                                  hdd_adapter_t *pAdapter,
                                  tCsrRoamInfo *pCsrRoamInfo, v_U8_t *reqRsnIe,
@@ -2147,9 +2186,9 @@ static void hdd_SendReAssocEvent(struct net_device *dev,
     hddLog(LOG2, FL("Req RSN IE:"));
     VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
        final_req_ie, (ssid_ie_len +reqRsnLength));
-    cfg80211_roamed_bss(dev, bss,
-       final_req_ie, (ssid_ie_len + reqRsnLength),
-       rspRsnIe, rspRsnLength, GFP_KERNEL);
+    hdd_send_roamed_ind(dev, bss, final_req_ie,
+                        (ssid_ie_len + reqRsnLength), rspRsnIe,
+                        rspRsnLength);
 
     hdd_send_roam_auth_event(pHddCtx, pCsrRoamInfo->bssid,
                     reqRsnIe, reqRsnLength, rspRsnIe,
@@ -2576,10 +2615,13 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                                pConnectedProfile->SSID.ssId,
                                pRoamInfo->u.
                                pConnectedProfile->SSID.length);
-                        cfg80211_roamed_bss(dev, roam_bss,
-                               pFTAssocReq, assocReqlen,
-                               pFTAssocRsp, assocRsplen,
-                               GFP_KERNEL);
+                        hdd_send_roamed_ind(
+                               dev,
+                               roam_bss,
+                               pFTAssocReq,
+                               assocReqlen,
+                               pFTAssocRsp,
+                               assocRsplen);
                     }
                     if (sme_GetFTPTKState(WLAN_HDD_GET_HAL_CTX(pAdapter),
                                           pAdapter->sessionId))
