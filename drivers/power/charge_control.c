@@ -1,5 +1,4 @@
-/* Copyright (c) 2017 The Linux Foundation. All rights reserved.
- * Copyright (c) xNombre kartapolska@gmail.com
+/* Copyright (c) 2017-2018 Andrzej Perczak aka xNombre kartapolska@gmail.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -21,10 +20,34 @@
 static struct kobj_attribute _name##_attr = \
 	__ATTR(_name, 0644, _name##_show, _name##_store)
 
+#define ATTR_RO(_name)  \
+static struct kobj_attribute _name##_attr = \
+	__ATTR(_name, 0444, _name##_show, _name##_store)
+
 // Define variables
 bool force_fast_charge = 0;
 int charge_limit = 100;
+int recharge_at = 0;
 int maximum_qc_current = 2800;
+int full_charge_every = 0;
+int charges_counter = 0;
+bool trigger_full_charge = 0;
+
+void count_charge() {
+	charges_counter++;
+
+	if(charges_counter == full_charge_every){
+		charges_counter = 0;
+		trigger_full_charge = 1;
+	}
+}
+
+void finish_full_charge() {
+	if(full_charge_every != 1) {
+		trigger_full_charge = 0;
+		charges_counter = 0;
+	}
+}
 
 static ssize_t maximum_qc_current_show(struct kobject *kobj,
 				  struct kobj_attribute *attr, char *buf)
@@ -61,6 +84,8 @@ static ssize_t charge_limit_store(struct kobject *kobj,
 		return -EINVAL;
 	if(val < 1 && val > 100)
 		return -EINVAL;
+	if(val == 1)
+		trigger_full_charge = 1;
 
 	charge_limit = val;
 
@@ -84,10 +109,68 @@ static ssize_t force_fast_charge_store(struct kobject *kobj,
 }
 ATTR_RW(force_fast_charge);
 
+static ssize_t recharge_at_show(struct kobject *kobj,
+				  struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", recharge_at);
+}
+static ssize_t recharge_at_store(struct kobject *kobj,
+				   struct kobj_attribute *attr,
+				   const char *buf, size_t count)
+{
+	int val;
+	if (kstrtoint(buf, 0, &val))
+		return -EINVAL;
+	if(val < 0 && val > 99)
+		return -EINVAL;
+
+	recharge_at = val;
+
+	return count;
+}
+ATTR_RW(recharge_at);
+
+static ssize_t full_charge_every_show(struct kobject *kobj,
+				  struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", full_charge_every);
+}
+static ssize_t full_charge_every_store(struct kobject *kobj,
+				   struct kobj_attribute *attr,
+				   const char *buf, size_t count)
+{
+	int val;
+	if (kstrtoint(buf, 0, &val))
+		return -EINVAL;
+	if(val < 0 && val > 100)
+		return -EINVAL;
+
+	full_charge_every = val;
+
+	return count;
+}
+ATTR_RW(full_charge_every);
+
+static ssize_t charges_counter_show(struct kobject *kobj,
+				  struct kobj_attribute *attr, char *buf)
+{
+	return charges_counter > 1 ? sprintf(buf, "%d\n", charges_counter) : -EINVAL;
+}
+static ssize_t charges_counter_store(struct kobject *kobj,
+				   struct kobj_attribute *attr,
+				   const char *buf, size_t count)
+{
+	return -EINVAL;
+}
+ATTR_RO(charges_counter);
+
 static struct attribute *charge_control_attrs[] = {
 	&force_fast_charge_attr.attr,
 	&charge_limit_attr.attr,
 	&maximum_qc_current_attr.attr,
+	&recharge_at_attr.attr,
+	&full_charge_every_attr.attr,
+	&charges_counter_attr.attr,
 	NULL,
 };
 
@@ -112,6 +195,8 @@ static int __init chgctl_init(void) {
 		kobject_put(charge_control_kobj);
 		return err;
 	}
+
+	pr_info("Charge Control ver. %s loaded!\n", module_version);
 
 	return 0;
 }
