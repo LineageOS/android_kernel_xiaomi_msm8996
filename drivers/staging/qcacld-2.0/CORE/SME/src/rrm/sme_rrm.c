@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -728,14 +728,10 @@ static eHalStatus sme_RrmScanRequestCallback(tHalHandle halHandle,
   --------------------------------------------------------------------------*/
 eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
 {
-   //Issue scan request.
-   tCsrScanRequest scanRequest;
-   v_U32_t scanId = 0;
    eHalStatus status = eHAL_STATUS_SUCCESS;
    tpRrmSMEContext pSmeRrmContext = &pMac->rrm.rrmSmeContext;
    tANI_U32 sessionId;
    tSirScanType scanType;
-   v_TIME_t current_time;
 
    status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid*)pSmeRrmContext->sessionBssId, &sessionId );
    if( status != eHAL_STATUS_SUCCESS )
@@ -755,6 +751,10 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
 
    if ((eSIR_ACTIVE_SCAN == scanType) || (eSIR_PASSIVE_SCAN == scanType))
    {
+       tCsrScanRequest scanRequest;
+       v_U32_t scanId = 0;
+       v_TIME_t current_time;
+
 #if defined WLAN_VOWIFI_DEBUG
    smsLog( pMac, LOGE, "Issue scan request " );
 #endif

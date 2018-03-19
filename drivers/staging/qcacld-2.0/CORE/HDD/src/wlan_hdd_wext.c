@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -245,6 +245,13 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 
 #define WE_SET_MODULATED_DTIM                 88
 
+#define WE_SET_MON_FILTER                     89
+typedef enum eMonFilterType{
+        MON_MGMT_PKT,
+        MON_CTRL_PKT,
+        MON_DATA_PKT,
+        MON_ALL_PKT,
+} tMonFilterType;
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
@@ -369,33 +376,33 @@ static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_VAR_INT_GET_NONE   (SIOCIWFIRSTPRIV + 7)
-#define WE_LOG_DUMP_CMD      1
+#define WE_LOG_DUMP_CMD                              1
 
-#define WE_P2P_NOA_CMD       2
+#define WE_P2P_NOA_CMD                               2
 //IOCTL to configure MCC params
-#define WE_MCC_CONFIG_CREDENTIAL 3
-#define WE_MCC_CONFIG_PARAMS  4
+#define WE_MCC_CONFIG_CREDENTIAL                     3
+#define WE_MCC_CONFIG_PARAMS                         4
 
 #ifdef FEATURE_WLAN_TDLS
-#define WE_TDLS_CONFIG_PARAMS   5
+#define WE_TDLS_CONFIG_PARAMS                        5
 #endif
-#define WE_IBSS_GET_PEER_INFO   6
-#define WE_UNIT_TEST_CMD   7
+#define WE_IBSS_GET_PEER_INFO                        6
+#define WE_UNIT_TEST_CMD                             7
 
-#define WE_MTRACE_DUMP_CMD    8
+#define WE_MTRACE_DUMP_CMD                           8
 #define WE_MTRACE_SELECTIVE_MODULE_LOG_ENABLE_CMD    9
 
 #ifdef WLAN_FEATURE_GPIO_LED_FLASHING
-#define WE_LED_FLASHING_PARAM    10
+#define WE_LED_FLASHING_PARAM                       10
 #endif
 #ifdef MEMORY_DEBUG
-#define WE_MEM_TRACE_DUMP     11
+#define WE_MEM_TRACE_DUMP                           11
 #endif
 #ifdef FEATURE_WLAN_TDLS
 #undef  MAX_VAR_ARGS
-#define MAX_VAR_ARGS         11
+#define MAX_VAR_ARGS                                11
 #else
-#define MAX_VAR_ARGS         7
+#define MAX_VAR_ARGS                                 7
 #endif
 
 /* Private ioctls (with no sub-ioctls) */
@@ -5997,6 +6004,51 @@ VOS_STATUS wlan_hdd_get_temperature(hdd_adapter_t *pAdapter,
     return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * wlan_hdd_mnt_filter_type_cmd() - set filter packet type
+ * configuration to firmware
+ * @data: pointer to filter type configuration data.
+ * @data_len: the length in byte of filter type data.
+ *
+ * This is called when wlan driver needs to set
+ * filter packet type to firmware in monitor mode.
+ *
+ * Return: An error code or 0 on success.
+ */
+static int wlan_hdd_mnt_filter_type_cmd(hdd_adapter_t *pAdapter, v_U8_t *data,
+                                        int data_len)
+{
+    hdd_context_t *pHddCtx = NULL;
+    v_CONTEXT_t pVosContext = NULL;
+    struct sme_mnt_filter_type_req  filter_type;
+    VOS_STATUS status;
+    int ret_val = -EIO;
+
+    /* Get the Global VOSS Context */
+    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+    if (!pVosContext) {
+        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: VOS context is Null", __func__);
+        return ret_val;
+    }
+
+    /* Get the HDD context */
+    pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+    if (!pHddCtx) {
+        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+        return ret_val;
+    }
+
+    filter_type.vdev_id = pAdapter->sessionId;
+    filter_type.request_data_len = data_len;
+    filter_type.request_data = data;
+
+    status = sme_mnt_filter_type_cmd(&filter_type);
+    if (VOS_STATUS_SUCCESS == status) {
+        ret_val = 0;
+    }
+    return ret_val;
+}
+
 /* set param sub-ioctls */
 static int __iw_setint_getnone(struct net_device *dev,
                                struct iw_request_info *info,
@@ -7315,11 +7367,42 @@ static int __iw_setint_getnone(struct net_device *dev,
             }
             break;
         }
+        case WE_SET_MON_FILTER:
+        {
+            v_U8_t filter_type = 0;
+
+            if (VOS_MONITOR_MODE != hdd_get_conparam()) {
+                hddLog(LOGE, "Unable to set Monitor Mode Filters");
+                hddLog(LOGE, "WLAN Device is not in Monitor mode!!");
+                return -EINVAL;
+            }
+
+            if (set_value < MON_MGMT_PKT || set_value > MON_ALL_PKT) {
+                hddLog(LOGE, "Invalid Filter value recieved...");
+                hddLog(LOGE, "Valid Values to set monitor mode filter:");
+                hddLog(LOGE, "0: Filter management packets");
+                hddLog(LOGE, "1: Filter control packets");
+                hddLog(LOGE, "2: Filter data packets");
+                hddLog(LOGE, "3: Filter All packets");
+                return -EINVAL;
+            }
+            filter_type = (v_U8_t) (set_value & 0xFF);
+
+            /* filter packetin monitor mode. */
+            if (filter_type < MON_MGMT_PKT || filter_type > MON_ALL_PKT) {
+                hddLog(LOGE, "Invalid monitor mode filter type received");
+                return -EINVAL;
+            }
+
+            hddLog(LOG1, "Monitor Mode Filter type  = %d", filter_type);
+            wlan_hdd_mnt_filter_type_cmd(pAdapter, &filter_type,sizeof(v_U8_t));
+            break;
+        }
         default:
         {
-           hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
-           ret = -EINVAL;
-           break;
+            hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
+            ret = -EINVAL;
+            break;
         }
     }
     EXIT();
@@ -12019,6 +12102,11 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_MODULATED_DTIM,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         0, "setModDTIM" },
+
+    {
+        WE_SET_MON_FILTER,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "setMonFilter" },
 
     /* handlers for sub-ioctl */
     {   WE_GET_11D_STATE,

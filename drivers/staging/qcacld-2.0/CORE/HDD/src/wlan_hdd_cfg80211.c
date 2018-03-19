@@ -7215,8 +7215,9 @@ static int put_wifi_ll_ext_stats(struct sir_wifi_ll_ext_stats *stats,
 	struct sir_wifi_ll_ext_period *period;
 
 	period = &stats->time_stamp;
-	if (nla_put_u64(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_REPORT_TIME,
-			period->end_time) ||
+	if (hdd_wlan_nla_put_u64(skb,
+				 QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_REPORT_TIME,
+				 period->end_time) ||
 	    nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_MEASUREMENT_TIME,
 			period->duration) ||
 	    nla_put_u32(skb, QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_EVENT_MODE,
@@ -13048,6 +13049,53 @@ static int wlan_hdd_cfg80211_sta_roam_policy(struct wiphy *wiphy,
 }
 
 #ifdef FEATURE_WLAN_CH_AVOID
+
+static int hdd_validate_avoid_freq_chanlist(hdd_context_t *hdd_ctx,
+					    tHddAvoidFreqList *channel_list)
+{
+	unsigned int range_idx, ch_idx;
+	unsigned int unsafe_channel_index, unsafe_channel_count = 0;
+	bool ch_found = false;
+
+	unsafe_channel_count = VOS_MIN((uint16_t)hdd_ctx->unsafe_channel_count,
+			(uint16_t)NUM_20MHZ_RF_CHANNELS);
+
+	for (range_idx = 0; range_idx < channel_list->avoidFreqRangeCount;
+					range_idx++) {
+		if ((channel_list->avoidFreqRange[range_idx].startFreq <
+		     VOS_24_GHZ_CHANNEL_1) ||
+		    (channel_list->avoidFreqRange[range_idx].endFreq >
+		     VOS_5_GHZ_CHANNEL_165) ||
+		    (channel_list->avoidFreqRange[range_idx].startFreq >
+		     channel_list->avoidFreqRange[range_idx].endFreq))
+				continue;
+
+		for (ch_idx = channel_list->avoidFreqRange[range_idx].startFreq;
+		     ch_idx <= channel_list->avoidFreqRange[range_idx].endFreq;
+		     ch_idx++) {
+			for (unsafe_channel_index = 0;
+			     unsafe_channel_index < unsafe_channel_count;
+			     unsafe_channel_index++) {
+				if (ch_idx ==
+					hdd_ctx->unsafe_channel_list[
+					unsafe_channel_index]) {
+					hddLog(VOS_TRACE_LEVEL_INFO,
+					       FL("Duplicate channel %d"),
+					       ch_idx);
+					ch_found = true;
+					break;
+				}
+			}
+			if (!ch_found) {
+				hdd_ctx->unsafe_channel_list[
+				unsafe_channel_count++] = ch_idx;
+			}
+			ch_found = false;
+		}
+	}
+	return unsafe_channel_count;
+}
+
 /**
  * __wlan_hdd_cfg80211_avoid_freq() - ask driver to restart SAP if SAP
  * is on unsafe channel.
@@ -13070,28 +13118,43 @@ __wlan_hdd_cfg80211_avoid_freq(struct wiphy *wiphy,
 {
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	int ret;
-	uint16_t unsafe_channel_count;
 	int unsafe_channel_index;
+	tHddAvoidFreqList *channel_list;
+	tVOS_CON_MODE curr_mode;
 
 	ENTER();
 
-	if (VOS_FTM_MODE == hdd_get_conparam()) {
-		hddLog(LOGE, FL("Command not allowed in FTM mode"));
+        curr_mode = hdd_get_conparam();
+	if (VOS_FTM_MODE == curr_mode ||
+	    VOS_MONITOR_MODE == curr_mode) {
+		hddLog(LOGE, FL("Command not allowed in FTM/MONITOR mode"));
 		return -EINVAL;
 	}
 
 	ret = wlan_hdd_validate_context(hdd_ctx);
 	if (0 != ret)
 		return -EINVAL;
+
+	channel_list = (tHddAvoidFreqList *)data;
+	if (!channel_list) {
+		hddLog(LOGE, FL("Avoid frequency channel list empty"));
+		return -EINVAL;
+	}
+
 	vos_get_wlan_unsafe_channel(hdd_ctx->unsafe_channel_list,
 			&(hdd_ctx->unsafe_channel_count),
 			sizeof(hdd_ctx->unsafe_channel_list));
 
-	unsafe_channel_count = VOS_MIN((uint16_t)hdd_ctx->unsafe_channel_count,
-			(uint16_t)NUM_20MHZ_RF_CHANNELS);
+	hdd_ctx->unsafe_channel_count =
+		hdd_validate_avoid_freq_chanlist(hdd_ctx,
+						 channel_list);
+
+	vos_set_wlan_unsafe_channel(hdd_ctx->unsafe_channel_list,
+			hdd_ctx->unsafe_channel_count);
+
 	for (unsafe_channel_index = 0;
-			unsafe_channel_index < unsafe_channel_count;
-			unsafe_channel_index++) {
+		unsafe_channel_index < hdd_ctx->unsafe_channel_count;
+		unsafe_channel_index++) {
 		hddLog(LOGE, FL("Channel %d is not safe. "),
 			hdd_ctx->unsafe_channel_list[unsafe_channel_index]);
 	}
@@ -16408,6 +16471,11 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
 
     wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
                           WLAN_EID_VHT_TX_POWER_ENVELOPE);
+
+    if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
+        wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
+                              WLAN_EID_RSN);
+
     if (0 != wlan_hdd_add_ie(pHostapdAdapter, genie,
                               &total_ielen, WPS_OUI_TYPE, WPS_OUI_TYPE_SIZE))
     {
