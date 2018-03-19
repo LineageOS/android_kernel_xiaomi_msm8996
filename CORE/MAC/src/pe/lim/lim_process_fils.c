@@ -1413,7 +1413,7 @@ static VOS_STATUS lim_parse_kde_elements(tpAniSirGlobal mac_ctx,
 		rem_len -= 2;
 
 		if (elem_len < KDE_IE_DATA_OFFSET) {
-			limLog(max_ctx, LOGE, FL("Not enough len to parse elem_len %d"),
+			limLog(mac_ctx, LOGE, FL("Not enough len to parse elem_len %d"),
 			       elem_len);
 			return VOS_STATUS_E_FAILURE;
 		}
