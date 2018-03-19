@@ -4024,130 +4024,123 @@ static int iw_get_linkspeed_priv(struct net_device *dev,
 	return ret;
 }
 
-void hdd_get_isolation_cb(struct sir_isolation_resp *isolation,
-        void *context)
+struct isolation_info {
+	uint32_t isolation_chain0:8;
+	uint32_t isolation_chain1:8;
+	uint32_t isolation_chain2:8;
+	uint32_t isolation_chain3:8;
+};
+
+static void hdd_get_isolation_cb(struct sir_isolation_resp *isolation,
+				 void *cookie)
 {
-    struct statsContext *isolation_context;
-    int buf = 0;
-    int length = 0;
-    char *isolation_output;
-    union iwreq_data *wrqu;
+	struct hdd_request *request;
+	struct isolation_info *priv;
 
-    if ((NULL == isolation) || (NULL == context)) {
+	if (!isolation) {
+	    hddLog(LOGE, FL("Bad param"));
+	    return;
+	}
 
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: Bad param, %s",
-                __func__,
-				isolation ? "context is NULL" : "isolation is NULL");
-        return;
-    }
+	request = hdd_request_get(cookie);
+	if (!request) {
+	    hddLog(LOGE, FL("Obsolete request"));
+	    return;
+	}
 
-    spin_lock(&hdd_context_lock);
+	priv = hdd_request_priv(request);
+	priv->isolation_chain0 = isolation->isolation_chain0;
+	priv->isolation_chain1 = isolation->isolation_chain1;
+	priv->isolation_chain2 = isolation->isolation_chain2;
+	priv->isolation_chain3 = isolation->isolation_chain3;
 
-    isolation_context = context;
-    if (ISOLATION_CONTEXT_MAGIC !=
-            isolation_context->magic) {
+	hdd_request_complete(request);
+	hdd_request_put(request);
+}
 
-        /*
-         * the caller presumably timed out so there is nothing
-         * we can do
-         */
-        spin_unlock(&hdd_context_lock);
-        hddLog(VOS_TRACE_LEVEL_WARN,
-                "%s: Invalid context, magic [%08x]",
-                __func__,
-                isolation_context->magic);
-        return;
-    }
+static void hdd_post_isolation(union iwreq_data *wrqu, char *extra,
+			       struct isolation_info *isolation)
+{
+	int buf = 0;
+	int length = 0;
 
-    isolation_output = isolation_context->extra;
-    wrqu = isolation_context->wrqu;
-    isolation_context->magic = 0;
+	hddLog(LOG1, "%s: chain1 %d chain2 %d chain3 %d chain4 %d", __func__,
+	       isolation->isolation_chain0, isolation->isolation_chain1,
+	       isolation->isolation_chain2, isolation->isolation_chain3);
 
-    hddLog(LOG1, "%s: chain1 %d chain2 %d chain3 %d chain4 %d", __func__,
-            isolation->isolation_chain0, isolation->isolation_chain1,
-            isolation->isolation_chain2, isolation->isolation_chain3);
+	length = scnprintf((extra), WE_MAX_STR_LEN, "\n");
+	buf = scnprintf((extra + length), WE_MAX_STR_LEN - length,
+			"isolation chain 0 : %d\n",
+			isolation->isolation_chain0);
+	length += buf;
+	buf = scnprintf((extra + length), WE_MAX_STR_LEN - length,
+			"isolation chain 1 : %d\n",
+			isolation->isolation_chain1);
+	length += buf;
+	buf = scnprintf((extra + length), WE_MAX_STR_LEN - length,
+			"isolation chain 2 : %d\n",
+			isolation->isolation_chain2);
+	length += buf;
+	buf = scnprintf((extra + length), WE_MAX_STR_LEN - length,
+			"isolation chain 3 : %d\n",
+			isolation->isolation_chain3);
+	length += buf;
 
-    length = scnprintf((isolation_output), WE_MAX_STR_LEN, "\n");
-    buf = scnprintf
-        (
-         (isolation_output + length), WE_MAX_STR_LEN - length,
-         "isolation chain 0 : %d\n",
-         isolation->isolation_chain0
-        );
-    length += buf;
-    buf = scnprintf
-        (
-         (isolation_output + length), WE_MAX_STR_LEN - length,
-         "isolation chain 1 : %d\n",
-         isolation->isolation_chain1
-        );
-    length += buf;
-    buf = scnprintf
-        (
-         (isolation_output + length), WE_MAX_STR_LEN - length,
-         "isolation chain 2 : %d\n",
-         isolation->isolation_chain2
-        );
-    length += buf;
-    buf = scnprintf
-        (
-         (isolation_output + length), WE_MAX_STR_LEN - length,
-         "isolation chain 3 : %d\n",
-         isolation->isolation_chain3
-        );
-    length += buf;
-
-    wrqu->data.length = length + 1;
-
-    /* notify the caller */
-    complete(&isolation_context->completion);
-
-    /* serialization is complete */
-    spin_unlock(&hdd_context_lock);
+	wrqu->data.length = length + 1;
 }
 
 static int wlan_hdd_get_isolation(hdd_adapter_t *adapter,
-        union iwreq_data *wrqu, char *extra)
+				  union iwreq_data *wrqu, char *extra)
 {
-    eHalStatus hstatus;
-    int ret;
-    struct statsContext context;
+	eHalStatus hstatus;
+	int ret;
+	void *cookie;
+	struct hdd_request *request;
+	struct isolation_info *priv;
+	static const struct hdd_request_params params = {
+		.priv_size = sizeof(*priv),
+		.timeout_ms = 8000,
+	};
 
-    if (NULL == adapter) {
-        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL",
-                __func__);
-        return -EINVAL;
-    }
+	if (NULL == adapter) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL",
+		       __func__);
+		return -EINVAL;
+	}
 
-    init_completion(&context.completion);
-    context.magic = ISOLATION_CONTEXT_MAGIC;
-    context.extra = extra;
-    context.wrqu = wrqu;
+	request = hdd_request_alloc(&params);
+	if (!request) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request allocation failure",
+		       __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	cookie = hdd_request_cookie(request);
 
-    hstatus = sme_get_isolation(WLAN_HDD_GET_HAL_CTX(adapter),
-            &context,
-            hdd_get_isolation_cb);
-    if (eHAL_STATUS_SUCCESS != hstatus) {
-        hddLog(VOS_TRACE_LEVEL_ERROR,
-                "%s: Unable to retrieve isolation",
-                __func__);
-        ret = -EFAULT;
-    } else {
-        if (!wait_for_completion_timeout(&context.completion,
-                    msecs_to_jiffies(8000))) {
-            hddLog(VOS_TRACE_LEVEL_ERROR,
-                    "%s: SME timed out while retrieving isolation",
-                    __func__);
-            ret = -ETIMEDOUT;
-        } else
-            ret = 0;
-    }
+	hstatus = sme_get_isolation(WLAN_HDD_GET_HAL_CTX(adapter),
+				    cookie,
+				    hdd_get_isolation_cb);
+	if (eHAL_STATUS_SUCCESS != hstatus) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Unable to retrieve isolation",
+		        __func__);
+		ret = -EFAULT;
+	} else {
+		ret = hdd_request_wait_for_response(request);
+		if (ret) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       "%s: SME timed out while retrieving isolation",
+			       __func__);
+			ret = -ETIMEDOUT;
+		} else {
+			priv = hdd_request_priv(request);
+			hdd_post_isolation(wrqu, extra, priv);
+			ret = 0;
+		}
+	}
 
-    spin_lock(&hdd_context_lock);
-    context.magic = 0;
-    spin_unlock(&hdd_context_lock);
-    return ret;
+	hdd_request_put(request);
+
+	return ret;
 }
 
 static int __iw_get_isolation(struct net_device *dev,
