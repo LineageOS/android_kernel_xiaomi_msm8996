@@ -3749,56 +3749,6 @@ void hdd_GetClassA_statisticsCB(void *pStats, void *pContext)
    spin_unlock(&hdd_context_lock);
 }
 
-void hdd_GetLink_SpeedCB(tSirLinkSpeedInfo *pLinkSpeed, void *pContext)
-{
-   struct linkspeedContext *pLinkSpeedContext;
-   hdd_adapter_t *pAdapter;
-
-   if ((NULL == pLinkSpeed) || (NULL == pContext))
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-             "%s: Bad param, pLinkSpeed [%pK] pContext [%pK]",
-             __func__, pLinkSpeed, pContext);
-      return;
-   }
-   spin_lock(&hdd_context_lock);
-   pLinkSpeedContext = pContext;
-   pAdapter      = pLinkSpeedContext->pAdapter;
-
-   /* there is a race condition that exists between this callback
-      function and the caller since the caller could time out either
-      before or while this code is executing.  we use a spinlock to
-      serialize these actions */
-
-   if ((NULL == pAdapter) || (LINK_CONTEXT_MAGIC != pLinkSpeedContext->magic))
-   {
-       /* the caller presumably timed out so there is nothing we can do */
-      spin_unlock(&hdd_context_lock);
-      hddLog(VOS_TRACE_LEVEL_WARN,
-             "%s: Invalid context, pAdapter [%pK] magic [%08x]",
-              __func__, pAdapter, pLinkSpeedContext->magic);
-      if (ioctl_debug)
-      {
-         pr_info("%s: Invalid context, pAdapter [%pK] magic [%08x]\n",
-                 __func__, pAdapter, pLinkSpeedContext->magic);
-      }
-      return;
-   }
-   /* context is valid so caller is still waiting */
-
-   /* paranoia: invalidate the magic */
-   pLinkSpeedContext->magic = 0;
-
-   /* copy over the stats. do so as a struct copy */
-   pAdapter->ls_stats = *pLinkSpeed;
-
-   /* notify the caller */
-   complete(&pLinkSpeedContext->completion);
-
-   /* serialization is complete */
-   spin_unlock(&hdd_context_lock);
-}
-
 VOS_STATUS  wlan_hdd_get_classAstats(hdd_adapter_t *pAdapter)
 {
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
