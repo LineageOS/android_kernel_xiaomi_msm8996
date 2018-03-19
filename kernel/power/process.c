@@ -221,7 +221,6 @@ int freeze_kernel_threads(void)
 	return error;
 }
 
-#ifdef CONFIG_MACH_MSM8996_15801
 void thaw_fingerprintd(void)
 {
 	struct task_struct *p;
@@ -242,7 +241,6 @@ void thaw_fingerprintd(void)
 	pm_freezing = true;
 	pm_nosig_freezing = true;
 }
-#endif
 
 void thaw_processes(void)
 {

@@ -48,9 +48,7 @@ static DEFINE_SPINLOCK(suspend_freeze_lock);
 extern int PROC_AWAKE_ID; /* 12th bit */
 extern int slst_gpio_base_id;
 
-#ifdef CONFIG_MACH_MSM8996_15801
 extern void thaw_fingerprintd(void);
-#endif
 
 void freeze_set_ops(const struct platform_freeze_ops *ops)
 {
@@ -400,9 +398,7 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 
  Platform_wake:
 	platform_resume_noirq(state);
-#ifdef CONFIG_MACH_MSM8996_15801
 	thaw_fingerprintd();
-#endif
 	dpm_resume_noirq(PMSG_RESUME);
 
  Platform_early_resume:
