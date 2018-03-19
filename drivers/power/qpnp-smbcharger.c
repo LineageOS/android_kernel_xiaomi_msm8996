@@ -1214,8 +1214,20 @@ static int get_prop_batt_capacity(struct smbchg_chip *chip)
 		capacity = 100;
 
 #ifdef CONFIG_CHARGE_CONTROL
-	if(unlikely(get_prop_batt_status(chip) == POWER_SUPPLY_STATUS_CHARGING && capacity >= charge_limit)) {
+	if(trigger_full_charge) {
+		if(get_prop_batt_status(chip) == POWER_SUPPLY_STATUS_FULL) {
+			vote(chip->battchg_suspend_votable, BATTCHG_USER_EN_VOTER, 1, 0);
+			finish_full_charge();
+		}
+	}
+	else if(unlikely(recharge_at && get_prop_batt_status(chip) == POWER_SUPPLY_STATUS_NOT_CHARGING && capacity <= recharge_at)) {
+		vote(chip->battchg_suspend_votable, BATTCHG_USER_EN_VOTER, 0, 0);
+	}
+	else if(unlikely(capacity >= charge_limit && get_prop_batt_status(chip) == POWER_SUPPLY_STATUS_CHARGING)) {
 		vote(chip->battchg_suspend_votable, BATTCHG_USER_EN_VOTER, 1, 0);
+
+		if(full_charge_every)
+			count_charge();
 	}
 #endif
 
