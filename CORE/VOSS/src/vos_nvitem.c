@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -976,7 +976,7 @@ static void vos_set_5g_channel_params(uint16_t oper_ch,
 				      struct ch_params_s *ch_params)
 {
 	eNVChannelEnabledType chan_state = NV_CHANNEL_ENABLE;
-	const struct bonded_chan *bonded_chan_ptr;
+	const struct bonded_chan *bonded_chan_ptr = NULL;
 	uint16_t center_chan;
 
 	if (CH_WIDTH_MAX <= ch_params->ch_width)
@@ -1782,7 +1782,7 @@ bool vos_is_channel_support_sub20(uint16_t operation_channel,
 	eNVChannelEnabledType channel_state;
 
 	if (VOS_IS_CHANNEL_5GHZ(operation_channel)) {
-		const struct bonded_chan *bonded_chan_ptr;
+		const struct bonded_chan *bonded_chan_ptr = NULL;
 
 		channel_state =
 		    vos_search_5g_bonded_channel(operation_channel,
