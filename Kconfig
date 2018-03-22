@@ -24,7 +24,7 @@ config SDFAT_USE_FOR_EXFAT
 
 config SDFAT_USE_FOR_VFAT
 	bool "Register sdFAT as VFAT"
-	default n
+	default y
 	depends on SDFAT_FS && !VFAT_FS
 	help
 	  If you want to register sdFAT as available for VFAT, say Y.
