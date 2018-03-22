@@ -83,6 +83,7 @@
 
 #ifdef QDF_ENABLE_TRACING
 
+#ifdef WLAN_WARN_ON_ASSERT
 #define QDF_ASSERT(_condition) \
 	do { \
 		if (!(_condition)) { \
@@ -91,6 +92,14 @@
 			WARN_ON(1); \
 		} \
 	} while (0)
+#else
+#define QDF_ASSERT(_condition) \
+	do { \
+		if (!(_condition)) { \
+			/* no-op */ \
+		} \
+	} while (0)
+#endif /* WLAN_WARN_ON_ASSERT */
 
 #else
 
