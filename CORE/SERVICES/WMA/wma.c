@@ -5444,12 +5444,7 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 		return 0;
 	}
 
-	pMac->sme.pLinkLayerStatsIndCallback(pMac->hHdd,
-	        WDA_LINK_LAYER_STATS_RESULTS_RSP,
-	        link_stats_results);
-	vos_mem_free(wma_handle->link_stats_results);
 	WMA_LOGD(FL("Radio Stats event posted to HDD"));
-	wma_handle->link_stats_results = NULL;
 
 	return 0;
 }
