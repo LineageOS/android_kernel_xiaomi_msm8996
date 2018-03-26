@@ -1086,6 +1086,7 @@ out:
 
 battery_full:
 	if(trigger_full_charge){
+		pr_debug("%s: battery reached FULL status, charging stopped!", __FUNCTION__);
 		vote(chip->battchg_suspend_votable, BATTCHG_USER_EN_VOTER, 1, 0);
 		finish_full_charge();
 	}
@@ -1215,10 +1216,12 @@ static int get_prop_batt_capacity(struct smbchg_chip *chip)
 #ifdef CONFIG_CHARGE_CONTROL
 	if(!trigger_full_charge) {
 		if(unlikely(recharge_able && capacity <= recharge_at)) {
+			pr_debug("%s: capacity reached recharge_at, recharging!", __FUNCTION__);
 			recharge_able = 0;
 			vote(chip->battchg_suspend_votable, BATTCHG_USER_EN_VOTER, 0, 0);
 		}
 		else if(unlikely(charge_limit && capacity >= charge_limit && get_prop_batt_status(chip) == POWER_SUPPLY_STATUS_CHARGING)) {
+			pr_debug("%s: charge_limit reached, charging stopped!", __FUNCTION__);
 			vote(chip->battchg_suspend_votable, BATTCHG_USER_EN_VOTER, 1, 0);
 
 			if(full_charge_every)
@@ -6254,7 +6257,7 @@ static void update_typec_capability_status(struct smbchg_chip *chip,
 			pr_err("typec failed to set current max rc=%d\n", rc);
 	}
 
-	pr_debug("changing ICL from %dma to %dma\n", chip->typec_current_ma,
+	pr_smb(PR_STATUS, "changing ICL from %dma to %dma\n", chip->typec_current_ma,
 			val->intval);
 	chip->typec_current_ma = val->intval;
 	smbchg_change_usb_supply_type(chip, chip->usb_supply_type);
