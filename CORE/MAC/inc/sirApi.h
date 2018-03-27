@@ -765,7 +765,7 @@ typedef struct sSirBssDescription
     //offset of the ieFields from bssId.
     tANI_U16             length;
     tSirMacAddr          bssId;
-    v_TIME_t             scansystimensec;
+    v_U64_t              scansystimensec;
     tANI_U32             timeStamp[2];
     tANI_U16             beaconInterval;
     tANI_U16             capabilityInfo;
