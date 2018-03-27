@@ -420,7 +420,7 @@ static int pn548_probe(struct i2c_client *client,
 
 	if (platform_data == NULL) {
 		pr_err("%s : nfc probe failed\n", __func__);
-		return  -ENODEV;
+		ret = -ENODEV;
 		goto err_platform_data;
 	}
 
