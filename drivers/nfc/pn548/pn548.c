@@ -42,6 +42,7 @@
 #include <pn548.h>
 
 #define MAX_BUFFER_SIZE 512
+#define NFC_TRY_NUM 3
 #define _A1_PN66T_
 
 static struct wake_lock fieldon_wl;
@@ -156,15 +157,10 @@ static ssize_t pn548_dev_read(struct file *filp, char __user *buf,
 {
 	struct pn548_dev *pn548_dev = filp->private_data;
 	char tmp[MAX_BUFFER_SIZE];
-	int ret;
-
-
+	int ret, retry;
 
 	if (count > MAX_BUFFER_SIZE)
 		count = MAX_BUFFER_SIZE;
-
-
-
 
 	mutex_lock(&pn548_dev->read_mutex);
 	if (!gpio_get_value(pn548_dev->irq_gpio)) {
@@ -175,6 +171,7 @@ static ssize_t pn548_dev_read(struct file *filp, char __user *buf,
 
 		pn548_dev->do_reading = 0;
 		pn548_enable_irq(pn548_dev);
+
 		if (!gpio_get_value(pn548_dev->irq_gpio)) {
 			ret = wait_event_interruptible(pn548_dev->read_wq,
 					pn548_dev->do_reading);
@@ -183,7 +180,6 @@ static ssize_t pn548_dev_read(struct file *filp, char __user *buf,
 				goto fail;
 
 			pn548_disable_irq(pn548_dev);
-
 
 			if (pn548_dev->cancel_read) {
 				pn548_dev->cancel_read = false;
@@ -194,10 +190,21 @@ static ssize_t pn548_dev_read(struct file *filp, char __user *buf,
 	}
 
 	/* Read data */
-	ret = i2c_master_recv(pn548_dev->client, tmp, count);
+	for (retry = 0; retry < NFC_TRY_NUM; retry++) {
+		ret = i2c_master_recv(pn548_dev->client, tmp, count);
+		if (ret == (int)count) {
+			break;
+		} else {
+			msleep(10);
+		}
+	}
+
 	mutex_unlock(&pn548_dev->read_mutex);
 	wake_unlock(&pn548_dev->wl);
 
+	/* pn548 seems to be slow in handling I2C read requests
+	 * so add 1ms delay after recv operation */
+	udelay(1000);
 
 	if (((tmp[0] & 0xff) == 0x61) && ((tmp[1] & 0xff) == 0x07) && ((tmp[2] & 0xff) == 0x01))
 		wake_lock_timeout(&fieldon_wl, msecs_to_jiffies(3*1000));
@@ -229,9 +236,7 @@ static ssize_t pn548_dev_write(struct file *filp, const char __user *buf,
 {
 	struct pn548_dev  *pn548_dev = filp->private_data;
 	char tmp[MAX_BUFFER_SIZE];
-	int ret;
-
-
+	int ret, retry;
 
 	if (count > MAX_BUFFER_SIZE)
 		count = MAX_BUFFER_SIZE;
@@ -241,13 +246,25 @@ static ssize_t pn548_dev_write(struct file *filp, const char __user *buf,
 		return -EFAULT;
 	}
 
-
 	/* Write data */
-	ret = i2c_master_send(pn548_dev->client, tmp, count);
+	for (retry = 0; retry < NFC_TRY_NUM; retry++) {
+		ret = i2c_master_send(pn548_dev->client, tmp, count);
+		if (ret == (int)count) {
+			break;
+		} else {
+			msleep(50);
+		}
+	}
+
 	if (ret != count) {
 		pr_err("%s : i2c_master_send returned %d\n", __func__, ret);
 		ret = -EIO;
 	}
+
+	/* pn548 seems to be slow in handling I2C write requests
+	 * so add 1ms delay after I2C send operation */
+	udelay(1000);
+
 	return ret;
 }
 
