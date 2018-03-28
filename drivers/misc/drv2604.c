@@ -377,7 +377,7 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 		wake_lock(&pDrv2604data->wklock);
 
 		if (drv2604_reg_read(pDrv2604data, RATED_VOLTAGE_REG) != actuator.rated_vol) {
-			printk(KERN_INFO "drv2604: Register values reset.\n");
+			pr_debug("drv2604: Register values reset.\n");
 			drv2604_change_mode(pDrv2604data, WORK_IDLE, DEV_READY);
 			schedule_timeout_interruptible(msecs_to_jiffies(STANDBY_WAKE_DELAY));
 			pDrv2604data->OTP = drv2604_reg_read(pDrv2604data, AUTOCAL_MEM_INTERFACE_REG) &
@@ -482,7 +482,7 @@ static void drv2604_firmware_load(const struct firmware *fw, void *context)
 					pDrv2604data->fw_header.fw_size,
 					pDrv2604data->fw_header.fw_chksum);
 		} else {
-			printk("%s, firmware good\n", __FUNCTION__);
+			pr_debug("%s, firmware good\n", __FUNCTION__);
 
 			drv2604_change_mode(pDrv2604data, WORK_IDLE, DEV_READY);
 
@@ -789,7 +789,7 @@ static void dev_init_platform_data(struct drv2604_data *pDrv2604data)
 				(actuator.device_type == LRA) ?
 					FEEDBACK_CONTROL_MODE_LRA : FEEDBACK_CONTROL_MODE_ERM);
 	} else {
-		printk("%s, OTP programmed\n", __FUNCTION__);
+		pr_debug("%s, OTP programmed\n", __FUNCTION__);
 	}
 
 	if (pDrv2604Platdata->loop == OPEN_LOOP) {
@@ -806,7 +806,7 @@ static void dev_init_platform_data(struct drv2604_data *pDrv2604data)
 		unsigned char DriveTime = 5*(1000 - actuator.LRAFreq)/actuator.LRAFreq;
 		drv2604_set_bits(pDrv2604data, Control1_REG,
 				Control1_REG_DRIVE_TIME_MASK, DriveTime);
-		printk("%s, LRA = %d, DriveTime=0x%x\n", __FUNCTION__, actuator.LRAFreq, DriveTime);
+		pr_debug("%s, LRA = %d, DriveTime=0x%x\n", __FUNCTION__, actuator.LRAFreq, DriveTime);
 	}
 
 	drv2604_set_bits(pDrv2604data, Control2_REG,
@@ -853,7 +853,7 @@ static int dev_auto_calibrate(struct drv2604_data *pDrv2604data)
 
 	status = drv2604_reg_read(pDrv2604data, STATUS_REG);
 
-	printk("%s, calibration status =0x%x\n", __FUNCTION__, status);
+	pr_info("%s, calibration status =0x%x\n", __FUNCTION__, status);
 
 	drv2604_reg_read(pDrv2604data, AUTO_CALI_RESULT_REG);
 	drv2604_reg_read(pDrv2604data, AUTO_CALI_BACK_EMF_RESULT_REG);
@@ -882,20 +882,20 @@ static int drv2604_probe(struct i2c_client *client, const struct i2c_device_id *
 	int err = 0;
 	int status = 0;
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
-		printk(KERN_ERR"%s:I2C check failed\n", __FUNCTION__);
+		pr_err("%s:I2C check failed\n", __FUNCTION__);
 		return -ENODEV;
 	}
 
 	pDrv2604data = devm_kzalloc(&client->dev, sizeof(struct drv2604_data), GFP_KERNEL);
 	if (pDrv2604data == NULL) {
-		printk(KERN_ERR"%s:no memory\n", __FUNCTION__);
+		pr_err("%s:no memory\n", __FUNCTION__);
 		return -ENOMEM;
 	}
 
 	pDrv2604data->regmap = devm_regmap_init_i2c(client, &drv2604_i2c_regmap);
 	if (IS_ERR(pDrv2604data->regmap)) {
 		err = PTR_ERR(pDrv2604data->regmap);
-		printk(KERN_ERR"%s:Failed to allocate register map: %d\n", __FUNCTION__, err);
+		pr_err("%s:Failed to allocate register map: %d\n", __FUNCTION__, err);
 		return err;
 	}
 
@@ -905,14 +905,14 @@ static int drv2604_probe(struct i2c_client *client, const struct i2c_device_id *
 	if (pDrv2604data->PlatData.GpioTrigger) {
 		err = gpio_request(pDrv2604data->PlatData.GpioTrigger, HAPTICS_DEVICE_NAME"Trigger");
 		if (err < 0) {
-			printk(KERN_ERR"%s: GPIO request Trigger error\n", __FUNCTION__);
+			pr_err("%s: GPIO request Trigger error\n", __FUNCTION__);
 			goto exit_gpio_request_failed;
 		}
 	}
 
 
 	if (gpio_request(93, "vibrator-en") < 0) {
-		printk(KERN_ALERT"drv2604: error requesting gpio\n");
+		pr_err("drv2604: error requesting gpio\n");
 		return -EPERM;
 	}
 
@@ -921,37 +921,37 @@ static int drv2604_probe(struct i2c_client *client, const struct i2c_device_id *
 	mdelay(1);
 	err = drv2604_reg_read(pDrv2604data, STATUS_REG);
 	if (err < 0) {
-		printk("%s, i2c bus fail (%d)\n", __FUNCTION__, err);
+		pr_err("%s, i2c bus fail (%d)\n", __FUNCTION__, err);
 		goto exit_gpio_request_failed;
 	} else {
-		printk("%s, i2c status (0x%x)\n", __FUNCTION__, err);
+		pr_info("%s, i2c status (0x%x)\n", __FUNCTION__, err);
 		status = err;
 	}
 	/* Read device ID */
 	pDrv2604data->device_id = (status & DEV_ID_MASK);
 	switch (pDrv2604data->device_id) {
 	case DRV2605_VER_1DOT1:
-		printk("drv2604 driver found: drv2605 v1.1.\n");
+		pr_info("drv2604 driver found: drv2605 v1.1.\n");
 		break;
 	case DRV2605_VER_1DOT0:
-		printk("drv2604 driver found: drv2605 v1.0.\n");
+		pr_info("drv2604 driver found: drv2605 v1.0.\n");
 		break;
 	case DRV2604:
-		printk(KERN_ALERT"drv2604 driver found: drv2604.\n");
+		pr_info("drv2604 driver found: drv2604.\n");
 		break;
 	case DRV2604L:
-		printk(KERN_ALERT"drv2604 driver found: drv2604L.\n");
+		pr_info("drv2604 driver found: drv2604L.\n");
 		break;
 	case DRV2605L:
-		printk(KERN_ALERT"drv2604 driver found: drv2605L.\n");
+		pr_info("drv2604 driver found: drv2605L.\n");
 		break;
 	default:
-		printk(KERN_ERR"drv2604 driver found: unknown.\n");
+		pr_warn("drv2604 driver found: unknown.\n");
 		break;
 	}
 
 	if (pDrv2604data->device_id != DRV2604 && pDrv2604data->device_id != DRV2604L) {
-		printk("%s, status(0x%x),device_id(%d) fail\n",
+		pr_debug("%s, status(0x%x),device_id(%d) fail\n",
 				__FUNCTION__, status, pDrv2604data->device_id);
 		goto exit_gpio_request_failed;
 	} else {
@@ -972,7 +972,7 @@ static int drv2604_probe(struct i2c_client *client, const struct i2c_device_id *
 	if (0/*pDrv2604data->OTP == 0*/) {
 		err = dev_auto_calibrate(pDrv2604data);
 		if (err < 0) {
-			printk("%s, ERROR, calibration fail\n",	__FUNCTION__);
+			pr_err("%s, ERROR, calibration fail\n",	__FUNCTION__);
 		}
 	}
 
@@ -982,7 +982,7 @@ static int drv2604_probe(struct i2c_client *client, const struct i2c_device_id *
 	Haptics_init(pDrv2604data);
 
 	pDRV2604data = pDrv2604data;
-	printk("drv2604 probe succeeded\n");
+	pr_info("drv2604 probe succeeded\n");
 
 	return 0;
 
@@ -995,7 +995,7 @@ exit_gpio_request_failed:
 		gpio_free(pDrv2604data->PlatData.GpioEnable);
 	}
 
-	printk(KERN_ERR"%s failed, err=%d\n", __FUNCTION__, err);
+	pr_err("%s failed, err=%d\n", __FUNCTION__, err);
 	return err;
 }
 
@@ -1017,7 +1017,7 @@ static int drv2604_remove(struct i2c_client *client)
 	unregister_early_suspend(&pDrv2604data->early_suspend);
 #endif
 
-	printk(KERN_ALERT"drv2604 remove");
+	pr_debug(KERN_ALERT"drv2604 remove");
 
 	return 0;
 }
