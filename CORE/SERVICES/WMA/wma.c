@@ -11155,14 +11155,34 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 							&cfg_val) == eSIR_SUCCESS) {
 		val16 = (tANI_U16)cfg_val;
 		phtCapInfo = (tSirMacHTCapabilityInfo *)&cfg_val;
+
 		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
-								self_sta_req->sessionId,
-								WMI_VDEV_PARAM_TX_STBC,
-								phtCapInfo->txSTBC);
+				self_sta_req->sessionId,
+				WMI_VDEV_PARAM_TX_STBC,
+				phtCapInfo->txSTBC);
 		if (ret)
 			WMA_LOGE("Failed to set WMI_VDEV_PARAM_TX_STBC");
+
+		WMA_LOGD("set WMI_VDEV_PARAM_LDPC,phtCapInfo->advCodingCap %u",
+				phtCapInfo->advCodingCap);
+		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+				self_sta_req->sessionId,
+				WMI_VDEV_PARAM_LDPC,
+				phtCapInfo->advCodingCap);
+		if (ret)
+			WMA_LOGE("Failed to set WMI_VDEV_PARAM_LDPC");
+
+		WMA_LOGD("set WMI_VDEV_PARAM_SGI,shortGI20MHz %u shortGI40MHz %u",
+			phtCapInfo->shortGI20MHz, phtCapInfo->shortGI40MHz);
+		ret = wmi_unified_vdev_set_param_send(wma_handle->wmi_handle,
+				self_sta_req->sessionId,
+				WMI_VDEV_PARAM_SGI,
+				phtCapInfo->shortGI20MHz|
+					phtCapInfo->shortGI40MHz);
+		if (ret)
+			WMA_LOGE("Failed to set WMI_VDEV_PARAM_SGI");
 	} else {
-		WMA_LOGE("Failed to get value of HT_CAP, TX STBC unchanged");
+		WMA_LOGE("Failed to get value of HT_CAP, TX STBC/LDPC/SGI unchanged");
 	}
 
 	wma_set_vdev_mgmt_rate(wma_handle, self_sta_req->sessionId);
