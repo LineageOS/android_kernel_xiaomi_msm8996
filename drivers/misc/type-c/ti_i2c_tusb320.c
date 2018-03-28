@@ -576,7 +576,7 @@ static const struct i2c_device_id ti_tusb320_id_table[] = {
 };
 MODULE_DEVICE_TABLE(i2c, ti_tusb320_id_table);
 
-static struct of_device_id ti_match_table[] = {
+static const struct of_device_id ti_match_table[] = {
 	{ .compatible = "ti,tusb320",},
 	{ .compatible = "ti,tusb320l",},
 	{ },
