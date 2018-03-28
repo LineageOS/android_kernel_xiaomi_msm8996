@@ -216,7 +216,12 @@ static inline void inode_unlock(struct inode *inode)
 #endif
 
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+static void sdfat_writepage_end_io(struct bio *bio)
+{
+	__sdfat_writepage_end_io(bio, bio->bi_status);
+}
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0)
 static void sdfat_writepage_end_io(struct bio *bio)
 {
 	__sdfat_writepage_end_io(bio, bio->bi_error);
@@ -5124,4 +5129,3 @@ module_exit(exit_sdfat_fs);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("FAT/exFAT filesystem support");
 MODULE_AUTHOR("Samsung Electronics Co., Ltd.");
-
