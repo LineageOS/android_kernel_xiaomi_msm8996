@@ -216,15 +216,14 @@ static inline void inode_unlock(struct inode *inode)
 #endif
 
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0)
+static void sdfat_writepage_end_io(struct bio *bio)
+{
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
-static void sdfat_writepage_end_io(struct bio *bio)
-{
 	__sdfat_writepage_end_io(bio, bio->bi_status);
-}
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0)
-static void sdfat_writepage_end_io(struct bio *bio)
-{
+#else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0) */
 	__sdfat_writepage_end_io(bio, bio->bi_error);
+#endif
 }
 #else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 3, 0) */
 static void sdfat_writepage_end_io(struct bio *bio, int err)
@@ -3452,7 +3451,11 @@ static inline void sdfat_submit_fullpage_bio(struct block_device *bdev,
 	 */
 	bio = bio_alloc(GFP_NOIO, 1);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+	bio_set_dev(bio, bdev);
+#else
 	bio->bi_bdev = bdev;
+#endif
 	bio->bi_vcnt = 1;
 	bio->bi_io_vec[0].bv_page = page;	/* Inline vec */
 	bio->bi_io_vec[0].bv_len = length;	/* PAGE_SIZE */
