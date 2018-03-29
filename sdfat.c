@@ -2882,9 +2882,15 @@ static int sdfat_setattr(struct dentry *dentry, struct iattr *attr)
 	return error;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+static int sdfat_getattr(const struct path *path, struct kstat *stat, u32 request_mask, unsigned int flags)
+{
+	struct inode *inode = path->dentry->d_inode;
+#else
 static int sdfat_getattr(struct vfsmount *mnt, struct dentry *dentry, struct kstat *stat)
 {
 	struct inode *inode = dentry->d_inode;
+#endif
 
 	TMSG("%s entered\n", __func__);
 
@@ -2919,7 +2925,9 @@ static const struct inode_operations sdfat_dir_inode_operations = {
 /*  File Operations                                                     */
 /*======================================================================*/
 static const struct inode_operations sdfat_symlink_inode_operations = {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
 	.readlink    = generic_readlink,
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)
 	.get_link = sdfat_follow_link,
 #else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0) */
@@ -3531,7 +3539,11 @@ static int sdfat_writepage(struct page *page, struct writeback_control *wbc)
 
 			if (buffer_new(bh)) {
 				clear_buffer_new(bh);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+				clean_bdev_bh_alias(bh);
+#else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) */
 				unmap_underlying_metadata(bh->b_bdev, bh->b_blocknr);
+#endif
 			}
 		}
 

@@ -95,9 +95,9 @@ static inline void __sdfat_submit_bio_write2(int flags, struct bio *bio)
 static void  mpage_write_end_io(struct bio *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
-	__sdfat_writepage_end_io(bio, bio->bi_status);
+	__mpage_write_end_io(bio, bio->bi_status);
 #else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0) */
-	__sdfat_writepage_end_io(bio, bio->bi_error);
+	__mpage_write_end_io(bio, bio->bi_error);
 #endif
 }
 #else /* LINUX_VERSION_CODE < KERNEL_VERSION(4,3,0) */
@@ -369,7 +369,11 @@ static int sdfat_mpage_writepage(struct page *page,
 
 				if (buffer_new(bh)) {
 					clear_buffer_new(bh);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+					clean_bdev_bh_alias(bh);
+#else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) */
 					unmap_underlying_metadata(bh->b_bdev, bh->b_blocknr);
+#endif
 				}
 			}
 
@@ -419,8 +423,12 @@ static int sdfat_mpage_writepage(struct page *page,
 			goto confused;
 
 		if (buffer_new(&map_bh))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+			clean_bdev_bh_alias(&map_bh);
+#else /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) */
 			unmap_underlying_metadata(map_bh.b_bdev,
 					map_bh.b_blocknr);
+#endif
 		if (buffer_boundary(&map_bh)) {
 			boundary_block = map_bh.b_blocknr;
 			boundary_bdev = map_bh.b_bdev;
