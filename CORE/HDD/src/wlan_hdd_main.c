@@ -7717,7 +7717,7 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                           "%s: Copy into user data buffer failed ", __func__);
                ret = -EFAULT;
-               goto exit;
+               goto mem_free;
             }
             /* This overwrites the last space, which we already copied */
             extra[numOfBytestoPrint - 1] = '\0';
@@ -7733,12 +7733,13 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
                     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                               "%s: Copy into user data buffer failed ", __func__);
                     ret = -EFAULT;
-                    goto exit;
+                    goto mem_free;
                 }
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
                           "%s", &extra[numOfBytestoPrint]);
             }
-
+            ret = 0;
+mem_free:
             /* Free temporary buffer */
             vos_mem_free(extra);
          }
@@ -7752,7 +7753,6 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
             ret = -EINVAL;
             goto exit;
          }
-         ret = 0;
       }
       else if(strncasecmp(command, "GETIBSSPEERINFO", 15) == 0)
       {
