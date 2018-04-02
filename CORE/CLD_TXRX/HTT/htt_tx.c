@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2014, 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014, 2016-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -786,7 +786,7 @@ int htt_tx_ipa_uc_attach(struct htt_pdev_t *pdev,
                 &pdev->ipa_uc_tx_rsc.tx_ce_idx.paddr,
                 adf_os_get_dma_mem_context(
                    (&pdev->ipa_uc_tx_rsc.tx_ce_idx), memctx));
-   if (!pdev->ipa_uc_tx_rsc.tx_ce_idx.vaddr) {
+   if (NULL == pdev->ipa_uc_tx_rsc.tx_ce_idx.vaddr) {
       adf_os_print("%s: CE Write Index WORD alloc fail", __func__);
       return -1;
    }
@@ -798,7 +798,7 @@ int htt_tx_ipa_uc_attach(struct htt_pdev_t *pdev,
                 &pdev->ipa_uc_tx_rsc.tx_comp_base.paddr,
                 adf_os_get_dma_mem_context(
                    (&pdev->ipa_uc_tx_rsc.tx_comp_base), memctx));
-   if (!pdev->ipa_uc_tx_rsc.tx_comp_base.vaddr) {
+   if (NULL == pdev->ipa_uc_tx_rsc.tx_comp_base.vaddr) {
       adf_os_print("%s: TX COMP ring alloc fail", __func__);
       return_code = -2;
       goto free_tx_ce_idx;

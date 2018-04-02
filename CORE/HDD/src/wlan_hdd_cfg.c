@@ -5493,13 +5493,14 @@ VOS_STATUS hdd_parse_config_ini(hdd_context_t* pHddCtx)
    hddLog(LOG1, "%s: qcom_cfg.ini Size %zu", __func__, fw->size);
 
    buffer = (char*)vos_mem_malloc(fw->size + 1);
-   buffer[fw->size] = '\0';
 
    if(NULL == buffer) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: kmalloc failure",__func__);
       release_firmware(fw);
       return VOS_STATUS_E_FAILURE;
    }
+
+   buffer[fw->size] = '\0';
    pTemp = buffer;
 
    vos_mem_copy((void*)buffer,(void *)fw->data, fw->size);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1294,6 +1294,7 @@ A_STATUS HTCSendPktsMultiple(HTC_HANDLE HTCHandle, HTC_PACKET_QUEUE *pPktQueue)
 A_STATUS    HTCSendPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket)
 {
     HTC_PACKET_QUEUE queue;
+    A_STATUS  send_status;
 
     if (HTCHandle == NULL || pPacket == NULL) {
         return A_ERROR;
@@ -1303,7 +1304,9 @@ A_STATUS    HTCSendPkt(HTC_HANDLE HTCHandle, HTC_PACKET *pPacket)
                     ("+-HTCSendPkt: Enter endPointId: %d, buffer: %pK, length: %d \n",
                     pPacket->Endpoint, pPacket->pBuffer, pPacket->ActualLength));
     INIT_HTC_PACKET_QUEUE_AND_ADD(&queue,pPacket);
-    return HTCSendPktsMultiple(HTCHandle, &queue);
+    send_status = HTCSendPktsMultiple(HTCHandle, &queue);
+    pPacket = NULL;
+    return send_status;
 }
 
 #ifdef ATH_11AC_TXCOMPACT
