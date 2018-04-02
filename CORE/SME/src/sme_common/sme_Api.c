@@ -5128,6 +5128,10 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
       pParam->sta_change_cc_via_beacon = pMac->sta_change_cc_via_beacon;
       pParam->csrConfig.gStaLocalEDCAEnable =
               pMac->roam.configParam.gStaLocalEDCAEnable;
+#if defined WLAN_FEATURE_VOWIFI
+      vos_mem_copy(&pParam->rrmConfig, &pMac->rrm.rrmSmeContext.rrmConfig,
+                   sizeof(struct rrm_config_param));
+#endif
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
