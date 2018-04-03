@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -332,7 +332,9 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
                    LOG1,
                    FL("Only RSN IE is present"));
             dot11fUnpackIeRSN(pMac,&pRSNie->rsnIEdata[2],
-                              (tANI_U8)pRSNie->length,&pSessionEntry->gStartBssRSNIe);
+                              pRSNie->rsnIEdata[1],
+                              &pSessionEntry->gStartBssRSNIe);
+            return true;
         }
         else if ((pRSNie->length == pRSNie->rsnIEdata[1] + 2) &&
                  (pRSNie->rsnIEdata[0] == SIR_MAC_WPA_EID))
@@ -341,8 +343,10 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
                    LOG1,
                    FL("Only WPA IE is present"));
 
-            dot11fUnpackIeWPA(pMac,&pRSNie->rsnIEdata[6],(tANI_U8)pRSNie->length-4,
-                                &pSessionEntry->gStartBssWPAIe);
+            dot11fUnpackIeWPA(pMac,&pRSNie->rsnIEdata[6],
+                              pRSNie->rsnIEdata[1] - 4,
+                              &pSessionEntry->gStartBssWPAIe);
+            return true;
         }
 
         // Check validity of WPA IE
@@ -365,7 +369,7 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
             {
                 /* Both RSN and WPA IEs are present */
                 dot11fUnpackIeRSN(pMac,&pRSNie->rsnIEdata[2],
-                      (tANI_U8)pRSNie->length,&pSessionEntry->gStartBssRSNIe);
+                      pRSNie->rsnIEdata[1], &pSessionEntry->gStartBssRSNIe);
 
                 dot11fUnpackIeWPA(pMac,&pRSNie->rsnIEdata[wpaIndex + 6],
                                  pRSNie->rsnIEdata[wpaIndex + 1]-4,
