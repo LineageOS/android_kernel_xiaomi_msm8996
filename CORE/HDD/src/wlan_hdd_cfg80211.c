@@ -18532,6 +18532,18 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
            hdd_device_mode_to_string(pAdapter->device_mode),
            pAdapter->device_mode);
 
+    /*
+     * if a sta connection is in progress in another adapter, disconnect
+     * the sta and complete the sap operation. sta will reconnect
+     * after sap stop is done.
+     */
+    staAdapter = hdd_get_sta_connection_in_progress(pHddCtx);
+    if (staAdapter) {
+	hddLog(LOG1, FL("disconnecting sta with session id: %d"),
+	       staAdapter->sessionId);
+	wlan_hdd_disconnect(staAdapter, eCSR_DISCONNECT_REASON_DEAUTH);
+    }
+
     if (WLAN_HDD_SOFTAP == pAdapter->device_mode)
         hdd_wlan_green_ap_stop_bss(pHddCtx);
 
