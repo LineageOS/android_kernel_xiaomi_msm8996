@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2020 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -138,10 +138,10 @@ wmi_unified_remove_work(struct wmi_unified *wmi_handle);
 #ifdef MEMORY_DEBUG
 #define wmi_buf_alloc(h, l) wmi_buf_alloc_debug(h, l, __FILE__, __LINE__)
 wmi_buf_t
-wmi_buf_alloc_debug(wmi_unified_t wmi_handle, uint16_t len,
+wmi_buf_alloc_debug(wmi_unified_t wmi_handle, uint32_t len,
 		    uint8_t *file_name, uint32_t line_num);
 #else
-wmi_buf_t wmi_buf_alloc(wmi_unified_t wmi_handle, uint16_t len);
+wmi_buf_t wmi_buf_alloc(wmi_unified_t wmi_handle, uint32_t len);
 #endif
 
 /**
