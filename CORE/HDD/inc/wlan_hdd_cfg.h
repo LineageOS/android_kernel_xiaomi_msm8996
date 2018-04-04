@@ -2395,6 +2395,57 @@ typedef enum
 #endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
 
 /*
+ * <ini>
+ * gDPDRecalibEnable - Enable/Disable Runtime DPD Recaliberation feature
+ * 		       The parameter ‘enable’ in WMI is used to enable
+ *		       feature and debug log. Set bit0 to enable feature,
+ *		       set bit1 is to enable FW log to host, and set bit2 is
+ *		       to enable UART output.
+ *
+ * @Min: 0
+ * @Max: 7
+ * @Default: 1
+ *
+ * This ini is used to enable/disable DPD Recaliberation feature
+ *
+ * Usage: Internal
+ *
+ * </ini>
+ */
+
+#define CFG_DPD_RECALIB_ENABLE_NAME      "gDPDRecalibEnable"
+#define CFG_DPD_RECALIB_ENABLE_MIN       ( 0 )
+#define CFG_DPD_RECALIB_ENABLE_MAX       ( 7 )
+#define CFG_DPD_RECALIB_ENABLE_DEFAULT   ( 1 )
+
+/*Thermal thresholds: DPD will be triggered
+    when current temperature above this threshold */
+
+/* Delta degree C above first DPD cal after chip is on. Unit: degree C. */
+#define CFG_DPD_RECALIB_DELTA_DEGREE_HIGH_NAME    "gDPDRecalibDeltaDegreeHigh"
+#define CFG_DPD_RECALIB_DELTA_DEGREE_HIGH_MIN       ( 10 )
+#define CFG_DPD_RECALIB_DELTA_DEGREE_HIGH_MAX       ( 60 )
+#define CFG_DPD_RECALIB_DELTA_DEGREE_HIGH_DEFAULT   ( 35 )
+
+/* Delta degree C above first DPD cal after chip is on. Unit: degree C. */
+#define CFG_DPD_RECALIB_DELTA_DEGREE_LOW_NAME    "gDPDRecalibDeltaDegreeLow"
+#define CFG_DPD_RECALIB_DELTA_DEGREE_LOW_MIN       ( 10 )
+#define CFG_DPD_RECALIB_DELTA_DEGREE_LOW_MAX       ( 60 )
+#define CFG_DPD_RECALIB_DELTA_DEGREE_LOW_DEFAULT   ( 25 )
+
+/* Cold down time between two DPD re-cal. Unit: ms*/
+#define CFG_DPD_RECALIB_COOLING_TIME_NAME    "gDPDRecalibCoolingTime"
+#define CFG_DPD_RECALIB_COOLING_TIME_MIN       ( 0 )
+#define CFG_DPD_RECALIB_COOLING_TIME_MAX       ( 5 )
+#define CFG_DPD_RECALIB_COOLING_TIME_DEFAULT   ( 1 )
+
+/*  Max duration for dpd re-cal. Unit: ms */
+#define CFG_DPD_RECALIB_DURATION_MAX_NAME    "gDPDRecalibDurationMax"
+#define CFG_DPD_RECALIB_DURATION_MAX_MIN       ( 30 )
+#define CFG_DPD_RECALIB_DURATION_MAX_MAX       ( 180 )
+#define CFG_DPD_RECALIB_DURATION_MAX_DEFAULT   ( 120 )
+
+/*
  * Enable/Disable Modulated DTIM feature
  * Default: Disable
  */
@@ -5061,6 +5112,15 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_ENABLE_MONITOR_ON_STA_MAX     (1)
 #define CFG_ENABLE_MONITOR_ON_STA_DEFAULT (0)
 
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+/*SAP Channel Switch Support*/
+#define CFG_SAP_CHANNEL_SWITCH_WITH_CSA_NAME "gSAPChannelSwitchWithCSA"
+#define CFG_SAP_CHANNEL_SWITCH_WITH_CSA_MIN      (0)
+#define CFG_SAP_CHANNEL_SWITCH_WITH_CSA_MAX      (1)
+#define CFG_SAP_CHANNEL_SWITCH_WITH_CSA_DEFAULT  (0)
+
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -5957,6 +6017,15 @@ struct hdd_config {
    uint32_t  cca_threshold_2g;
    uint32_t  cca_threshold_5g;
    uint8_t                     mon_on_sta_enable;
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+   uint32_t                    sap_ch_switch_with_csa;
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
+   uint32_t dpd_recalib_enabled;
+   uint32_t dpd_recalib_delta_degreehigh;
+   uint32_t dpd_recalib_delta_degreelow;
+   uint32_t dpd_recalib_cooling_time;
+   uint32_t dpd_recalib_duration_max;
 };
 
 typedef struct hdd_config hdd_config_t;
