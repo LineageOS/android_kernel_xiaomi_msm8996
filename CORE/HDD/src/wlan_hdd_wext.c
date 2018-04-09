@@ -740,15 +740,25 @@ VOS_STATUS wlan_hdd_validate_mon_channel(int channel)
 
 /**
  * wlan_hdd_validate_mon_bw() - check bandwidth value is valid or not
+ * @ch: channel value
  * @bw: bandwidth value
  *
  * @return: VOS_STATUS
  */
-VOS_STATUS wlan_hdd_validate_mon_bw(int bw)
+VOS_STATUS wlan_hdd_validate_mon_bw(int ch, int bw)
 {
-        if (bw >= 0 && bw <= WLAN_HDD_MAX_BW_VALUE)
+        if (bw >= 0 && bw <= WLAN_HDD_MAX_BW_VALUE) {
+            /* Check if bandwidth from user is valid in 2.4GHz */
+            if ((ch >= rfChannels[RF_CHAN_1].channelNum) &&
+                (ch <= rfChannels[RF_CHAN_14].channelNum)) {
+                if (bw > 1) {
+                   hddLog(VOS_TRACE_LEVEL_ERROR,
+                       "Invalid bw %d for 2.4GHz Chan [%d]",bw,ch);
+                   return VOS_STATUS_E_INVAL;
+                }
+            }
             return VOS_STATUS_SUCCESS;
-
+        }
         return VOS_STATUS_E_FAILURE;
 }
 
@@ -11337,7 +11347,7 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
             }
 
             /* Validate bandwidth Number*/
-            if (wlan_hdd_validate_mon_bw(value[2]) != VOS_STATUS_SUCCESS) {
+            if (wlan_hdd_validate_mon_bw(value[1], value[2]) != VOS_STATUS_SUCCESS) {
                 hddLog(LOGE, "Invalid bandwidth for monitor mode");
                 return -EINVAL;
             }
