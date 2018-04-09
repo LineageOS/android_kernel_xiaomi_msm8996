@@ -1023,7 +1023,7 @@
 // msm-pmi8994.dtsi start
 &pmi8994_charger {
 	qcom,float-voltage-mv = <4400>;
-	qcom,thermal-mitigation = <2500 2000 1500 1000>;
+	qcom,thermal-mitigation = <2500 2000 1100 1000>;
 	qcom,float-voltage-comp = <16>;
 	qcom,override-usb-current;
 };
