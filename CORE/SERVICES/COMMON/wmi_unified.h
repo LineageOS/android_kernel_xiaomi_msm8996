@@ -7987,6 +7987,14 @@ typedef enum {
      */
     WMI_VDEV_PARAM_BA_MODE,                                 /* 0x7e */
 
+    /**
+     * VDEV parameter to force to set modulate DTIM count as listen interval,
+     * no matter whether WoW is enabled
+     * Default: Disabled.
+     * Valid values: 0- Disabled,
+     *               1- Enabled.
+     */
+    WMI_VDEV_PARAM_FORCED_MODDTIM_ENABLE,                   /* 0x7f */
 
     /* Set channel pwr limit value of the vdev the minimal value of all
      * vdevs operating on this channel will be set as channel tx power
