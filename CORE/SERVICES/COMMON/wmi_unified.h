@@ -8026,9 +8026,10 @@ typedef enum {
     WMI_VDEV_PARAM_EARLY_RX_ADJUST_PAUSE,                     /* 0x37 */
 
     /** Parameter to configure BA mode.
-     * Default: Auto mode.
      * Valid values: 0- Auto mode,
      *               1- Manual mode(addba req not sent).
+     *               2- buffer size 64
+     *               3- buffer size 256
      */
     WMI_VDEV_PARAM_BA_MODE,                                 /* 0x7e */
 
@@ -8360,6 +8361,25 @@ typedef enum {
       * valid values: 0-Disable responder role 1-Enable responder role
       */
     WMI_VDEV_PARAM_ENABLE_DISABLE_RTT_RESPONDER_ROLE,        /* 0x7d */
+
+    /** specify the setting that are valid for auto rate transmissions.
+     * bits 7:0 (LTF): When bitmask is set, then corresponding LTF value is
+     *                 used for auto rate.
+     *     BIT0   = 1 (WMI_HE_LTF_1X)
+     *     BIT1   = 1 (WMI_HE_LTF_2X)
+     *     BIT2   = 1 (WMI_HE_LTF_4X)
+     *     BIT3-7 = Reserved bits.
+     * bits 15:8 (SGI): When bitmask is set, then corresponding SGI value is
+     *                 used for auto rate.
+     *     BIT8     = 1 (400 NS)
+     *     BIT9     = 1 (800 NS)
+     *     BIT10    = 1 (1600 NS)
+     *     BIT11    = 1 (3200 NS)
+     *     BIT12-15 = Reserved bits.
+     * bits 31:16: Reserved bits. should be set to zero.
+     */
+    WMI_VDEV_PARAM_AUTORATE_MISC_CFG,                       /* 0x80 */
+
 
     /*=== ADD NEW VDEV PARAM TYPES ABOVE THIS LINE ===
      * The below vdev param types are used for prototyping, and are
