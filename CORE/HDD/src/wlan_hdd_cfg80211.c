@@ -25446,6 +25446,10 @@ static void wlan_hdd_fill_rate_info(hdd_ap_ctx_t *ap_ctx,
 			flags);
 }
 
+struct peer_info_priv {
+	struct sir_peer_info_ext peer_info_ext;
+};
+
 /**
  * wlan_hdd_get_peer_info_cb() - get peer info callback
  * @sta_info: pointer of peer information
@@ -25455,72 +25459,37 @@ static void wlan_hdd_fill_rate_info(hdd_ap_ctx_t *ap_ctx,
  *
  */
 void wlan_hdd_get_peer_info_cb(struct sir_peer_info_ext_resp *sta_info,
-		void *context)
+			       void *context)
 {
-	struct statsContext *get_peer_info_context;
-	struct sir_peer_info_ext *peer_info;
-	hdd_adapter_t *adapter;
-	hdd_ap_ctx_t *ap_ctx;
+	struct hdd_request *request;
+	struct peer_info_priv *priv;
 
-	if ((NULL == sta_info) || (NULL == context)) {
+	if (NULL == sta_info) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-			"%s: Bad param, sta_info [%pK] context [%pK]",
-			__func__, sta_info, context);
-		return;
-	}
-
-	spin_lock(&hdd_context_lock);
-	/*
-	 * there is a race condition that exists between this callback
-	 * function and the caller since the caller could time out either
-	 * before or while this code is executing.  we use a spinlock to
-	 * serialize these actions
-	 */
-	get_peer_info_context = context;
-	if (PEER_INFO_CONTEXT_MAGIC !=
-			get_peer_info_context->magic) {
-		/*
-		 * the caller presumably timed out so there is nothing
-		 * we can do
-		 */
-		spin_unlock(&hdd_context_lock);
-		hddLog(VOS_TRACE_LEVEL_WARN,
-			"%s: Invalid context, magic [%08x]",
-			__func__,
-			get_peer_info_context->magic);
+			"%s: Bad param, sta_info [%pK]", __func__, sta_info);
 		return;
 	}
 
 	if (!sta_info->count) {
-		spin_unlock(&hdd_context_lock);
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("Fail to get remote peer info"));
+			FL("Fail to get remote peer info"));
 		return;
 	}
 
-	adapter = get_peer_info_context->pAdapter;
-	ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(adapter);
-	vos_mem_zero(&ap_ctx->txrx_stats,
-			sizeof(struct hdd_fw_txrx_stats));
+	request = hdd_request_get(context);
+	if (!request) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Obsolete request", __func__);
+		return;
+	}
 
-	peer_info = sta_info->info;
-	ap_ctx->txrx_stats.tx_packets = peer_info->tx_packets;
-	ap_ctx->txrx_stats.tx_bytes = peer_info->tx_bytes;
-	ap_ctx->txrx_stats.rx_packets = peer_info->rx_packets;
-	ap_ctx->txrx_stats.rx_bytes = peer_info->rx_bytes;
-	ap_ctx->txrx_stats.tx_retries = peer_info->tx_retries;
-	ap_ctx->txrx_stats.tx_failed = peer_info->tx_failed;
-	ap_ctx->txrx_stats.rssi =
-		peer_info->rssi + WLAN_HDD_TGT_NOISE_FLOOR_DBM;
-	wlan_hdd_fill_rate_info(ap_ctx, peer_info);
+	priv = hdd_request_priv(request);
 
-	get_peer_info_context->magic = 0;
+	vos_mem_copy(&priv->peer_info_ext,
+		     sta_info->info,
+		     sizeof(sta_info->info[0]));
 
-	/* notify the caller */
-	complete(&get_peer_info_context->completion);
-
-	/* serialization is complete */
-	spin_unlock(&hdd_context_lock);
+	hdd_request_complete(request);
+	hdd_request_put(request);
 }
 
 /**
@@ -25533,12 +25502,19 @@ void wlan_hdd_get_peer_info_cb(struct sir_peer_info_ext_resp *sta_info,
  * Return: 0 on success, otherwise error value
  */
 static int wlan_hdd_get_peer_info(hdd_adapter_t *adapter,
-					v_MACADDR_t macaddress)
+				  v_MACADDR_t macaddress)
 {
 	eHalStatus hstatus;
 	int ret;
-	struct statsContext context;
+	void *cookie;
+	hdd_ap_ctx_t *ap_ctx;
 	struct sir_peer_info_ext_req peer_info_req;
+	struct hdd_request *request;
+	struct peer_info_priv *priv;
+	static const struct hdd_request_params params = {
+		.priv_size = sizeof(*priv),
+		.timeout_ms = WLAN_WAIT_TIME_STATS,
+	};
 
 	if (NULL == adapter) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL",
@@ -25546,49 +25522,63 @@ static int wlan_hdd_get_peer_info(hdd_adapter_t *adapter,
 		return -EFAULT;
 	}
 
-	init_completion(&context.completion);
-	context.magic = PEER_INFO_CONTEXT_MAGIC;
-	context.pAdapter = adapter;
+	request = hdd_request_alloc(&params);
+	if (!request) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Request allocation failure",
+			__func__);
+		return -ENOMEM;
+	}
+
+	cookie = hdd_request_cookie(request);
+	priv = hdd_request_priv(request);
 
 	vos_mem_copy(&(peer_info_req.peer_macaddr), &macaddress,
 			VOS_MAC_ADDR_SIZE);
 	peer_info_req.sessionid = adapter->sessionId;
 	peer_info_req.reset_after_request = 0;
 	hstatus = sme_get_peer_info_ext(WLAN_HDD_GET_HAL_CTX(adapter),
-			&peer_info_req,
-			&context,
-			wlan_hdd_get_peer_info_cb);
+					&peer_info_req,
+					cookie,
+					wlan_hdd_get_peer_info_cb);
 	if (eHAL_STATUS_SUCCESS != hstatus) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
 			"%s: Unable to retrieve statistics for peer info",
 			__func__);
 		ret = -EFAULT;
 	} else {
-		if (!wait_for_completion_timeout(&context.completion,
-				msecs_to_jiffies(WLAN_WAIT_TIME_STATS))) {
+		ret = hdd_request_wait_for_response(request);
+		if (ret) {
 			hddLog(VOS_TRACE_LEVEL_ERROR,
 				"%s: SME timed out while retrieving peer info",
 				__func__);
 			ret = -EFAULT;
-		} else
+		} else {
+			/* only support one peer by now */
+			ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(adapter);
+			vos_mem_zero(&ap_ctx->txrx_stats,
+				     sizeof(struct hdd_fw_txrx_stats));
+
+			ap_ctx->txrx_stats.tx_packets =
+						priv->peer_info_ext.tx_packets;
+			ap_ctx->txrx_stats.tx_bytes =
+						priv->peer_info_ext.tx_bytes;
+			ap_ctx->txrx_stats.rx_packets =
+						priv->peer_info_ext.rx_packets;
+			ap_ctx->txrx_stats.rx_bytes =
+						priv->peer_info_ext.rx_bytes;
+			ap_ctx->txrx_stats.tx_retries =
+						priv->peer_info_ext.tx_retries;
+			ap_ctx->txrx_stats.tx_failed =
+						priv->peer_info_ext.tx_failed;
+			ap_ctx->txrx_stats.rssi = priv->peer_info_ext.rssi
+						+ WLAN_HDD_TGT_NOISE_FLOOR_DBM;
+			wlan_hdd_fill_rate_info(ap_ctx, &priv->peer_info_ext);
 			ret = 0;
+		}
 	}
-	/*
-	 * either we never sent a request, we sent a request and received a
-	 * response or we sent a request and timed out.  if we never sent a
-	 * request or if we sent a request and got a response, we want to
-	 * clear the magic out of paranoia.  if we timed out there is a
-	 * race condition such that the callback function could be
-	 * executing at the same time we are. of primary concern is if the
-	 * callback function had already verified the "magic" but had not
-	 * yet set the completion variable when a timeout occurred. we
-	 * serialize these activities by invalidating the magic while
-	 * holding a shared spinlock which will cause us to block if the
-	 * callback is currently executing
-	 */
-	spin_lock(&hdd_context_lock);
-	context.magic = 0;
-	spin_unlock(&hdd_context_lock);
+
+	hdd_request_put(request);
+
 	return ret;
 }
 
