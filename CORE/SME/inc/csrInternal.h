@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -714,6 +714,14 @@ typedef struct tagCsrConfig
     bool enable_fatal_event;
     uint32_t tx_aggregation_size;
     uint32_t rx_aggregation_size;
+    uint32_t tx_aggr_sw_retry_threshhold_be;
+    uint32_t tx_aggr_sw_retry_threshhold_bk;
+    uint32_t tx_aggr_sw_retry_threshhold_vi;
+    uint32_t tx_aggr_sw_retry_threshhold_vo;
+    uint32_t tx_non_aggr_sw_retry_threshhold_be;
+    uint32_t tx_non_aggr_sw_retry_threshhold_bk;
+    uint32_t tx_non_aggr_sw_retry_threshhold_vi;
+    uint32_t tx_non_aggr_sw_retry_threshhold_vo;
     bool enable_edca_params;
     uint32_t edca_vo_cwmin;
     uint32_t edca_vi_cwmin;
