@@ -7936,6 +7936,13 @@ typedef enum {
     /* pause adjust enable/disable */
     WMI_VDEV_PARAM_EARLY_RX_ADJUST_PAUSE,                     /* 0x37 */
 
+    /** Parameter to configure BA mode.
+     * Default: Auto mode.
+     * Valid values: 0- Auto mode,
+     *               1- Manual mode(addba req not sent).
+     */
+    WMI_VDEV_PARAM_BA_MODE,                                 /* 0x7e */
+
 
     /* Set channel pwr limit value of the vdev the minimal value of all
      * vdevs operating on this channel will be set as channel tx power
