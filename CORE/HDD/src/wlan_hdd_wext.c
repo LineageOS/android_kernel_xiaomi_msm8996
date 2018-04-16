@@ -3818,6 +3818,12 @@ return_cached_results:
 	return VOS_STATUS_SUCCESS;
 }
 
+struct station_stats {
+	tCsrSummaryStatsInfo summary_stats;
+	tCsrGlobalClassAStatsInfo class_a_stats;
+	struct csr_per_chain_rssi_stats_info per_chain_rssi_stats;
+};
+
 /**
  * hdd_get_station_statistics_cb() - Get stats callback function
  * @stats: pointer to combined station stats
