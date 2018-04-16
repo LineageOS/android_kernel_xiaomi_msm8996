@@ -7236,6 +7236,7 @@ static int __iw_setint_getnone(struct net_device *dev,
             wlan_hdd_mnt_filter_type_cmd(pAdapter, &filter_type,sizeof(v_U8_t));
             break;
         }
+#ifdef FEATURE_WLAN_TDLS
         case WE_SET_TDLS_OFFCHANNEL_MODE:
         {
             hddLog(LOG1, "SET tdls_offchannel_mode  val %d", set_value);
@@ -7262,6 +7263,7 @@ static int __iw_setint_getnone(struct net_device *dev,
             ret = hdd_set_tdls_secoffchanneloffset(pHddCtx, set_value);
 	    break;
 	}
+#endif
         default:
         {
             hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
