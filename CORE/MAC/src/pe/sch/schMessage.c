@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014, 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -357,7 +357,7 @@ sch_get_hostapd_edca(tpAniSirGlobal pMac,
 
 	if (local) {
 		for (i = 0; i < MAX_NUM_AC; i++) {
-			tANI_U8  data[WNI_CFG_EDCA_HOSTAPD_ACVO_LOCAL_LEN];
+			tANI_U8  data[WNI_CFG_EDCA_HOSTAPD_ACVO_LOCAL_LEN] = {0};
 			tANI_U32 len = WNI_CFG_EDCA_HOSTAPD_ACVO_LOCAL_LEN;
 
 			prf = &hostapd_edca_local[i];

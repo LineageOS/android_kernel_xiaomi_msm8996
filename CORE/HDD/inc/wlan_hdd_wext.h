@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -428,7 +428,6 @@ extern VOS_STATUS wlan_hdd_get_linkspeed_for_peermac(hdd_adapter_t *pAdapter,
                                                      tSirMacAddr macAddress);
 void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter);
 void hdd_GetClassA_statisticsCB(void *pStats, void *pContext);
-void hdd_GetLink_SpeedCB(tSirLinkSpeedInfo *pLinkSpeed, void *pContext);
 
 VOS_STATUS wlan_hdd_check_ula_done(hdd_adapter_t *pAdapter);
 

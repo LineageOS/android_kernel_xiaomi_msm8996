@@ -81,6 +81,7 @@
 #include "wlan_hdd_main.h"
 #include "wlan_hdd_assoc.h"
 #include "wlan_hdd_power.h"
+#include "wlan_hdd_request_manager.h"
 #include "wlan_hdd_trace.h"
 #include "vos_types.h"
 #include "vos_trace.h"
@@ -18073,17 +18074,17 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
      * VHT80 depends on HT40 config.
      */
     if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac)
-        if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_40)
+        if (pConfig->ch_width_orig_usr == NL80211_CHAN_WIDTH_40)
             pConfig->ch_width_orig = iniConfig->vhtChannelWidth;
 #endif
 
-    if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_80 &&
+    if (pConfig->ch_width_orig_usr == NL80211_CHAN_WIDTH_80 &&
         !pHddCtx->cfg_ini->sap_force_11n_for_11ac) {
         if (pHddCtx->isVHT80Allowed == false)
             pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_40MHZ;
         else
             pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_80MHZ;
-    } else if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_40)
+    } else if (pConfig->ch_width_orig_usr == NL80211_CHAN_WIDTH_40)
         pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_40MHZ;
     else
         pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
@@ -18996,7 +18997,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
-        pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
+        pAdapter->sessionCtx.ap.sapConfig.ch_width_orig_usr =
                                              params->chandef.width;
 #endif
 
@@ -22236,7 +22237,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
              * successfull OBSS scan
              */
             if((WLAN_HDD_SOFTAP == pAdapter->device_mode) && \
-               (pHddCtx->no_of_active_sessions[VOS_STA_SAP_MODE] > 1)) {
+               (pHddCtx->no_of_active_sessions[VOS_STA_SAP_MODE] >= 1) && \
+               (pHddCtx->no_of_open_sessions[VOS_STA_SAP_MODE] > 1)) {
                 scanRequest.scanType = eSIR_ACTIVE_SCAN;
             }
             else {
@@ -30750,6 +30752,10 @@ __wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
             smeConfig.csrConfig.channelBondingMode24GHz =
                       eCSR_INI_SINGLE_CHANNEL_CENTERED;
             sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+            pAdapter->sessionCtx.ap.sapConfig.ch_width_orig_usr =
+                      chandef->width;
+            pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
+                      eHT_CHANNEL_WIDTH_20MHZ;
             cbModeChange = TRUE;
         }
         break;
@@ -30764,6 +30770,10 @@ __wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
                 smeConfig.csrConfig.channelBondingMode24GHz =
                       eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
             sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+            pAdapter->sessionCtx.ap.sapConfig.ch_width_orig_usr =
+                      chandef->width;
+            pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
+                      eHT_CHANNEL_WIDTH_40MHZ;
             cbModeChange = TRUE;
         }
         break;

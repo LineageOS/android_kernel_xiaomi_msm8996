@@ -442,6 +442,7 @@ HDD_OBJS := 	$(HDD_SRC_DIR)/wlan_hdd_assoc.o \
 		$(HDD_SRC_DIR)/wlan_hdd_main.o \
 		$(HDD_SRC_DIR)/wlan_hdd_memdump.o \
 		$(HDD_SRC_DIR)/wlan_hdd_oemdata.o \
+		$(HDD_SRC_DIR)/wlan_hdd_request_manager.o \
 		$(HDD_SRC_DIR)/wlan_hdd_scan.o \
 		$(HDD_SRC_DIR)/wlan_hdd_softap_tx_rx.o \
 		$(HDD_SRC_DIR)/wlan_hdd_tx_rx.o \
@@ -1631,6 +1632,8 @@ CDEFINES += -DFEATURE_WLAN_SUB_20_MHZ
 CDEFINES += -DHL_RX_AGGREGATION_HOLE_DETCTION
 CDEFINES += -DMAC_NOTIFICATION_FEATURE
 CDEFINES += -DCHANNEL_HOPPING_ALL_BANDS
+#Enable 4address scheme
+CDEFINES += -DFEATURE_WLAN_STA_4ADDR_SCHEME
 endif
 
 ifeq ($(CONFIG_ARCH_MSM8996), y)
