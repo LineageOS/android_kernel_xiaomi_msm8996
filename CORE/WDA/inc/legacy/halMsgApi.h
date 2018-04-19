@@ -1314,6 +1314,14 @@ typedef struct sAddStaSelfParams
    uint8_t         nss_5g;
    uint32_t        tx_aggregation_size;
    uint32_t        rx_aggregation_size;
+   uint32_t tx_aggr_sw_retry_threshhold_be;
+   uint32_t tx_aggr_sw_retry_threshhold_bk;
+   uint32_t tx_aggr_sw_retry_threshhold_vi;
+   uint32_t tx_aggr_sw_retry_threshhold_vo;
+   uint32_t tx_non_aggr_sw_retry_threshhold_be;
+   uint32_t tx_non_aggr_sw_retry_threshhold_bk;
+   uint32_t tx_non_aggr_sw_retry_threshhold_vi;
+   uint32_t tx_non_aggr_sw_retry_threshhold_vo;
 }tAddStaSelfParams, *tpAddStaSelfParams;
 
 /**

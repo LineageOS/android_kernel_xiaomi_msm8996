@@ -2111,6 +2111,22 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
                                pParam->tx_aggregation_size;
         pMac->roam.configParam.rx_aggregation_size =
                                pParam->rx_aggregation_size;
+        pMac->roam.configParam.tx_aggr_sw_retry_threshhold_be =
+                               pParam->tx_aggr_sw_retry_threshhold_be;
+        pMac->roam.configParam.tx_aggr_sw_retry_threshhold_bk =
+                               pParam->tx_aggr_sw_retry_threshhold_bk;
+        pMac->roam.configParam.tx_aggr_sw_retry_threshhold_vi =
+                               pParam->tx_aggr_sw_retry_threshhold_vi;
+        pMac->roam.configParam.tx_aggr_sw_retry_threshhold_vo =
+                               pParam->tx_aggr_sw_retry_threshhold_vo;
+        pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_be =
+                               pParam->tx_non_aggr_sw_retry_threshhold_be;
+        pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_bk =
+                               pParam->tx_non_aggr_sw_retry_threshhold_bk;
+        pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vi =
+                               pParam->tx_non_aggr_sw_retry_threshhold_vi;
+        pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vo =
+                               pParam->tx_non_aggr_sw_retry_threshhold_vo;
 
         pMac->roam.configParam.gStaLocalEDCAEnable =
                                pParam->gStaLocalEDCAEnable;
@@ -2342,6 +2358,22 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                pMac->roam.configParam.tx_aggregation_size;
         pParam->rx_aggregation_size =
                pMac->roam.configParam.rx_aggregation_size;
+        pParam->tx_aggr_sw_retry_threshhold_be =
+               pMac->roam.configParam.tx_aggr_sw_retry_threshhold_be;
+        pParam->tx_aggr_sw_retry_threshhold_bk =
+               pMac->roam.configParam.tx_aggr_sw_retry_threshhold_bk;
+        pParam->tx_aggr_sw_retry_threshhold_vi =
+               pMac->roam.configParam.tx_aggr_sw_retry_threshhold_vi;
+        pParam->tx_aggr_sw_retry_threshhold_vo =
+               pMac->roam.configParam.tx_aggr_sw_retry_threshhold_vo;
+        pParam->tx_non_aggr_sw_retry_threshhold_be =
+               pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_be;
+        pParam->tx_non_aggr_sw_retry_threshhold_bk =
+               pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_bk;
+        pParam->tx_non_aggr_sw_retry_threshhold_vi =
+               pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vi;
+        pParam->tx_non_aggr_sw_retry_threshhold_vo =
+               pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vo;
         status = eHAL_STATUS_SUCCESS;
     }
     return (status);
@@ -16316,6 +16348,22 @@ eHalStatus csrSendMBAddSelfStaReqMsg( tpAniSirGlobal pMac,
       pMsg->nss_5g = nss_5g;
       pMsg->tx_aggregation_size = pMac->roam.configParam.tx_aggregation_size;
       pMsg->rx_aggregation_size = pMac->roam.configParam.rx_aggregation_size;
+      pMsg->tx_aggr_sw_retry_threshhold_be =
+                pMac->roam.configParam.tx_aggr_sw_retry_threshhold_be;
+      pMsg->tx_aggr_sw_retry_threshhold_bk =
+                pMac->roam.configParam.tx_aggr_sw_retry_threshhold_bk;
+      pMsg->tx_aggr_sw_retry_threshhold_vi =
+                pMac->roam.configParam.tx_aggr_sw_retry_threshhold_vi;
+      pMsg->tx_aggr_sw_retry_threshhold_vo =
+                pMac->roam.configParam.tx_aggr_sw_retry_threshhold_vo;
+      pMsg->tx_non_aggr_sw_retry_threshhold_be =
+                pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_be;
+      pMsg->tx_non_aggr_sw_retry_threshhold_bk =
+                pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_bk;
+      pMsg->tx_non_aggr_sw_retry_threshhold_vi =
+                pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vi;
+      pMsg->tx_non_aggr_sw_retry_threshhold_vo =
+                pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vo;
       smsLog( pMac, LOG1, FL("selfMac="MAC_ADDRESS_STR),
               MAC_ADDR_ARRAY(pMsg->selfMacAddr));
       status = palSendMBMessage(pMac->hHdd, pMsg);

@@ -4804,6 +4804,63 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_RX_AGGREGATION_SIZE_DEFAULT,
                 CFG_RX_AGGREGATION_SIZE_MIN,
                 CFG_RX_AGGREGATION_SIZE_MAX),
+
+   REG_VARIABLE(CFG_TX_AGGR_SW_RETRY_BE, WLAN_PARAM_Integer,
+                hdd_config_t, tx_aggr_sw_retry_threshhold_be,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TX_AGGR_SW_RETRY_BE_DEFAULT,
+                CFG_TX_AGGR_SW_RETRY_BE_MIN,
+                CFG_TX_AGGR_SW_RETRY_BE_MAX),
+
+   REG_VARIABLE(CFG_TX_AGGR_SW_RETRY_BK, WLAN_PARAM_Integer,
+                hdd_config_t, tx_aggr_sw_retry_threshhold_bk,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TX_AGGR_SW_RETRY_BK_DEFAULT,
+                CFG_TX_AGGR_SW_RETRY_BK_MIN,
+                CFG_TX_AGGR_SW_RETRY_BK_MAX),
+
+   REG_VARIABLE(CFG_TX_AGGR_SW_RETRY_VI, WLAN_PARAM_Integer,
+                hdd_config_t, tx_aggr_sw_retry_threshhold_vi,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TX_AGGR_SW_RETRY_VI_DEFAULT,
+                CFG_TX_AGGR_SW_RETRY_VI_MIN,
+                CFG_TX_AGGR_SW_RETRY_VI_MAX),
+
+   REG_VARIABLE(CFG_TX_AGGR_SW_RETRY_VO, WLAN_PARAM_Integer,
+                hdd_config_t, tx_aggr_sw_retry_threshhold_vo,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TX_AGGR_SW_RETRY_VO_DEFAULT,
+                CFG_TX_AGGR_SW_RETRY_VO_MIN,
+                CFG_TX_AGGR_SW_RETRY_VO_MAX),
+
+   REG_VARIABLE(CFG_TX_NON_AGGR_SW_RETRY_BE, WLAN_PARAM_Integer,
+                hdd_config_t, tx_non_aggr_sw_retry_threshhold_be,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TX_NON_AGGR_SW_RETRY_BE_DEFAULT,
+                CFG_TX_NON_AGGR_SW_RETRY_BE_MIN,
+                CFG_TX_NON_AGGR_SW_RETRY_BE_MAX),
+
+   REG_VARIABLE(CFG_TX_NON_AGGR_SW_RETRY_BK, WLAN_PARAM_Integer,
+                hdd_config_t, tx_non_aggr_sw_retry_threshhold_bk,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TX_NON_AGGR_SW_RETRY_BK_DEFAULT,
+                CFG_TX_NON_AGGR_SW_RETRY_BK_MIN,
+                CFG_TX_NON_AGGR_SW_RETRY_BK_MAX),
+
+   REG_VARIABLE(CFG_TX_NON_AGGR_SW_RETRY_VI, WLAN_PARAM_Integer,
+                hdd_config_t, tx_non_aggr_sw_retry_threshhold_vi,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TX_NON_AGGR_SW_RETRY_VI_DEFAULT,
+                CFG_TX_NON_AGGR_SW_RETRY_VI_MIN,
+                CFG_TX_NON_AGGR_SW_RETRY_VI_MAX),
+
+   REG_VARIABLE(CFG_TX_NON_AGGR_SW_RETRY_VO, WLAN_PARAM_Integer,
+                hdd_config_t, tx_non_aggr_sw_retry_threshhold_vo,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_TX_NON_AGGR_SW_RETRY_VO_DEFAULT,
+                CFG_TX_NON_AGGR_SW_RETRY_VO_MIN,
+                CFG_TX_NON_AGGR_SW_RETRY_VO_MAX),
+
    REG_VARIABLE(CFG_CREATE_BUG_REPORT_FOR_SCAN, WLAN_PARAM_Integer,
                 hdd_config_t, bug_report_for_scan_results,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -8282,6 +8339,22 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                    pHddCtx->cfg_ini->tx_aggregation_size;
    smeConfig->csrConfig.rx_aggregation_size =
                    pHddCtx->cfg_ini->rx_aggregation_size;
+   smeConfig->csrConfig.tx_aggr_sw_retry_threshhold_be =
+                   pHddCtx->cfg_ini->tx_aggr_sw_retry_threshhold_be;
+   smeConfig->csrConfig.tx_aggr_sw_retry_threshhold_bk =
+                   pHddCtx->cfg_ini->tx_aggr_sw_retry_threshhold_bk;
+   smeConfig->csrConfig.tx_aggr_sw_retry_threshhold_vi =
+                   pHddCtx->cfg_ini->tx_aggr_sw_retry_threshhold_vi;
+   smeConfig->csrConfig.tx_aggr_sw_retry_threshhold_vo =
+                   pHddCtx->cfg_ini->tx_aggr_sw_retry_threshhold_vo;
+   smeConfig->csrConfig.tx_non_aggr_sw_retry_threshhold_be =
+                   pHddCtx->cfg_ini->tx_non_aggr_sw_retry_threshhold_be;
+   smeConfig->csrConfig.tx_non_aggr_sw_retry_threshhold_bk =
+                   pHddCtx->cfg_ini->tx_non_aggr_sw_retry_threshhold_bk;
+   smeConfig->csrConfig.tx_non_aggr_sw_retry_threshhold_vi =
+                   pHddCtx->cfg_ini->tx_non_aggr_sw_retry_threshhold_vi;
+   smeConfig->csrConfig.tx_non_aggr_sw_retry_threshhold_vo =
+                   pHddCtx->cfg_ini->tx_non_aggr_sw_retry_threshhold_vo;
 
    smeConfig->csrConfig.enable_edca_params =
                         pHddCtx->cfg_ini->enable_edca_params;

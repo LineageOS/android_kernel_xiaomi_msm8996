@@ -3666,6 +3666,14 @@ typedef struct sSirSmeAddStaSelfReq
     uint8_t         nss_5g;
     uint32_t        tx_aggregation_size;
     uint32_t        rx_aggregation_size;
+    uint32_t        tx_aggr_sw_retry_threshhold_be;
+    uint32_t        tx_aggr_sw_retry_threshhold_bk;
+    uint32_t        tx_aggr_sw_retry_threshhold_vi;
+    uint32_t        tx_aggr_sw_retry_threshhold_vo;
+    uint32_t        tx_non_aggr_sw_retry_threshhold_be;
+    uint32_t        tx_non_aggr_sw_retry_threshhold_bk;
+    uint32_t        tx_non_aggr_sw_retry_threshhold_vi;
+    uint32_t        tx_non_aggr_sw_retry_threshhold_vo;
 }tSirSmeAddStaSelfReq, *tpSirSmeAddStaSelfReq;
 
 typedef struct sSirSmeDelStaSelfReq
@@ -8459,6 +8467,24 @@ struct sir_set_tx_rx_aggregation_size {
 	uint8_t vdev_id;
 	uint32_t tx_aggregation_size;
 	uint32_t rx_aggregation_size;
+};
+
+/**
+ * struct sir_set_tx_sw_retry_threshhold - set sw retry threshhold
+ * @vdev_id: vdev id of the session
+ * @retry_type: non-aggregation or aggregation
+ * @tx_sw_retry_threshhold_be: sw retry threshhold for BE
+ * @tx_sw_retry_threshhold_bk: sw retry threshhold for BK
+ * @tx_sw_retry_threshhold_vi: sw retry threshhold for VI
+ * @tx_sw_retry_threshhold_vo: sw retry threshhold for VO
+ */
+struct sir_set_tx_sw_retry_threshhold {
+	uint8_t vdev_id;
+	uint8_t retry_type;
+	uint32_t tx_sw_retry_threshhold_be;
+	uint32_t tx_sw_retry_threshhold_bk;
+	uint32_t tx_sw_retry_threshhold_vi;
+	uint32_t tx_sw_retry_threshhold_vo;
 };
 
 /**

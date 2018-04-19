@@ -644,6 +644,14 @@ struct wma_txrx_node {
 	uint8_t nss_5g;
 	uint32_t tx_aggregation_size;
 	uint32_t rx_aggregation_size;
+	uint32_t tx_aggr_sw_retry_threshhold_be;
+	uint32_t tx_aggr_sw_retry_threshhold_bk;
+	uint32_t tx_aggr_sw_retry_threshhold_vi;
+	uint32_t tx_aggr_sw_retry_threshhold_vo;
+	uint32_t tx_non_aggr_sw_retry_threshhold_be;
+	uint32_t tx_non_aggr_sw_retry_threshhold_bk;
+	uint32_t tx_non_aggr_sw_retry_threshhold_vi;
+	uint32_t tx_non_aggr_sw_retry_threshhold_vo;
 
 	uint8_t wep_default_key_idx;
 	bool is_vdev_valid;
@@ -1843,6 +1851,8 @@ uint32_t wma_get_vht_ch_width(void);
 VOS_STATUS wma_get_wakelock_stats(struct sir_wake_lock_stats *wake_lock_stats);
 VOS_STATUS wma_set_tx_rx_aggregation_size
 	(struct sir_set_tx_rx_aggregation_size *tx_rx_aggregation_size);
+VOS_STATUS wma_set_sw_retry_threshhold
+	(struct sir_set_tx_sw_retry_threshhold *tx_sw_retry_threshhold);
 VOS_STATUS wma_set_powersave_config(uint8_t vdev_id, uint8_t val);
 
 /**
