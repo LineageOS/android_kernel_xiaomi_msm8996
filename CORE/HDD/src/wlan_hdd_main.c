@@ -12379,9 +12379,9 @@ err_init_adapter_mode:
 err_init_packet_filtering:
 	hdd_adapter_runtime_suspend_denit(adapter);
 
-	free_netdev(adapter->dev);
 	wlan_hdd_release_intf_addr(hdd_ctx,
 				   adapter->macAddressCurrent.bytes);
+	free_netdev(adapter->dev);
 
 	/* If bmps disabled enable it */
 	if (!hdd_ctx->cfg_ini->enablePowersaveOffload) {
