@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -69,6 +69,21 @@ static inline void adf_os_init_mutex(adf_os_mutex_t *m)
 static inline int adf_os_mutex_acquire(adf_os_device_t osdev, adf_os_mutex_t *m)
 {
     return (__adf_os_mutex_acquire(osdev, m));
+}
+
+/**
+ * adf_os_mutex_acquire_timeout() - Take the semaphore before timeout
+ * @osdev: osdev handle
+ * @m: semaphore to take
+ * @timeout: maximum time to try to take the semaphore, unit in ms.
+ *
+ * Return: 0 for success, others for timeout
+ */
+static inline int adf_os_mutex_acquire_timeout(adf_os_device_t osdev,
+						adf_os_mutex_t *m,
+						long timeout)
+{
+	return __adf_os_mutex_acquire_timeout(osdev, m, timeout);
 }
 
 /**
