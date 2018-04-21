@@ -3320,3 +3320,24 @@ bool vos_is_mon_enable(void)
 
 	return phdd_ctx->is_mon_enable;
 }
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+v_BOOL_t vos_is_ch_switch_with_csa_enabled(void)
+{
+   hdd_context_t *pHddCtx;
+
+   pHddCtx = (hdd_context_t*)(gpVosContext->pHDDContext);
+   if((NULL == pHddCtx) ||
+      (NULL == pHddCtx->cfg_ini))
+   {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Hdd Context is Null", __func__);
+     return FALSE;
+   }
+   return pHddCtx->cfg_ini->sap_ch_switch_with_csa;
+}
+#else
+v_BOOL_t vos_is_ch_switch_with_csa_enabled(void)
+{
+	return FALSE;
+}
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN

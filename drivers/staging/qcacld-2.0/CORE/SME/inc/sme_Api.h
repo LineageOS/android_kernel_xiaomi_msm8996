@@ -257,6 +257,14 @@ typedef struct {
 
 } tSmeThermalParams;
 
+typedef struct {
+    u_int32_t enable;
+    u_int32_t delta_degreeHigh;
+    u_int32_t delta_degreeLow;
+    u_int32_t cooling_time;
+    u_int32_t dpd_dur_max;
+} tSmeDPDRecalParams;
+
 #ifdef WLAN_FEATURE_APFIND
 struct sme_ap_find_request_req{
     u_int16_t request_data_len;
@@ -3825,6 +3833,14 @@ eHalStatus sme_RoamCsaIeRequest(tHalHandle hHal, tCsrBssid bssid,
 eHalStatus sme_InitThermalInfo( tHalHandle hHal, tSmeThermalParams thermalParam );
 /* ---------------------------------------------------------------------------
     \fn sme_InitThermalInfo
+    \brief  SME API to initialize the thermal mitigation parameters
+    \param  hHal
+    \param  thermalParam : thermal mitigation parameters
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_InitDPDRecalInfo( tHalHandle hHal, tSmeDPDRecalParams thermalParam );
+/* ---------------------------------------------------------------------------
+    \fn sme_InitThermalInfo
     \brief  SME API to set the thermal mitigation level
     \param  hHal
     \param  level : thermal mitigation level
@@ -4523,6 +4539,14 @@ eHalStatus sme_set_tsfcb(tHalHandle hHal,
 #ifdef WLAN_FEATURE_APFIND
 VOS_STATUS sme_apfind_set_cmd(struct sme_ap_find_request_req *input);
 #endif /* WLAN_FEATURE_APFIND */
+
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+eHalStatus sme_AddCSAIndCallback
+(
+   tHalHandle hHal,
+   void (*pCallbackfn)(void *pAdapter, void *CSAindParam)
+);
+#endif//#ifdef
 
 /**
  * sme_enable_disable_mas() - Function to set MAS value to UMAC

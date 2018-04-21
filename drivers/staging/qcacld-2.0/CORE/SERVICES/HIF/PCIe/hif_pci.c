@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2837,6 +2837,9 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
                 if (tot_delay > PCIE_WAKE_TIMEOUT)
                 {
                     u_int16_t val;
+#ifdef CONFIG_NON_QC_PLATFORM_PCI
+		    u_int16_t devid;
+#endif
                     u_int32_t bar;
 
                     printk("%s: keep_awake_count = %d\n", __func__,
@@ -2847,6 +2850,9 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
 
                     pci_read_config_word(sc->pdev, PCI_DEVICE_ID, &val);
                     printk("%s: PCI Device ID = 0x%04x\n", __func__, val);
+#ifdef CONFIG_NON_QC_PLATFORM_PCI
+		    devid = val;
+#endif
 
                     pci_read_config_word(sc->pdev, PCI_COMMAND, &val);
                     printk("%s: PCI Command = 0x%04x\n", __func__, val);
@@ -2866,6 +2872,10 @@ HIFTargetSleepStateAdjust(A_target_id_t targid,
 
                     printk("%s:error, can't wakeup target\n", __func__);
                     hif_msm_pcie_debug_info(sc);
+#ifdef CONFIG_NON_QC_PLATFORM_PCI
+		    if (sc->devid != devid)
+			return -EACCES;
+#endif
 
                     if (!vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
                         sc->recovery = true;

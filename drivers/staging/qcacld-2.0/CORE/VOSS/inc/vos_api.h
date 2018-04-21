@@ -437,5 +437,5 @@ bool vos_is_probe_rsp_offload_enabled(void);
  *          true: monitor mode is on
  */
 bool vos_is_mon_enable(void);
-
+v_BOOL_t vos_is_ch_switch_with_csa_enabled(void);
 #endif // if !defined __VOS_API_H

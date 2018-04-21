@@ -3257,6 +3257,15 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_SME_CSA_OFFLOAD_EVENT:
                if (pMsg->bodyptr)
                {
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+                   /*Indicate to HostApd*/
+                   if(pMac->sme.pCSASAPIndCb)
+                   {
+                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                             "%s: CSA Notification to SAP", __func__);
+                        pMac->sme.pCSASAPIndCb(pMac->hHdd, pMsg->bodyptr);
+                   }
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
                    csrScanFlushBssEntry(pMac, pMsg->bodyptr);
                    vos_mem_free(pMsg->bodyptr);
                }
@@ -15357,6 +15366,57 @@ eHalStatus sme_InitThermalInfo( tHalHandle hHal,
     return eHAL_STATUS_FAILURE;
 }
 
+/* ---------------------------------------------------------------------------
+    \fn sme_InitDPDRecalInfo
+    \brief  SME API to initialize the Runtime DPD Recaliberation parameters
+    \param  hHal
+    \param  DPDParam : DPD Recal parameters
+    \- return eHalStatus
+    -------------------------------------------------------------------------*/
+eHalStatus sme_InitDPDRecalInfo( tHalHandle hHal,
+                                tSmeDPDRecalParams DPDParam )
+{
+    t_dpd_recal_mgmt * pWdaParam;
+    vos_msg_t msg;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    pWdaParam = (t_dpd_recal_mgmt *)vos_mem_malloc(sizeof(t_dpd_recal_mgmt));
+    if (NULL == pWdaParam)
+    {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                 "%s: could not allocate t_dpd_recal_mgmt", __func__);
+       return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    vos_mem_zero((void*)pWdaParam, sizeof(t_dpd_recal_mgmt));
+    pWdaParam->dpd_enable = DPDParam.enable;
+    pWdaParam->dpd_delta_degreeHigh = DPDParam.delta_degreeHigh;
+    pWdaParam->dpd_delta_degreeLow = DPDParam.delta_degreeLow;
+    pWdaParam->dpd_cooling_time = DPDParam.cooling_time;
+    pWdaParam->dpd_duration_max = DPDParam.dpd_dur_max;
+
+    if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&pMac->sme))
+    {
+        msg.type     = WDA_INIT_DPD_RECAL_INFO_CMD;
+        msg.bodyptr  = pWdaParam;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+           vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
+        {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Not able to post WDA_INIT_DPD_RECAL_INFO_CMD to WDA!",
+                       __func__);
+            vos_mem_free(pWdaParam);
+            sme_ReleaseGlobalLock(&pMac->sme);
+            return eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+        return eHAL_STATUS_SUCCESS;
+    }
+    vos_mem_free(pWdaParam);
+    return eHAL_STATUS_FAILURE;
+}
+
 /*
  * Plug in set thermal level callback
  */
@@ -17639,6 +17699,34 @@ VOS_STATUS sme_apfind_set_cmd(struct sme_ap_find_request_req *input)
      return VOS_STATUS_SUCCESS;
 }
 #endif /* WLAN_FEATURE_APFIND */
+
+#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+eHalStatus sme_AddCSAIndCallback
+(
+   tHalHandle hHal,
+   void (*pCallbackfn)(void *pAdapter, void *CSAindParam)
+)
+{
+   eHalStatus          status    = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal      pMac      = PMAC_STRUCT(hHal);
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+              "%s: Plug in CSA Notify CB", __func__);
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status)
+    {
+        if (NULL != pCallbackfn)
+        {
+           pMac->sme.pCSASAPIndCb = pCallbackfn;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+
+    return(status);
+
+}
+#endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
 /*
  * sme_validate_sap_channel_switch() - validate target channel switch w.r.t

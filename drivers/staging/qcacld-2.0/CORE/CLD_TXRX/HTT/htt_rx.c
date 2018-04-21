@@ -1598,15 +1598,81 @@ unsigned char get_nr_antenna(struct htt_host_rx_desc_base *rx_desc)
 }
 
 /**
- * htt_get_radiotap_rx_status() - Update information about the rx status, which
- * is used later for radiotap updation.
+ * get_ht_vht_info_ll() - get ht/vht information
+ * @rx_desc: pointer to PPDU start
+ * @rx_status: pointer to mon_rx_status.
+ *
+ * This function retrieve MCS/VHT info by parsing preamble,
+ * vht_sig_a1 and vht_sig_a2, which follows ieee80211 spec.
+ *
+ * Return: None.
+ */
+static void get_ht_vht_info_ll(struct rx_ppdu_start rx_desc,
+                              struct mon_rx_status *rx_status)
+{
+	uint8_t preamble_type =
+		(uint8_t)rx_desc.preamble_type;
+	uint32_t ht_sig_vht_sig_a_1 = rx_desc.ht_sig_vht_sig_a_1;
+	uint32_t ht_sig_vht_sig_a_2 = rx_desc.ht_sig_vht_sig_a_2;
+	switch (preamble_type) {
+	case 8:
+	case 9:
+		rx_status->mcs_info.valid = 1;
+		rx_status->vht_info.valid = 0;
+		rx_status->mcs_info.mcs = ht_sig_vht_sig_a_1 & 0x7f;
+		rx_status->nr_ant = rx_status->mcs_info.mcs >> 3;
+		rx_status->mcs_info.bw = (ht_sig_vht_sig_a_1 >> 7) & 0x1;
+		rx_status->mcs_info.smoothing = ht_sig_vht_sig_a_2 & 0x1;
+		rx_status->mcs_info.not_sounding =
+			(ht_sig_vht_sig_a_2 >> 1) & 0x1;
+		rx_status->mcs_info.aggregation =
+			(ht_sig_vht_sig_a_2 >> 3) & 0x1;
+		rx_status->mcs_info.stbc = (ht_sig_vht_sig_a_2 >> 4) & 0x3;
+		rx_status->mcs_info.fec = (ht_sig_vht_sig_a_2 >> 6) & 0x1;
+		rx_status->mcs_info.sgi = (ht_sig_vht_sig_a_2 >> 7) & 0x1;
+		rx_status->mcs_info.ness = (ht_sig_vht_sig_a_2 >> 8) & 0x3;
+		break;
+	case 0x0c: /* VHT w/o TxBF */
+	case 0x0d: /* VHT w/ TxBF */
+		rx_status->vht_info.valid = 1;
+		rx_status->mcs_info.valid = 0;
+		rx_status->vht_info.bw = ht_sig_vht_sig_a_1 & 0x3;
+		rx_status->vht_info.stbc = (ht_sig_vht_sig_a_1 >> 3) & 0x1;
+		/* Currently only handle SU case */
+		rx_status->vht_info.gid = (ht_sig_vht_sig_a_1 >> 4) & 0x3f;
+		rx_status->vht_info.nss = (ht_sig_vht_sig_a_1 >> 10) & 0x7;
+		rx_status->nr_ant = (ht_sig_vht_sig_a_1 >> 10) & 0x7;
+		rx_status->vht_info.paid = (ht_sig_vht_sig_a_1 >> 13) & 0x1ff;
+		rx_status->vht_info.txps_forbidden =
+			(ht_sig_vht_sig_a_1 >> 22) & 0x1;
+		rx_status->vht_info.sgi = ht_sig_vht_sig_a_2 & 0x1;
+		rx_status->vht_info.sgi_disambiguation =
+			(ht_sig_vht_sig_a_2 >> 1) & 0x1;
+		rx_status->vht_info.coding = (ht_sig_vht_sig_a_2 >> 2) & 0x1;
+		rx_status->vht_info.ldpc_extra_symbol =
+			(ht_sig_vht_sig_a_2 >> 3) & 0x1;
+		rx_status->vht_info.mcs = (ht_sig_vht_sig_a_2 >> 4) & 0xf;
+		rx_status->vht_info.beamformed =
+			(ht_sig_vht_sig_a_2 >> 8) & 0x1;
+		break;
+	default:
+		rx_status->mcs_info.valid = 0;
+		rx_status->vht_info.valid = 0;
+		rx_status->nr_ant = 1;
+		break;
+	}
+}
+
+/**
+ * htt_get_radiotap_rx_status_ll() - Update information about the rx status,
+ * which is used later for radiotap updation.
  * @rx_desc: Pointer to struct htt_host_rx_desc_base
  * @rx_status: Return variable updated with rx_status
  *
  * Return: None
  */
-void htt_get_radiotap_rx_status(struct htt_host_rx_desc_base *rx_desc, struct
-		       mon_rx_status *rx_status)
+void htt_get_radiotap_rx_status_ll(struct htt_host_rx_desc_base *rx_desc,
+			struct mon_rx_status *rx_status)
 {
 	uint16_t channel_flags = 0;
 
@@ -1620,7 +1686,10 @@ void htt_get_radiotap_rx_status(struct htt_host_rx_desc_base *rx_desc, struct
 	rx_status->chan_flags = channel_flags;
 	rx_status->ant_signal_db = rx_desc->ppdu_start.rssi_comb;
 	rx_status->nr_ant = get_nr_antenna(rx_desc);
+	get_ht_vht_info_ll(rx_desc->ppdu_start, rx_status);
 }
+
+struct mon_rx_status g_ll_rx_status;
 
 /**
  * htt_rx_mon_amsdu_rx_in_order_pop_ll() - Monitor mode HTT Rx in order pop
@@ -1646,14 +1715,18 @@ htt_rx_mon_amsdu_rx_in_order_pop_ll(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
 	uint32_t msdu_count = 0;
 	struct htt_host_rx_desc_base *rx_desc;
 	struct mon_rx_status rx_status = {0};
+	struct htt_rx_in_ord_paddr_ind_hdr_t *host_msg_hdr;
 	uint32_t amsdu_len;
 	uint32_t len;
 	uint32_t last_frag;
+	uint32_t ch_freq;
 
 	HTT_ASSERT1(htt_rx_in_order_ring_elems(pdev) != 0);
 
 	rx_ind_data = adf_nbuf_data(rx_ind_msg);
 	msg_word = (uint32_t *)rx_ind_data;
+	host_msg_hdr = (struct htt_rx_in_ord_paddr_ind_hdr_t *)rx_ind_data;
+	ch_freq = vos_chan_to_freq(host_msg_hdr->reserved_1);
 
 	HTT_PKT_DUMP(vos_trace_hex_dump(VOS_MODULE_ID_TXRX,
 					VOS_TRACE_LEVEL_FATAL,
@@ -1695,12 +1768,17 @@ htt_rx_mon_amsdu_rx_in_order_pop_ll(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
 		 * Make the netbuf's data pointer point to the payload rather
 		 * than the descriptor.
 		 */
-		htt_get_radiotap_rx_status(rx_desc, &rx_status);
+		if(rx_desc->attention.first_mpdu) {
+			memset(&rx_status, 0, sizeof(struct mon_rx_status));
+			rx_status.chan = (uint16_t)ch_freq;
+			htt_get_radiotap_rx_status_ll(rx_desc, &rx_status);
+			memcpy(&g_ll_rx_status,&rx_status,sizeof(struct mon_rx_status));
+		}
 		/*
 		 * 250 bytes of RX_STD_DESC size should be sufficient for
 		 * radiotap.
 		 */
-		adf_nbuf_update_radiotap(&rx_status, msdu,
+		adf_nbuf_update_radiotap(&g_ll_rx_status, msdu,
 						  HTT_RX_STD_DESC_RESERVATION);
 		amsdu_len = HTT_RX_IN_ORD_PADDR_IND_MSDU_LEN_GET(*(msg_word
 								  + 1));
