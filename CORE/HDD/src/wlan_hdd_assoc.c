@@ -2066,7 +2066,7 @@ static inline int hdd_send_roam_auth_event(hdd_context_t *hdd_ctx,
  * Return: none
  */
 #if defined CFG80211_ROAMED_API_UNIFIED || \
-       (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+       (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0))
 static void hdd_send_roamed_ind(struct net_device *dev,
 				struct cfg80211_bss *bss, const uint8_t *req_ie,
 				size_t req_ie_len, const uint8_t *resp_ie,
