@@ -23194,10 +23194,28 @@ static bool hdd_validate_fils_info_ptr(hdd_wext_state_t *wext_state)
 
     return true;
 }
+
+static bool wlan_hdd_is_akm_suite_fils(uint32_t key_mgmt)
+{
+	switch (key_mgmt) {
+	case WLAN_AKM_SUITE_FILS_SHA256:
+	case WLAN_AKM_SUITE_FILS_SHA384:
+	case WLAN_AKM_SUITE_FT_FILS_SHA256:
+	case WLAN_AKM_SUITE_FT_FILS_SHA384:
+		return true;
+	default:
+		return false;
+	}
+}
 #else
 static bool hdd_validate_fils_info_ptr(hdd_wext_state_t *wext_state)
 {
     return TRUE;
+}
+
+static bool wlan_hdd_is_akm_suite_fils(uint32_t key_mgmt)
+{
+	return false;
 }
 #endif
 
@@ -23214,7 +23232,8 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
     tCsrRoamProfile *roam_profile;
 
     roam_profile = &pWextState->roamProfile;
-    if (!hdd_validate_fils_info_ptr(pWextState))
+    if (wlan_hdd_is_akm_suite_fils(key_mgmt) &&
+        !hdd_validate_fils_info_ptr(pWextState))
         return -EINVAL;
 
     /* Should be in ieee802_11_defs.h */
@@ -23761,7 +23780,7 @@ static int wlan_hdd_cfg80211_set_fils_config(hdd_adapter_t *adapter,
         vos_mem_malloc(sizeof(struct cds_fils_connection_info));
 
     if (!roam_profile->fils_con_info) {
-        hddLog(VOS_TRACE_LEVEL_INFO,"failed to allocate memory");
+        hddLog(LOGE, "failed to allocate memory");
         return -EINVAL;
     }
     if (req->auth_type != NL80211_AUTHTYPE_FILS_SK) {
@@ -23769,13 +23788,15 @@ static int wlan_hdd_cfg80211_set_fils_config(hdd_adapter_t *adapter,
         return 0;
     }
 
-    roam_profile->fils_con_info->is_fils_connection = true;
-    roam_profile->fils_con_info->sequence_number = req->fils_erp_next_seq_num;
     auth_type = wlan_hdd_get_fils_auth_type(req->auth_type);
     if (auth_type < 0) {
-        hddLog(VOS_TRACE_LEVEL_INFO,"invalid auth type for fils %d", req->auth_type);
+        hddLog(LOGE, "invalid auth type for fils %d", req->auth_type);
         return -EINVAL;
     }
+
+    roam_profile->fils_con_info->is_fils_connection = true;
+    roam_profile->fils_con_info->sequence_number = req->fils_erp_next_seq_num;
+
     roam_profile->fils_con_info->auth_type = auth_type;
 
     roam_profile->fils_con_info->r_rk_length = req->fils_erp_rrk_len;
