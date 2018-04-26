@@ -287,4 +287,13 @@ void hdd_delete_peer(hdd_station_ctx_t *sta_ctx, uint8_t sta_id);
 int hdd_get_peer_idx(hdd_station_ctx_t *sta_ctx, v_MACADDR_t *addr);
 VOS_STATUS hdd_roamDeregisterSTA(hdd_adapter_t *adapter, uint8_t sta_id);
 
+/**
+ * hdd_get_sta_connection_in_progress() - get STA for which connection
+ *                                        is in progress
+ * @hdd_ctx: hdd context
+ *
+ * Return: hdd adpater for which connection is in progress
+ */
+hdd_adapter_t *hdd_get_sta_connection_in_progress(hdd_context_t *hdd_ctx);
+
 #endif
