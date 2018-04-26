@@ -559,7 +559,7 @@ static inline int32_t hdd_get_hosttime_from_targettime(
 	int32_t ret = -EINVAL;
 	int64_t delta32_target;
 	bool in_cap_state;
-	int64_t normal_interval_target_value;
+	uint64_t normal_interval_target_value;
 
 	in_cap_state = hdd_tsf_is_in_cap(adapter);
 
@@ -575,7 +575,7 @@ static inline int32_t hdd_get_hosttime_from_targettime(
 			(adapter->last_target_time & MASK_UINT32));
 
 	normal_interval_target_value =
-		 (int64_t)WLAN_HDD_CAPTURE_TSF_INTERVAL_SEC  * NSEC_PER_SEC;
+		 (uint64_t)WLAN_HDD_CAPTURE_TSF_INTERVAL_SEC  * NSEC_PER_SEC;
 	do_div(normal_interval_target_value, HOST_TO_TARGET_TIME_RATIO);
 
 	if (delta32_target <
