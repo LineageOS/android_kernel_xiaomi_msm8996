@@ -3225,17 +3225,18 @@ int hdd_softap_unpackIE(
 
     tANI_U8 *pRsnIe;
     tANI_U16 RSNIeLen;
+    tANI_U32 status;
 
     if (NULL == halHandle)
     {
         hddLog(LOGE, FL("Error haHandle returned NULL"));
-        return -EINVAL;
+        return VOS_STATUS_E_FAILURE;
     }
 
     // Validity checks
     if ((gen_ie_len < VOS_MIN(DOT11F_IE_RSN_MIN_LEN, DOT11F_IE_WPA_MIN_LEN)) ||
         (gen_ie_len > VOS_MAX(DOT11F_IE_RSN_MAX_LEN, DOT11F_IE_WPA_MAX_LEN)) )
-        return -EINVAL;
+        return VOS_STATUS_E_FAILURE;
     // Type check
     if ( gen_ie[0] ==  DOT11F_EID_RSN)
     {
@@ -3250,10 +3251,18 @@ int hdd_softap_unpackIE(
         RSNIeLen = gen_ie_len - 2;
         // Unpack the RSN IE
         memset(&dot11RSNIE, 0, sizeof(tDot11fIERSN));
-        dot11fUnpackIeRSN((tpAniSirGlobal) halHandle,
+        status = dot11fUnpackIeRSN((tpAniSirGlobal) halHandle,
                             pRsnIe,
                             RSNIeLen,
                             &dot11RSNIE);
+        if (DOT11F_FAILED(status))
+        {
+            hddLog(LOGE,
+            FL("unpack failed for RSN IE status:(0x%08x)"),
+               status);
+            return VOS_STATUS_E_FAILURE;
+        }
+
         // Copy out the encryption and authentication types
         hddLog(LOG1, FL("%s: pairwise cipher suite count: %d"),
                 __func__, dot11RSNIE.pwise_cipher_suite_count );
@@ -3286,11 +3295,19 @@ int hdd_softap_unpackIE(
         RSNIeLen = gen_ie_len - (2 + 4);
         // Unpack the WPA IE
         memset(&dot11WPAIE, 0, sizeof(tDot11fIEWPA));
-        dot11fUnpackIeWPA((tpAniSirGlobal) halHandle,
+        status = dot11fUnpackIeWPA((tpAniSirGlobal) halHandle,
                             pRsnIe,
                             RSNIeLen,
                             &dot11WPAIE);
-        // Copy out the encryption and authentication types
+        if (DOT11F_FAILED(status))
+        {
+             hddLog(LOGE,
+                    FL("unpack failed for WPA IE status:(0x%08x)"),
+                    status);
+             return VOS_STATUS_E_FAILURE;
+        }
+
+       // Copy out the encryption and authentication types
         hddLog(LOG1, FL("%s: WPA unicast cipher suite count: %d"),
                 __func__, dot11WPAIE.unicast_cipher_count );
         hddLog(LOG1, FL("%s: WPA authentication suite count: %d"),
