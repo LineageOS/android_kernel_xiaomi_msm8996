@@ -6757,7 +6757,7 @@ VOS_STATUS  wlan_hdd_get_linkspeed_for_peermac(hdd_adapter_t *pAdapter,
       goto cleanup;
    }
    ret = hdd_request_wait_for_response(request);
-   if (!ret) {
+   if (ret) {
       hddLog(VOS_TRACE_LEVEL_ERROR,
              "%s: SME timed out while retrieving link speed,ret(%d)",
              __func__, ret);
