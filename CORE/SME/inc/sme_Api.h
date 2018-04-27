@@ -4878,4 +4878,16 @@ eHalStatus sme_set_chip_pwr_save_fail_cb(tHalHandle hal, void (*cb)( void *,
 eHalStatus sme_set_ac_txq_optimize(tHalHandle hal_handle, uint8_t *value);
 
 VOS_STATUS sme_mnt_filter_type_cmd(struct sme_mnt_filter_type_req *input);
+
+/**
+ * sme_is_sta_key_exchange_in_progress() - checks whether the STA/P2P client
+ * session has key exchange in progress
+ *
+ * @hal: global hal handle
+ * @session_id: session id
+ *
+ * Return: true - if key exchange in progress
+ *         false - if not in progress
+ */
+bool sme_is_sta_key_exchange_in_progress(tHalHandle hal, uint8_t session_id);
 #endif //#if !defined( __SME_API_H )
