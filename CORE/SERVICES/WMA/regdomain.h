@@ -160,6 +160,8 @@ enum {
                NB: Must agree with macro below (BM) */
 #define BMZERO {(u_int64_t) 0, (u_int64_t) 0}    /* BMLEN zeros */
 
+#define BMNOTZERO {(u_int64_t) 1, (u_int64_t) 0}    /* BMLEN not zeros */
+
 #ifndef SUPPRESS_SHIFT_WARNING
 #define SUPPRESS_SHIFT_WARNING
 #endif
@@ -891,8 +893,11 @@ typedef struct ath_hal_reg_dmn_tables {
  *            - country ID: 4100
  */
 enum CountryCode {
+    CTRY_AFGHANISTAN              = 4,       /* Afghanistan */
     CTRY_ALBANIA              = 8,       /* Albania */
     CTRY_ALGERIA              = 12,      /* Algeria */
+    CTRY_AMERICAN_SAMOA            = 16,
+    CTRY_ANGUILLA            = 660,
     CTRY_ARGENTINA            = 32,      /* Argentina */
     CTRY_ARMENIA              = 51,      /* Armenia */
     CTRY_AUSTRALIA            = 36,      /* Australia */
@@ -906,36 +911,51 @@ enum CountryCode {
     CTRY_BELGIUM              = 56,      /* Belgium */
     CTRY_BELIZE               = 84,      /* Belize */
     CTRY_BERMUDA              = 60,      /* Berumuda */
+    CTRY_BHUTAN              = 64,
     CTRY_BOLIVIA              = 68,      /* Bolivia */
     CTRY_BOSNIA_HERZ          = 70,      /* Bosnia and Herzegowina */
     CTRY_BRAZIL               = 76,      /* Brazil */
     CTRY_BRUNEI_DARUSSALAM    = 96,      /* Brunei Darussalam */
     CTRY_BULGARIA             = 100,     /* Bulgaria */
+    CTRY_BURKINA_FASO             = 854,
     CTRY_CAMBODIA             = 116,     /* Cambodia */
     CTRY_CANADA               = 124,     /* Canada */
+    CTRY_CAYMAN_ISLANDS               = 136,
+    CTRY_CENTRAL_AFRICA_REPUBLIC               = 140,
+    CTRY_CHAD               = 148,
     CTRY_CHILE                = 152,     /* Chile */
     CTRY_CHINA                = 156,     /* People's Republic of China */
+    CTRY_CHRISTMAS_ISLAND                = 162,
     CTRY_COLOMBIA             = 170,     /* Colombia */
     CTRY_COSTA_RICA           = 188,     /* Costa Rica */
+    CTRY_COTE_DIVOIRE           = 384,
     CTRY_CROATIA              = 191,     /* Croatia */
     CTRY_CYPRUS               = 196,
     CTRY_CZECH                = 203,     /* Czech Republic */
     CTRY_DENMARK              = 208,     /* Denmark */
+    CTRY_DOMINICA              = 212,
     CTRY_DOMINICAN_REPUBLIC   = 214,     /* Dominican Republic */
     CTRY_ECUADOR              = 218,     /* Ecuador */
     CTRY_EGYPT                = 818,     /* Egypt */
     CTRY_EL_SALVADOR          = 222,     /* El Salvador */
     CTRY_ESTONIA              = 233,     /* Estonia */
+    CTRY_ETHIOPIA              = 231,
     CTRY_FAEROE_ISLANDS       = 234,     /* Faeroe Islands */
     CTRY_FINLAND              = 246,     /* Finland */
     CTRY_FRANCE               = 250,     /* France */
+    CTRY_FRENCH_GUIANA               = 254,
+    CTRY_FRENCH_POLYNESIA               = 258,
     CTRY_GEORGIA              = 268,     /* Georgia */
     CTRY_GERMANY              = 276,     /* Germany */
+    CTRY_GHANA              = 288,
+    CTRY_GIBRALTAR              = 292,
     CTRY_GREECE               = 300,     /* Greece */
     CTRY_GREENLAND            = 304,     /* Greenland */
     CTRY_GRENADA              = 308,     /* Grenada */
+    CTRY_GUADELOUPE              = 312,
     CTRY_GUAM                 = 316,     /* Guam */
     CTRY_GUATEMALA            = 320,     /* Guatemala */
+    CTRY_GUYANA            = 328,
     CTRY_HAITI                = 332,     /* Haiti */
     CTRY_HONDURAS             = 340,     /* Honduras */
     CTRY_HONG_KONG            = 344,     /* Hong Kong S.A.R., P.R.C. */
@@ -959,28 +979,41 @@ enum CountryCode {
     CTRY_KUWAIT               = 414,     /* Kuwait */
     CTRY_LATVIA               = 428,     /* Latvia */
     CTRY_LEBANON              = 422,     /* Lebanon */
+    CTRY_LESOTHO              = 426,
     CTRY_LIBYA                = 434,     /* Libya */
     CTRY_LIECHTENSTEIN        = 438,     /* Liechtenstein */
     CTRY_LITHUANIA            = 440,     /* Lithuania */
     CTRY_LUXEMBOURG           = 442,     /* Luxembourg */
     CTRY_MACAU                = 446,     /* Macau SAR */
     CTRY_MACEDONIA            = 807,     /* the Former Yugoslav Republic of Macedonia */
+    CTRY_MALAWI            = 454,
     CTRY_MALAYSIA             = 458,     /* Malaysia */
     CTRY_MALDIVES             = 462,     /* Maldives */
     CTRY_MALTA                = 470,     /* Malta */
+    CTRY_MARSHALL_ISLANDS                = 584,
+    CTRY_MARTINIQUE                = 474,
+    CTRY_MAURITANIA                = 478,
     CTRY_MAURITIUS            = 480,     /* Mauritius */
+    CTRY_MAYOTTE            = 175,
     CTRY_MEXICO               = 484,     /* Mexico */
+    CTRY_MICRONESIA               = 583,
+    CTRY_MOLDOVA               = 498,
     CTRY_MONACO               = 492,     /* Principality of Monaco */
+    CTRY_MONGOLIA               = 496,
     CTRY_MOROCCO              = 504,     /* Morocco */
+    CTRY_NAMIBIA              = 516,
     CTRY_NEPAL                = 524,     /* Nepal */
     CTRY_NETHERLANDS          = 528,     /* Netherlands */
     CTRY_NETHERLANDS_ANTILLES = 530,     /* Netherlands-Antilles */
     CTRY_ARUBA                = 533,     /* Aruba */
     CTRY_NEW_ZEALAND          = 554,     /* New Zealand */
+    CTRY_NIGERIA          = 566,
+    CTRY_NORTHERN_MARIANA_ISLANDS          = 580,
     CTRY_NICARAGUA            = 558,     /* Nicaragua */
     CTRY_NORWAY               = 578,     /* Norway */
     CTRY_OMAN                 = 512,     /* Oman */
     CTRY_PAKISTAN             = 586,     /* Islamic Republic of Pakistan */
+    CTRY_PALAU             = 585,
     CTRY_PANAMA               = 591,     /* Panama */
     CTRY_PAPUA_NEW_GUINEA     = 598,     /* Papua New Guinea */
     CTRY_PARAGUAY             = 600,     /* Paraguay */
@@ -990,10 +1023,19 @@ enum CountryCode {
     CTRY_PORTUGAL             = 620,     /* Portugal */
     CTRY_PUERTO_RICO          = 630,     /* Puerto Rico */
     CTRY_QATAR                = 634,     /* Qatar */
+    CTRY_REUNION                = 638,
     CTRY_ROMANIA              = 642,     /* Romania */
     CTRY_RUSSIA               = 643,     /* Russia */
     CTRY_RWANDA               = 646,     /* Rwanda */
+    CTRY_SAINT_BARTHELEMY               = 652,
+    CTRY_SAINT_KITTS_AND_NEVIS               = 659,
+    CTRY_SAINT_LUCIA               = 662,
+    CTRY_SAINT_MARTIN               = 663,
+    CTRY_SAINT_PIERRE_AND_MIQUELON               = 666,
+    CTRY_SAINT_VINCENT_AND_THE_GRENADIENS               = 670,
+    CTRY_SAMOA               = 882,
     CTRY_SAUDI_ARABIA         = 682,     /* Saudi Arabia */
+    CTRY_SENEGAL         = 686,
     CTRY_SERBIA               = 688,     /* Republic of Serbia */
     CTRY_MONTENEGRO           = 499,     /* Montenegro */
     CTRY_SINGAPORE            = 702,     /* Singapore */
@@ -1001,6 +1043,7 @@ enum CountryCode {
     CTRY_SLOVENIA             = 705,     /* Slovenia */
     CTRY_SOUTH_AFRICA         = 710,     /* South Africa */
     CTRY_SPAIN                = 724,     /* Spain */
+    CTRY_SURINAME                = 740,
     CTRY_SRI_LANKA            = 144,     /* Sri Lanka */
     CTRY_SWEDEN               = 752,     /* Sweden */
     CTRY_SWITZERLAND          = 756,     /* Switzerland */
@@ -1008,9 +1051,11 @@ enum CountryCode {
     CTRY_TAIWAN               = 158,     /* Taiwan */
     CTRY_TANZANIA             = 834,     /* Tanzania */
     CTRY_THAILAND             = 764,     /* Thailand */
+    CTRY_TOGO             = 768,
     CTRY_TRINIDAD_Y_TOBAGO    = 780,     /* Trinidad y Tobago */
     CTRY_TUNISIA              = 788,     /* Tunisia */
     CTRY_TURKEY               = 792,     /* Turkey */
+    CTRY_TURKS_AND_CAICOS               = 796,
     CTRY_UAE                  = 784,     /* U.A.E. */
     CTRY_UGANDA               = 800,     /* Uganda */
     CTRY_UKRAINE              = 804,     /* Ukraine */
@@ -1020,8 +1065,11 @@ enum CountryCode {
     CTRY_UNITED_STATES_FCC49  = 842,     /* United States (Public Safety)*/
     CTRY_URUGUAY              = 858,     /* Uruguay */
     CTRY_UZBEKISTAN           = 860,     /* Uzbekistan */
+    CTRY_VANUATU           = 548,
     CTRY_VENEZUELA            = 862,     /* Venezuela */
     CTRY_VIET_NAM             = 704,     /* Viet Nam */
+    CTRY_VIRGIN_ISLANDS             = 850,
+    CTRY_WALLIS_AND_FUTUNA             = 876,
     CTRY_YEMEN                = 887,     /* Yemen */
     CTRY_ZIMBABWE             = 716,     /* Zimbabwe */
 
