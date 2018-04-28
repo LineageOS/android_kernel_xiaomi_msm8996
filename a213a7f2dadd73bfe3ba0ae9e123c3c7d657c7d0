@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cfd4ae20_eab6db5a",
+        "filename": "sound/soc/msm/qdsp6v2/msm-elliptic.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 786,
+      "author": {
+        "id": 16
+      },
+      "writtenOn": "2018-04-28T15:16:03Z",
+      "side": 1,
+      "message": "Fails",
+      "revId": "a213a7f2dadd73bfe3ba0ae9e123c3c7d657c7d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9dbd0c7e_d3a803f0",
+        "filename": "sound/soc/msm/qdsp6v2/msm-elliptic.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 807,
+      "author": {
+        "id": 16
+      },
+      "writtenOn": "2018-04-28T15:16:03Z",
+      "side": 1,
+      "message": "Fails",
+      "revId": "a213a7f2dadd73bfe3ba0ae9e123c3c7d657c7d0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
