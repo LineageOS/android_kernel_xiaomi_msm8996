@@ -2,6 +2,7 @@
  * Elliptic Labs
  */
 
+#include <asm/uaccess.h>
 #include <linux/slab.h>
 #include <linux/wait.h>
 #include <linux/jiffies.h>
@@ -778,6 +779,8 @@ int32_t process_us_payload(uint32_t *payload)
 		payload_size = payload[2] & 0xFFFF;
 		/* pr_debug("[ELUS]: playload type=%d size = %d, data 0x%x 0x%x 0x%x ...\n",
 				 payload[1], payload_size, payload[3], payload[4], payload[5]);*/
+		/* Disable PAN */
+		uaccess_enable_not_uao();
 		switch (payload[1]) {
 		case ELLIPTIC_ULTRASOUND_PARAM_ID_ENGINE_VERSION:
 			if (payload_size >= ELLIPTIC_VERSION_INFO_SIZE) {
@@ -808,5 +811,7 @@ int32_t process_us_payload(uint32_t *payload)
 	} else {
 		pr_debug("[ELUS]: Invalid Ultrasound Module ID %d\n", payload[0]);
 	}
+	/* Reenable PAN */
+	uaccess_disable_not_uao();
 	return ret;
 }
