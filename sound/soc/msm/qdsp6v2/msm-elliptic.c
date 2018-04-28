@@ -2,6 +2,7 @@
  * Elliptic Labs
  */
 
+#include <asm/uaccess.h>
 #include <linux/slab.h>
 #include <linux/wait.h>
 #include <linux/jiffies.h>
@@ -782,14 +783,20 @@ int32_t process_us_payload(uint32_t *payload)
 		case ELLIPTIC_ULTRASOUND_PARAM_ID_ENGINE_VERSION:
 			if (payload_size >= ELLIPTIC_VERSION_INFO_SIZE) {
 				pr_debug("[ELUS]: elliptic_version copied to local AP cache");
-				memcpy((u8 *)&elliptic_engine_version_cache, &payload[3], ELLIPTIC_VERSION_INFO_SIZE);
+				if (copy_from_user((u8 *)&elliptic_engine_version_cache, &payload[3], ELLIPTIC_VERSION_INFO_SIZE) != 0) {
+					pr_debug("[ELUS]: failed to copy elliptic_version to local AP cache");
+					break;
+				}
 				ret = ELLIPTIC_VERSION_INFO_SIZE;
 			}
 			break;
 		case ELLIPTIC_ULTRASOUND_PARAM_ID_CALIBRATION_DATA:
 			if (payload_size >= ELLIPTIC_CALIBRATION_DATA_SIZE) {
 				pr_debug("[ELUS]: calibration_data copied to local AP cache");
-				memcpy((u8 *)&elliptic_calibration_data, &payload[3], ELLIPTIC_CALIBRATION_DATA_SIZE);
+				if (copy_from_user((u8 *)&elliptic_calibration_data, &payload[3], ELLIPTIC_CALIBRATION_DATA_SIZE) != 0) {
+					pr_debug("[ELUS]: failed to copy calibration_data to local AP cache");
+					break;
+				}
 				ret = ELLIPTIC_CALIBRATION_DATA_SIZE;
 			}
 			break;
@@ -797,7 +804,10 @@ int32_t process_us_payload(uint32_t *payload)
 		default:
 			if (payload_size <= sizeof(struct afe_ultrasound_calib_get_resp)) {
 				/* pr_debug("[ELUS]: data is copied to ultrasound_calib_data struct"); */
-				memcpy(ptr_ultrasound_calib_data, &payload[3], payload_size);
+				if (copy_from_user(ptr_ultrasound_calib_data, &payload[3], payload_size) != 0) {
+					pr_debug("[ELUS]: failed to copy data to ultrasound_calib_data struct");
+					break;
+				}
 				atomic_set(ptr_elusAprState, ELLIPTIC_DATA_READ_OK);
 				wake_up_interruptible(&ultraSoundAPRWaitQueue);
 				ret = payload_size;
