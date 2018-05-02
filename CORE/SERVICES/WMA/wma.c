@@ -5380,7 +5380,8 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 	chan_stats_size  = sizeof(tSirWifiChannelStats);
 
 	if (fixed_param->num_radio >
-	    (UINT_MAX - sizeof(*link_stats_results)) / radio_stats_size) {
+	    (WMA_SVC_MSG_MAX_SIZE -
+	     sizeof(*link_stats_results)) / radio_stats_size) {
 		WMA_LOGE("excess num_radio %d is leading to int overflow",
 			 fixed_param->num_radio);
 		return -EINVAL;
@@ -21281,7 +21282,7 @@ static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
 	tbtt_offset_event = param_buf->fixed_param;
 
 	if (param_buf->num_tbttoffset_list >
-			(UINT_MAX - sizeof(u_int32_t) -
+			(WMA_SVC_MSG_MAX_SIZE - sizeof(u_int32_t) -
 				sizeof(wmi_tbtt_offset_event_fixed_param))/
 			 sizeof(u_int32_t)) {
 		WMA_LOGE("%s: Received offset list  %d greater than maximum limit",
