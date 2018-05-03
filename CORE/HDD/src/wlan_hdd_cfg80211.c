@@ -14153,10 +14153,6 @@ fail:
 	return -EINVAL;
 }
 
-struct peer_txrx_rate_priv {
-	struct sir_peer_info_ext peer_info_ext;
-};
-
 /**
  * hdd_get_peer_txrx_rate_cb() - get station's txrx rate callback
  * @peer_info: pointer of peer information
@@ -14166,38 +14162,84 @@ struct peer_txrx_rate_priv {
  * adapter
  */
 static void hdd_get_peer_txrx_rate_cb(struct sir_peer_info_ext_resp *peer_info,
-				      void *context)
+		void *context)
 {
-	struct hdd_request *request;
-	struct peer_txrx_rate_priv *priv;
+	struct statsContext *get_txrx_rate_context;
+	struct sir_peer_info_ext *txrx_rate = NULL;
+	hdd_adapter_t *adapter;
+	uint8_t staid;
 
-	if (NULL == peer_info) {
+	if ((NULL == peer_info) || (NULL == context)) {
+
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-			"%s: Bad param, peer_info [%pK]",
-			__func__, peer_info);
+			"%s: Bad param, peer_info [%pK] context [%pK]",
+			__func__, peer_info, context);
+		return;
+	}
+
+	spin_lock(&hdd_context_lock);
+	/*
+	 * there is a race condition that exists between this callback
+	 * function and the caller since the caller could time out either
+	 * before or while this code is executing.  we use a spinlock to
+	 * serialize these actions
+	 */
+	get_txrx_rate_context = context;
+	if (PEER_INFO_CONTEXT_MAGIC !=
+			get_txrx_rate_context->magic) {
+
+		/*
+		 * the caller presumably timed out so there is nothing
+		 * we can do
+		 */
+		spin_unlock(&hdd_context_lock);
+		hddLog(VOS_TRACE_LEVEL_WARN,
+			"%s: Invalid context, magic [%08x]",
+			__func__,
+			get_txrx_rate_context->magic);
 		return;
 	}
 
 	if (!peer_info->count) {
+		spin_unlock(&hdd_context_lock);
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-			FL("Fail to get remote peer info"));
+				FL("Fail to get remote peer info"));
 		return;
 	}
 
-	request = hdd_request_get(context);
-	if (!request) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Obsolete request", __func__);
+	adapter = get_txrx_rate_context->pAdapter;
+	txrx_rate = peer_info->info;
+	if (VOS_STATUS_SUCCESS != hdd_softap_GetStaId(adapter,
+				(v_MACADDR_t *)txrx_rate->peer_macaddr,
+				&staid)) {
+		spin_unlock(&hdd_context_lock);
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+				"%s: Station MAC address does not matching",
+				__func__);
 		return;
 	}
 
-	priv = hdd_request_priv(request);
+	adapter->aStaInfo[staid].tx_rate = txrx_rate->tx_rate;
+	adapter->aStaInfo[staid].rx_rate = txrx_rate->rx_rate;
+	hddLog(VOS_TRACE_LEVEL_INFO, "%s txrate %x rxrate %x\n",
+			__func__,
+			adapter->aStaInfo[staid].tx_rate,
+			adapter->aStaInfo[staid].rx_rate);
 
-	vos_mem_copy(&priv->peer_info_ext,
-		     peer_info->info,
-		     sizeof(peer_info->info[0]));
+	get_txrx_rate_context->magic = 0;
 
-	hdd_request_complete(request);
-	hdd_request_put(request);
+	/* notify the caller */
+	complete(&get_txrx_rate_context->completion);
+
+	/* serialization is complete */
+	spin_unlock(&hdd_context_lock);
+
+	if (txrx_rate)
+		hddLog(VOS_TRACE_LEVEL_INFO, "%s %pM tx rate %u rx rate %u",
+				__func__,
+				txrx_rate->peer_macaddr,
+				txrx_rate->tx_rate,
+				txrx_rate->rx_rate);
 }
 
 /**
@@ -14205,25 +14247,17 @@ static void hdd_get_peer_txrx_rate_cb(struct sir_peer_info_ext_resp *peer_info,
  * @adapter: hostapd interface
  * @macaddress: mac address of requested peer
  *
- * This function call sme_get_peer_info_ext to get StaInfo[staid] txrx rate
+ * This function call sme_get_peer_info_ext to get txrx rate
  *
  * Return: 0 on success, otherwise error value
  */
 static int wlan_hdd_get_txrx_rate(hdd_adapter_t *adapter,
-				  v_MACADDR_t macaddress)
+		v_MACADDR_t macaddress)
 {
 	eHalStatus hstatus;
 	int ret;
-	uint8_t staid;
-	void *cookie;
+	struct statsContext context;
 	struct sir_peer_info_ext_req txrx_rate_req;
-	struct hdd_request *request;
-	struct peer_txrx_rate_priv *priv;
-	v_MACADDR_t *peer_macaddr;
-	static const struct hdd_request_params params = {
-		.priv_size = sizeof(*priv),
-		.timeout_ms = WLAN_WAIT_TIME_STATS,
-	};
 
 	if (NULL == adapter) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL",
@@ -14231,23 +14265,17 @@ static int wlan_hdd_get_txrx_rate(hdd_adapter_t *adapter,
 		return -EFAULT;
 	}
 
-	request = hdd_request_alloc(&params);
-	if (!request) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Request allocation failure",
-			__func__);
-		return -ENOMEM;
-	}
-
-	cookie = hdd_request_cookie(request);
-	priv = hdd_request_priv(request);
+	init_completion(&context.completion);
+	context.magic = PEER_INFO_CONTEXT_MAGIC;
+	context.pAdapter = adapter;
 
 	vos_mem_copy(&(txrx_rate_req.peer_macaddr), &macaddress,
-			VOS_MAC_ADDR_SIZE);
+				VOS_MAC_ADDR_SIZE);
 	txrx_rate_req.sessionid = adapter->sessionId;
 	txrx_rate_req.reset_after_request = 0;
 	hstatus = sme_get_peer_info_ext(WLAN_HDD_GET_HAL_CTX(adapter),
 				&txrx_rate_req,
-				cookie,
+				&context,
 				hdd_get_peer_txrx_rate_cb);
 	if (eHAL_STATUS_SUCCESS != hstatus) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -14255,41 +14283,32 @@ static int wlan_hdd_get_txrx_rate(hdd_adapter_t *adapter,
 			__func__);
 		ret = -EFAULT;
 	} else {
-		ret = hdd_request_wait_for_response(request);
-		if (ret) {
+		if (!wait_for_completion_timeout(&context.completion,
+				msecs_to_jiffies(WLAN_WAIT_TIME_STATS))) {
 			hddLog(VOS_TRACE_LEVEL_ERROR,
 				"%s: SME timed out while retrieving txrx_rate",
 				__func__);
 			ret = -EFAULT;
 		} else {
-			peer_macaddr =
-				(v_MACADDR_t *)priv->peer_info_ext.peer_macaddr;
-
-			if (VOS_STATUS_SUCCESS != hdd_softap_GetStaId(adapter,
-								peer_macaddr,
-								&staid)) {
-				hddLog(VOS_TRACE_LEVEL_ERROR,
-				   FL("Station MAC address does not matching"));
-				return -EFAULT;
-			}
-
-			adapter->aStaInfo[staid].tx_rate =
-						priv->peer_info_ext.tx_rate;
-			adapter->aStaInfo[staid].rx_rate =
-						priv->peer_info_ext.rx_rate;
-
-			hddLog(VOS_TRACE_LEVEL_INFO,
-				"%s %pM tx rate %u rx rate %u",
-				__func__,
-				peer_macaddr,
-				adapter->aStaInfo[staid].tx_rate,
-				adapter->aStaInfo[staid].rx_rate);
 			ret = 0;
 		}
 	}
-
-	hdd_request_put(request);
-
+	/*
+	 * either we never sent a request, we sent a request and received a
+	 * response or we sent a request and timed out.  if we never sent a
+	 * request or if we sent a request and got a response, we want to
+	 * clear the magic out of paranoia.  if we timed out there is a
+	 * race condition such that the callback function could be
+	 * executing at the same time we are. of primary concern is if the
+	 * callback function had already verified the "magic" but had not
+	 * yet set the completion variable when a timeout occurred. we
+	 * serialize these activities by invalidating the magic while
+	 * holding a shared spinlock which will cause us to block if the
+	 * callback is currently executing
+	 */
+	spin_lock(&hdd_context_lock);
+	context.magic = 0;
+	spin_unlock(&hdd_context_lock);
 	return ret;
 }
 
