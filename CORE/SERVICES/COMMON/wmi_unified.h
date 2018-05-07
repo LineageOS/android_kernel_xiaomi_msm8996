@@ -13796,6 +13796,13 @@ typedef struct {
     A_UINT32 teardown_notification_ms;
     /**STA kickout threshold for TDLS peer */
     A_UINT32 tdls_peer_kickout_threshold;
+    /* TDLS discovery WAKE timeout in ms.
+     * DUT will wake until this timeout to receive TDLS discovery response
+     * from peer.
+     * If tdls_discovery_wake_timeout is 0x0, the DUT will choose autonomously
+     * what wake timeout value to use.
+     */
+    A_UINT32 tdls_discovery_wake_timeout;
 } wmi_tdls_set_state_cmd_fixed_param;
 
 /* WMI_TDLS_PEER_UPDATE_CMDID */
