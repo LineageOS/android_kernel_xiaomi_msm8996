@@ -348,6 +348,7 @@ int vos_sched_handle_throughput_req(bool high_tput_required)
 	return 0;
 }
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
 /**
  * __vos_cpu_hotplug_notify - cpu core on-off notification handler
  * @block:	notifier block
@@ -463,7 +464,8 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
 static struct notifier_block vos_cpu_hotplug_notifier = {
    .notifier_call = vos_cpu_hotplug_notify,
 };
-#endif
+#endif //LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0)
+#endif //#ifdef QCA_CONFIG_SMP
 
 /*---------------------------------------------------------------------------
  * External Function implementation
@@ -559,8 +561,10 @@ vos_sched_open
        return VOS_STATUS_E_FAILURE;
   }
   spin_unlock_bh(&pSchedContext->VosTlshimPktFreeQLock);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
   register_hotcpu_notifier(&vos_cpu_hotplug_notifier);
   pSchedContext->cpuHotPlugNotifier = &vos_cpu_hotplug_notifier;
+#endif
   vos_lock_init(&pSchedContext->affinity_lock);
   pSchedContext->high_throughput_required = false;
 #endif
@@ -643,7 +647,9 @@ MC_THREAD_START_FAILURE:
 
 
 #ifdef QCA_CONFIG_SMP
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
   unregister_hotcpu_notifier(&vos_cpu_hotplug_notifier);
+#endif
   vos_free_tlshim_pkt_freeq(gpVosSchedContext);
 #endif
 
@@ -1611,9 +1617,11 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     gpVosSchedContext->TlshimRxThread = NULL;
     vos_drop_rxpkt_by_staid(gpVosSchedContext, WLAN_MAX_STA_COUNT);
     vos_free_tlshim_pkt_freeq(gpVosSchedContext);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
     unregister_hotcpu_notifier(&vos_cpu_hotplug_notifier);
 #endif
     gpVosSchedContext = NULL;
+#endif
     return VOS_STATUS_SUCCESS;
 } /* vox_sched_close() */
 

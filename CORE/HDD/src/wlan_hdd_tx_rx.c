@@ -1260,8 +1260,9 @@ VOS_STATUS hdd_mon_rx_packet_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 		skb = skb_next;
 	}
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0))
 	adapter->dev->last_rx = jiffies;
-
+#endif
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -1318,8 +1319,9 @@ VOS_STATUS hdd_vir_mon_rx_cbk(v_VOID_t *vos_ctx, adf_nbuf_t rx_buf,
 		skb = skb_next;
 	}
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0))
 	adapter->dev->last_rx = jiffies;
-
+#endif
 	return VOS_STATUS_SUCCESS;
 }
 
@@ -1566,8 +1568,9 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
       skb = skb_next;
    }
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0))
    pAdapter->dev->last_rx = jiffies;
-
+#endif
    return VOS_STATUS_SUCCESS;
 }
 

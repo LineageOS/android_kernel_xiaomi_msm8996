@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -41,7 +41,11 @@
 #include <vos_threads.h>
 #include <vos_trace.h>
 #include <linux/jiffies.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0))
+#include <linux/sched/signal.h>
+#else
 #include <linux/sched.h>
+#endif
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 
