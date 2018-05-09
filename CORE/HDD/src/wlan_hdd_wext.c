@@ -258,6 +258,11 @@ typedef enum eMonFilterType{
 #define WE_SET_TDLS_OFFCHANNEL                91
 #define WE_SET_TDLS_OFFCHANNEL_SEC_OFFSET     92
 
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+#define WE_MOTION_DET_START_STOP              93
+#define WE_MOTION_DET_BASE_LINE_START_STOP    94
+#endif
+
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
 #define WE_GET_11D_STATE     1
@@ -408,6 +413,13 @@ typedef enum eMonFilterType{
 #define MAX_VAR_ARGS                                11
 #else
 #define MAX_VAR_ARGS                                 7
+#endif
+
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+#undef  MAX_VAR_ARGS
+#define MAX_VAR_ARGS                                15
+#define WE_MOTION_DET_CONFIG_PARAM                  12
+#define WE_MOTION_DET_BASE_LINE_CONFIG_PARAM        13
 #endif
 
 /* Private ioctls (with no sub-ioctls) */
@@ -7077,6 +7089,42 @@ static int __iw_setint_getnone(struct net_device *dev,
 	    break;
 	}
 #endif
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+        case WE_MOTION_DET_START_STOP:
+            {
+                tSirMotionDetEnable enable;
+
+                if ( (set_value != 1) && (set_value != 0)) {
+                     hddLog(LOGE, FL("Invalid value %d in mt_start"),
+                             set_value);
+                    return -EINVAL;
+                }
+
+                enable.vdev_id = (int)pAdapter->sessionId;
+                enable.enable = set_value;
+
+		if (set_value == 0) {
+			pAdapter->motion_detection_mode = 0;
+		}
+                sme_MotionDetEnable(hHal, &enable);
+            }
+            break;
+        case WE_MOTION_DET_BASE_LINE_START_STOP:
+            {
+                tSirMotionDetBaseLineEnable enable;
+
+                if ( (set_value != 1) && (set_value != 0)) {
+                     hddLog(LOGE, FL("Invalid value %d in mt_bl_start"),
+                             set_value);
+                    return -EINVAL;
+                }
+
+                enable.vdev_id = (int)pAdapter->sessionId;
+                enable.enable = set_value;
+                sme_MotionDetBaseLineEnable(hHal, &enable);
+            }
+            break;
+#endif
         default:
         {
             hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
@@ -8839,6 +8887,73 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
                     level = apps_args[0];
                 }
                 vos_mem_trace_dump(level);
+            }
+            break;
+#endif
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+        case WE_MOTION_DET_CONFIG_PARAM:
+            {
+                tSirMotionDetConfig config;
+
+                if (num_args != 15) {
+                    hddLog(LOGE, FL("motion_det_config: <time_t1>"
+                                                       " <time_t2>"
+                                                       " <n1>"
+                                                       " <n2>"
+                                                       " <time_t1_gap>"
+                                                       " <time_t2_gap>"
+                                                       " <coarse K>"
+                                                       " <fine K>"
+                                                       " <coarse Q>"
+                                                       " <fine Q>"
+                                                       " <coarse thr high>"
+                                                       " <fine thr threshold>"
+                                                       " <coarse thr low>"
+                                                       " <fine thr low>"
+                                                       " <mode>"));
+                    return -EINVAL;
+                }
+
+                config.vdev_id = (int)pAdapter->sessionId;
+                config.time_t1 = apps_args[0];
+                config.time_t2 = apps_args[1];
+                config.n1 = apps_args[2];
+                config.n2 = apps_args[3];
+                config.time_t1_gap = apps_args[4];
+                config.time_t2_gap = apps_args[5];
+                config.coarse_K = apps_args[6];
+                config.fine_K = apps_args[7];
+                config.coarse_Q = apps_args[8];
+                config.fine_Q = apps_args[9];
+                config.md_coarse_thr_high = apps_args[10];
+                config.md_fine_thr_high = apps_args[11];
+                config.md_coarse_thr_low = apps_args[12];
+                config.md_fine_thr_low = apps_args[13];
+
+                pAdapter->motion_detection_mode = apps_args[14];
+
+                sme_MotionDetConfig(hHal, &config);
+            }
+            break;
+	case WE_MOTION_DET_BASE_LINE_CONFIG_PARAM:
+            {
+                tSirMotionDetBaseLineConfig config;
+                if (num_args != 4) {
+                    hddLog(LOGE,
+                          FL("motion_det_base_line_config: <time>"
+                                                          " <packet_gap>"
+                                                          " <n>"
+                                                          " <num_meas>"));
+                    return -EINVAL;
+                }
+
+                config.vdev_id = (int)pAdapter->sessionId;
+                config.bl_time_t = apps_args[0];
+                config.bl_packet_gap = apps_args[1];
+                config.bl_n = apps_args[2];
+                config.bl_num_meas = apps_args[3];
+
+                sme_MotionDetBaseLineConfig(hHal, &config);
             }
             break;
 #endif
@@ -12460,6 +12575,24 @@ static const struct iw_priv_args we_private_args[] = {
         WLAN_PRIV_SET_FTIES,
         IW_PRIV_TYPE_CHAR | MAX_FTIE_SIZE,
         0, "set_ft_ies"},
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+    {
+        WE_MOTION_DET_CONFIG_PARAM,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, "mt_config"},
+    {
+        WE_MOTION_DET_START_STOP,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "mt_start"},
+    {
+        WE_MOTION_DET_BASE_LINE_CONFIG_PARAM,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, "mt_bl_config"},
+    {
+        WE_MOTION_DET_BASE_LINE_START_STOP,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "mt_bl_start"},
+#endif
 };
 
 

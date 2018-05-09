@@ -407,6 +407,11 @@ static int wma_set_tdls_offchan_mode(WMA_HANDLE wma_handle,
                                      tTdlsChanSwitchParams *pChanSwitchParams);
 #endif
 
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+static int wma_motion_det_host_event_handler(void *handle, u_int8_t *event, u_int32_t len);
+static int wma_motion_det_base_line_host_event_handler(void *handle, u_int8_t *event, u_int32_t len);
+#endif
+
 static eHalStatus wma_set_smps_params(tp_wma_handle wma_handle,
                                  tANI_U8 vdev_id, int value);
 #if defined(QCA_WIFI_FTM)
@@ -9727,6 +9732,17 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 	        wma_tdls_event_handler);
 #endif /* FEATURE_WLAN_TDLS */
 
+
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+	/* register for motion detection response event */
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+			WMI_MOTION_DET_HOST_EVENTID,
+			wma_motion_det_host_event_handler);
+	wmi_unified_register_event_handler(wma_handle->wmi_handle,
+			WMI_MOTION_DET_BASE_LINE_HOST_EVENTID,
+			wma_motion_det_base_line_host_event_handler);
+#endif
+
     /* register for install key completion event */
     wmi_unified_register_event_handler(wma_handle->wmi_handle,
                                       WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID,
@@ -13937,6 +13953,261 @@ VOS_STATUS wma_process_roam_scan_req(tp_wma_handle wma_handle,
     vos_mem_free(roam_req);
     return vos_status;
 }
+
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+static int wma_motion_det_host_event_handler(void *handle, u_int8_t *event, u_int32_t len)
+{
+	vos_msg_t vos_msg = {0};
+	wmi_motion_det_event *motion_det_event_hdr;
+	WMI_MOTION_DET_HOST_EVENTID_param_tlvs *param_buf =
+				(WMI_MOTION_DET_HOST_EVENTID_param_tlvs*)event;
+	tSirMtEvent* pevent;
+
+	if (!param_buf) {
+		WMA_LOGE("Invalid motion det host event buffer");
+		return -EINVAL;
+	}
+
+	motion_det_event_hdr = param_buf->fixed_param;
+	WMA_LOGD("motion host event received, vdev_id=%d, status=%d",
+		motion_det_event_hdr->vdev_id, motion_det_event_hdr->status);
+
+	pevent = vos_mem_malloc(sizeof(*pevent));
+	if (NULL == pevent) {
+		WMA_LOGE("%s: failed to allocate tSirMtEvent memory", __func__);
+		return -ENOMEM;
+	}
+	pevent->vdev_id = motion_det_event_hdr->vdev_id;
+	pevent->status = motion_det_event_hdr->status;
+
+	vos_msg.type = eWNI_SME_MOTION_DET_HOST_EVENT;
+	vos_msg.bodyptr = pevent;
+	vos_msg.bodyval = 0;
+
+	if (VOS_STATUS_SUCCESS !=
+		vos_mq_post_message(VOS_MQ_ID_SME, &vos_msg)) {
+		WMA_LOGP("%s: Failed to post eWNI_SME_MOTION_DET_HOST_EVENT", __func__);
+		vos_mem_free(pevent);
+		return -EINVAL;
+	}
+	return 0;
+}
+
+static int wma_motion_det_base_line_host_event_handler(void *handle, u_int8_t *event, u_int32_t len)
+{
+	wmi_motion_det_base_line_event *motion_det_base_line_event_hdr;
+	WMI_MOTION_DET_BASE_LINE_HOST_EVENTID_param_tlvs *param_buf =
+				(WMI_MOTION_DET_BASE_LINE_HOST_EVENTID_param_tlvs *)event;
+
+
+	if (!param_buf) {
+		WMA_LOGE("Invalid motion det base line event buffer");
+		return -EINVAL;
+	}
+
+	motion_det_base_line_event_hdr = param_buf->fixed_param;
+	WMA_LOGD("motion host event received, vdev_id=%d, bl_baseline_value =%d "
+		"bl_max_corr_resv %d ,bl_min_corr_resv %d",
+		motion_det_base_line_event_hdr->vdev_id,
+		motion_det_base_line_event_hdr->bl_baseline_value,
+		motion_det_base_line_event_hdr->bl_max_corr_reserved,
+		motion_det_base_line_event_hdr->bl_min_corr_reserved);
+
+	return 0;
+}
+
+static eHalStatus wma_set_motion_det_config(WMA_HANDLE handle, tSirMotionDetConfig* pDetConfig)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_motion_det_config_params_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send "
+			"set_motion_det_config cmd");
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	cmd = (wmi_motion_det_config_params_cmd_fixed_param*)wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_motion_det_config_params_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_motion_det_config_params_cmd_fixed_param));
+	cmd->vdev_id = pDetConfig->vdev_id;
+	cmd->time_t1 = pDetConfig->time_t1;
+	cmd->time_t2 = pDetConfig->time_t2;
+	cmd->n1 = pDetConfig->n1;
+	cmd->n2 = pDetConfig->n2;
+	cmd->time_t1_gap = pDetConfig->time_t1_gap;
+	cmd->time_t2_gap = pDetConfig->time_t2_gap;
+	cmd->coarse_K = pDetConfig->coarse_K;
+	cmd->fine_K = pDetConfig->fine_K;
+	cmd->coarse_Q = pDetConfig->coarse_Q;
+	cmd->fine_Q = pDetConfig->fine_Q;
+	cmd->md_coarse_thr_high = pDetConfig->md_coarse_thr_high;
+	cmd->md_fine_thr_high = pDetConfig->md_fine_thr_high;
+	cmd->md_coarse_thr_low = pDetConfig->md_coarse_thr_low;
+	cmd->md_fine_thr_low = pDetConfig->md_fine_thr_low;
+
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			sizeof(*cmd), WMI_MOTION_DET_CONFIG_PARAM_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_motion_det_config cmd");
+		wmi_buf_free(buf);
+		return eHAL_STATUS_FAILURE;
+	}
+	WMA_LOGD("Set motion_det_config to vdevId %d\n"
+		"time_t1 %d\n"
+		"time_t2 %d\n"
+		"n1 %d\n"
+		"n2 %d\n"
+		"time_t1_gap %d\n"
+		"time_t2_gap %d\n"
+		"coarse_K %d\n"
+		"fine_K %d\n"
+		"coarse_Q %d\n"
+		"fine_Q %d\n"
+		"md_coarse_thr_high %d\n"
+		"md_fine_thr_high %d\n"
+		"md_coarse_thr_low %d\n"
+		"md_fine_thr_low %d\n",
+		pDetConfig->vdev_id,
+		pDetConfig->time_t1,
+		pDetConfig->time_t2,
+		pDetConfig->n1,
+		pDetConfig->n2,
+		pDetConfig->time_t1_gap,
+		pDetConfig->time_t2_gap,
+		pDetConfig->coarse_K,
+		pDetConfig->fine_K,
+		pDetConfig->coarse_Q,
+		pDetConfig->fine_Q,
+		pDetConfig->md_coarse_thr_high,
+		pDetConfig->md_fine_thr_high,
+		pDetConfig->md_coarse_thr_low,
+		pDetConfig->md_fine_thr_low);
+	return eHAL_STATUS_SUCCESS;
+}
+
+static eHalStatus wma_set_motion_det_enable(WMA_HANDLE handle, tSirMotionDetEnable* pDetEnable)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_motion_det_start_stop_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send "
+			"set_motion_det_enable cmd");
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	cmd = (wmi_motion_det_start_stop_cmd_fixed_param*)wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_motion_det_start_stop_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_motion_det_start_stop_cmd_fixed_param));
+	cmd->vdev_id = pDetEnable->vdev_id;
+	cmd->enable = pDetEnable->enable;
+
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			sizeof(*cmd), WMI_MOTION_DET_START_STOP_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_motion_det_enable cmd");
+		wmi_buf_free(buf);
+		return eHAL_STATUS_FAILURE;
+	}
+	WMA_LOGD("Set motion_det_enable to vdevId %d %d",
+		pDetEnable->vdev_id, pDetEnable->enable);
+	return eHAL_STATUS_SUCCESS;
+}
+
+static eHalStatus wma_set_motion_det_base_line_config(WMA_HANDLE handle, tSirMotionDetBaseLineConfig* pDetBaseLineConfig)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_motion_det_base_line_config_params_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send "
+			"set_motion_det_config cmd");
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	cmd = (wmi_motion_det_base_line_config_params_cmd_fixed_param*)wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_motion_det_base_line_config_params_cmd_fixed_param ,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_motion_det_base_line_config_params_cmd_fixed_param));
+	cmd->vdev_id = pDetBaseLineConfig->vdev_id;
+	cmd->bl_time_t = pDetBaseLineConfig->bl_time_t;
+	cmd->bl_packet_gap = pDetBaseLineConfig->bl_packet_gap;
+	cmd->bl_n = pDetBaseLineConfig->bl_n;
+	cmd->bl_num_meas = pDetBaseLineConfig->bl_num_meas;
+
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			sizeof(*cmd), WMI_MOTION_DET_BASE_LINE_CONFIG_PARAM_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send set_motion_det_config cmd");
+		wmi_buf_free(buf);
+		return eHAL_STATUS_FAILURE;
+	}
+	WMA_LOGD("Set motion_det_baseline_config to vdevId %d bl_time_t %d "
+		"bl_packet_gap %d "
+		"bl_n %d, bl_num_meas %d",
+		pDetBaseLineConfig->vdev_id,pDetBaseLineConfig->bl_time_t,
+		pDetBaseLineConfig->bl_packet_gap, pDetBaseLineConfig->bl_n,
+		pDetBaseLineConfig->bl_num_meas);
+	return eHAL_STATUS_SUCCESS;
+}
+
+static eHalStatus wma_set_motion_det_base_line_enable(WMA_HANDLE handle, tSirMotionDetBaseLineEnable* pDetBaseLineEnable)
+{
+	tp_wma_handle wma_handle = (tp_wma_handle) handle;
+	wmi_motion_det_base_line_start_stop_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	int err;
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, sizeof(*cmd));
+	if (!buf) {
+		WMA_LOGE("Failed to allocate buffer to send "
+			"set_motion_det_config cmd");
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	cmd = (wmi_motion_det_base_line_start_stop_cmd_fixed_param*)wmi_buf_data(buf);
+	vos_mem_zero(cmd, sizeof(*cmd));
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_motion_det_base_line_start_stop_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_motion_det_base_line_start_stop_cmd_fixed_param));
+	cmd->vdev_id = pDetBaseLineEnable->vdev_id;
+	cmd->enable = pDetBaseLineEnable->enable;
+
+	err = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+			sizeof(*cmd), WMI_MOTION_DET_BASE_LINE_START_STOP_CMDID);
+	if (err) {
+		WMA_LOGE("Failed to send motion_det_base_line_enable cmd");
+		wmi_buf_free(buf);
+		return eHAL_STATUS_FAILURE;
+	}
+	WMA_LOGD("Set motion_det_base_line_enable to vdevId %d enable %d",
+		pDetBaseLineEnable->vdev_id, pDetBaseLineEnable->enable);
+	return eHAL_STATUS_SUCCESS;
+}
+#endif
 
 #ifdef FEATURE_WLAN_LPHB
 /* function   : wma_lphb_conf_hbenable
@@ -23014,7 +23285,14 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason, tp_wma_handle wma)
 		return "ACTION_FRAME_RECV";
 	case WOW_REASON_OEM_RESPONSE_EVENT:
 		return "WOW_REASON_OEM_RESPONSE_EVENT";
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+	case WOW_REASON_WLAN_MD:
+		return "WOW_REASON_WLAN_MD";
+	case WOW_REASON_WLAN_BL:
+		return "WOW_REASON_WLAN_BL";
+#endif
 	}
+
 	return "unknown";
 }
 
@@ -23548,6 +23826,11 @@ static void wma_wow_wake_up_stats_display(tp_wma_handle wma)
 		wma->wow_oem_response_wake_up_count,
 		wma->wow_pwr_save_fail_detected_wake_up_count);
 
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+	WMA_LOGA("md %d bl %d",
+		wma->wow_md_wake_up_count,
+		wma->wow_bl_wake_up_count);
+#endif
 	return;
 }
 
@@ -23679,7 +23962,14 @@ static void wma_wow_wake_up_stats(tp_wma_handle wma, uint8_t *data,
 	case WOW_REASON_CHIP_POWER_FAILURE_DETECT:
 		wma->wow_pwr_save_fail_detected_wake_up_count++;
 		break;
-
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+	case WOW_REASON_WLAN_MD:
+		wma->wow_md_wake_up_count++;
+		break;
+	case WOW_REASON_WLAN_BL:
+		wma->wow_bl_wake_up_count++;
+		break;
+#endif
 	default:
 		WMA_LOGE("Unknown wake up reason");
 		break;
@@ -24540,6 +24830,25 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 			WMA_LOGD("Host woken up because of chip power save failure");
 		}
 		break;
+
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+	case WOW_REASON_WLAN_MD:
+		{
+			/* Just update stats and exit */
+			wma_wow_wake_up_stats(wma, NULL, 0,
+				WOW_REASON_WLAN_MD);
+			WMA_LOGD("Host woken up because of motion detection");
+		}
+		break;
+	case WOW_REASON_WLAN_BL:
+		{
+			/* Just update stats and exit */
+			wma_wow_wake_up_stats(wma, NULL, 0,
+				WOW_REASON_WLAN_BL);
+			WMA_LOGD("Host woken up because of motion detection bl");
+		}
+		break;
+#endif
 	default:
 		break;
 	}
@@ -34336,6 +34645,28 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			  (tTdlsChanSwitchParams*)msg->bodyptr);
 			break;
 #endif /* FEATURE_WLAN_TDLS */
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+		case WDA_SET_MOTION_DET_CONFIG:
+			wma_set_motion_det_config(wma_handle,
+			  (tSirMotionDetConfig*)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_MOTION_DET_ENABLE:
+			wma_set_motion_det_enable(wma_handle,
+			  (tSirMotionDetEnable*)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_MOTION_DET_BASE_LINE_CONFIG:
+			wma_set_motion_det_base_line_config(wma_handle,
+			  (tSirMotionDetBaseLineConfig*)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_MOTION_DET_BASE_LINE_ENABLE:
+			wma_set_motion_det_base_line_enable(wma_handle,
+			  (tSirMotionDetBaseLineEnable*)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+#endif
 		case WDA_ADD_PERIODIC_TX_PTRN_IND:
 			wma_ProcessAddPeriodicTxPtrnInd(wma_handle,
 				(tSirAddPeriodicTxPtrn *)msg->bodyptr);

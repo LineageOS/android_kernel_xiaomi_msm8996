@@ -927,6 +927,11 @@ typedef struct wma_handle {
 	uint32_t num_of_diag_events_logs;
 	uint32_t *events_logs_list;
 
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+	uint32_t wow_md_wake_up_count;
+	uint32_t wow_bl_wake_up_count;
+#endif
+
 	uint32_t wow_pno_match_wake_up_count;
 	uint32_t wow_pno_complete_wake_up_count;
 	uint32_t wow_gscan_wake_up_count;

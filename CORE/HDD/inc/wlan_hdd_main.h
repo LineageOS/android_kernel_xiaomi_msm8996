@@ -1347,6 +1347,10 @@ struct hdd_adapter_s
 #endif /* WLAN_FEATURE_TSF_PLUS */
 #endif
 
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+   uint8_t motion_detection_mode;
+#endif
+
    hdd_cfg80211_state_t cfg80211State;
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING

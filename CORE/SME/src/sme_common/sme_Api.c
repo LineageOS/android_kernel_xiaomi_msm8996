@@ -3280,6 +3280,19 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    pMsg->bodyptr = NULL;
                }
                break;
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+          case eWNI_SME_MOTION_DET_HOST_EVENT:
+               if (pMsg->bodyptr) {
+                   if (pMac->sme.mt_host_ev_cb) {
+                       pMac->sme.mt_host_ev_cb(pMac->hHdd,
+                                               (tSirMtEvent *)pMsg->bodyptr);
+                   }
+
+                   vos_mem_free(pMsg->bodyptr);
+                   pMsg->bodyptr = NULL;
+               }
+               break;
+#endif
 #ifdef WLAN_FEATURE_NAN
           case eWNI_SME_NAN_EVENT:
               MTRACE(vos_trace(VOS_MODULE_ID_SME, TRACE_CODE_SME_RX_WDA_MSG,
@@ -20691,3 +20704,206 @@ bool sme_is_sta_key_exchange_in_progress(tHalHandle hal, uint8_t session_id)
 
 	return CSR_IS_WAIT_FOR_KEY(mac_ctx, session_id);
 }
+
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+/**
+ * sme_set_mt_host_ev_cb() - set callback which to handle
+ *                            eWNI_SME_MOTION_DET_HOST_EVENT
+ *
+ * @hHal: Handler return by macOpen.
+ * @pcallbackfn: callback to handle the motion det host event
+ * @pcallbackcontext: callback context
+ *
+ * Return: eHalStatus.
+ */
+eHalStatus sme_set_mt_host_ev_cb
+(
+    tHalHandle hHal,
+    VOS_STATUS (*pcallbackfn)(void *pcallbackcontext, tSirMtEvent *pEvent),
+    void *pcallbackcontext
+)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    eHalStatus status;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status) {
+        pMac->sme.mt_host_ev_cb = pcallbackfn;
+        pMac->sme.mt_cxt = pcallbackcontext;
+        sme_ReleaseGlobalLock(&pMac->sme);
+    }
+    return status;
+}
+
+eHalStatus sme_MotionDetConfig(tHalHandle hHal, tSirMotionDetConfig *pMotionDetConfig)
+{
+    vos_msg_t vosMessage;
+    tSirMotionDetConfig *pSmeMotionDetConfig;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    pSmeMotionDetConfig = vos_mem_malloc(sizeof(*pMotionDetConfig));
+
+    if (!pSmeMotionDetConfig) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+         "%s: Not able to allocate memory for WDA_SET_MOTION_DET_CONFIG",
+         __func__);
+        return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    *pSmeMotionDetConfig = *pMotionDetConfig;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status) {
+        /* serialize the req through MC thread */
+        vosMessage.type     = WDA_SET_MOTION_DET_CONFIG;
+        vosMessage.bodyptr  = pSmeMotionDetConfig;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+            vos_mq_post_message(VOS_MODULE_ID_WDA, &vosMessage))) {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: Not able to post WDA_SET_MOTION_DET_CONFIG to WDA!",
+                __func__);
+            vos_mem_free(pSmeMotionDetConfig);
+            status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    } else {
+        VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: sme_AcquireGlobalLock error!",
+                       __func__);
+        vos_mem_free(pSmeMotionDetConfig);
+    }
+
+    return (status);
+}
+
+eHalStatus sme_MotionDetEnable(tHalHandle hHal, tSirMotionDetEnable *pMotionDetEnable)
+{
+    vos_msg_t vosMessage;
+    tSirMotionDetEnable *pSmeMotionDetEnable;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    pSmeMotionDetEnable = vos_mem_malloc(sizeof(*pMotionDetEnable));
+
+    if (!pSmeMotionDetEnable) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+         "%s: Not able to allocate memory for WDA_SET_MOTION_DET_ENABLE",
+         __func__);
+        return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    *pSmeMotionDetEnable = *pMotionDetEnable;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status) {
+        /* serialize the req through MC thread */
+        vosMessage.type     = WDA_SET_MOTION_DET_ENABLE;
+        vosMessage.bodyptr  = pSmeMotionDetEnable;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+            vos_mq_post_message(VOS_MODULE_ID_WDA, &vosMessage))) {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: Not able to post WDA_SET_MOTION_DET_ENABLE to WDA!",
+                __func__);
+            vos_mem_free(pSmeMotionDetEnable);
+            status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    } else {
+        VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: sme_AcquireGlobalLock error!",
+                       __func__);
+        vos_mem_free(pSmeMotionDetEnable);
+    }
+
+    return (status);
+}
+
+eHalStatus sme_MotionDetBaseLineConfig(tHalHandle hHal, tSirMotionDetBaseLineConfig *pMotionDetBaseLineConfig)
+{
+    vos_msg_t vosMessage;
+    tSirMotionDetBaseLineConfig *pSmeMotionDetBaseLineConfig;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    pSmeMotionDetBaseLineConfig = vos_mem_malloc(sizeof(*pMotionDetBaseLineConfig));
+
+    if (!pSmeMotionDetBaseLineConfig ) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+         "%s: Not able to allocate memory for WDA_SET_MOTION_DET_BASE_LINE_CONFIG",
+         __func__);
+        return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    *pSmeMotionDetBaseLineConfig = *pMotionDetBaseLineConfig;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status) {
+        /* serialize the req through MC thread */
+        vosMessage.type     = WDA_SET_MOTION_DET_BASE_LINE_CONFIG;
+        vosMessage.bodyptr  = pSmeMotionDetBaseLineConfig;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+            vos_mq_post_message(VOS_MODULE_ID_WDA, &vosMessage))) {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: Not able to post WDA_SET_MOTION_DET_BASE_LINE_CONFIG to WDA!",
+                __func__);
+            vos_mem_free(pSmeMotionDetBaseLineConfig);
+            status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    } else {
+        VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: sme_AcquireGlobalLock error!",
+                       __func__);
+        vos_mem_free(pSmeMotionDetBaseLineConfig);
+    }
+
+    return (status);
+}
+
+eHalStatus sme_MotionDetBaseLineEnable(tHalHandle hHal, tSirMotionDetBaseLineEnable *pMotionDetBaseLineEnable)
+{
+    vos_msg_t vosMessage;
+    tSirMotionDetBaseLineEnable *pSmeMotionDetBaseLineEnable;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    pSmeMotionDetBaseLineEnable = vos_mem_malloc(sizeof(*pMotionDetBaseLineEnable));
+
+    if (!pSmeMotionDetBaseLineEnable ) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+         "%s: Not able to allocate memory for WDA_SET_MOTION_DET_BASE_LINE_ENABLE",
+         __func__);
+        return eHAL_STATUS_E_MALLOC_FAILED;
+    }
+
+    *pSmeMotionDetBaseLineEnable = *pMotionDetBaseLineEnable;
+
+    status = sme_AcquireGlobalLock(&pMac->sme);
+    if (eHAL_STATUS_SUCCESS == status) {
+        /* serialize the req through MC thread */
+        vosMessage.type     = WDA_SET_MOTION_DET_BASE_LINE_ENABLE;
+        vosMessage.bodyptr  = pSmeMotionDetBaseLineEnable;
+
+        if (!VOS_IS_STATUS_SUCCESS(
+            vos_mq_post_message(VOS_MODULE_ID_WDA, &vosMessage))) {
+            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                "%s: Not able to post WDA_SET_MOTION_DET_BASE_LINE_ENABLE to WDA!",
+                __func__);
+            vos_mem_free(pSmeMotionDetBaseLineEnable);
+            status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock(&pMac->sme);
+    } else {
+        VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                       "%s: sme_AcquireGlobalLock error!",
+                       __func__);
+        vos_mem_free(pSmeMotionDetBaseLineEnable);
+    }
+
+    return (status);
+}
+#endif

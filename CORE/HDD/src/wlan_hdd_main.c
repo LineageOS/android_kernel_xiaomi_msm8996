@@ -16349,7 +16349,48 @@ static inline void hdd_get_thermal_shutdown_ini_param(tSmeThermalParams   *pther
 {
 	return;
 }
+#endif
 
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+VOS_STATUS hdd_mt_host_ev_cb(void *pcb_cxt, tSirMtEvent *pevent)
+{
+	hdd_context_t *hddctx;
+	hdd_adapter_t *adapter;
+	tHalHandle hHal;
+	int status;
+	tSirMotionDetEnable enable;
+
+	if (pcb_cxt == NULL || pevent == NULL) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			FL("HDD context is not valid"));
+			return VOS_STATUS_E_INVAL;
+	}
+
+	hddctx = (hdd_context_t *)pcb_cxt;
+	status = wlan_hdd_validate_context(hddctx);
+	if (0 != status)
+		return VOS_STATUS_E_INVAL;
+
+	adapter = hdd_get_adapter_by_vdev(hddctx, pevent->vdev_id);
+
+	hddLog(VOS_TRACE_LEVEL_INFO,
+		FL("hdd_mt_host_ev_cb vdev_id=%u, status=%u"),
+		pevent->vdev_id, pevent->status);
+
+	if (adapter->motion_detection_mode == 1) {
+	    hHal = WLAN_HDD_GET_HAL_CTX(adapter);
+
+	    enable.vdev_id = pevent->vdev_id;
+	    enable.enable = 1;
+
+	    hddLog(VOS_TRACE_LEVEL_INFO,
+		FL("hdd_mt_host_ev_cb enable mt again"));
+
+	    sme_MotionDetEnable(hHal, &enable);
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
 #endif
 /**---------------------------------------------------------------------------
 
@@ -17407,6 +17448,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
     sme_set_rssi_threshold_breached_cb(pHddCtx->hHal, hdd_rssi_threshold_breached);
     wlan_hdd_cfg80211_link_layer_stats_init(pHddCtx);
     wlan_hdd_tsf_init(pHddCtx);
+
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+    sme_set_mt_host_ev_cb(pHddCtx->hHal, hdd_mt_host_ev_cb, pHddCtx);
+#endif
 
 #ifdef WLAN_FEATURE_LPSS
    wlan_hdd_send_all_scan_intf_info(pHddCtx);
