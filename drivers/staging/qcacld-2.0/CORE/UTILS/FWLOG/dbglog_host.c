@@ -1834,7 +1834,7 @@ dbglog_set_mod_enable_bitmap(wmi_unified_t  wmi_handle,A_UINT32 log_level, A_UIN
 			mod_enable_bitmap,bitmap_len);
 }
 
-int dbglog_report_enable(wmi_unified_t  wmi_handle, bool isenable)
+int dbglog_report_enable(wmi_unified_t  wmi_handle, int isenable)
 {
     int bitmap[2] = {0};
 
