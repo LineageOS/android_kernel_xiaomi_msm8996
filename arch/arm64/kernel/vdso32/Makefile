@@ -4,7 +4,15 @@
 # Author: Kevin Brodsky <kevin.brodsky@arm.com>
 # A mix between the arm64 and arm vDSO Makefiles.
 
-CC_ARM32 := $(CROSS_COMPILE_ARM32)gcc
+ifeq ($(cc-name),clang)
+  CC_ARM32 := $(CC) $(CLANG_TARGET_ARM32) -no-integrated-as
+  GCC_ARM32_TC := $(realpath $(dir $(shell which $(CROSS_COMPILE_ARM32)ld))/..)
+ifneq ($(GCC_ARM32_TC),)
+  CC_ARM32 += --gcc-toolchain=$(GCC_ARM32_TC)
+endif
+else
+  CC_ARM32 := $(CROSS_COMPILE_ARM32)$(cc-name)
+endif
 
 # Same as cc-*option, but using CC_ARM32 instead of CC
 cc32-option = $(call try-run,\
@@ -25,7 +33,9 @@ cc32-ldoption = $(call try-run,\
 # NOSTDINC_FLAGS
 VDSO_CPPFLAGS := -nostdinc -isystem $(shell $(CC_ARM32) -print-file-name=include)
 VDSO_CPPFLAGS += $(LINUXINCLUDE)
-VDSO_CPPFLAGS += $(KBUILD_CPPFLAGS)
+VDSO_CPPFLAGS += -D__KERNEL__
+VDSO_CPPFLAGS += $(call cc-option,-Qunused-arguments,)
+VDSO_CPPFLAGS += $(ARCH_CPPFLAGS) $(KCPPFLAGS)
 
 # Common C and assembly flags
 # From top-level Makefile
