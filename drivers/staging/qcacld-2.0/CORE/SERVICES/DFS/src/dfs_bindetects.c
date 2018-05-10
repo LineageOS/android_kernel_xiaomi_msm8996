@@ -435,7 +435,7 @@ dfs_bin_pri_check(struct ath_dfs *dfs, struct dfs_filter *rf,
                  }
 
                 if ( primatch && ( deltadur < durmargin) ) {
-                    if ( (numpulses == 1)  ) {
+                    if ( numpulses == 1  ) {
                         dl->dl_seq_num_second =
                                     dl->dl_elems[delayindex].de_seq_num;
                         /* update sidx min/max for false detection check later*/

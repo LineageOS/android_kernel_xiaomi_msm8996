@@ -658,7 +658,7 @@ uint8_t pe_count_session_with_sme_session_id(tpAniSirGlobal mac_ctx,
         limLog(pMac, LOGE, FL("Invalid sessionId: %d"), sessionId);
         return(NULL);
     }
-    if((pMac->lim.gpSession[sessionId].valid == TRUE))
+    if(pMac->lim.gpSession[sessionId].valid == TRUE)
     {
         return(&pMac->lim.gpSession[sessionId]);
     }
