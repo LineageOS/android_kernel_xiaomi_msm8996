@@ -482,19 +482,9 @@ static VOS_STATUS hdd_wlan_green_ap_deattach(hdd_context_t *pHddCtx)
         goto done;
     }
 
-    /* check if the timer status is destroyed */
-    if (VOS_TIMER_STATE_RUNNING ==
-            vos_timer_getCurrentState(&green_ap->ps_timer))
-    {
-        vos_timer_stop(&green_ap->ps_timer);
-    }
-
-    /* Destroy the Green AP timer */
-    if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
-                    &green_ap->ps_timer)))
-    {
+    status = vos_timer_deinit(&green_ap->ps_timer);
+    if (!VOS_IS_STATUS_SUCCESS(status))
         hddLog(LOG1, FL("Cannot deallocate Green-AP's timer"));
-    }
 
     /* release memory */
     vos_mem_zero((void *)green_ap, sizeof(*green_ap));
@@ -14538,6 +14528,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    eHalStatus halStatus;
    v_CONTEXT_t pVosContext = pHddCtx->pvosContext;
    VOS_STATUS vosStatus;
+   VOS_TIMER_STATE vos_timer_state;
    struct wiphy *wiphy = pHddCtx->wiphy;
    struct statsContext powerContext;
    unsigned long rc;
@@ -14594,10 +14585,10 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmUnregisterNotifyCallback failed",__func__);
    }
 
-   if (VOS_TIMER_STATE_RUNNING ==
-                  vos_timer_getCurrentState(&pHddCtx->tdls_source_timer))
-       vos_timer_stop(&pHddCtx->tdls_source_timer);
-   vos_timer_destroy(&pHddCtx->tdls_source_timer);
+   vosStatus = vos_timer_deinit(&pHddCtx->tdls_source_timer);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: deinit tdls source timer failed", __func__);
 
    /*
     * Cancel any outstanding scan requests.  We are about to close all
@@ -14617,37 +14608,30 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    TRACK_UNLOAD_STATUS(unload_aborting_all_scan);
    hdd_abort_mac_scan_all_adapters(pHddCtx);
 #ifdef FEATURE_BUS_BANDWIDTH
-   if (VOS_TIMER_STATE_RUNNING ==
-                        vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
-   {
-      vos_timer_stop(&pHddCtx->bus_bw_timer);
-      hdd_rst_tcp_delack(pHddCtx);
+   vos_timer_state = vos_timer_getCurrentState(&pHddCtx->bus_bw_timer);
+   if (vos_timer_state != VOS_TIMER_STATE_UNUSED) {
+       if (VOS_TIMER_STATE_RUNNING == vos_timer_state) {
+           vos_timer_stop(&pHddCtx->bus_bw_timer);
+           hdd_rst_tcp_delack(pHddCtx);
 
-      if (pHddCtx->hbw_requested) {
-          vos_remove_pm_qos();
-          pHddCtx->hbw_requested = false;
-      }
-   }
+           if (pHddCtx->hbw_requested) {
+               vos_remove_pm_qos();
+               pHddCtx->hbw_requested = false;
+           }
+       }
 
-   if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
-                         &pHddCtx->bus_bw_timer)))
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-            "%s: Cannot deallocate Bus bandwidth timer", __func__);
-   }
+       if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(&pHddCtx->bus_bw_timer)))
+           hddLog(VOS_TRACE_LEVEL_ERROR,
+                  "%s: Cannot deallocate Bus bandwidth timer", __func__);
+    }
 #endif
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
-   if (VOS_TIMER_STATE_RUNNING ==
-                vos_timer_getCurrentState(&pHddCtx->skip_acs_scan_timer)) {
-       vos_timer_stop(&pHddCtx->skip_acs_scan_timer);
-   }
+   vosStatus = vos_timer_deinit(&pHddCtx->skip_acs_scan_timer);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: deinit skip acs scan timer failed",
+              __func__);
 
-   if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
-                         &pHddCtx->skip_acs_scan_timer))) {
-       hddLog(VOS_TRACE_LEVEL_ERROR,
-            "%s: Cannot deallocate ACS Skip timer", __func__);
-   }
    spin_lock(&pHddCtx->acs_skip_lock);
    vos_mem_free(pHddCtx->last_acs_channel_list);
    pHddCtx->last_acs_channel_list = NULL;
