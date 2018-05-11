@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -379,6 +379,7 @@ __pktlog_enable(struct ol_softc *scn, int32_t log_state)
 		} else {
 			pl_dev->tgt_pktlog_enabled = true;
 		}
+		pl_info->log_state = log_state;
 	} else if (!log_state && pl_dev->tgt_pktlog_enabled) {
 		pl_dev->pl_funcs->pktlog_disable(scn);
 		pl_dev->tgt_pktlog_enabled = false;
@@ -387,9 +388,9 @@ __pktlog_enable(struct ol_softc *scn, int32_t log_state)
 				__func__);
 			return A_ERROR;
 		}
+		pl_info->log_state = log_state;
 	}
 
-	pl_info->log_state = log_state;
 	return 0;
 
 }
