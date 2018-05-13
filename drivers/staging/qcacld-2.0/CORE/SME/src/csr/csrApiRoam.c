@@ -20139,7 +20139,7 @@ eHalStatus csrRoamReadTSF(tpAniSirGlobal pMac, tANI_U8 *pTimestamp,
     }
     pBssDescription = handoffNode.pBssDescription;
     // Get the time diff in nano seconds
-    timer_diff = (vos_get_monotonic_boottime_ns() -
+    timer_diff = (vos_get_bootbased_boottime_ns() -
                   pBssDescription->scansystimensec);
     // Convert nano to micro sec timer
     timer_diff = vos_do_div(timer_diff, SYSTEM_TIME_NSEC_TO_USEC);

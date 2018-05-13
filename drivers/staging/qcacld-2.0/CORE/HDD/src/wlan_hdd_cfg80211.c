@@ -81,6 +81,7 @@
 #include "wlan_hdd_main.h"
 #include "wlan_hdd_assoc.h"
 #include "wlan_hdd_power.h"
+#include "wlan_hdd_request_manager.h"
 #include "wlan_hdd_trace.h"
 #include "vos_types.h"
 #include "vos_trace.h"
@@ -4946,6 +4947,13 @@ static int wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
 	return ret;
 }
 
+#define PARAM_ID QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_ID
+#define PARAM_REALM QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_REALM
+#define PARAM_ROAM_ID \
+	QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_ROAM_CNSRTM_ID
+#define PARAM_ROAM_PLMN \
+	QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_ROAM_PLMN
+
 /**
  * hdd_extscan_passpoint_fill_network_list() - passpoint fill network list
  * @hddctx: HDD context
@@ -4964,7 +4972,8 @@ static int hdd_extscan_passpoint_fill_network_list(
 {
 	struct nlattr *network[QCA_WLAN_VENDOR_ATTR_PNO_MAX + 1];
 	struct nlattr *networks;
-	int rem1, len;
+	int rem1;
+	size_t len;
 	uint8_t index;
 	uint32_t expected_networks;
 
@@ -4993,38 +5002,37 @@ static int hdd_extscan_passpoint_fill_network_list(
 		}
 
 		/* Parse and fetch identifier */
-		if (!network[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_ID]) {
+		if (!network[PARAM_ID]) {
 			hddLog(LOGE, FL("attr passpoint id failed"));
 			return -EINVAL;
 		}
 		req_msg->networks[index].id = nla_get_u32(
-			network[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_ID]);
+			network[PARAM_ID]);
 		hddLog(LOG1, FL("Id %u"), req_msg->networks[index].id);
 
 		/* Parse and fetch realm */
-		if (!network[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_REALM]) {
+		if (!network[PARAM_REALM]) {
 			hddLog(LOGE, FL("attr realm failed"));
 			return -EINVAL;
 		}
-		len = nla_len(
-			network[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_REALM]);
-		if (len < 0 || len > SIR_PASSPOINT_REALM_LEN) {
-			hddLog(LOGE, FL("Invalid realm size %d"), len);
+		len = nla_strlcpy(req_msg->networks[index].realm,
+				  network[PARAM_REALM],
+				  SIR_PASSPOINT_REALM_LEN);
+		/* Don't send partial realm to firmware */
+		if (len >= SIR_PASSPOINT_REALM_LEN) {
+			hddLog(LOGE, FL("user passed invalid realm, len:%zu"),
+					len);
 			return -EINVAL;
 		}
-		vos_mem_copy(req_msg->networks[index].realm,
-				nla_data(network[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_REALM]),
-				len);
-		hddLog(LOG1, FL("realm len %d"), len);
 		hddLog(LOG1, FL("realm: %s"), req_msg->networks[index].realm);
 
-		/* Parse and fetch roaming consortium ids */
-		if (!network[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_ROAM_CNSRTM_ID]) {
+			/* Parse and fetch roaming consortium ids */
+		if (!network[PARAM_ROAM_ID]) {
 			hddLog(LOGE, FL("attr roaming consortium ids failed"));
 			return -EINVAL;
 		}
 		nla_memcpy(&req_msg->networks[index].roaming_consortium_ids,
-			network[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_ROAM_CNSRTM_ID],
+			network[PARAM_ROAM_ID],
 			sizeof(req_msg->networks[0].roaming_consortium_ids));
 		hddLog(LOG1, FL("roaming consortium ids"));
 		VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -5032,12 +5040,12 @@ static int hdd_extscan_passpoint_fill_network_list(
 				sizeof(req_msg->networks[0].roaming_consortium_ids));
 
 		/* Parse and fetch plmn */
-		if (!network[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_ROAM_PLMN]) {
+		if (!network[PARAM_ROAM_PLMN]) {
 			hddLog(LOGE, FL("attr plmn failed"));
 			return -EINVAL;
 		}
 		nla_memcpy(&req_msg->networks[index].plmn,
-			network[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_ROAM_PLMN],
+			network[PARAM_ROAM_PLMN],
 			SIR_PASSPOINT_PLMN_LEN);
 		hddLog(LOG1, FL("plmn %02x:%02x:%02x"),
 			req_msg->networks[index].plmn[0],
@@ -5273,6 +5281,12 @@ static int wlan_hdd_cfg80211_reset_passpoint_list(struct wiphy *wiphy,
 
 	return ret;
 }
+
+#undef PARAM_ID
+#undef PARAM_REALM
+#undef PARAM_ROAM_ID
+#undef PARAM_ROAM_PLMN
+
 #endif /* FEATURE_WLAN_EXTSCAN */
 
 /**
@@ -14139,6 +14153,10 @@ fail:
 	return -EINVAL;
 }
 
+struct peer_txrx_rate_priv {
+	struct sir_peer_info_ext peer_info_ext;
+};
+
 /**
  * hdd_get_peer_txrx_rate_cb() - get station's txrx rate callback
  * @peer_info: pointer of peer information
@@ -14148,84 +14166,38 @@ fail:
  * adapter
  */
 static void hdd_get_peer_txrx_rate_cb(struct sir_peer_info_ext_resp *peer_info,
-		void *context)
+				      void *context)
 {
-	struct statsContext *get_txrx_rate_context;
-	struct sir_peer_info_ext *txrx_rate = NULL;
-	hdd_adapter_t *adapter;
-	uint8_t staid;
+	struct hdd_request *request;
+	struct peer_txrx_rate_priv *priv;
 
-	if ((NULL == peer_info) || (NULL == context)) {
-
+	if (NULL == peer_info) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-			"%s: Bad param, peer_info [%pK] context [%pK]",
-			__func__, peer_info, context);
-		return;
-	}
-
-	spin_lock(&hdd_context_lock);
-	/*
-	 * there is a race condition that exists between this callback
-	 * function and the caller since the caller could time out either
-	 * before or while this code is executing.  we use a spinlock to
-	 * serialize these actions
-	 */
-	get_txrx_rate_context = context;
-	if (PEER_INFO_CONTEXT_MAGIC !=
-			get_txrx_rate_context->magic) {
-
-		/*
-		 * the caller presumably timed out so there is nothing
-		 * we can do
-		 */
-		spin_unlock(&hdd_context_lock);
-		hddLog(VOS_TRACE_LEVEL_WARN,
-			"%s: Invalid context, magic [%08x]",
-			__func__,
-			get_txrx_rate_context->magic);
+			"%s: Bad param, peer_info [%pK]",
+			__func__, peer_info);
 		return;
 	}
 
 	if (!peer_info->count) {
-		spin_unlock(&hdd_context_lock);
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("Fail to get remote peer info"));
+			FL("Fail to get remote peer info"));
 		return;
 	}
 
-	adapter = get_txrx_rate_context->pAdapter;
-	txrx_rate = peer_info->info;
-	if (VOS_STATUS_SUCCESS != hdd_softap_GetStaId(adapter,
-				(v_MACADDR_t *)txrx_rate->peer_macaddr,
-				&staid)) {
-		spin_unlock(&hdd_context_lock);
-		hddLog(VOS_TRACE_LEVEL_ERROR,
-				"%s: Station MAC address does not matching",
-				__func__);
+	request = hdd_request_get(context);
+	if (!request) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Obsolete request", __func__);
 		return;
 	}
 
-	adapter->aStaInfo[staid].tx_rate = txrx_rate->tx_rate;
-	adapter->aStaInfo[staid].rx_rate = txrx_rate->rx_rate;
-	hddLog(VOS_TRACE_LEVEL_INFO, "%s txrate %x rxrate %x\n",
-			__func__,
-			adapter->aStaInfo[staid].tx_rate,
-			adapter->aStaInfo[staid].rx_rate);
+	priv = hdd_request_priv(request);
 
-	get_txrx_rate_context->magic = 0;
+	vos_mem_copy(&priv->peer_info_ext,
+		     peer_info->info,
+		     sizeof(peer_info->info[0]));
 
-	/* notify the caller */
-	complete(&get_txrx_rate_context->completion);
-
-	/* serialization is complete */
-	spin_unlock(&hdd_context_lock);
-
-	if (txrx_rate)
-		hddLog(VOS_TRACE_LEVEL_INFO, "%s %pM tx rate %u rx rate %u",
-				__func__,
-				txrx_rate->peer_macaddr,
-				txrx_rate->tx_rate,
-				txrx_rate->rx_rate);
+	hdd_request_complete(request);
+	hdd_request_put(request);
 }
 
 /**
@@ -14233,17 +14205,25 @@ static void hdd_get_peer_txrx_rate_cb(struct sir_peer_info_ext_resp *peer_info,
  * @adapter: hostapd interface
  * @macaddress: mac address of requested peer
  *
- * This function call sme_get_peer_info_ext to get txrx rate
+ * This function call sme_get_peer_info_ext to get StaInfo[staid] txrx rate
  *
  * Return: 0 on success, otherwise error value
  */
 static int wlan_hdd_get_txrx_rate(hdd_adapter_t *adapter,
-		v_MACADDR_t macaddress)
+				  v_MACADDR_t macaddress)
 {
 	eHalStatus hstatus;
 	int ret;
-	struct statsContext context;
+	uint8_t staid;
+	void *cookie;
 	struct sir_peer_info_ext_req txrx_rate_req;
+	struct hdd_request *request;
+	struct peer_txrx_rate_priv *priv;
+	v_MACADDR_t *peer_macaddr;
+	static const struct hdd_request_params params = {
+		.priv_size = sizeof(*priv),
+		.timeout_ms = WLAN_WAIT_TIME_STATS,
+	};
 
 	if (NULL == adapter) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL",
@@ -14251,17 +14231,23 @@ static int wlan_hdd_get_txrx_rate(hdd_adapter_t *adapter,
 		return -EFAULT;
 	}
 
-	init_completion(&context.completion);
-	context.magic = PEER_INFO_CONTEXT_MAGIC;
-	context.pAdapter = adapter;
+	request = hdd_request_alloc(&params);
+	if (!request) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Request allocation failure",
+			__func__);
+		return -ENOMEM;
+	}
+
+	cookie = hdd_request_cookie(request);
+	priv = hdd_request_priv(request);
 
 	vos_mem_copy(&(txrx_rate_req.peer_macaddr), &macaddress,
-				VOS_MAC_ADDR_SIZE);
+			VOS_MAC_ADDR_SIZE);
 	txrx_rate_req.sessionid = adapter->sessionId;
 	txrx_rate_req.reset_after_request = 0;
 	hstatus = sme_get_peer_info_ext(WLAN_HDD_GET_HAL_CTX(adapter),
 				&txrx_rate_req,
-				&context,
+				cookie,
 				hdd_get_peer_txrx_rate_cb);
 	if (eHAL_STATUS_SUCCESS != hstatus) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -14269,32 +14255,41 @@ static int wlan_hdd_get_txrx_rate(hdd_adapter_t *adapter,
 			__func__);
 		ret = -EFAULT;
 	} else {
-		if (!wait_for_completion_timeout(&context.completion,
-				msecs_to_jiffies(WLAN_WAIT_TIME_STATS))) {
+		ret = hdd_request_wait_for_response(request);
+		if (ret) {
 			hddLog(VOS_TRACE_LEVEL_ERROR,
 				"%s: SME timed out while retrieving txrx_rate",
 				__func__);
 			ret = -EFAULT;
 		} else {
+			peer_macaddr =
+				(v_MACADDR_t *)priv->peer_info_ext.peer_macaddr;
+
+			if (VOS_STATUS_SUCCESS != hdd_softap_GetStaId(adapter,
+								peer_macaddr,
+								&staid)) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+				   FL("Station MAC address does not matching"));
+				return -EFAULT;
+			}
+
+			adapter->aStaInfo[staid].tx_rate =
+						priv->peer_info_ext.tx_rate;
+			adapter->aStaInfo[staid].rx_rate =
+						priv->peer_info_ext.rx_rate;
+
+			hddLog(VOS_TRACE_LEVEL_INFO,
+				"%s %pM tx rate %u rx rate %u",
+				__func__,
+				peer_macaddr,
+				adapter->aStaInfo[staid].tx_rate,
+				adapter->aStaInfo[staid].rx_rate);
 			ret = 0;
 		}
 	}
-	/*
-	 * either we never sent a request, we sent a request and received a
-	 * response or we sent a request and timed out.  if we never sent a
-	 * request or if we sent a request and got a response, we want to
-	 * clear the magic out of paranoia.  if we timed out there is a
-	 * race condition such that the callback function could be
-	 * executing at the same time we are. of primary concern is if the
-	 * callback function had already verified the "magic" but had not
-	 * yet set the completion variable when a timeout occurred. we
-	 * serialize these activities by invalidating the magic while
-	 * holding a shared spinlock which will cause us to block if the
-	 * callback is currently executing
-	 */
-	spin_lock(&hdd_context_lock);
-	context.magic = 0;
-	spin_unlock(&hdd_context_lock);
+
+	hdd_request_put(request);
+
 	return ret;
 }
 
@@ -18073,17 +18068,17 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
      * VHT80 depends on HT40 config.
      */
     if (pConfig->SapHw_mode == eCSR_DOT11_MODE_11ac)
-        if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_40)
+        if (pConfig->ch_width_orig_usr == NL80211_CHAN_WIDTH_40)
             pConfig->ch_width_orig = iniConfig->vhtChannelWidth;
 #endif
 
-    if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_80 &&
+    if (pConfig->ch_width_orig_usr == NL80211_CHAN_WIDTH_80 &&
         !pHddCtx->cfg_ini->sap_force_11n_for_11ac) {
         if (pHddCtx->isVHT80Allowed == false)
             pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_40MHZ;
         else
             pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_80MHZ;
-    } else if (pConfig->ch_width_orig == NL80211_CHAN_WIDTH_40)
+    } else if (pConfig->ch_width_orig_usr == NL80211_CHAN_WIDTH_40)
         pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_40MHZ;
     else
         pConfig->ch_width_orig = eHT_CHANNEL_WIDTH_20MHZ;
@@ -18996,7 +18991,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
         }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
-        pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
+        pAdapter->sessionCtx.ap.sapConfig.ch_width_orig_usr =
                                              params->chandef.width;
 #endif
 
@@ -22236,7 +22231,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
              * successfull OBSS scan
              */
             if((WLAN_HDD_SOFTAP == pAdapter->device_mode) && \
-               (pHddCtx->no_of_active_sessions[VOS_STA_SAP_MODE] > 1)) {
+               (pHddCtx->no_of_active_sessions[VOS_STA_SAP_MODE] >= 1) && \
+               (pHddCtx->no_of_open_sessions[VOS_STA_SAP_MODE] > 1)) {
                 scanRequest.scanType = eSIR_ACTIVE_SCAN;
             }
             else {
@@ -25463,6 +25459,10 @@ static void wlan_hdd_fill_rate_info(hdd_ap_ctx_t *ap_ctx,
 			flags);
 }
 
+struct peer_info_priv {
+	struct sir_peer_info_ext peer_info_ext;
+};
+
 /**
  * wlan_hdd_get_peer_info_cb() - get peer info callback
  * @sta_info: pointer of peer information
@@ -25472,72 +25472,37 @@ static void wlan_hdd_fill_rate_info(hdd_ap_ctx_t *ap_ctx,
  *
  */
 void wlan_hdd_get_peer_info_cb(struct sir_peer_info_ext_resp *sta_info,
-		void *context)
+			       void *context)
 {
-	struct statsContext *get_peer_info_context;
-	struct sir_peer_info_ext *peer_info;
-	hdd_adapter_t *adapter;
-	hdd_ap_ctx_t *ap_ctx;
+	struct hdd_request *request;
+	struct peer_info_priv *priv;
 
-	if ((NULL == sta_info) || (NULL == context)) {
+	if (NULL == sta_info) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-			"%s: Bad param, sta_info [%pK] context [%pK]",
-			__func__, sta_info, context);
-		return;
-	}
-
-	spin_lock(&hdd_context_lock);
-	/*
-	 * there is a race condition that exists between this callback
-	 * function and the caller since the caller could time out either
-	 * before or while this code is executing.  we use a spinlock to
-	 * serialize these actions
-	 */
-	get_peer_info_context = context;
-	if (PEER_INFO_CONTEXT_MAGIC !=
-			get_peer_info_context->magic) {
-		/*
-		 * the caller presumably timed out so there is nothing
-		 * we can do
-		 */
-		spin_unlock(&hdd_context_lock);
-		hddLog(VOS_TRACE_LEVEL_WARN,
-			"%s: Invalid context, magic [%08x]",
-			__func__,
-			get_peer_info_context->magic);
+			"%s: Bad param, sta_info [%pK]", __func__, sta_info);
 		return;
 	}
 
 	if (!sta_info->count) {
-		spin_unlock(&hdd_context_lock);
 		hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("Fail to get remote peer info"));
+			FL("Fail to get remote peer info"));
 		return;
 	}
 
-	adapter = get_peer_info_context->pAdapter;
-	ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(adapter);
-	vos_mem_zero(&ap_ctx->txrx_stats,
-			sizeof(struct hdd_fw_txrx_stats));
+	request = hdd_request_get(context);
+	if (!request) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Obsolete request", __func__);
+		return;
+	}
 
-	peer_info = sta_info->info;
-	ap_ctx->txrx_stats.tx_packets = peer_info->tx_packets;
-	ap_ctx->txrx_stats.tx_bytes = peer_info->tx_bytes;
-	ap_ctx->txrx_stats.rx_packets = peer_info->rx_packets;
-	ap_ctx->txrx_stats.rx_bytes = peer_info->rx_bytes;
-	ap_ctx->txrx_stats.tx_retries = peer_info->tx_retries;
-	ap_ctx->txrx_stats.tx_failed = peer_info->tx_failed;
-	ap_ctx->txrx_stats.rssi =
-		peer_info->rssi + WLAN_HDD_TGT_NOISE_FLOOR_DBM;
-	wlan_hdd_fill_rate_info(ap_ctx, peer_info);
+	priv = hdd_request_priv(request);
 
-	get_peer_info_context->magic = 0;
+	vos_mem_copy(&priv->peer_info_ext,
+		     sta_info->info,
+		     sizeof(sta_info->info[0]));
 
-	/* notify the caller */
-	complete(&get_peer_info_context->completion);
-
-	/* serialization is complete */
-	spin_unlock(&hdd_context_lock);
+	hdd_request_complete(request);
+	hdd_request_put(request);
 }
 
 /**
@@ -25550,12 +25515,19 @@ void wlan_hdd_get_peer_info_cb(struct sir_peer_info_ext_resp *sta_info,
  * Return: 0 on success, otherwise error value
  */
 static int wlan_hdd_get_peer_info(hdd_adapter_t *adapter,
-					v_MACADDR_t macaddress)
+				  v_MACADDR_t macaddress)
 {
 	eHalStatus hstatus;
 	int ret;
-	struct statsContext context;
+	void *cookie;
+	hdd_ap_ctx_t *ap_ctx;
 	struct sir_peer_info_ext_req peer_info_req;
+	struct hdd_request *request;
+	struct peer_info_priv *priv;
+	static const struct hdd_request_params params = {
+		.priv_size = sizeof(*priv),
+		.timeout_ms = WLAN_WAIT_TIME_STATS,
+	};
 
 	if (NULL == adapter) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL",
@@ -25563,49 +25535,63 @@ static int wlan_hdd_get_peer_info(hdd_adapter_t *adapter,
 		return -EFAULT;
 	}
 
-	init_completion(&context.completion);
-	context.magic = PEER_INFO_CONTEXT_MAGIC;
-	context.pAdapter = adapter;
+	request = hdd_request_alloc(&params);
+	if (!request) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Request allocation failure",
+			__func__);
+		return -ENOMEM;
+	}
+
+	cookie = hdd_request_cookie(request);
+	priv = hdd_request_priv(request);
 
 	vos_mem_copy(&(peer_info_req.peer_macaddr), &macaddress,
 			VOS_MAC_ADDR_SIZE);
 	peer_info_req.sessionid = adapter->sessionId;
 	peer_info_req.reset_after_request = 0;
 	hstatus = sme_get_peer_info_ext(WLAN_HDD_GET_HAL_CTX(adapter),
-			&peer_info_req,
-			&context,
-			wlan_hdd_get_peer_info_cb);
+					&peer_info_req,
+					cookie,
+					wlan_hdd_get_peer_info_cb);
 	if (eHAL_STATUS_SUCCESS != hstatus) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
 			"%s: Unable to retrieve statistics for peer info",
 			__func__);
 		ret = -EFAULT;
 	} else {
-		if (!wait_for_completion_timeout(&context.completion,
-				msecs_to_jiffies(WLAN_WAIT_TIME_STATS))) {
+		ret = hdd_request_wait_for_response(request);
+		if (ret) {
 			hddLog(VOS_TRACE_LEVEL_ERROR,
 				"%s: SME timed out while retrieving peer info",
 				__func__);
 			ret = -EFAULT;
-		} else
+		} else {
+			/* only support one peer by now */
+			ap_ctx = WLAN_HDD_GET_AP_CTX_PTR(adapter);
+			vos_mem_zero(&ap_ctx->txrx_stats,
+				     sizeof(struct hdd_fw_txrx_stats));
+
+			ap_ctx->txrx_stats.tx_packets =
+						priv->peer_info_ext.tx_packets;
+			ap_ctx->txrx_stats.tx_bytes =
+						priv->peer_info_ext.tx_bytes;
+			ap_ctx->txrx_stats.rx_packets =
+						priv->peer_info_ext.rx_packets;
+			ap_ctx->txrx_stats.rx_bytes =
+						priv->peer_info_ext.rx_bytes;
+			ap_ctx->txrx_stats.tx_retries =
+						priv->peer_info_ext.tx_retries;
+			ap_ctx->txrx_stats.tx_failed =
+						priv->peer_info_ext.tx_failed;
+			ap_ctx->txrx_stats.rssi = priv->peer_info_ext.rssi
+						+ WLAN_HDD_TGT_NOISE_FLOOR_DBM;
+			wlan_hdd_fill_rate_info(ap_ctx, &priv->peer_info_ext);
 			ret = 0;
+		}
 	}
-	/*
-	 * either we never sent a request, we sent a request and received a
-	 * response or we sent a request and timed out.  if we never sent a
-	 * request or if we sent a request and got a response, we want to
-	 * clear the magic out of paranoia.  if we timed out there is a
-	 * race condition such that the callback function could be
-	 * executing at the same time we are. of primary concern is if the
-	 * callback function had already verified the "magic" but had not
-	 * yet set the completion variable when a timeout occurred. we
-	 * serialize these activities by invalidating the magic while
-	 * holding a shared spinlock which will cause us to block if the
-	 * callback is currently executing
-	 */
-	spin_lock(&hdd_context_lock);
-	context.magic = 0;
-	spin_unlock(&hdd_context_lock);
+
+	hdd_request_put(request);
+
 	return ret;
 }
 
@@ -30750,6 +30736,10 @@ __wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
             smeConfig.csrConfig.channelBondingMode24GHz =
                       eCSR_INI_SINGLE_CHANNEL_CENTERED;
             sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+            pAdapter->sessionCtx.ap.sapConfig.ch_width_orig_usr =
+                      chandef->width;
+            pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
+                      eHT_CHANNEL_WIDTH_20MHZ;
             cbModeChange = TRUE;
         }
         break;
@@ -30764,6 +30754,10 @@ __wlan_hdd_cfg80211_set_ap_channel_width(struct wiphy *wiphy,
                 smeConfig.csrConfig.channelBondingMode24GHz =
                       eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
             sme_UpdateConfig(pHddCtx->hHal, &smeConfig);
+            pAdapter->sessionCtx.ap.sapConfig.ch_width_orig_usr =
+                      chandef->width;
+            pAdapter->sessionCtx.ap.sapConfig.ch_width_orig =
+                      eHT_CHANNEL_WIDTH_40MHZ;
             cbModeChange = TRUE;
         }
         break;

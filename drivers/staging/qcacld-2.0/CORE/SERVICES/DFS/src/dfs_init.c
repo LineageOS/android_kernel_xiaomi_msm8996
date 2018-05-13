@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2014, 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2014, 2016-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -90,7 +90,7 @@ void dfs_reset_alldelaylines(struct ath_dfs *dfs)
             return;
         }
 
-        if (dfs->dfs_b5radars == NULL) {
+        if (dfs->dfs_rinfo.rn_numbin5radars && (dfs->dfs_b5radars == NULL)) {
             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
             "%s[%d]: pl==NULL, b5radars=%pK", __func__, __LINE__, dfs->dfs_b5radars);
             return;
@@ -455,7 +455,7 @@ int dfs_init_radar_filters(struct ieee80211com *ic,
 
     dfs->dfs_b5radars = (struct dfs_bin5radars *)OS_MALLOC(NULL,
       numb5radars * sizeof(struct dfs_bin5radars), GFP_KERNEL);
-    if (dfs->dfs_b5radars == NULL) {
+    if (numb5radars && (dfs->dfs_b5radars == NULL)) {
         DFS_DPRINTK(dfs, ATH_DEBUG_DFS,
         "%s: cannot allocate memory for bin5 radars",
         __func__);

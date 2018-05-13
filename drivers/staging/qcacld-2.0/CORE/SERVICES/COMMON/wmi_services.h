@@ -339,6 +339,14 @@ typedef enum {
     WMI_SERVICE_LISTEN_INTERVAL_OFFLOAD_SUPPORT=149, /* Support listen interval offload */
     WMI_SERVICE_BSS_COLOR_OFFLOAD=150, /* Support BSS color change for STA, OBSS color collision detection in FW for AP and STA */
     WMI_SERVICE_RUNTIME_DPD_RECAL=151, /* Runtime DPD recalibration support */
+    WMI_SERVICE_STA_TWT=152, /* support for TWT (Target Wake Time) of STA */
+    WMI_SERVICE_AP_TWT=153, /* support for TWT (Target Wake Time) on AP */
+    WMI_SERVICE_GMAC_OFFLOAD_SUPPORT=154, /* Support for GMAC */
+    WMI_SERVICE_SPOOF_MAC_SUPPORT=155,  /* support for SERVICE_SPOOF_MAC */
+    WMI_SERVICE_PEER_TID_CONFIGS_SUPPORT=156,  /* Support TID specific configurations per peer (ack,aggr,retry,rate) */
+    WMI_SERVICE_VDEV_SWRETRY_PER_AC_CONFIG_SUPPORT=157,  /* Support vdev software retries configuration per AC (non aggr retry/aggr retry) */
+
+
     /******* ADD NEW SERVICES HERE *******/
 
     WMI_MAX_EXT_SERVICE
