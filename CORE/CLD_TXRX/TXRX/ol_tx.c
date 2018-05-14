@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2305,6 +2305,7 @@ ol_txrx_mgmt_send(
     struct ol_tx_desc_t *tx_desc;
     struct ol_txrx_msdu_info_t tx_msdu_info;
 
+    vos_mem_zero(&tx_msdu_info, sizeof(tx_msdu_info));
     tx_msdu_info.htt.action.use_6mbps = use_6mbps;
     tx_msdu_info.htt.info.ext_tid = HTT_TX_EXT_TID_MGMT;
     tx_msdu_info.htt.info.vdev_id = vdev->vdev_id;
