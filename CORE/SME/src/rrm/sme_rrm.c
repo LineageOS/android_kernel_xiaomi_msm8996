@@ -45,6 +45,7 @@
 #include "sme_Api.h"
 #include "smsDebug.h"
 #include "cfgApi.h"
+#include "regdomain_common.h"
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 #include "vos_diag_core_event.h"
@@ -897,7 +898,7 @@ eHalStatus sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
 {
    tpSirBeaconReportReqInd pBeaconReq = (tpSirBeaconReportReqInd) pMsgBuf;
    tpRrmSMEContext pSmeRrmContext = &pMac->rrm.rrmSmeContext;
-   tANI_U32 len = 0, i = 0;
+   tANI_U32 len = 0, i = 0, temp = 0;
    eHalStatus status = eHAL_STATUS_SUCCESS;
 
 #if defined WLAN_VOWIFI_DEBUG
@@ -920,6 +921,19 @@ eHalStatus sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
       smsLog( pMac, LOGE, FL("Allocated memory for ChannelList") );
 #endif
       csrGetCfgValidChannels( pMac, pSmeRrmContext->channelList.ChannelList, &len );
+
+      for (i = 0 ; i <len; i++)
+      {
+          if (regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
+              pSmeRrmContext->channelList.ChannelList[i], BWALL) ==
+              pBeaconReq->channelInfo.regulatoryClass)
+          {
+              pSmeRrmContext->channelList.ChannelList[temp] =
+                                                 pSmeRrmContext->channelList.ChannelList[i];
+              temp++;
+          }
+      }
+      len = temp;
       pSmeRrmContext->channelList.numOfChannels = (tANI_U8)len;
 #if defined WLAN_VOWIFI_DEBUG
       smsLog( pMac, LOGE, "channel == 0 performing on all channels");
