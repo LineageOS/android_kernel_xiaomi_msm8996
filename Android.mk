@@ -10,9 +10,13 @@ WLAN_CHIPSET := qca_cld
 WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m
 endif
 
-# Build/Package options for 8953_som target
-ifeq ($(call is-board-platform-in-list, msm8953),true)
+# Build/Package options for 8953_som/8909_som target
+ifeq ($(call is-board-platform-in-list, msm8953 msm8909),true)
 ifeq ($(SD624_SOM_SUPPORT), true)
+WLAN_CHIPSET := qca_cld
+WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m
+endif
+ifeq ($(SD212_SOM_SUPPORT), true)
 WLAN_CHIPSET := qca_cld
 WLAN_SELECT := CONFIG_QCA_CLD_WLAN=m
 endif
