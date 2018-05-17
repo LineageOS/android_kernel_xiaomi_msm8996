@@ -1,8 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
- *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -17,12 +14,6 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
  */
 
 #include "wni_api.h"
@@ -3066,7 +3057,7 @@ static void lim_process_switch_channel_join_req(
 		session_entry->pLimMlmJoinReq->bssDescription.bssId,
 		session_entry->currentOperChannel, session_entry->selfMacAddr,
 		session_entry->dot11mode,
-		session_entry->pLimJoinReq->addIEScan.length,
+		&session_entry->pLimJoinReq->addIEScan.length,
 		session_entry->pLimJoinReq->addIEScan.addIEdata);
 
 	if (session_entry->pePersona == QDF_P2P_CLIENT_MODE) {

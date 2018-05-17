@@ -1,9 +1,6 @@
 /*
  * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -17,12 +14,6 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
  */
 
 /**
@@ -3724,7 +3715,7 @@ static int wma_mgmt_rx_process(void *handle, uint8_t *data,
 	mgt_type = (wh)->i_fc[0] & IEEE80211_FC0_TYPE_MASK;
 	mgt_subtype = (wh)->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK;
 
-	WMA_LOGD(FL("BSSID: "MAC_ADDRESS_STR" snr = %d, Type = %x, Subtype = %x, seq_num = %x, rssi = %d, rssi_raw = %d tsf_delta: %u"),
+	WMA_LOGD(FL("BSSID: "MAC_ADDRESS_STR" snr = %d, Type = %x, Subtype = %x, seq_num = %x, rssi = %d, rssi_raw = %d rssi for chain0 is :- %d, chain1 is %d, tsf_delta: %u"),
 			MAC_ADDR_ARRAY(wh->i_addr3),
 			hdr->snr, mgt_type, mgt_subtype,
 			(((*(uint16_t *)wh->i_seq) &
@@ -3732,6 +3723,10 @@ static int wma_mgmt_rx_process(void *handle, uint8_t *data,
 				IEEE80211_SEQ_SEQ_SHIFT),
 			rx_pkt->pkt_meta.rssi,
 			rx_pkt->pkt_meta.rssi_raw,
+			(rx_pkt->pkt_meta.rssi_per_chain[0] +
+					WMA_NOISE_FLOOR_DBM_DEFAULT),
+			(rx_pkt->pkt_meta.rssi_per_chain[1] +
+					WMA_NOISE_FLOOR_DBM_DEFAULT),
 			hdr->tsf_delta);
 	if (!wma_handle->mgmt_rx) {
 		WMA_LOGE("Not registered for Mgmt rx, dropping the frame");

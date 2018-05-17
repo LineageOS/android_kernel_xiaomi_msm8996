@@ -1,9 +1,6 @@
 /*
  * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -17,12 +14,6 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
  */
 
 /**
@@ -1619,11 +1610,6 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 
 	if (QDF_GLOBAL_FTM_MODE == hdd_get_conparam()) {
 		hdd_err("Command not allowed in FTM mode");
-		return -EPERM;
-	}
-
-	if (hdd_ctx->config->force_sap_acs) {
-		hdd_err("Hostapd ACS rejected as Driver ACS enabled");
 		return -EPERM;
 	}
 
@@ -9879,6 +9865,9 @@ static int wlan_hdd_cfg80211_sar_convert_limit_set(u32 nl80211_value,
 	case QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SELECT_USER:
 		*wmi_value = WMI_SAR_FEATURE_ON_USER_DEFINED;
 		break;
+	case QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SELECT_V2_0:
+		*wmi_value = WMI_SAR_FEATURE_ON_SAR_V2_0;
+		break;
 	default:
 		ret = -1;
 	}
@@ -9954,6 +9943,8 @@ static u32 hdd_sar_wmi_to_nl_enable(uint32_t wmi_value)
 		return QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SELECT_BDF4;
 	case WMI_SAR_FEATURE_ON_USER_DEFINED:
 		return QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SELECT_USER;
+	case WMI_SAR_FEATURE_ON_SAR_V2_0:
+		return QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SELECT_V2_0;
 	}
 }
 
@@ -9987,6 +9978,7 @@ sar_limits_policy[QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_MAX + 1] = {
 	[QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SPEC_CHAIN] = {.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SPEC_MODULATION] = {.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SPEC_POWER_LIMIT] = {.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SPEC_POWER_LIMIT_INDEX] = {.type = NLA_U32},
 };
 
 #define WLAN_WAIT_TIME_SAR 5000
@@ -10335,8 +10327,13 @@ static int __wlan_hdd_set_sar_power_limits(struct wiphy *wiphy,
 			sar_limit_cmd.sar_limit_row_list[i].limit_value =
 				nla_get_u32(sar_spec[
 				QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SPEC_POWER_LIMIT]);
+		} else if (sar_spec[
+			    QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SPEC_POWER_LIMIT_INDEX]) {
+			sar_limit_cmd.sar_limit_row_list[i].limit_value =
+				nla_get_u32(sar_spec[
+				QCA_WLAN_VENDOR_ATTR_SAR_LIMITS_SPEC_POWER_LIMIT_INDEX]);
 		} else {
-			hdd_err("SAR Spec does not have power limit value");
+			hdd_err("SAR Spec does not have power limit or index value");
 			goto fail;
 		}
 
@@ -11196,6 +11193,11 @@ static int __wlan_hdd_cfg80211_set_limit_offchan_param(struct wiphy *wiphy,
 	}
 
 	tos = nla_get_u8(tb[QCA_WLAN_VENDOR_ATTR_ACTIVE_TOS]);
+	if (tos >= HDD_MAX_AC) {
+		hdd_err("tos value %d exceeded Max value %d",
+			tos, HDD_MAX_AC);
+		goto fail;
+	}
 	hdd_debug("tos %d", tos);
 
 	if (!tb[QCA_WLAN_VENDOR_ATTR_ACTIVE_TOS_START]) {
@@ -18470,6 +18472,28 @@ static const char *hdd_ieee80211_reason_code_to_str(uint16_t reason)
 }
 
 /**
+ * hdd_print_netdev_txq_status() - print netdev tx queue status
+ * @dev: Pointer to network device
+ *
+ * This function is used to print netdev tx queue status
+ *
+ * Return: none
+ */
+static void hdd_print_netdev_txq_status(struct net_device *dev)
+{
+	unsigned int i;
+
+	if (!dev)
+		return;
+
+	for (i = 0; i < dev->num_tx_queues; i++) {
+		struct netdev_queue *txq = netdev_get_tx_queue(dev, i);
+
+		hdd_info("netdev tx queue[%u] state: 0x%lx", i, txq->state);
+	}
+}
+
+/**
  * __wlan_hdd_cfg80211_disconnect() - cfg80211 disconnect api
  * @wiphy: Pointer to wiphy
  * @dev: Pointer to network device
@@ -18502,6 +18526,7 @@ static int __wlan_hdd_cfg80211_disconnect(struct wiphy *wiphy,
 	MTRACE(qdf_trace(QDF_MODULE_ID_HDD,
 			 TRACE_CODE_HDD_CFG80211_DISCONNECT,
 			 pAdapter->sessionId, reason));
+	hdd_print_netdev_txq_status(dev);
 	hdd_debug("Device_mode %s(%d) reason code(%d)",
 		hdd_device_mode_to_string(pAdapter->device_mode),
 		pAdapter->device_mode, reason);

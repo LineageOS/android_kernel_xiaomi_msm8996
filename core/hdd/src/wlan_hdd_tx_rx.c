@@ -1,9 +1,6 @@
 /*
  * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -17,12 +14,6 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
  */
 
 /**
@@ -1051,6 +1042,16 @@ static netdev_tx_t __hdd_hard_start_xmit(struct sk_buff *skb,
 			  QDF_TRACE_LEVEL_INFO_HIGH,
 			  "%s: Tx is not allowed. drop the pkt",
 			  __func__);
+		++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
+		goto drop_pkt_and_release_skb;
+	}
+
+	/* check whether need to linearize skb, like non-linear udp data */
+	if (hdd_skb_nontso_linearize(skb) != QDF_STATUS_SUCCESS) {
+		QDF_TRACE(QDF_MODULE_ID_HDD_DATA,
+			  QDF_TRACE_LEVEL_INFO_HIGH,
+			  "%s: skb %pK linearize failed. drop the pkt",
+			  __func__, skb);
 		++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
 		goto drop_pkt_and_release_skb;
 	}

@@ -1,9 +1,6 @@
 /*
  * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -17,12 +14,6 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
  */
 
 /*
@@ -1895,6 +1886,10 @@ __lim_process_sme_join_req(tpAniSirGlobal mac_ctx, uint32_t *msg_buf)
 
 		session->encryptType = sme_join_req->UCEncryptionType;
 
+		session->supported_nss_1x1 = sme_join_req->supported_nss_1x1;
+		session->vdev_nss = sme_join_req->vdev_nss;
+		session->nss = sme_join_req->nss;
+
 		mlm_join_req->bssDescription.length =
 			session->pLimJoinReq->bssDescription.length;
 
@@ -2147,6 +2142,10 @@ static void __lim_process_sme_reassoc_req(tpAniSirGlobal mac_ctx,
 			reassoc_req->enableVhtGid;
 		pe_debug("vht su bformer [%d]", session_entry->vht_config.su_beam_former);
 	}
+
+	session_entry->supported_nss_1x1 = reassoc_req->supported_nss_1x1;
+	session_entry->vdev_nss = reassoc_req->vdev_nss;
+	session_entry->nss = reassoc_req->nss;
 
 	pe_debug("vhtCapability: %d su_beam_formee: %d su_tx_bformer %d",
 		session_entry->vhtCapability,
@@ -2600,11 +2599,16 @@ static void __lim_process_sme_disassoc_cnf(tpAniSirGlobal pMac, uint32_t *pMsgBu
 				&sessionId);
 	if (psessionEntry == NULL) {
 		pe_err("session does not exist for given bssId");
+		lim_send_disconnect_done_ind(pMac, NULL, CSR_SESSION_ID_INVALID,
+					     eSIR_SME_INVALID_SESSION, NULL);
 		return;
 	}
 
 	if (!lim_is_sme_disassoc_cnf_valid(pMac, &smeDisassocCnf, psessionEntry)) {
 		pe_err("received invalid SME_DISASSOC_CNF message");
+		lim_send_disconnect_done_ind(pMac, psessionEntry, sessionId,
+					     eSIR_SME_INVALID_PARAMETERS,
+					     smeDisassocCnf.bssid.bytes);
 		return;
 	}
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM    /* FEATURE_WLAN_DIAG_SUPPORT */
@@ -2628,6 +2632,11 @@ static void __lim_process_sme_disassoc_cnf(tpAniSirGlobal pMac, uint32_t *pMsgBu
 				psessionEntry->limSmeState);
 			lim_print_sme_state(pMac, LOGE,
 					    psessionEntry->limSmeState);
+			lim_send_disconnect_done_ind(pMac, psessionEntry,
+						     sessionId,
+						     eSIR_SME_INVALID_STATE,
+						     smeDisassocCnf.bssid.
+						     bytes);
 			return;
 		}
 		break;
@@ -2640,7 +2649,9 @@ static void __lim_process_sme_disassoc_cnf(tpAniSirGlobal pMac, uint32_t *pMsgBu
 	default:                /* eLIM_UNKNOWN_ROLE */
 		pe_err("received unexpected SME_DISASSOC_CNF role %d",
 			GET_LIM_SYSTEM_ROLE(psessionEntry));
-
+		lim_send_disconnect_done_ind(pMac, psessionEntry, sessionId,
+					     eSIR_SME_INVALID_STATE,
+					     smeDisassocCnf.bssid.bytes);
 		return;
 	}
 
@@ -2654,6 +2665,10 @@ static void __lim_process_sme_disassoc_cnf(tpAniSirGlobal pMac, uint32_t *pMsgBu
 			pe_err("DISASSOC_CNF for a STA with no context, addr= "
 				MAC_ADDRESS_STR,
 				MAC_ADDR_ARRAY(smeDisassocCnf.peer_macaddr.bytes));
+			lim_send_disconnect_done_ind(pMac, psessionEntry,
+						sessionId,
+						eSIR_SME_INVALID_PARAMETERS,
+						smeDisassocCnf.bssid.bytes);
 			return;
 		}
 
@@ -2664,6 +2679,9 @@ static void __lim_process_sme_disassoc_cnf(tpAniSirGlobal pMac, uint32_t *pMsgBu
 			pe_err("No need of cleanup for addr:" MAC_ADDRESS_STR "as MLM state is %d",
 				MAC_ADDR_ARRAY(smeDisassocCnf.peer_macaddr.bytes),
 				pStaDs->mlmStaContext.mlmState);
+			lim_send_disconnect_done_ind(pMac, NULL,
+						     CSR_SESSION_ID_INVALID,
+						     eSIR_SME_SUCCESS, NULL);
 			return;
 		}
 
@@ -2749,6 +2767,7 @@ static void __lim_process_sme_deauth_req(tpAniSirGlobal mac_ctx,
 		case eLIM_SME_LINK_EST_STATE:
 			/* Delete all TDLS peers connected before leaving BSS */
 			lim_delete_tdls_peers(mac_ctx, session_entry);
+		/* fallthrough */
 		case eLIM_SME_WT_ASSOC_STATE:
 		case eLIM_SME_JOIN_FAILURE_STATE:
 		case eLIM_SME_IDLE_STATE:

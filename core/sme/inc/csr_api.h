@@ -1,9 +1,6 @@
 /*
  * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -17,12 +14,6 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
  */
 
 /**
@@ -1311,6 +1302,9 @@ typedef struct tagCsrConfigParam {
 	bool enable_vht20_mcs9;
 	uint8_t max_amsdu_num;
 	uint8_t nSelect5GHzMargin;
+	uint32_t ho_delay_for_rx;
+	uint32_t min_delay_btw_roam_scans;
+	uint32_t roam_trigger_reason_bitmask;
 	uint8_t isCoalesingInIBSSAllowed;
 #ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
 	uint8_t cc_switch_mode;
@@ -1345,6 +1339,10 @@ typedef struct tagCsrConfigParam {
 	bool enable5gEBT;
 	bool enableSelfRecovery;
 	uint32_t f_sta_miracast_mcc_rest_time_val;
+	uint32_t sta_scan_burst_duration;
+	uint32_t p2p_scan_burst_duration;
+	uint32_t go_scan_burst_duration;
+	uint32_t ap_scan_burst_duration;
 #ifdef FEATURE_AP_MCC_CH_AVOIDANCE
 	bool sap_channel_avoidance;
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
@@ -1383,7 +1381,15 @@ typedef struct tagCsrConfigParam {
 	enum wmi_dwelltime_adaptive_mode roamscan_adaptive_dwell_mode;
 	struct csr_sta_roam_policy_params sta_roam_policy_params;
 	uint32_t tx_aggregation_size;
+	uint32_t tx_aggregation_size_be;
+	uint32_t tx_aggregation_size_bk;
+	uint32_t tx_aggregation_size_vi;
+	uint32_t tx_aggregation_size_vo;
 	uint32_t rx_aggregation_size;
+	uint32_t tx_aggr_sw_retry_threshold_be;
+	uint32_t tx_aggr_sw_retry_threshold_bk;
+	uint32_t tx_aggr_sw_retry_threshold_vi;
+	uint32_t tx_aggr_sw_retry_threshold_vo;
 	struct wmi_per_roam_config per_roam_config;
 	bool enable_bcast_probe_rsp;
 	bool is_fils_enabled;

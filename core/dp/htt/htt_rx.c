@@ -1,9 +1,6 @@
 /*
  * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -17,12 +14,6 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
  */
 
 /**
@@ -156,22 +147,10 @@ static void htt_rx_hash_deinit(struct htt_pdev_t *pdev)
 	struct htt_rx_hash_entry *hash_entry;
 	struct htt_rx_hash_bucket **hash_table;
 	struct htt_list_node *list_iter = NULL;
-	qdf_mem_info_t *mem_map_table = NULL, *mem_info = NULL;
-	uint32_t num_unmapped = 0;
+	qdf_mem_info_t mem_map_table = {0};
 
 	if (NULL == pdev->rx_ring.hash_table)
 		return;
-
-	if (qdf_mem_smmu_s1_enabled(pdev->osdev) && pdev->is_ipa_uc_enabled) {
-		mem_map_table = qdf_mem_map_table_alloc(
-					pdev->rx_ring.fill_level);
-		if (!mem_map_table) {
-			qdf_print("%s: Failed to allocate memory for mem map table\n",
-				  __func__);
-			return;
-		}
-		mem_info = mem_map_table;
-	}
 
 	qdf_spin_lock_bh(&(pdev->rx_ring.rx_hash_lock));
 	hash_table = pdev->rx_ring.hash_table;
@@ -190,12 +169,13 @@ static void htt_rx_hash_deinit(struct htt_pdev_t *pdev)
 				if (qdf_mem_smmu_s1_enabled(pdev->osdev) &&
 						pdev->is_ipa_uc_enabled) {
 					qdf_update_mem_map_table(pdev->osdev,
-						mem_info,
+						&mem_map_table,
 						QDF_NBUF_CB_PADDR(
 							hash_entry->netbuf),
 						HTT_RX_BUF_SIZE);
-					mem_info++;
-					num_unmapped++;
+
+					cds_smmu_map_unmap(false, 1,
+							   &mem_map_table);
 				}
 #ifdef DEBUG_DMA_DONE
 				qdf_nbuf_unmap(pdev->osdev, hash_entry->netbuf,
@@ -219,13 +199,6 @@ static void htt_rx_hash_deinit(struct htt_pdev_t *pdev)
 	qdf_mem_free(hash_table);
 
 	qdf_spinlock_destroy(&(pdev->rx_ring.rx_hash_lock));
-
-	if (qdf_mem_smmu_s1_enabled(pdev->osdev) && pdev->is_ipa_uc_enabled) {
-		if (num_unmapped)
-			cds_smmu_map_unmap(false, num_unmapped,
-					   mem_map_table);
-		qdf_mem_free(mem_map_table);
-	}
 }
 #endif
 
@@ -733,7 +706,7 @@ static int htt_rx_ring_fill_level(struct htt_pdev_t *pdev)
 	return size;
 }
 
-static void htt_rx_ring_refill_retry(void *arg)
+static void htt_rx_ring_refill_retry(unsigned long arg)
 {
 	htt_pdev_handle pdev = (htt_pdev_handle) arg;
 	int             filled = 0;

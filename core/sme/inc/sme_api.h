@@ -1,9 +1,6 @@
 /*
  * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
- * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
- *
- *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
@@ -17,12 +14,6 @@
  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
- */
-
-/*
- * This file was originally distributed by Qualcomm Atheros, Inc.
- * under proprietary terms before Copyright ownership was assigned
- * to the Linux Foundation.
  */
 
 #if !defined(__SME_API_H)
@@ -1421,12 +1412,13 @@ QDF_STATUS sme_apf_offload_deregister_callback(tHalHandle hal);
 /**
  * sme_get_apf_capabilities() - Get length for APF offload
  * @hal: Global HAL handle
+ * @context: Context pointer
  *
  * API to get APF version and max filter size.
  *
  * Return: QDF_STATUS enumeration
  */
-QDF_STATUS sme_get_apf_capabilities(tHalHandle hal);
+QDF_STATUS sme_get_apf_capabilities(tHalHandle hal, void *context);
 
 /**
  * sme_set_apf_instructions() - Set APF apf filter instructions.
