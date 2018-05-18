@@ -14512,6 +14512,34 @@ enum driver_unload_state{
 	unload_finish = 0xff
 };
 
+#ifdef FEATURE_BUS_BANDWIDTH
+static void hdd_deinit_bus_bw_timer(hdd_context_t *hdd_ctx)
+{
+	VOS_TIMER_STATE vos_timer_state;
+
+	vos_timer_state = vos_timer_getCurrentState(&hdd_ctx->bus_bw_timer);
+
+	if (vos_timer_state == VOS_TIMER_STATE_UNUSED)
+		return;
+
+	if (VOS_TIMER_STATE_RUNNING == vos_timer_state) {
+		vos_timer_stop(&hdd_ctx->bus_bw_timer);
+		hdd_rst_tcp_delack(hdd_ctx);
+
+		if (hdd_ctx->hbw_requested) {
+			vos_remove_pm_qos();
+			hdd_ctx->hbw_requested = false;
+		}
+	}
+
+	if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(&hdd_ctx->bus_bw_timer)))
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Cannot deallocate Bus bandwidth timer", __func__);
+}
+#else
+static inline void hdd_deinit_bus_bw_timer(hdd_context_t *hdd_ctx) {}
+#endif
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_exit() - HDD WLAN exit function
@@ -14528,7 +14556,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    eHalStatus halStatus;
    v_CONTEXT_t pVosContext = pHddCtx->pvosContext;
    VOS_STATUS vosStatus;
-   VOS_TIMER_STATE vos_timer_state;
    struct wiphy *wiphy = pHddCtx->wiphy;
    struct statsContext powerContext;
    unsigned long rc;
@@ -14607,24 +14634,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     */
    TRACK_UNLOAD_STATUS(unload_aborting_all_scan);
    hdd_abort_mac_scan_all_adapters(pHddCtx);
-#ifdef FEATURE_BUS_BANDWIDTH
-   vos_timer_state = vos_timer_getCurrentState(&pHddCtx->bus_bw_timer);
-   if (vos_timer_state != VOS_TIMER_STATE_UNUSED) {
-       if (VOS_TIMER_STATE_RUNNING == vos_timer_state) {
-           vos_timer_stop(&pHddCtx->bus_bw_timer);
-           hdd_rst_tcp_delack(pHddCtx);
-
-           if (pHddCtx->hbw_requested) {
-               vos_remove_pm_qos();
-               pHddCtx->hbw_requested = false;
-           }
-       }
-
-       if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(&pHddCtx->bus_bw_timer)))
-           hddLog(VOS_TRACE_LEVEL_ERROR,
-                  "%s: Cannot deallocate Bus bandwidth timer", __func__);
-    }
-#endif
+   hdd_deinit_bus_bw_timer(pHddCtx);
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
    vosStatus = vos_timer_deinit(&pHddCtx->skip_acs_scan_timer);
