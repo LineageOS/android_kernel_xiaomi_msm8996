@@ -595,10 +595,32 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
    counter=0;
    while (pScanResult)
    {
+      /*
+       * If scan results containing connected BSS, "pScanResult->timer >= RRM_scan_timer"
+       * is not suitable for the scan timer of connected BSS is unchangable.
+       */
+      uint8_t i;
+      tCsrRoamSession *session;
+      uint8_t is_conn_bss_found = false;
+
+      for (i = 0; i < CSR_ROAM_SESSION_MAX; i++)
+      {
+          if (CSR_IS_SESSION_VALID(pMac, i))
+          {
+              session = CSR_GET_SESSION(pMac, i);
+              if (csrIsConnStateConnectedInfra(pMac, i) && (NULL != session->pConnectBssDesc) &&
+                 (csrIsDuplicateBssDescription(pMac, &pScanResult->BssDescriptor,
+                                               session->pConnectBssDesc, NULL, FALSE)))
+              {
+                  is_conn_bss_found = true;
+                  break;
+              }
+          }
+      }
       pNextResult = sme_ScanResultGetNext(pMac, pResult);
       smsLog(pMac, LOG1, "Scan res timer:%lu, rrm scan timer:%lu",
              pScanResult->timer, RRM_scan_timer);
-      if(pScanResult->timer >= RRM_scan_timer)
+      if ((pScanResult->timer >= RRM_scan_timer) || (is_conn_bss_found == true))
       {
           roam_info = vos_mem_malloc(sizeof(*roam_info));
           if (NULL == roam_info) {
