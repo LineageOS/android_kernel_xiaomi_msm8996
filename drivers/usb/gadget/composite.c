@@ -1851,7 +1851,7 @@ unknown:
 		 * OS descriptors handling
 		 */
 		if (cdev->use_os_string && cdev->os_desc_config &&
-		    (ctrl->bRequestType & USB_TYPE_VENDOR) &&
+		    (ctrl->bRequest & USB_TYPE_VENDOR) &&
 		    ctrl->bRequest == cdev->b_vendor_code) {
 			struct usb_request		*req;
 			struct usb_configuration	*os_desc_cfg;
@@ -1921,16 +1921,6 @@ unknown:
 				}
 				break;
 			}
-
-			if (value < 0) {
-				DBG(cdev, "%s: unhandled os desc request\n",
-						__func__);
-				DBG(cdev, "req%02x.%02x v%04x i%04x l%d\n",
-					ctrl->bRequestType, ctrl->bRequest,
-					w_value, w_index, w_length);
-				return value;
-			}
-
 			req->length = value;
 			req->zero = value < w_length;
 			value = usb_ep_queue(gadget->ep0, req, GFP_ATOMIC);
