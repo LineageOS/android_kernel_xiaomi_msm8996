@@ -21082,8 +21082,11 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
         kfree(mgmt);
         return NULL;
     }
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0))
+    chan = ieee80211_get_channel(wiphy, freq);
+#else
     chan = __ieee80211_get_channel(wiphy, freq);
+#endif
     /*
      * When the band is changed on the fly using the GUI, three things are done
      * 1. scan abort

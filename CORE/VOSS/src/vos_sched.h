@@ -235,9 +235,10 @@ typedef struct _VosSchedContext
    /* Free message queue for Tlshim Rx processing */
    struct list_head VosTlshimPktFreeQ;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
    /* cpu hotplug notifier */
    struct notifier_block *cpuHotPlugNotifier;
-
+#endif
    /* affinity lock */
    vos_lock_t affinity_lock;
 
