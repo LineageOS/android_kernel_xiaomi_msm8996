@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -68,6 +68,23 @@ __adf_os_mutex_acquire(adf_os_device_t osdev, struct semaphore *m)
 {
     down(m);
     return 0;
+}
+
+/**
+ * __adf_os_mutex_acquire_timeout() - Take the semaphore before timeout
+ * @osdev: os layer device handle
+ * @m: semaphore to take
+ * @timeout: maximum time to try to take the semaphore. unit in ms.
+ *
+ * Return: 0 for success, others for timeout
+ */
+static inline int __adf_os_mutex_acquire_timeout(adf_os_device_t osdev,
+						 struct semaphore *m,
+						 long timeout)
+{
+	long jiffie_val = msecs_to_jiffies(timeout);
+
+	return down_timeout(m, jiffie_val);
 }
 
 static inline void

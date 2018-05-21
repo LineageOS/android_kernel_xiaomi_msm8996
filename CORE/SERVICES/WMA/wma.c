@@ -5380,7 +5380,8 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 	chan_stats_size  = sizeof(tSirWifiChannelStats);
 
 	if (fixed_param->num_radio >
-	    (UINT_MAX - sizeof(*link_stats_results)) / radio_stats_size) {
+	    (WMA_SVC_MSG_MAX_SIZE -
+	     sizeof(*link_stats_results)) / radio_stats_size) {
 		WMA_LOGE("excess num_radio %d is leading to int overflow",
 			 fixed_param->num_radio);
 		return -EINVAL;
@@ -10870,6 +10871,7 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	tSirMacHTCapabilityInfo *phtCapInfo;
 	u_int8_t vdev_id;
 	struct sir_set_tx_rx_aggregation_size tx_rx_aggregation_size;
+	struct sir_set_tx_sw_retry_threshhold tx_sw_retry_threshhold;
 
 	if (NULL == mac) {
 		WMA_LOGE("%s: Failed to get mac",__func__);
@@ -10957,6 +10959,36 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 	status = wma_set_tx_rx_aggregation_size(&tx_rx_aggregation_size);
 	if (status != VOS_STATUS_SUCCESS)
 		WMA_LOGE("failed to set aggregation sizes(err=%d)", status);
+
+	tx_sw_retry_threshhold.tx_sw_retry_threshhold_be =
+				self_sta_req->tx_aggr_sw_retry_threshhold_be;
+	tx_sw_retry_threshhold.tx_sw_retry_threshhold_bk =
+				self_sta_req->tx_aggr_sw_retry_threshhold_bk;
+	tx_sw_retry_threshhold.tx_sw_retry_threshhold_vi =
+				self_sta_req->tx_aggr_sw_retry_threshhold_vi;
+	tx_sw_retry_threshhold.tx_sw_retry_threshhold_vo =
+				self_sta_req->tx_aggr_sw_retry_threshhold_vo;
+	tx_sw_retry_threshhold.vdev_id = self_sta_req->sessionId;
+	tx_sw_retry_threshhold.retry_type = WMI_VDEV_CUSTOM_SW_RETRY_TYPE_AGGR;
+
+	status = wma_set_sw_retry_threshhold(&tx_sw_retry_threshhold);
+	if (status != VOS_STATUS_SUCCESS)
+		WMA_LOGE("failed to set aggregation retry threshhold(err=%d)", status);
+
+	tx_sw_retry_threshhold.tx_sw_retry_threshhold_be =
+				self_sta_req->tx_non_aggr_sw_retry_threshhold_be;
+	tx_sw_retry_threshhold.tx_sw_retry_threshhold_bk =
+				self_sta_req->tx_non_aggr_sw_retry_threshhold_bk;
+	tx_sw_retry_threshhold.tx_sw_retry_threshhold_vi =
+				self_sta_req->tx_non_aggr_sw_retry_threshhold_vi;
+	tx_sw_retry_threshhold.tx_sw_retry_threshhold_vo =
+				self_sta_req->tx_non_aggr_sw_retry_threshhold_vo;
+	tx_sw_retry_threshhold.vdev_id = self_sta_req->sessionId;
+	tx_sw_retry_threshhold.retry_type = WMI_VDEV_CUSTOM_SW_RETRY_TYPE_NONAGGR;
+
+	status = wma_set_sw_retry_threshhold(&tx_sw_retry_threshhold);
+	if (status != VOS_STATUS_SUCCESS)
+		WMA_LOGE("failed to set non aggregation retry threshhold(err=%d)", status);
 
 	switch (self_sta_req->type) {
 	case WMI_VDEV_TYPE_STA:
@@ -21250,7 +21282,7 @@ static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
 	tbtt_offset_event = param_buf->fixed_param;
 
 	if (param_buf->num_tbttoffset_list >
-			(UINT_MAX - sizeof(u_int32_t) -
+			(WMA_SVC_MSG_MAX_SIZE - sizeof(u_int32_t) -
 				sizeof(wmi_tbtt_offset_event_fixed_param))/
 			 sizeof(u_int32_t)) {
 		WMA_LOGE("%s: Received offset list  %d greater than maximum limit",
@@ -33166,6 +33198,92 @@ VOS_STATUS wma_set_tx_rx_aggregation_size
 				__func__);
 		wmi_buf_free(buf);
 		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wma_set_sw_retry_threshhold() - set sw retry threshhold per AC for tx
+ * @tx_sw_retry_threshhold: value needs to set to firmware
+ *
+ * This function sends WMI command to set the sw retry threshhold per AC
+ * for Tx.
+ *
+ * Return: VOS_STATUS_SUCCESS on success, error number otherwise
+ */
+VOS_STATUS wma_set_sw_retry_threshhold(
+	struct sir_set_tx_sw_retry_threshhold *tx_sw_retry_threshhold)
+{
+	tp_wma_handle wma_handle;
+	wmi_vdev_set_custom_sw_retry_th_cmd_fixed_param *cmd;
+	int32_t len;
+	wmi_buf_t buf;
+	u_int8_t *buf_ptr;
+	int ret;
+	int queue_num;
+	uint32_t tx_retry[WMI_AC_MAX];
+
+	wma_handle = vos_get_context(VOS_MODULE_ID_WDA,
+			vos_get_global_context(VOS_MODULE_ID_WDA, NULL));
+
+	if (!tx_sw_retry_threshhold) {
+		WMA_LOGE("%s: invalid pointer", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	if (!wma_handle) {
+		WMA_LOGE("%s: WMA context is invald!", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	tx_retry[0] =
+		tx_sw_retry_threshhold->tx_sw_retry_threshhold_be;
+	tx_retry[1] =
+		tx_sw_retry_threshhold->tx_sw_retry_threshhold_bk;
+	tx_retry[2] =
+		tx_sw_retry_threshhold->tx_sw_retry_threshhold_vi;
+	tx_retry[3] =
+		tx_sw_retry_threshhold->tx_sw_retry_threshhold_vo;
+
+	for (queue_num = 0; queue_num < WMI_AC_MAX; queue_num++) {
+		if (tx_retry[queue_num] == 0)
+			continue;
+
+		len = sizeof(*cmd);
+		buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+
+		if (!buf) {
+			WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+			return VOS_STATUS_E_NOMEM;
+		}
+
+		buf_ptr = (u_int8_t *)wmi_buf_data(buf);
+		cmd =
+		    (wmi_vdev_set_custom_sw_retry_th_cmd_fixed_param *)buf_ptr;
+
+		WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_vdev_set_custom_sw_retry_th_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(
+			wmi_vdev_set_custom_sw_retry_th_cmd_fixed_param));
+
+		cmd->vdev_id = tx_sw_retry_threshhold->vdev_id;
+		cmd->ac_type = queue_num;
+		cmd->sw_retry_type = tx_sw_retry_threshhold->retry_type;
+		cmd->sw_retry_th = tx_retry[queue_num];
+
+		WMA_LOGD("queue: %d type: %d threadhold: %d vdev: %d",
+			 queue_num, cmd->sw_retry_type,
+			 cmd->sw_retry_th, cmd->vdev_id);
+
+		ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					WMI_VDEV_SET_CUSTOM_SW_RETRY_TH_CMDID);
+		if (ret) {
+			WMA_LOGE("%s: Failed to send retry threashhold command",
+				 __func__);
+			wmi_buf_free(buf);
+			return VOS_STATUS_E_FAILURE;
+		}
 	}
 
 	return VOS_STATUS_SUCCESS;

@@ -2066,7 +2066,7 @@ static inline int hdd_send_roam_auth_event(hdd_context_t *hdd_ctx,
  * Return: none
  */
 #if defined CFG80211_ROAMED_API_UNIFIED || \
-       (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
+       (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0))
 static void hdd_send_roamed_ind(struct net_device *dev,
 				struct cfg80211_bss *bss, const uint8_t *req_ie,
 				size_t req_ie_len, const uint8_t *resp_ie,
@@ -6318,4 +6318,47 @@ int iw_get_ap_address(struct net_device *dev, struct iw_request_info *info,
 	vos_ssr_unprotect(__func__);
 
 	return ret;
+}
+
+hdd_adapter_t *hdd_get_sta_connection_in_progress(hdd_context_t *hdd_ctx)
+{
+	hdd_adapter_list_node_t *adapter_node = NULL, *next = NULL;
+	hdd_adapter_t *adapter = NULL;
+	VOS_STATUS status;
+	hdd_station_ctx_t *hdd_sta_ctx;
+
+	if (!hdd_ctx) {
+		hddLog(LOGE, FL("HDD context is NULL"));
+		return NULL;
+	}
+
+	status = hdd_get_front_adapter(hdd_ctx, &adapter_node);
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		adapter = adapter_node->pAdapter;
+		if (!adapter)
+			goto end;
+
+		hdd_sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+		if ((WLAN_HDD_INFRA_STATION == adapter->device_mode) ||
+		    (WLAN_HDD_P2P_CLIENT == adapter->device_mode) ||
+		    (WLAN_HDD_P2P_DEVICE == adapter->device_mode)) {
+			if (eConnectionState_Connecting ==
+			    hdd_sta_ctx->conn_info.connState) {
+				hddLog(LOG1, FL("session_id %d: Connection is in progress"),
+				       adapter->sessionId);
+				return adapter;
+			} else if ((eConnectionState_Associated ==
+				   hdd_sta_ctx->conn_info.connState) &&
+				   sme_is_sta_key_exchange_in_progress(
+				   hdd_ctx->hHal, adapter->sessionId)) {
+				hddLog(LOG1, FL("session_id %d: Key exchange is in progress"),
+				       adapter->sessionId);
+				return adapter;
+			}
+		}
+end:
+		status = hdd_get_next_adapter(hdd_ctx, adapter_node, &next);
+		adapter_node = next;
+	}
+	return NULL;
 }

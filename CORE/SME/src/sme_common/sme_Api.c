@@ -12601,13 +12601,21 @@ eHalStatus sme_GetLinkSpeed(tHalHandle hHal, tSirLinkSpeedInfo *lsReq, void *pls
            pMac->sme.pLinkSpeedIndCb = pCallbackfn;
         }
         /* serialize the req through MC thread */
-        vosMessage.bodyptr = lsReq;
+        vosMessage.bodyptr = vos_mem_malloc(sizeof(*lsReq));
+        if (NULL == vosMessage.bodyptr) {
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Memory allocation failed.", __func__);
+                     sme_ReleaseGlobalLock(&pMac->sme);
+           return eHAL_STATUS_E_MALLOC_FAILED;
+        }
+        vos_mem_copy(vosMessage.bodyptr, lsReq, sizeof(*lsReq));
         vosMessage.type    = WDA_GET_LINK_SPEED;
         vosStatus = vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
         if (!VOS_IS_STATUS_SUCCESS(vosStatus))
         {
            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                      "%s: Post Link Speed msg fail", __func__);
+           vos_mem_free(vosMessage.bodyptr);
            status = eHAL_STATUS_FAILURE;
         }
         sme_ReleaseGlobalLock(&pMac->sme);
@@ -20662,4 +20670,17 @@ eHalStatus sme_clear_random_mac(tHalHandle hal, uint32_t session_id,
 		vos_mem_free(filter);
 	}
 	return status;
+}
+
+bool sme_is_sta_key_exchange_in_progress(tHalHandle hal, uint8_t session_id)
+{
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+
+	if (!CSR_IS_SESSION_VALID(mac_ctx, session_id)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Invalid session %d"), session_id);
+		return false;
+	}
+
+	return CSR_IS_WAIT_FOR_KEY(mac_ctx, session_id);
 }

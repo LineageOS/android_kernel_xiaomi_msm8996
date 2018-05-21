@@ -2012,6 +2012,8 @@ HIF_BMI_recv_data(struct CE_handle *copyeng, void *ce_context, void *transfer_co
 }
 #endif
 
+/* Timeout for BMI message exchange */
+#define HIF_EXCHANGE_BMI_MSG_TIMEOUT      6000
 int
 HIFExchangeBMIMsg(HIF_DEVICE *hif_device,
                   A_UINT8    *bmi_request,
@@ -2091,9 +2093,14 @@ HIFExchangeBMIMsg(HIF_DEVICE *hif_device,
     /* TBDXXX: handle timeout */
 
     /* Wait for BMI request/response transaction to complete */
-    /* Always just wait for BMI request here if BMI_RSP_POLLING is defined */
-    while (adf_os_mutex_acquire(scn->adf_dev, &transaction->bmi_transaction_sem)) {
-        /*need some break out condition(time out?)*/
+    if (adf_os_mutex_acquire_timeout(scn->adf_dev,
+                                     &transaction->bmi_transaction_sem,
+                                     HIF_EXCHANGE_BMI_MSG_TIMEOUT)) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
+                        ("%s:Fatal error, BMI transaction timeout. Please check the HW interface!!",
+                         __func__));
+        A_FREE(transaction);
+        return -ETIMEDOUT;
     }
 
     if (bmi_response) {
