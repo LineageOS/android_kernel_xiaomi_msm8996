@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "de5858fb_a22da0ee",
+        "filename": "sound/soc/codecs/opa1622.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 203,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2018-05-23T14:39:24Z",
+      "side": 1,
+      "message": "Another typo?",
+      "range": {
+        "startLine": 202,
+        "startChar": 0,
+        "endLine": 203,
+        "endChar": 55
+      },
+      "revId": "de992d019cfab677ed87408c5f35047c9beccf3c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "953704c4_ed0839a7",
+        "filename": "sound/soc/codecs/tas2555-misc.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2018-05-23T14:39:24Z",
+      "side": 1,
+      "message": "Is this file even being compiled?",
+      "range": {
+        "startLine": 57,
+        "startChar": 0,
+        "endLine": 57,
+        "endChar": 37
+      },
+      "revId": "de992d019cfab677ed87408c5f35047c9beccf3c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
