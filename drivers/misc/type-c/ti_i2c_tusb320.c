@@ -1,9 +1,11 @@
 /*
  * PERICOM 30216A driver
  *
+ * Copyright (C) 2015 xiaomi Incorporated
+ *
  * Copyright (C) 2012 fengwei <fengwei@xiaomi.com>
  * Copyright (c) 2015-2015, The Linux Foundation. All rights reserved.
- * Copyright (C) 2016 XiaoMi, Inc.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,12 +41,7 @@ struct ti_tusb320_data{
 	struct typec_dev c_dev;
 };
 
-static bool int_disable;
-
-/**
-  * If the power supply of i2c isn't alwayson, you need define I2C_SUPPLY_NOT_ALWAYSON
-  */
-
+static bool int_disable = false;
 
  /**
  * ti_tusb320_i2c_read()
@@ -83,9 +80,9 @@ static int ti_tusb320_i2c_read(struct ti_tusb320_data *ti_data,
 			retval = length;
 			break;
 		}
-		dev_dbg(&ti_data->i2c_client->dev,
+		dev_err(&ti_data->i2c_client->dev,
 				"%s: I2C retry %d\n", __func__, retry + 1);
-		msleep(10);
+		msleep(20);
 	}
 
 	if (retry == TI_I2C_RETRY_TIMES) {
@@ -132,10 +129,10 @@ static int ti_tusb320_i2c_write(struct ti_tusb320_data *ti_data,
 			retval = length;
 			break;
 		}
-		dev_dbg(&ti_data->i2c_client->dev,
+		dev_err(&ti_data->i2c_client->dev,
 				"%s: I2C retry %d\n",
 				__func__, retry + 1);
-		msleep(10);
+		msleep(20);
 	}
 
 	if (retry == TI_I2C_RETRY_TIMES) {
@@ -163,7 +160,7 @@ static int ti_tusb320l_set_role_mode(struct ti_tusb320_data *ti_data, enum ti_ro
 		dev_info(&ti_data->i2c_client->dev, "set TI_ROLE_MODE_REG fail\n");
 	/*2. change mode select */
 
-	buf = (buf & ~TI_ROLE_MODE_MASK) | ((mode << TI_ROLE_OFFSET) & TI_ROLE_MODE_MASK);
+	buf = (buf & ~TI_ROLE_MODE_MASK)|((mode << TI_ROLE_OFFSET) & TI_ROLE_MODE_MASK);
 
 	ret = ti_tusb320_i2c_write(ti_data, TI_ROLE_MODE_REG, &buf, 1);
 	if (ret < 0)
@@ -172,7 +169,7 @@ static int ti_tusb320l_set_role_mode(struct ti_tusb320_data *ti_data, enum ti_ro
 	msleep(5);
 	/*4. Clear disable term register */
 	buf &= ~TI_DISABLE_TERM_VAL;
-	ret = ti_tusb320_i2c_write(ti_data, TI_ROLE_MODE_REG, &buf, 1);
+	ret = ti_tusb320_i2c_write(ti_data,TI_ROLE_MODE_REG, &buf, 1);
 	if (ret < 0)
 		dev_info(&ti_data->i2c_client->dev, "set TI_ROLE_MODE_REG fail\n");
 
@@ -224,7 +221,7 @@ static int ti_tusb320_set_role_mode(struct ti_tusb320_data *ti_data, enum ti_rol
 
 	msleep(2);
 	/* 4. clear DISABLE_RD_RP */
-
+	//ti_tusb320_i2c_read(ti_data,TI_DISABLE_RD_RP_REG,&buf,1);
 
 	buf = TI_CLR_DISABLE_RD_RP;
 	ret = ti_tusb320_i2c_write(ti_data, TI_DISABLE_RD_RP_REG, &buf, 1);
@@ -312,7 +309,7 @@ static int ti_tusb320l_set_trysnk_drp_mode(struct ti_tusb320_data *ti_data)
 	msleep(5);
 	/*4. Clear disable term register */
 	buf &= ~TI_DISABLE_TERM_VAL;
-	ret = ti_tusb320_i2c_write(ti_data, TI_ROLE_MODE_REG, &buf, 1);
+	ret = ti_tusb320_i2c_write(ti_data,TI_ROLE_MODE_REG, &buf, 1);
 	if (ret < 0)
 		dev_info(&ti_data->i2c_client->dev, "set TI_ROLE_MODE_REG fail\n");
 
@@ -340,7 +337,7 @@ static int ti_tusb320_get_role_mode(struct ti_tusb320_data *ti_data)
 
 	ret = ti_tusb320_i2c_read(ti_data, TI_ROLE_MODE_REG, &attached_state, 1);
 
-	return ret > 0 ? (((attached_state&0X30) >> 4) == 0 ? 2:((attached_state&0X30) >> 4) - 1):ret;
+	return ret > 0 ? (((attached_state&0X30) >> 4) == 0? 2:((attached_state&0X30) >> 4) - 1):ret;
 }
 static int ti_tusb320_get_id_status(struct typec_dev *dev)
 {
@@ -382,7 +379,7 @@ static int ti_tusb320_get_cc_orientation(struct ti_tusb320_data *ti_data)
 
 	ret = ti_tusb320_i2c_read(ti_data, TI_STATUS_REG, &attached_state, 1);
 
-	return ret > 0 ? ((attached_state&0x20) ? 2 : 1):0;
+	return ret > 0 ? ((attached_state&0x20) ? 2 : 1) : 0;
 }
 
 
@@ -403,7 +400,7 @@ static bool ic_is_present(struct ti_tusb320_data *ti_data)
 	ret = ti_tusb320_i2c_read(ti_data, TI_DEVICE_ID_REG, buf, 11);
 	buf[11] = '\0';
 	if (ret > 0)
-		dev_info(&ti_data->i2c_client->dev, "%s,%d,%d\n", buf, buf[9], buf[10]);
+		dev_info(&ti_data->i2c_client->dev, "%s, %d, %d\n", buf, buf[9], buf[10]);
 
 	return (ret < 0) ? false:true;
 }
@@ -411,7 +408,7 @@ static bool ic_is_present(struct ti_tusb320_data *ti_data)
 static irqreturn_t ti_tusb320_irq_handler(int irq, void *dev_id)
 {
 	struct ti_tusb320_data *ti_data  = (struct ti_tusb320_data *) dev_id;
-	static char try_snk_attempt;
+	static char try_snk_attempt = 0;
 	char attached_state ;
 	char buf;
 
@@ -452,9 +449,7 @@ static int ti_tusb320_probe(struct i2c_client *client,
 		const struct i2c_device_id *dev_id)
 {
 	int retval = 0;
-#ifdef I2C_SUPPLY_NOT_ALWAYSON
 	struct regulator *i2c_vdd;
-#endif
 	struct ti_tusb320_data *tusb320_data =
 			client->dev.platform_data;
 
@@ -483,10 +478,6 @@ static int ti_tusb320_probe(struct i2c_client *client,
 		return -EINVAL;
 	}
 
-	/* Notice: the power supply of i2c is S4 and is always on
-	  * so don't need these steps
-	  * But, if the supply isn't alwayson, need these steps*/
-#ifdef I2C_SUPPLY_NOT_ALWAYSON
 	i2c_vdd = regulator_get(&client->dev, "i2c");
 	if (IS_ERR(i2c_vdd)) {
 		dev_err(&client->dev,	"Regulator get failed i2c ret=%ld\n", PTR_ERR(i2c_vdd));
@@ -500,7 +491,6 @@ static int ti_tusb320_probe(struct i2c_client *client,
 	}
 
 	msleep(100);
-#endif
 
 	mutex_init(&(tusb320_data->i2c_rw_mutex));
 	tusb320_data->i2c_client = client;
@@ -546,14 +536,14 @@ static int ti_tusb320_probe(struct i2c_client *client,
 
 
 normal:
-	/*register typec class*/
-	tusb320_data->c_dev.name = DRIVER_NAME;
-	tusb320_data->c_dev.get_mode = ti_tusb320_get_id_status;
-	tusb320_data->c_dev.set_mode = ti_tusb320_set_id_status;
-	tusb320_data->c_dev.get_direction = ti_tusb320_get_cc_pin;
-	retval = typec_dev_register(&tusb320_data->c_dev);
-	if (retval < 0)
-		goto err_fs;
+       /*register typec class*/
+       tusb320_data->c_dev.name = DRIVER_NAME;
+       tusb320_data->c_dev.get_mode = ti_tusb320_get_id_status;
+       tusb320_data->c_dev.set_mode = ti_tusb320_set_id_status;
+       tusb320_data->c_dev.get_direction = ti_tusb320_get_cc_pin;
+       retval = typec_dev_register(&tusb320_data->c_dev);
+       if (retval < 0)
+			   goto err_fs;
 
 
 	return retval;
@@ -562,10 +552,8 @@ err_fs:
 	if (client->addr != TI_TUSB320L_ADDR)
 		free_irq(tusb320_data->irq, tusb320_data);
 err_absent:
-#ifdef I2C_SUPPLY_NOT_ALWAYSON
 	regulator_disable(i2c_vdd);
 err_regulator:
-#endif
 	devm_kfree(&client->dev, tusb320_data);
 	return retval;
 }
