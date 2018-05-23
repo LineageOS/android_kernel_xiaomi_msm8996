@@ -1,5 +1,5 @@
 /* Copyright (c) 2011-2016, 2018 The Linux Foundation. All rights reserved.
- * Copyright (C) 2016 XiaoMi, Inc.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -25,94 +25,94 @@
 
 DEFINE_MSM_MUTEX(msm_eeprom_mutex);
 
-#define GEMINI_FRONT_MODULE_ID_OFFSET 0x1
-#define GEMINI_FRONT_PAGE0_OFFSET 0x0
-#define GEMINI_FRONT_PAGE1_OFFSET 0x10
-#define GEMINI_FRONT_PAGE2_OFFSET 0x20
-#define GEMINI_FRONT_MODULE_ID_PRIMAX 0x25
-#define GEMINI_FRONT_MODULE_ID_LIETON 0x15
-#define GEMINI_FRONT_MODULE_LITEON "ov4688"
-#define GEMINI_FRONT_MODULE_PRIMAX "ov4688_primax"
-#define GEMINI_FRONT_SENSOR_NAME "ov4688"
-#define GEMINI_FRONT_TOTAL_CHECK_SUM    13
+#define A1_FRONT_MODULE_ID_OFFSET 0x1
+#define A1_FRONT_PAGE0_OFFSET 0x0
+#define A1_FRONT_PAGE1_OFFSET 0x10
+#define A1_FRONT_PAGE2_OFFSET 0x20
+#define A1_FRONT_MODULE_ID_PRIMAX 0x25
+#define A1_FRONT_MODULE_ID_LIETON 0x15
+#define A1_FRONT_MODULE_LITEON "ov4688"
+#define A1_FRONT_MODULE_PRIMAX "ov4688_primax"
+#define A1_FRONT_SENSOR_NAME "ov4688"
+#define A1_FRONT_TOTAL_CHECK_SUM    13
 
-#define SCORPIO_BACK_MODULE_ID_OFFSET 0x0
-#define SCORPIO_BACK_MODULE_ID_PRIMAX 0x23
-#define SCORPIO_BACK_MODULE_ID_SEMCO 0x0D
-#define SCORPIO_BACK_MODULE_DRIVER_IC_OFFSET 0x0A
-#define SCORPIO_BACK_MODULE_PRIMAX "imx318"
-#define SCORPIO_BACK_MODULE_PRIMAX_AK7371 "imx318_primax"
-#define SCORPIO_BACK_MODULE_SEMCO "imx318_semco"
-#define SCORPIO_BACK_SENSOR_NAME "imx318"
+#define A4_BACK_MODULE_ID_OFFSET 0x0
+#define A4_BACK_MODULE_ID_PRIMAX 0x23
+#define A4_BACK_MODULE_ID_SEMCO 0x0D
+#define A4_BACK_MODULE_DRIVER_IC_OFFSET 0x0A
+#define A4_BACK_MODULE_PRIMAX "imx318"
+#define A4_BACK_MODULE_PRIMAX_AK7371 "imx318_primax"
+#define A4_BACK_MODULE_SEMCO "imx318_semco"
+#define A4_BACK_SENSOR_NAME "imx318"
 
-#define SCORPIO_FRONT_MODULE_ID_OFFSET 0x0
-#define SCORPIO_FRONT_MODULE_ID_PRIMAX 0x08
-#define SCORPIO_FRONT_MODULE_ID_SUNNY 0x00
-#define SCORPIO_FRONT_MODULE_PRIMAX "imx268"
-#define SCORPIO_FRONT_MODULE_SUNNY "imx268_sunny"
-#define SCORPIO_FRONT_SENSOR_NAME "imx268"
+#define A4_FRONT_MODULE_ID_OFFSET 0x0
+#define A4_FRONT_MODULE_ID_PRIMAX 0x08
+#define A4_FRONT_MODULE_ID_SUNNY 0x00
+#define A4_FRONT_MODULE_PRIMAX "imx268"
+#define A4_FRONT_MODULE_SUNNY "imx268_sunny"
+#define A4_FRONT_SENSOR_NAME "imx268"
 
-#define CAPRICORN_BACK_MODULE_ID_OFFSET 0x0
-#define CAPRICORN_BACK_MODULE_ID_LITEON 0x15
-#define CAPRICORN_BACK_MODULE_ID_SEMCO 0x0D
-#define CAPRICORN_BACK_MODULE_LITEON "imx378_liteon"
-#define CAPRICORN_BACK_MODULE_SEMCO "imx378_semco"
-#define CAPRICORN_BACK_SENSOR_NAME "sony_imx378"
+#define A7_BACK_MODULE_ID_OFFSET 0x0
+#define A7_BACK_MODULE_ID_LITEON 0x15
+#define A7_BACK_MODULE_ID_SEMCO 0x0D
+#define A7_BACK_MODULE_LITEON "imx378_liteon"
+#define A7_BACK_MODULE_SEMCO "imx378_semco"
+#define A7_BACK_SENSOR_NAME "sony_imx378"
 
-#define NATRIUM_FRONT_MODULE_ID_OFFSET 0x1
-#define NATRIUM_FRONT_PAGE0_OFFSET 0x0
-#define NATRIUM_FRONT_PAGE1_OFFSET 0x10
-#define NATRIUM_FRONT_PAGE2_OFFSET 0x20
-#define NATRIUM_FRONT_MODULE_ID_PRIMAX 0x25
-#define NATRIUM_FRONT_MODULE_ID_LIETON 0x15
-#define NATRIUM_FRONT_MODULE_LITEON "ov4688_natrium"
-#define NATRIUM_FRONT_MODULE_PRIMAX "ov4688_primax_natrium"
-#define NATRIUM_FRONT_SENSOR_NAME "ov4688_natrium"
-#define NATRIUM_FRONT_TOTAL_CHECK_SUM    13
+#define B7_FRONT_MODULE_ID_OFFSET 0x1
+#define B7_FRONT_PAGE0_OFFSET 0x0
+#define B7_FRONT_PAGE1_OFFSET 0x10
+#define B7_FRONT_PAGE2_OFFSET 0x20
+#define B7_FRONT_MODULE_ID_PRIMAX 0x25
+#define B7_FRONT_MODULE_ID_LIETON 0x15
+#define B7_FRONT_MODULE_LITEON "ov4688_b7"
+#define B7_FRONT_MODULE_PRIMAX "ov4688_primax_b7"
+#define B7_FRONT_SENSOR_NAME "ov4688_b7"
+#define B7_FRONT_TOTAL_CHECK_SUM    13
 
-#define NATRIUM_MAIN_MODULE_ID_OFFSET 0x0
-#define NATRIUM_MAIN_MODULE_ID_OFILM 0x00
-#define NATRIUM_MAIN_MODULE_ID_SEMCO 0x0D
-#define NATRIUM_MAIN_MODULE_OFILM "imx258_ofilm"
-#define NATRIUM_MAIN_MODULE_SEMCO "imx258"
-#define NATRIUM_MAIN_SENSOR_NAME "imx258_gt24c32"
+#define B7_MAIN_MODULE_ID_OFFSET 0x0
+#define B7_MAIN_MODULE_ID_OFILM 0x00
+#define B7_MAIN_MODULE_ID_SEMCO 0x0D
+#define B7_MAIN_MODULE_OFILM "imx258_ofilm"
+#define B7_MAIN_MODULE_SEMCO "imx258"
+#define B7_MAIN_SENSOR_NAME "imx258_gt24c32"
 
-#define NATRIUM_AUX_MODULE_ID_OFFSET 0x0
-#define NATRIUM_AUX_MODULE_ID_OFILM 0x00
-#define NATRIUM_AUX_MODULE_ID_SEMCO 0x0D
-#define NATRIUM_AUX_MODULE_OFILM "imx258_mono_ofilm"
-#define NATRIUM_AUX_MODULE_SEMCO "imx258_mono"
-#define NATRIUM_AUX_SENSOR_NAME "imx258_mono_gt24c32"
+#define B7_AUX_MODULE_ID_OFFSET 0x0
+#define B7_AUX_MODULE_ID_OFILM 0x00
+#define B7_AUX_MODULE_ID_SEMCO 0x0D
+#define B7_AUX_MODULE_OFILM "imx258_mono_ofilm"
+#define B7_AUX_MODULE_SEMCO "imx258_mono"
+#define B7_AUX_SENSOR_NAME "imx258_mono_gt24c32"
 
-#define LITHIUM_REAR_MODULE_ID_OFFSET 0x1
-#define LITHIUM_REAR_MODULE_ID_OFILM 0x07
-#define LITHIUM_REAR_MODULE_OFILM "ov16880_ofilm"
-#define LITHIUM_REAR_SENSOR_NAME "ov16880"
+#define A8_REAR_MODULE_ID_OFFSET 0x1
+#define A8_REAR_MODULE_ID_OFILM 0x07
+#define A8_REAR_MODULE_OFILM "ov16880_ofilm"
+#define A8_REAR_SENSOR_NAME "ov16880"
 
-static int scorpio_set_back_sensor_name;
-static char scorpio_back_sensor_name[32];
+static int a4_set_back_sensor_name;
+static char a4_back_sensor_name[32];
 
-static int scorpio_set_front_sensor_name;
-static char scorpio_front_sensor_name[32];
+static int a4_set_front_sensor_name;
+static char a4_front_sensor_name[32];
 
-static int capricorn_set_back_sensor_name;
-static char capricorn_back_sensor_name[32];
+static int a7_set_back_sensor_name;
+static char a7_back_sensor_name[32];
 
-static int natrium_set_main_sensor_name;
-static char natrium_main_sensor_name[32];
+static int b7_set_main_sensor_name;
+static char b7_main_sensor_name[32];
 
-static int natrium_set_aux_sensor_name;
-static char natrium_aux_sensor_name[32];
+static int b7_set_aux_sensor_name;
+static char b7_aux_sensor_name[32];
 
-static int natrium_set_front_sensor_name;
-static char natrium_front_sensor_name[32];
+static int b7_set_front_sensor_name;
+static char b7_front_sensor_name[32];
 
-static int gemini_set_front_sensor_name;
-static char gemini_front_sensor_name[32];
+static int a1_set_front_sensor_name;
+static char a1_front_sensor_name[32];
 int8_t g_ois_vendor = 0;
 
-static int lithium_set_rear_sensor_name;
-static char lithium_rear_sensor_name[32];
+static int a8_set_rear_sensor_name;
+static char a8_rear_sensor_name[32];
 
 #ifdef CONFIG_COMPAT
 static struct v4l2_file_operations msm_eeprom_v4l2_subdev_fops;
@@ -212,186 +212,186 @@ static unsigned char xiaomi_eeprom_checksum(unsigned char *buf,
 	return retval;
 }
 
-static void set_scorpio_back_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
+static void set_a4_back_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
 		char *mapdata)
 {
 	uint8_t *memptr;
 
-	if (scorpio_set_back_sensor_name)
+	if (a4_set_back_sensor_name)
 		return;
 
 	memptr = mapdata;
 
-	if (memptr[SCORPIO_BACK_MODULE_ID_OFFSET] == SCORPIO_BACK_MODULE_ID_PRIMAX) {
-		if (memptr[SCORPIO_BACK_MODULE_ID_OFFSET + SCORPIO_BACK_MODULE_DRIVER_IC_OFFSET] == 0x02) {
-			strcpy(scorpio_back_sensor_name, SCORPIO_BACK_MODULE_PRIMAX_AK7371);
+	if (memptr[A4_BACK_MODULE_ID_OFFSET] == A4_BACK_MODULE_ID_PRIMAX) {
+		if (memptr[A4_BACK_MODULE_ID_OFFSET + A4_BACK_MODULE_DRIVER_IC_OFFSET] == 0x02) {
+			strcpy(a4_back_sensor_name, A4_BACK_MODULE_PRIMAX_AK7371);
 		} else {
-			strcpy(scorpio_back_sensor_name, SCORPIO_BACK_MODULE_PRIMAX);
+			strcpy(a4_back_sensor_name, A4_BACK_MODULE_PRIMAX);
 		}
-		scorpio_set_back_sensor_name = 1;
-		pr_err("scorpio back sensor name = %s, line = %d\n", scorpio_back_sensor_name, __LINE__);
+		a4_set_back_sensor_name = 1;
+		pr_err("a4 back sensor name = %s, line = %d\n", a4_back_sensor_name, __LINE__);
 		return;
-	} else if (memptr[SCORPIO_BACK_MODULE_ID_OFFSET] == SCORPIO_BACK_MODULE_ID_SEMCO) {
-		strcpy(scorpio_back_sensor_name, SCORPIO_BACK_MODULE_SEMCO);
-		scorpio_set_back_sensor_name = 1;
-		pr_err("scorpio back sensor name = %s, line = %d\n", scorpio_back_sensor_name, __LINE__);
-		return;
-		} else {
-		pr_err("scorpio back semco sensor name not match!\n");
-	}
-}
-
-static void set_scorpio_front_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
-		char *mapdata)
-{
-	uint8_t *memptr;
-
-	if (scorpio_set_front_sensor_name)
-		return;
-
-	memptr = mapdata;
-
-	if (memptr[SCORPIO_FRONT_MODULE_ID_OFFSET] == SCORPIO_FRONT_MODULE_ID_PRIMAX) {
-		strlcpy(scorpio_front_sensor_name, SCORPIO_FRONT_MODULE_PRIMAX, sizeof(scorpio_front_sensor_name));
-		scorpio_set_front_sensor_name = 1;
-		pr_err("scorpio front sensor name = %s, line = %d\n", scorpio_front_sensor_name, __LINE__);
-		return;
-	} else if (memptr[SCORPIO_FRONT_MODULE_ID_OFFSET] == SCORPIO_FRONT_MODULE_ID_SUNNY) {
-		strlcpy(scorpio_front_sensor_name, SCORPIO_FRONT_MODULE_SUNNY, sizeof(scorpio_front_sensor_name));
-		scorpio_set_front_sensor_name = 1;
-		pr_err("scorpio front sensor name = %s, line = %d\n", scorpio_front_sensor_name, __LINE__);
-		return;
-	} else {
-		pr_err("scorpio front sensor name not match!\n");
-	}
-}
-
-static void set_capricorn_back_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
-		char *mapdata)
-{
-	uint8_t *memptr;
-
-	if (capricorn_set_back_sensor_name)
-		return;
-
-	memptr = mapdata;
-
-	if (memptr[CAPRICORN_BACK_MODULE_ID_OFFSET] == CAPRICORN_BACK_MODULE_ID_LITEON) {
-		strcpy(capricorn_back_sensor_name, CAPRICORN_BACK_MODULE_LITEON);
-		capricorn_set_back_sensor_name = 1;
-		pr_err("capricorn back sensor name = %s, line = %d\n", capricorn_back_sensor_name, __LINE__);
-		return;
-	} else if (memptr[CAPRICORN_BACK_MODULE_ID_OFFSET] == CAPRICORN_BACK_MODULE_ID_SEMCO) {
-		strcpy(capricorn_back_sensor_name, CAPRICORN_BACK_MODULE_SEMCO);
-		capricorn_set_back_sensor_name = 1;
-		pr_err("capricorn back sensor name = %s, line = %d\n", capricorn_back_sensor_name, __LINE__);
+	} else if (memptr[A4_BACK_MODULE_ID_OFFSET] == A4_BACK_MODULE_ID_SEMCO) {
+		strcpy(a4_back_sensor_name, A4_BACK_MODULE_SEMCO);
+		a4_set_back_sensor_name = 1;
+		pr_err("a4 back sensor name = %s, line = %d\n", a4_back_sensor_name, __LINE__);
 		return;
 		} else {
-		pr_err("capricorn back sensor name not match!\n");
+		pr_err("a4 back semco sensor name not match!\n");
 	}
 }
 
-static void set_lithium_rear_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
+static void set_a4_front_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
 		char *mapdata)
 {
 	uint8_t *memptr;
 
-	if (lithium_set_rear_sensor_name)
+	if (a4_set_front_sensor_name)
 		return;
 
 	memptr = mapdata;
-	if (memptr[LITHIUM_REAR_MODULE_ID_OFFSET] == LITHIUM_REAR_MODULE_ID_OFILM) {
-		strcpy(lithium_rear_sensor_name, LITHIUM_REAR_SENSOR_NAME);
-		lithium_set_rear_sensor_name = 1;
-		pr_err("lithium rear sensor name = %s, line = %d\n", lithium_rear_sensor_name, __LINE__);
+
+	if (memptr[A4_FRONT_MODULE_ID_OFFSET] == A4_FRONT_MODULE_ID_PRIMAX) {
+		strlcpy(a4_front_sensor_name, A4_FRONT_MODULE_PRIMAX, sizeof(a4_front_sensor_name));
+		a4_set_front_sensor_name = 1;
+		pr_err("a4 front sensor name = %s, line = %d\n", a4_front_sensor_name, __LINE__);
+		return;
+	} else if (memptr[A4_FRONT_MODULE_ID_OFFSET] == A4_FRONT_MODULE_ID_SUNNY) {
+		strlcpy(a4_front_sensor_name, A4_FRONT_MODULE_SUNNY, sizeof(a4_front_sensor_name));
+		a4_set_front_sensor_name = 1;
+		pr_err("a4 front sensor name = %s, line = %d\n", a4_front_sensor_name, __LINE__);
 		return;
 	} else {
-		pr_err("lithium rear sensor name not match!,data = %d,set = %d\n", memptr[LITHIUM_REAR_MODULE_ID_OFFSET], LITHIUM_REAR_MODULE_ID_OFILM);
+		pr_err("a4 front sensor name not match!\n");
+	}
+}
+
+static void set_a7_back_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
+		char *mapdata)
+{
+	uint8_t *memptr;
+
+	if (a7_set_back_sensor_name)
+		return;
+
+	memptr = mapdata;
+
+	if (memptr[A7_BACK_MODULE_ID_OFFSET] == A7_BACK_MODULE_ID_LITEON) {
+		strcpy(a7_back_sensor_name, A7_BACK_MODULE_LITEON);
+		a7_set_back_sensor_name = 1;
+		pr_err("a7 back sensor name = %s, line = %d\n", a7_back_sensor_name, __LINE__);
+		return;
+	} else if (memptr[A7_BACK_MODULE_ID_OFFSET] == A7_BACK_MODULE_ID_SEMCO) {
+		strcpy(a7_back_sensor_name, A7_BACK_MODULE_SEMCO);
+		a7_set_back_sensor_name = 1;
+		pr_err("a7 back sensor name = %s, line = %d\n", a7_back_sensor_name, __LINE__);
+		return;
+		} else {
+		pr_err("a7 back sensor name not match!\n");
+	}
+}
+
+static void set_a8_rear_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
+		char *mapdata)
+{
+	uint8_t *memptr;
+
+	if (a8_set_rear_sensor_name)
+		return;
+
+	memptr = mapdata;
+	if (memptr[A8_REAR_MODULE_ID_OFFSET] == A8_REAR_MODULE_ID_OFILM) {
+		strcpy(a8_rear_sensor_name, A8_REAR_SENSOR_NAME);
+		a8_set_rear_sensor_name = 1;
+		pr_err("a8 rear sensor name = %s, line = %d\n", a8_rear_sensor_name, __LINE__);
+		return;
+	} else {
+		pr_err("a8 rear sensor name not match!,data = %d,set = %d\n", memptr[A8_REAR_MODULE_ID_OFFSET], A8_REAR_MODULE_ID_OFILM);
 	}
 
 	return;
 }
 
-static void set_natrium_main_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
+static void set_b7_main_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
 		char *mapdata)
 {
 	uint8_t *memptr;
 
-	if (natrium_set_main_sensor_name)
+	if (b7_set_main_sensor_name)
 		return;
 
 	memptr = mapdata;
 
-	if (memptr[NATRIUM_MAIN_MODULE_ID_OFFSET] == NATRIUM_MAIN_MODULE_ID_OFILM) {
-		strcpy(natrium_main_sensor_name, NATRIUM_MAIN_MODULE_OFILM);
-		natrium_set_main_sensor_name = 1;
-		pr_err("natrium main sensor name = %s, line = %d\n", natrium_main_sensor_name, __LINE__);
+	if (memptr[B7_MAIN_MODULE_ID_OFFSET] == B7_MAIN_MODULE_ID_OFILM) {
+		strcpy(b7_main_sensor_name, B7_MAIN_MODULE_OFILM);
+		b7_set_main_sensor_name = 1;
+		pr_err("b7 main sensor name = %s, line = %d\n", b7_main_sensor_name, __LINE__);
 		return;
-	} else if (memptr[NATRIUM_MAIN_MODULE_ID_OFFSET] == NATRIUM_MAIN_MODULE_ID_SEMCO) {
-		strcpy(natrium_main_sensor_name, NATRIUM_MAIN_MODULE_SEMCO);
-		natrium_set_main_sensor_name = 1;
-		pr_err("natrium main sensor name = %s, line = %d\n", natrium_main_sensor_name, __LINE__);
+	} else if (memptr[B7_MAIN_MODULE_ID_OFFSET] == B7_MAIN_MODULE_ID_SEMCO) {
+		strcpy(b7_main_sensor_name, B7_MAIN_MODULE_SEMCO);
+		b7_set_main_sensor_name = 1;
+		pr_err("b7 main sensor name = %s, line = %d\n", b7_main_sensor_name, __LINE__);
 		return;
 	} else {
-		pr_err("natrium main sensor name not match(%d)!\n", memptr[NATRIUM_MAIN_MODULE_ID_OFFSET]);
+		pr_err("b7 main sensor name not match(%d)!\n", memptr[B7_MAIN_MODULE_ID_OFFSET]);
 	}
 }
 
-static void set_natrium_aux_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
+static void set_b7_aux_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
 		char *mapdata)
 {
 	uint8_t *memptr;
 
-	if (natrium_set_aux_sensor_name)
+	if (b7_set_aux_sensor_name)
 		return;
 
 	memptr = mapdata;
 
-	if (memptr[NATRIUM_AUX_MODULE_ID_OFFSET] == NATRIUM_AUX_MODULE_ID_OFILM) {
-		strcpy(natrium_aux_sensor_name, NATRIUM_AUX_MODULE_OFILM);
-		natrium_set_aux_sensor_name = 1;
-		pr_err("natrium aux sensor name = %s, line = %d\n", natrium_aux_sensor_name, __LINE__);
+	if (memptr[B7_AUX_MODULE_ID_OFFSET] == B7_AUX_MODULE_ID_OFILM) {
+		strcpy(b7_aux_sensor_name, B7_AUX_MODULE_OFILM);
+		b7_set_aux_sensor_name = 1;
+		pr_err("b7 aux sensor name = %s, line = %d\n", b7_aux_sensor_name, __LINE__);
 		return;
-	} else if (memptr[NATRIUM_AUX_MODULE_ID_OFFSET] == NATRIUM_AUX_MODULE_ID_SEMCO) {
-		strcpy(natrium_aux_sensor_name, NATRIUM_AUX_MODULE_SEMCO);
-		natrium_set_aux_sensor_name = 1;
-		pr_err("natrium aux sensor name = %s, line = %d\n", natrium_aux_sensor_name, __LINE__);
+	} else if (memptr[B7_AUX_MODULE_ID_OFFSET] == B7_AUX_MODULE_ID_SEMCO) {
+		strcpy(b7_aux_sensor_name, B7_AUX_MODULE_SEMCO);
+		b7_set_aux_sensor_name = 1;
+		pr_err("b7 aux sensor name = %s, line = %d\n", b7_aux_sensor_name, __LINE__);
 		return;
 	} else {
-		pr_err("natrium aux sensor name not match(%d)!\n", memptr[NATRIUM_AUX_MODULE_ID_OFFSET]);
+		pr_err("b7 aux sensor name not match(%d)!\n", memptr[B7_AUX_MODULE_ID_OFFSET]);
 	}
 }
 
-static void set_natrium_front_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
+static void set_b7_front_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
 		char *mapdata)
 {
 	uint8_t *memptr;
 	int offset;
 
-	if (natrium_set_front_sensor_name)
+	if (b7_set_front_sensor_name)
 		return;
 
 	memptr = mapdata;
 
-	if ((memptr[NATRIUM_FRONT_PAGE2_OFFSET] & 0xC0) == 0x40)
-		offset = NATRIUM_FRONT_PAGE2_OFFSET + NATRIUM_FRONT_MODULE_ID_OFFSET;
-	else if ((memptr[NATRIUM_FRONT_PAGE1_OFFSET] & 0xC0) == 0x40)
-		offset = NATRIUM_FRONT_PAGE1_OFFSET + NATRIUM_FRONT_MODULE_ID_OFFSET;
-	else if ((memptr[NATRIUM_FRONT_PAGE0_OFFSET] & 0xC0) == 0x40)
-		offset = NATRIUM_FRONT_PAGE0_OFFSET + NATRIUM_FRONT_MODULE_ID_OFFSET;
+	if ((memptr[B7_FRONT_PAGE2_OFFSET] & 0xC0) == 0x40)
+		offset = B7_FRONT_PAGE2_OFFSET + B7_FRONT_MODULE_ID_OFFSET;
+	else if ((memptr[B7_FRONT_PAGE1_OFFSET] & 0xC0) == 0x40)
+		offset = B7_FRONT_PAGE1_OFFSET + B7_FRONT_MODULE_ID_OFFSET;
+	else if ((memptr[B7_FRONT_PAGE0_OFFSET] & 0xC0) == 0x40)
+		offset = B7_FRONT_PAGE0_OFFSET + B7_FRONT_MODULE_ID_OFFSET;
 	else
 		return;
 
-	if (memptr[offset] == NATRIUM_FRONT_MODULE_ID_PRIMAX) {
-		strcpy(natrium_front_sensor_name, NATRIUM_FRONT_MODULE_PRIMAX);
-		natrium_set_front_sensor_name = 1;
-		pr_err("natrium front sensor name = %s\n", natrium_front_sensor_name);
-	} else if (memptr[offset] == NATRIUM_FRONT_MODULE_ID_LIETON) {
-		strcpy(natrium_front_sensor_name, NATRIUM_FRONT_MODULE_LITEON);
-		natrium_set_front_sensor_name = 1;
-		pr_err("natrium front sensor name = %s\n", natrium_front_sensor_name);
+	if (memptr[offset] == B7_FRONT_MODULE_ID_PRIMAX) {
+		strcpy(b7_front_sensor_name, B7_FRONT_MODULE_PRIMAX);
+		b7_set_front_sensor_name = 1;
+		pr_err("b7 front sensor name = %s\n", b7_front_sensor_name);
+	} else if (memptr[offset] == B7_FRONT_MODULE_ID_LIETON) {
+		strcpy(b7_front_sensor_name, B7_FRONT_MODULE_LITEON);
+		b7_set_front_sensor_name = 1;
+		pr_err("b7 front sensor name = %s\n", b7_front_sensor_name);
 	} else {
-		pr_err("natrium front sensor name not match!\n");
+		pr_err("b7 front sensor name not match!\n");
 	}
 }
 
@@ -401,34 +401,34 @@ static void set_front_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl,
 	uint8_t *memptr;
 	int offset;
 
-	if (gemini_set_front_sensor_name)
+	if (a1_set_front_sensor_name)
 		return;
 
 	memptr = mapdata;
 
-	if ((memptr[GEMINI_FRONT_PAGE2_OFFSET] & 0xC0) == 0x40)
-		offset = GEMINI_FRONT_PAGE2_OFFSET + GEMINI_FRONT_MODULE_ID_OFFSET;
-	else if ((memptr[GEMINI_FRONT_PAGE1_OFFSET] & 0xC0) == 0x40)
-		offset = GEMINI_FRONT_PAGE1_OFFSET + GEMINI_FRONT_MODULE_ID_OFFSET;
-	else if ((memptr[GEMINI_FRONT_PAGE0_OFFSET] & 0xC0) == 0x40)
-		offset = GEMINI_FRONT_PAGE0_OFFSET + GEMINI_FRONT_MODULE_ID_OFFSET;
+	if ((memptr[A1_FRONT_PAGE2_OFFSET] & 0xC0) == 0x40)
+		offset = A1_FRONT_PAGE2_OFFSET + A1_FRONT_MODULE_ID_OFFSET;
+	else if ((memptr[A1_FRONT_PAGE1_OFFSET] & 0xC0) == 0x40)
+		offset = A1_FRONT_PAGE1_OFFSET + A1_FRONT_MODULE_ID_OFFSET;
+	else if ((memptr[A1_FRONT_PAGE0_OFFSET] & 0xC0) == 0x40)
+		offset = A1_FRONT_PAGE0_OFFSET + A1_FRONT_MODULE_ID_OFFSET;
 	else
 		return;
 
-	if (memptr[offset] == GEMINI_FRONT_MODULE_ID_PRIMAX) {
-		strcpy(gemini_front_sensor_name, GEMINI_FRONT_MODULE_PRIMAX);
-		gemini_set_front_sensor_name = 1;
-		CDBG("gemini front sensor name = %s\n", gemini_front_sensor_name);
-	} else if (memptr[offset] == GEMINI_FRONT_MODULE_ID_LIETON) {
-		strcpy(gemini_front_sensor_name, GEMINI_FRONT_MODULE_LITEON);
-		gemini_set_front_sensor_name = 1;
-		CDBG("gemini front sensor name = %s\n", gemini_front_sensor_name);
+	if (memptr[offset] == A1_FRONT_MODULE_ID_PRIMAX) {
+		strcpy(a1_front_sensor_name, A1_FRONT_MODULE_PRIMAX);
+		a1_set_front_sensor_name = 1;
+		CDBG("a1 front sensor name = %s\n", a1_front_sensor_name);
+	} else if (memptr[offset] == A1_FRONT_MODULE_ID_LIETON) {
+		strcpy(a1_front_sensor_name, A1_FRONT_MODULE_LITEON);
+		a1_set_front_sensor_name = 1;
+		CDBG("a1 front sensor name = %s\n", a1_front_sensor_name);
 	} else {
-		pr_err("gemini front sensor name not match!\n");
+		pr_err("a1 front sensor name not match!\n");
 	}
 }
 
-static void gemini_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
+static void a1_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
 {
 	struct msm_eeprom_board_info *eb_info;
 
@@ -437,14 +437,14 @@ static void gemini_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapda
 	if (e_ctrl->eboard_info->eeprom_name == NULL || mapdata == NULL)
 		return;
 
-	if (!strcmp(eb_info->eeprom_name, GEMINI_FRONT_SENSOR_NAME)) {
+	if (!strcmp(eb_info->eeprom_name, A1_FRONT_SENSOR_NAME)) {
 		set_front_sensor_name(e_ctrl, mapdata);
 	} else {
-		pr_err("gemini sensor name check failed\n");
+		pr_err("a1 sensor name check failed\n");
 	}
 }
 
-static void scorpio_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
+static void a4_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
 {
 	struct msm_eeprom_board_info *eb_info;
 
@@ -453,15 +453,15 @@ static void scorpio_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapd
 	if (e_ctrl->eboard_info->eeprom_name == NULL || mapdata == NULL)
 		return;
 
-	if (!strncmp(eb_info->eeprom_name, SCORPIO_BACK_SENSOR_NAME,
-				strlen(SCORPIO_BACK_SENSOR_NAME))) {
-		set_scorpio_back_sensor_name(e_ctrl, mapdata);
+	if (!strncmp(eb_info->eeprom_name, A4_BACK_SENSOR_NAME,
+				strlen(A4_BACK_SENSOR_NAME))) {
+		set_a4_back_sensor_name(e_ctrl, mapdata);
 	} else {
-		pr_err("scorpio back sensor name check failed\n");
+		pr_err("a4 back sensor name check failed\n");
 	}
 }
 
-static void scorpio_front_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
+static void a4_front_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
 {
 	struct msm_eeprom_board_info *eb_info;
 
@@ -470,15 +470,15 @@ static void scorpio_front_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char
 	if (e_ctrl->eboard_info->eeprom_name == NULL || mapdata == NULL)
 		return;
 
-	if (!strncmp(eb_info->eeprom_name, SCORPIO_FRONT_SENSOR_NAME,
-				strlen(SCORPIO_FRONT_SENSOR_NAME))) {
-		set_scorpio_front_sensor_name(e_ctrl, mapdata);
+	if (!strncmp(eb_info->eeprom_name, A4_FRONT_SENSOR_NAME,
+				strlen(A4_FRONT_SENSOR_NAME))) {
+		set_a4_front_sensor_name(e_ctrl, mapdata);
 	} else {
-		pr_err("scorpio front sensor name check failed\n");
+		pr_err("a4 front sensor name check failed\n");
 	}
 }
 
-static void capricorn_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
+static void a7_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
 {
 	struct msm_eeprom_board_info *eb_info;
 
@@ -487,16 +487,16 @@ static void capricorn_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *ma
 	if (e_ctrl->eboard_info->eeprom_name == NULL || mapdata == NULL)
 		return;
 
-	if (!strncmp(eb_info->eeprom_name, CAPRICORN_BACK_SENSOR_NAME,
-				strlen(CAPRICORN_BACK_SENSOR_NAME))) {
-		set_capricorn_back_sensor_name(e_ctrl, mapdata);
+	if (!strncmp(eb_info->eeprom_name, A7_BACK_SENSOR_NAME,
+				strlen(A7_BACK_SENSOR_NAME))) {
+		set_a7_back_sensor_name(e_ctrl, mapdata);
 	} else {
-		pr_err("capricorn sensor name check failed\n");
+		pr_err("a7 sensor name check failed\n");
 	}
 
 }
 
-static void lithium_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
+static void a8_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
 {
 	struct msm_eeprom_board_info *eb_info;
 
@@ -505,16 +505,16 @@ static void lithium_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapd
 	if (e_ctrl->eboard_info->eeprom_name == NULL || mapdata == NULL)
 		return;
 
-	if (!strncmp(eb_info->eeprom_name, LITHIUM_REAR_SENSOR_NAME,
-				strlen(LITHIUM_REAR_SENSOR_NAME))) {
-		set_lithium_rear_sensor_name(e_ctrl, mapdata);
+	if (!strncmp(eb_info->eeprom_name, A8_REAR_SENSOR_NAME,
+				strlen(A8_REAR_SENSOR_NAME))) {
+		set_a8_rear_sensor_name(e_ctrl, mapdata);
 	} else {
-		pr_err("lithium sensor name check failed\n");
+		pr_err("a8 sensor name check failed\n");
 	}
 
 }
 
-static void natrium_main_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
+static void b7_main_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
 {
 	struct msm_eeprom_board_info *eb_info;
 
@@ -523,15 +523,15 @@ static void natrium_main_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char 
 	if (e_ctrl->eboard_info->eeprom_name == NULL || mapdata == NULL)
 		return;
 
-	if (!strncmp(eb_info->eeprom_name, NATRIUM_MAIN_SENSOR_NAME,
-				strlen(NATRIUM_MAIN_SENSOR_NAME))) {
-		set_natrium_main_sensor_name(e_ctrl, mapdata);
+	if (!strncmp(eb_info->eeprom_name, B7_MAIN_SENSOR_NAME,
+				strlen(B7_MAIN_SENSOR_NAME))) {
+		set_b7_main_sensor_name(e_ctrl, mapdata);
 	} else {
-		pr_err("natrium main sensor name check failed\n");
+		pr_err("b7 main sensor name check failed\n");
 	}
 }
 
-static void natrium_aux_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
+static void b7_aux_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
 {
 	struct msm_eeprom_board_info *eb_info;
 
@@ -540,15 +540,15 @@ static void natrium_aux_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *
 	if (e_ctrl->eboard_info->eeprom_name == NULL || mapdata == NULL)
 		return;
 
-	if (!strncmp(eb_info->eeprom_name, NATRIUM_AUX_SENSOR_NAME,
-				strlen(NATRIUM_AUX_SENSOR_NAME))) {
-		set_natrium_aux_sensor_name(e_ctrl, mapdata);
+	if (!strncmp(eb_info->eeprom_name, B7_AUX_SENSOR_NAME,
+				strlen(B7_AUX_SENSOR_NAME))) {
+		set_b7_aux_sensor_name(e_ctrl, mapdata);
 	} else {
-		pr_err("natrium aux sensor name check failed\n");
+		pr_err("b7 aux sensor name check failed\n");
 	}
 }
 
-static void natrium_front_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
+static void b7_front_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char *mapdata)
 {
 	struct msm_eeprom_board_info *eb_info;
 
@@ -557,93 +557,93 @@ static void natrium_front_set_sensor_name(struct msm_eeprom_ctrl_t *e_ctrl, char
 	if (e_ctrl->eboard_info->eeprom_name == NULL || mapdata == NULL)
 		return;
 
-	if (!strcmp(eb_info->eeprom_name, NATRIUM_FRONT_SENSOR_NAME)) {
-		set_natrium_front_sensor_name(e_ctrl, mapdata);
+	if (!strcmp(eb_info->eeprom_name, B7_FRONT_SENSOR_NAME)) {
+		set_b7_front_sensor_name(e_ctrl, mapdata);
 	} else {
-		pr_err("natrium front sensor name check failed\n");
+		pr_err("b7 front sensor name check failed\n");
 	}
 }
 
-int scorpio_get_back_sensor_name(char *sensor_name)
+int a4_get_back_sensor_name(char *sensor_name)
 {
-	if (scorpio_set_back_sensor_name) {
-		strcpy(sensor_name, scorpio_back_sensor_name);
+	if (a4_set_back_sensor_name) {
+		strcpy(sensor_name, a4_back_sensor_name);
 		return 0;
 	} else
 		return -EINVAL;
 }
-EXPORT_SYMBOL(scorpio_get_back_sensor_name);
+EXPORT_SYMBOL(a4_get_back_sensor_name);
 
-int scorpio_get_front_sensor_name(char *sensor_name)
+int a4_get_front_sensor_name(char *sensor_name)
 {
-	if (scorpio_set_front_sensor_name) {
-		strlcpy(sensor_name, scorpio_front_sensor_name, sizeof(scorpio_front_sensor_name));
+	if (a4_set_front_sensor_name) {
+		strlcpy(sensor_name, a4_front_sensor_name, sizeof(a4_front_sensor_name));
 		return 0;
 	} else {
 		return -EINVAL;
 	}
 }
-EXPORT_SYMBOL(scorpio_get_front_sensor_name);
+EXPORT_SYMBOL(a4_get_front_sensor_name);
 
-int capricorn_get_back_sensor_name(char *sensor_name)
+int a7_get_back_sensor_name(char *sensor_name)
 {
-	if (capricorn_set_back_sensor_name) {
-		strcpy(sensor_name, capricorn_back_sensor_name);
+	if (a7_set_back_sensor_name) {
+		strcpy(sensor_name, a7_back_sensor_name);
 		return 0;
 	} else
 		return -EINVAL;
 }
-EXPORT_SYMBOL(capricorn_get_back_sensor_name);
+EXPORT_SYMBOL(a7_get_back_sensor_name);
 
-int natrium_get_main_sensor_name(char *sensor_name)
+int b7_get_main_sensor_name(char *sensor_name)
 {
-	if (natrium_set_main_sensor_name) {
-		strcpy(sensor_name, natrium_main_sensor_name);
+	if (b7_set_main_sensor_name) {
+		strcpy(sensor_name, b7_main_sensor_name);
 		return 0;
 	} else
 		return -EINVAL;
 }
-EXPORT_SYMBOL(natrium_get_main_sensor_name);
+EXPORT_SYMBOL(b7_get_main_sensor_name);
 
-int natrium_get_aux_sensor_name(char *sensor_name)
+int b7_get_aux_sensor_name(char *sensor_name)
 {
-	if (natrium_set_aux_sensor_name) {
-		strcpy(sensor_name, natrium_aux_sensor_name);
+	if (b7_set_aux_sensor_name) {
+		strcpy(sensor_name, b7_aux_sensor_name);
 		return 0;
 	} else
 		return -EINVAL;
 }
-EXPORT_SYMBOL(natrium_get_aux_sensor_name);
+EXPORT_SYMBOL(b7_get_aux_sensor_name);
 
-int gemini_get_front_sensor_name(char *sensor_name)
+int a1_get_front_sensor_name(char *sensor_name)
 {
-	if (gemini_set_front_sensor_name) {
-		strcpy(sensor_name, gemini_front_sensor_name);
+	if (a1_set_front_sensor_name) {
+		strcpy(sensor_name, a1_front_sensor_name);
 		return 0;
 	} else
 		return -EINVAL;
 }
-EXPORT_SYMBOL(gemini_get_front_sensor_name);
+EXPORT_SYMBOL(a1_get_front_sensor_name);
 
-int lithium_get_rear_sensor_name(char *sensor_name)
+int a8_get_rear_sensor_name(char *sensor_name)
 {
-	if (lithium_set_rear_sensor_name) {
-		strcpy(sensor_name, lithium_rear_sensor_name);
+	if (a8_set_rear_sensor_name) {
+		strcpy(sensor_name, a8_rear_sensor_name);
 		return 0;
 	} else
 		return -EINVAL;
 }
-EXPORT_SYMBOL(lithium_get_rear_sensor_name);
+EXPORT_SYMBOL(a8_get_rear_sensor_name);
 
-int natrium_get_front_sensor_name(char *sensor_name)
+int b7_get_front_sensor_name(char *sensor_name)
 {
-	if (natrium_set_front_sensor_name) {
-		strcpy(sensor_name, natrium_front_sensor_name);
+	if (b7_set_front_sensor_name) {
+		strcpy(sensor_name, b7_front_sensor_name);
 		return 0;
 	} else
 		return -EINVAL;
 }
-EXPORT_SYMBOL(natrium_get_front_sensor_name);
+EXPORT_SYMBOL(b7_get_front_sensor_name);
 
 /**
   * msm_eeprom_match_crc - verify multiple regions using crc
@@ -809,28 +809,28 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 			}
 		}
 	}
-	if (!strcmp(e_ctrl->eboard_info->eeprom_name, GEMINI_FRONT_SENSOR_NAME)) {
-		gemini_set_sensor_name(e_ctrl, block->mapdata);
+	if (!strcmp(e_ctrl->eboard_info->eeprom_name, A1_FRONT_SENSOR_NAME)) {
+		a1_set_sensor_name(e_ctrl, block->mapdata);
 	}
-	if (!strcmp(e_ctrl->eboard_info->eeprom_name, NATRIUM_MAIN_SENSOR_NAME)) {
-		natrium_main_set_sensor_name(e_ctrl, block->mapdata);
+	if (!strcmp(e_ctrl->eboard_info->eeprom_name, B7_MAIN_SENSOR_NAME)) {
+		b7_main_set_sensor_name(e_ctrl, block->mapdata);
 	}
-	if (!strcmp(e_ctrl->eboard_info->eeprom_name, NATRIUM_AUX_SENSOR_NAME)) {
-		natrium_aux_set_sensor_name(e_ctrl, block->mapdata);
+	if (!strcmp(e_ctrl->eboard_info->eeprom_name, B7_AUX_SENSOR_NAME)) {
+		b7_aux_set_sensor_name(e_ctrl, block->mapdata);
 	}
-	if (!strcmp(e_ctrl->eboard_info->eeprom_name, NATRIUM_FRONT_SENSOR_NAME)) {
-		natrium_front_set_sensor_name(e_ctrl, block->mapdata);
+	if (!strcmp(e_ctrl->eboard_info->eeprom_name, B7_FRONT_SENSOR_NAME)) {
+		b7_front_set_sensor_name(e_ctrl, block->mapdata);
 	}
 
-	if (!strncmp(eb_info->eeprom_name, SCORPIO_FRONT_SENSOR_NAME,
-				strlen(SCORPIO_FRONT_SENSOR_NAME))) {
-		scorpio_front_set_sensor_name(e_ctrl, block->mapdata);
+	if (!strncmp(eb_info->eeprom_name, A4_FRONT_SENSOR_NAME,
+				strlen(A4_FRONT_SENSOR_NAME))) {
+		a4_front_set_sensor_name(e_ctrl, block->mapdata);
 	}
 
 	return rc;
 }
 
-static int scorpio_back_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
+static int a4_back_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 			      struct msm_eeprom_memory_block_t *block)
 {
 	int rc = 0;
@@ -858,10 +858,15 @@ static int scorpio_back_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 		}
 	}
 
-	if ((memptr[0] == SCORPIO_BACK_MODULE_ID_PRIMAX)
+	 /* A4 eeprom i2c addr type:
+	    imx318_primax: P1 module--Byte type, P1F and P2.2 module-Byte type
+	    imx318_semco:  P1 module--Word type, P1F and P2.2 module-Byte type
+	    The code 1 means Byte type, 2 means Word type.
+	 */
+	if ((memptr[0] == A4_BACK_MODULE_ID_PRIMAX)
 		&& (strcmp(eb_info->eeprom_name, "imx318_primax") == 0)) {
 		e_ctrl->i2c_client.addr_type = 1;
-	} else if ((memptr[0] == SCORPIO_BACK_MODULE_ID_SEMCO)
+	} else if ((memptr[0] == A4_BACK_MODULE_ID_SEMCO)
 		&& (strcmp(eb_info->eeprom_name, "imx318_semco") == 0)) {
 		e_ctrl->i2c_client.addr_type = 1;
 	}
@@ -915,11 +920,6 @@ static int scorpio_back_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 				&(e_ctrl->i2c_client), emap[j].poll.addr,
 				emap[j].poll.data, emap[j].poll.data_t,
 				emap[j].poll.delay);
-			if (emap[j].poll.delay > 20)
-				msleep(emap[j].poll.delay);
-			else if (0 != emap[j].poll.delay)
-				usleep_range(emap[j].poll.delay * 1000,
-					(emap[j].poll.delay * 1000) + 1000);
 
 			if (rc < 0) {
 				pr_err("%s: poll failed\n", __func__);
@@ -951,11 +951,11 @@ static int scorpio_back_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 		}
 	}
 
-	scorpio_set_sensor_name(e_ctrl, block->mapdata);
+	a4_set_sensor_name(e_ctrl, block->mapdata);
 	return rc;
 }
 
-static int capricorn_back_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
+static int a7_back_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 			      struct msm_eeprom_memory_block_t *block)
 {
 	int rc = 0;
@@ -983,10 +983,10 @@ static int capricorn_back_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 		}
 	}
 
-	if ((memptr[0] == SCORPIO_BACK_MODULE_ID_PRIMAX)
+	if ((memptr[0] == A4_BACK_MODULE_ID_PRIMAX)
 		&& (strcmp(eb_info->eeprom_name, "imx318_primax") == 0)) {
 		e_ctrl->i2c_client.addr_type = 1;
-	} else if ((memptr[0] == SCORPIO_BACK_MODULE_ID_SEMCO)
+	} else if ((memptr[0] == A4_BACK_MODULE_ID_SEMCO)
 		&& (strcmp(eb_info->eeprom_name, "imx318_semco") == 0)) {
 		e_ctrl->i2c_client.addr_type = 2;
 	}
@@ -1076,11 +1076,11 @@ static int capricorn_back_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 		}
 	}
 
-	capricorn_set_sensor_name(e_ctrl, block->mapdata);
+	a7_set_sensor_name(e_ctrl, block->mapdata);
 	return rc;
 }
 
-static int lithium_rear_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
+static int a8_rear_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 			      struct msm_eeprom_memory_block_t *block)
 {
 	int rc = 0;
@@ -1108,7 +1108,7 @@ static int lithium_rear_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 		}
 	}
 
-	if ((memptr[0] == LITHIUM_REAR_MODULE_ID_OFILM)
+	if ((memptr[0] == A8_REAR_MODULE_ID_OFILM)
 		&& (strcmp(eb_info->eeprom_name, "ov16880_ofilm") == 0)) {
 		e_ctrl->i2c_client.addr_type = 2;
 	}
@@ -1198,7 +1198,7 @@ static int lithium_rear_read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 		}
 	}
 
-	lithium_set_sensor_name(e_ctrl, block->mapdata);
+	a8_set_sensor_name(e_ctrl, block->mapdata);
 	return rc;
 }
 
@@ -2776,29 +2776,29 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 			goto memdata_free;
 		}
 		if (strcmp(eb_info->eeprom_name, "ov16880_ofilm") == 0)
-			rc = lithium_rear_read_eeprom_memory(e_ctrl, &e_ctrl->cal_data);
+			rc = a8_rear_read_eeprom_memory(e_ctrl, &e_ctrl->cal_data);
 		else if ((strcmp(eb_info->eeprom_name, "imx318_primax") == 0) ||
 				(strcmp(eb_info->eeprom_name, "imx318_semco") == 0))
-			rc = scorpio_back_read_eeprom_memory(e_ctrl, &e_ctrl->cal_data);
+			rc = a4_back_read_eeprom_memory(e_ctrl, &e_ctrl->cal_data);
 		else if (strcmp(eb_info->eeprom_name, "sony_imx378") == 0) {
-			rc = capricorn_back_read_eeprom_memory(e_ctrl, &e_ctrl->cal_data);
+			rc = a7_back_read_eeprom_memory(e_ctrl, &e_ctrl->cal_data);
 		} else if (strncmp(eb_info->eeprom_name, "ov4688", strlen("ov4688")) == 0) {
 			int offset = 0;
 			int retry = 3;
 			do {
 				rc = read_eeprom_memory(e_ctrl, &e_ctrl->cal_data);
-				if ((e_ctrl->cal_data.mapdata[GEMINI_FRONT_PAGE2_OFFSET] & 0xC0) == 0x40)
-					offset = GEMINI_FRONT_PAGE2_OFFSET;
-				else if ((e_ctrl->cal_data.mapdata[GEMINI_FRONT_PAGE1_OFFSET] & 0xC0) == 0x40)
-					offset = GEMINI_FRONT_PAGE1_OFFSET;
-				else if ((e_ctrl->cal_data.mapdata[GEMINI_FRONT_PAGE0_OFFSET] & 0xC0) == 0x40)
-					offset = GEMINI_FRONT_PAGE0_OFFSET;
+				if ((e_ctrl->cal_data.mapdata[A1_FRONT_PAGE2_OFFSET] & 0xC0) == 0x40)
+					offset = A1_FRONT_PAGE2_OFFSET;
+				else if ((e_ctrl->cal_data.mapdata[A1_FRONT_PAGE1_OFFSET] & 0xC0) == 0x40)
+					offset = A1_FRONT_PAGE1_OFFSET;
+				else if ((e_ctrl->cal_data.mapdata[A1_FRONT_PAGE0_OFFSET] & 0xC0) == 0x40)
+					offset = A1_FRONT_PAGE0_OFFSET;
 				else
-					offset = GEMINI_FRONT_PAGE2_OFFSET;
+					offset = A1_FRONT_PAGE2_OFFSET;
 
 				retry--;
 			} while (xiaomi_eeprom_checksum(e_ctrl->cal_data.mapdata, offset + 1,
-					offset + 12, GEMINI_FRONT_TOTAL_CHECK_SUM) && retry);
+					offset + 12, A1_FRONT_TOTAL_CHECK_SUM) && retry);
 		} else
 			rc = read_eeprom_memory(e_ctrl, &e_ctrl->cal_data);
 		if (rc < 0) {

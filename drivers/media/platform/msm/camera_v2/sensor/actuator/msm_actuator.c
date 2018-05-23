@@ -1,5 +1,5 @@
 /* Copyright (c) 2011-2018, The Linux Foundation. All rights reserved.
- * Copyright (C) 2016 XiaoMi, Inc.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -32,8 +32,6 @@ DEFINE_MSM_MUTEX(msm_actuator_mutex);
 #define PARK_LENS_SMALL_STEP 1
 #define MAX_QVALUE 4096
 
-extern int natrium_get_main_sensor_name(char *);
-
 static struct v4l2_file_operations msm_actuator_v4l2_subdev_fops;
 static int32_t msm_actuator_power_up(struct msm_actuator_ctrl_t *a_ctrl);
 static int32_t msm_actuator_power_down(struct msm_actuator_ctrl_t *a_ctrl);
@@ -51,6 +49,7 @@ static struct msm_actuator *actuators[] = {
 	&msm_bivcm_actuator_table,
 };
 
+extern int b7_get_main_sensor_name(char *);
 static int32_t msm_actuator_piezo_set_default_focus(
 	struct msm_actuator_ctrl_t *a_ctrl,
 	struct msm_actuator_move_params_t *move_params)
@@ -115,8 +114,7 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 	i2c_tbl = a_ctrl->i2c_reg_tbl;
 
 	if (a_ctrl->i2c_client.cci_client->sid == 0x72) {
-		if (a_ctrl->i2c_tbl_index >
-			a_ctrl->total_steps) {
+		if ((a_ctrl->total_steps + 1) < (a_ctrl->i2c_tbl_index)) {
 			pr_err("failed:i2c table index out of bound\n");
 			return;
 		}
@@ -434,12 +432,6 @@ static int32_t msm_actuator_init_focus(struct msm_actuator_ctrl_t *a_ctrl,
 				settings[i].i2c_operation);
 			break;
 		}
-
-		if (settings[i].delay > 20)
-			msleep(settings[i].delay);
-		else if (0 != settings[i].delay)
-			usleep_range(settings[i].delay * 1000,
-				(settings[i].delay * 1000) + 1000);
 
 		if (rc < 0) {
 			pr_err("%s:%d fail addr = 0X%X, data = 0X%X, dt = %d",
@@ -841,7 +833,7 @@ static int32_t msm_actuator_park_lens(struct msm_actuator_ctrl_t *a_ctrl)
 	int32_t rc = 0;
 	uint16_t next_lens_pos = 0;
 	struct msm_camera_i2c_reg_setting reg_setting;
-	char natrium_main_sensor_name[32];
+	char b7_main_sensor_name[32];
 
 	a_ctrl->i2c_tbl_index = 0;
 	if ((a_ctrl->curr_step_pos > a_ctrl->total_steps) ||
@@ -859,8 +851,8 @@ static int32_t msm_actuator_park_lens(struct msm_actuator_ctrl_t *a_ctrl)
 		a_ctrl->park_lens.max_step = a_ctrl->max_code_size;
 
 	next_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
-	natrium_get_main_sensor_name(natrium_main_sensor_name);
-	if (strcmp(natrium_main_sensor_name, "imx258_ofilm") == 0) {
+	b7_get_main_sensor_name(b7_main_sensor_name);
+	if (strcmp(b7_main_sensor_name, "imx258_ofilm") == 0) {
 		while (next_lens_pos < a_ctrl->step_position_table[a_ctrl->total_steps]) {
 			/* conditions which help to reduce park lens time */
 			if ((a_ctrl->step_position_table[a_ctrl->total_steps] - next_lens_pos)
@@ -1407,10 +1399,12 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 
 	a_ctrl->region_size = set_info->af_tuning_params.region_size;
 	a_ctrl->pwd_step = set_info->af_tuning_params.pwd_step;
+	a_ctrl->total_steps = set_info->af_tuning_params.total_steps;
 
 	if (copy_from_user(&a_ctrl->region_params,
 		(void *)set_info->af_tuning_params.region_params,
 		a_ctrl->region_size * sizeof(struct region_params_t))) {
+		a_ctrl->total_steps = 0;
 		pr_err("Error copying region_params\n");
 		return -EFAULT;
 	}
@@ -1452,8 +1446,6 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 		pr_err("kmalloc fail\n");
 		return -ENOMEM;
 	}
-
-	a_ctrl->total_steps = set_info->af_tuning_params.total_steps;
 
 	if (copy_from_user(&a_ctrl->reg_tbl,
 		(void *)set_info->actuator_params.reg_tbl_params,
