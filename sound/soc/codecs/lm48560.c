@@ -1,9 +1,10 @@
 /*
  *  LM48560 AMP driver
  *
- *  Copyright (C) 2016 XiaoMi, Inc.
+ *  Copyright (C) 2015 Xiaomi Corporation
  *
  *  Author: Peter Hu <hupenglong@xiaomi.com>
+ *  Copyright (C) 2018 XiaoMi, Inc.
  *
  *  This program is free software; you can redistribute  it and/or modify it
  *  under  the terms of  the GNU General  Public License as published by the
@@ -67,12 +68,12 @@ static void lm48560_enable(struct lm48560 *lm48560, int enable)
 		if (gpio_is_valid(lm48560->shdn_gpio))
 			gpio_direction_output(lm48560->shdn_gpio, 1);
 		regmap_update_bits(lm48560->regmap, LM48560_SHDN,
-					LM48560_SHDN_ENABLE_MASK, 0x03);
+				LM48560_SHDN_ENABLE_MASK, 0x03);
 		regmap_update_bits(lm48560->regmap, LM48560_GAIN,
-					LM48560_GAIN_MASK, lm48560->gain);
+				LM48560_GAIN_MASK, lm48560->gain);
 	} else {
 		regmap_update_bits(lm48560->regmap, LM48560_SHDN,
-					LM48560_SHDN_ENABLE_MASK, 0x00);
+				LM48560_SHDN_ENABLE_MASK, 0x00);
 		if (gpio_is_valid(lm48560->shdn_gpio))
 			gpio_direction_output(lm48560->shdn_gpio, 0);
 	}
@@ -80,7 +81,7 @@ static void lm48560_enable(struct lm48560 *lm48560, int enable)
 }
 
 static int lm48560_get_enable_state(struct snd_kcontrol *kcontrol,
-			      struct snd_ctl_elem_value *ucontrol)
+		struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct lm48560 *lm48560 = snd_soc_codec_get_drvdata(codec);
@@ -91,7 +92,7 @@ static int lm48560_get_enable_state(struct snd_kcontrol *kcontrol,
 }
 
 static int lm48560_put_enable_state(struct snd_kcontrol *kcontrol,
-			      struct snd_ctl_elem_value *ucontrol)
+		struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct lm48560 *lm48560 = snd_soc_codec_get_drvdata(codec);
@@ -101,15 +102,15 @@ static int lm48560_put_enable_state(struct snd_kcontrol *kcontrol,
 
 	if (lm48560->enable == 1) {
 		return regmap_update_bits(lm48560->regmap, LM48560_SHDN,
-					LM48560_SHDN_ENABLE_MASK, 0x03);
+				LM48560_SHDN_ENABLE_MASK, 0x03);
 	} else {
 		return regmap_update_bits(lm48560->regmap, LM48560_SHDN,
-					LM48560_SHDN_ENABLE_MASK, 0x00);
+				LM48560_SHDN_ENABLE_MASK, 0x00);
 	}
 }
 
 static int lm48560_get_volume(struct snd_kcontrol *kcontrol,
-			      struct snd_ctl_elem_value *ucontrol)
+		struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct lm48560 *lm48560 = snd_soc_codec_get_drvdata(codec);
@@ -120,7 +121,7 @@ static int lm48560_get_volume(struct snd_kcontrol *kcontrol,
 }
 
 static int lm48560_put_volume(struct snd_kcontrol *kcontrol,
-			      struct snd_ctl_elem_value *ucontrol)
+		struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct lm48560 *lm48560 = snd_soc_codec_get_drvdata(codec);
@@ -149,13 +150,13 @@ static const struct soc_enum lm48560_gain_enum =
 static const struct snd_kcontrol_new lm48560_controls[] = {
 	SOC_SINGLE_TLV("Gain", LM48560_GAIN, 0, 3, 0, gain_tlv),
 	SOC_SINGLE_BOOL_EXT("Switch", 0,
-		lm48560_get_enable_state, lm48560_put_enable_state),
+			lm48560_get_enable_state, lm48560_put_enable_state),
 	SOC_ENUM_EXT("Volume", lm48560_gain_enum,
-		lm48560_get_volume, lm48560_put_volume),
+			lm48560_get_volume, lm48560_put_volume),
 };
 
 static int lm48560_pa_event(struct snd_soc_dapm_widget *w,
-			struct snd_kcontrol *kcontrol, int event)
+		struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = w->codec;
 	struct lm48560 *lm48560 = snd_soc_codec_get_drvdata(codec);
@@ -243,7 +244,7 @@ static const struct regmap_config lm48560_regmap_config = {
 };
 
 static int lm48560_i2c_probe(struct i2c_client *i2c,
-			    const struct i2c_device_id *id)
+		const struct i2c_device_id *id)
 {
 	struct lm48560 *lm48560;
 	struct device_node *np = i2c->dev.of_node;
@@ -261,10 +262,10 @@ static int lm48560_i2c_probe(struct i2c_client *i2c,
 	lm48560->shdn_gpio = of_get_named_gpio(np, "lm-shdn-gpio", 0);
 	if (gpio_is_valid(lm48560->shdn_gpio)) {
 		ret = devm_gpio_request_one(&i2c->dev, lm48560->shdn_gpio,
-					GPIOF_OUT_INIT_LOW, "lm48560_shdn");
+				GPIOF_OUT_INIT_LOW, "lm48560_shdn");
 		if (ret < 0) {
 			dev_err(&i2c->dev, "%s: Failed to request shdn-gpio(%d).\n",
-				__func__, ret);
+					__func__, ret);
 			return -ENODEV;
 		}
 	} else {

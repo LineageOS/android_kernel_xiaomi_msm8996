@@ -14,6 +14,7 @@
  *limitations under the License.
  */
 
+#define DEBUG
 #include "tfa_service.h"
 #include "tfa_container.h"
 #include "tfa_config.h"
@@ -24,7 +25,7 @@
 /* module globals */
 static int tfa98xx_cnt_verbose;
 
-static nxpTfaContainer_t *g_cont; /* container file */
+static nxpTfaContainer_t *g_cont = NULL;
 static int g_devs = -1;
 static nxpTfaDeviceList_t *g_dev[TFACONT_MAXDEVS];
 static int g_profs[TFACONT_MAXDEVS];
@@ -46,7 +47,7 @@ static int float_to_int(uint32_t x)
 
 /*
  * check the container file and set module global
-*/
+ */
 enum tfa_error tfa_load_cnt(void *cnt, int length)
 {
 	nxpTfaContainer_t  *cntbuf = (nxpTfaContainer_t  *)cnt;
@@ -170,7 +171,7 @@ nxpTfaProfileList_t *tfaContGetDevProfList(nxpTfaContainer_t *cont, int devIdx,
 			if (dev->list[idx].type == dscProfile) {
 				if (profIdx == hit++)
 					return (nxpTfaProfileList_t *) (dev->
-						list[idx].offset + base);
+						list[idx].offset +base);
 			}
 		}
 	}
@@ -194,7 +195,7 @@ nxpTfaLiveDataList_t *tfaContGetDevLiveDataList(nxpTfaContainer_t *cont, int dev
 			if (dev->list[idx].type == dscLiveData) {
 				if (lifeDataIdx == hit++)
 					return (nxpTfaLiveDataList_t *)
-						(dev->list[idx].offset + base);
+									    	(dev->list[idx].offset + base);
 			}
 		}
 	}
@@ -205,32 +206,31 @@ nxpTfaLiveDataList_t *tfaContGetDevLiveDataList(nxpTfaContainer_t *cont, int dev
 /*
  * Get the max volume step associated with Nth profile for the Nth device
  */
-int tfacont_get_max_vstep(int dev_idx, int prof_idx)
-{
-	nxpTfaHeader_t *hdr;
-	nxpTfaVolumeStep2File_t *vp;
-	struct nxpTfaVolumeStepMax2File *vp3;
-	int vstep_count = 0;
-	vp = (nxpTfaVolumeStep2File_t *)
-		tfacont_getfiledata(dev_idx, prof_idx, volstepHdr);
-	if (vp == NULL)
-		return 0;
-	hdr = &(vp->hdr);
-	/* check the header type to load different NrOfVStep appropriately */
+int tfacont_get_max_vstep(int dev_idx, int prof_idx)     {
+		 nxpTfaHeader_t *hdr;
+		 nxpTfaVolumeStep2File_t *vp;
+		 struct nxpTfaVolumeStepMax2File *vp3;
+		 int vstep_count = 0;
+		 vp = (nxpTfaVolumeStep2File_t *)
+				tfacont_getfiledata(dev_idx, prof_idx, volstepHdr);
+		 if (vp == NULL)
+		 	return 0;
+		 hdr = &(vp->hdr);
+		 /* check the header type to load different NrOfVStep appropriately */
 	if (tfa98xx_dev_family(dev_idx) == 2) {
-		/* this is actually tfa2, so re-read the buffer*/
-		vp3 = (struct nxpTfaVolumeStepMax2File *)
-		tfacont_getfiledata(dev_idx, prof_idx, volstepHdr);
-		if (vp3) {
-			vstep_count = vp3->NrOfVsteps;
-		}
-	} else {
-		/* this is max1*/
-		if (vp) {
-			vstep_count = vp->vsteps;
-		}
-	}
-	return vstep_count;
+				/* this is actually tfa2, so re-read the buffer */
+				vp3 = (struct nxpTfaVolumeStepMax2File *)
+				tfacont_getfiledata(dev_idx, prof_idx, volstepHdr);
+				if (vp3) {
+						vstep_count = vp3->NrOfVsteps;
+				}
+		 } else {
+				/* this is max1 */
+				if (vp) {
+						vstep_count = vp->vsteps;
+				}
+		 }
+		 return vstep_count;
 }
 
 /**
@@ -261,6 +261,7 @@ nxpTfaFileDsc_t *tfacont_getfiledata(int dev_idx, int prof_idx, enum nxpTfaHeade
 			hdr = (nxpTfaHeader_t *)file->data;
 			/* check for file type */
 			if (hdr->id == type) {
+
 				return (nxpTfaFileDsc_t *)&file->data;
 			}
 		}
@@ -276,6 +277,7 @@ nxpTfaFileDsc_t *tfacont_getfiledata(int dev_idx, int prof_idx, enum nxpTfaHeade
 			hdr = (nxpTfaHeader_t *)file->data;
 			/* check for file type */
 			if (hdr->id == type) {
+
 				return (nxpTfaFileDsc_t *)&file->data;
 			}
 		}
@@ -293,9 +295,10 @@ nxpTfaFileDsc_t *tfacont_getfiledata(int dev_idx, int prof_idx, enum nxpTfaHeade
 static void cont_get_devs(nxpTfaContainer_t *cont)
 {
 	nxpTfaProfileList_t *prof;
-	nxpTfaLiveDataList_t *liveD;
+		 nxpTfaLiveDataList_t *liveD;
 	int i, j;
 	int count;
+
 
 	for (i = 0 ; i < cont->ndev ; i++) {
 		g_dev[i] = tfaContGetDevList(cont, i);
@@ -313,7 +316,8 @@ static void cont_get_devs(nxpTfaContainer_t *cont)
 		g_profs[i] = count;
 	}
 
-	g_devs = cont->ndev;
+		 g_devs = cont->ndev;
+
 	for (i = 0; i < g_devs; i++) {
 		j = 0;
 		count = 0;
@@ -326,6 +330,7 @@ static void cont_get_devs(nxpTfaContainer_t *cont)
 }
 
 static char nostring[] = "Undefined string";
+
 
 #define MODULE_BIQUADFILTERBANK 2
 #define BIQUAD_COEFF_SIZE       6
@@ -359,8 +364,7 @@ static enum Tfa98xx_Error tfaContWriteVstep(int dev_idx,  nxpTfaVolumeStep2File_
 		err = Tfa98xx_Error_Bad_Parameter;
 	}
 
-	if (tfa98xx_cnt_verbose)
-		pr_debug("vstep[%d][%d]\n", dev_idx, vstep);
+	if (tfa98xx_cnt_verbose) pr_debug("vstep[%d][%d]\n", dev_idx, vstep);
 
 	return err;
 }
@@ -395,8 +399,8 @@ static enum Tfa98xx_Error tfaContWriteVstepMax2(int dev_idx, nxpTfaVolumeStepMax
 				/* If no vstepMsgIndex is passed on, all message needs to be send */
 				if ((vstep_msg_idx >= TFA_MAX_VSTEP_MSG_MARKER) || (vstep_msg_idx == j)) {
 					/*
-					 * The algoparams and mbdrc msg id will be changed to the reset type when SBSL=0
-					 * if SBSL=1 the msg will remain unchanged. It's up to the tuning engineer to choose the 'without_reset'
+					 * The algoparams and mbdrc msg id will be changed to the reset type when SBSL = 0
+					 * if SBSL = 1 the msg will remain unchanged. It's up to the tuning engineer to choose the 'without_reset'
 					 * types inside the vstep. In other words: the reset msg is applied during SBSL==0 else it remains unchanged.
 					 */
 					if (TFA_GET_BF(dev_idx, SBSL) == 0) {
@@ -457,7 +461,7 @@ static enum Tfa98xx_Error tfaContWriteVstepMax2(int dev_idx, nxpTfaVolumeStepMax
 		return Tfa98xx_Error_Bad_Parameter;
 	}
 
-	for (i = 0; i < regInfo->NrOfRegisters*2; i++) {
+	for (i = 0; i < regInfo->NrOfRegisters *2; i++) {
 		/* Byte swap the datasheetname */
 		bitF.field = (uint16_t)(regInfo->registerInfo[i]>>8) | (regInfo->registerInfo[i]<<8);
 		i++;
@@ -589,7 +593,9 @@ enum Tfa98xx_Error tfaContWriteFile(int dev_idx,  nxpTfaFileDsc_t *file, int vst
 			 * The second block can always be recalculated from the first block,
 			 * if vlsCal and the sample rate are known.
 			 */
+
 			size = 381; /* fixed size for first block */
+
 
 			err = tfa98xx_dsp_write_drc(dev_idx, size, ((const unsigned char *)((nxpTfaDrc_t *)hdr)->data+381));
 		}
@@ -631,8 +637,8 @@ nxpTfaDescPtr_t *tfa_cnt_get_dsc(nxpTfaContainer_t *cnt, nxpTfaDescriptorType_t 
 
 /**
  * get the device type from the patch in this devicelist
- *  - find the patch file for this devidx
- *  - return the devid from the patch or 0 if not found
+ *- find the patch file for this devidx
+ *- return the devid from the patch or 0 if not found
  */
 int tfa_cnt_get_devid(nxpTfaContainer_t *cnt, int dev_idx)
 {
@@ -675,7 +681,7 @@ enum Tfa98xx_Error tfaContGetSlave(int dev_idx, uint8_t *slave_addr)
 		return Tfa98xx_Error_Bad_Parameter;
 	}
 
-	*slave_addr = dev->dev;
+	 *slave_addr = dev->dev;
 	return Tfa98xx_Error_Ok;
 }
 
@@ -685,7 +691,7 @@ enum Tfa98xx_Error tfaContGetSlave(int dev_idx, uint8_t *slave_addr)
 enum Tfa98xx_Error tfaRunWriteBitfield(Tfa98xx_handle_t dev_idx,  nxpTfaBitfield_t bf)
 {
 	enum Tfa98xx_Error error;
-	uint16_t value;
+		 uint16_t value;
 	union {
 		uint16_t field;
 		nxpTfaBfEnum_t Enum;
@@ -698,7 +704,7 @@ enum Tfa98xx_Error tfaRunWriteBitfield(Tfa98xx_handle_t dev_idx,  nxpTfaBitfield
 		pr_debug("bitfield: %s=%d (0x%x[%d..%d]=0x%x)\n", tfaContBfName(bfUni.field, tfa98xx_dev_revision(dev_idx)), value,
 			bfUni.Enum.address, bfUni.Enum.pos, bfUni.Enum.pos+bfUni.Enum.len, value);
 #endif
-	error = tfa_set_bf(dev_idx, bfUni.field, value);
+		 error = tfa_set_bf(dev_idx, bfUni.field, value);
 
 	return error;
 }
@@ -718,8 +724,7 @@ enum Tfa98xx_Error tfaRunReadBitfield(Tfa98xx_handle_t dev_idx,  nxpTfaBitfield_
 	bfUni.field = bf->field;
 
 	error = tfa98xx_read_register16(dev_idx, (unsigned char)(bfUni.Enum.address), &regvalue);
-	if (error)
-		return error;
+	if (error) return error;
 
 	msk = ((1<<(bfUni.Enum.len+1))-1)<<bfUni.Enum.pos;
 
@@ -742,8 +747,7 @@ enum Tfa98xx_Error tfaRunWriteDspMem(Tfa98xx_handle_t dev, nxpTfaDspMem_t *cfmem
 			pr_debug("dsp mem (%d): 0x%02x=0x%04x\n", cfmem->type, cfmem->address, cfmem->words[i]);
 
 		error = tfa98xx_dsp_write_mem_word(dev, cfmem->address++, cfmem->words[i], cfmem->type);
-		if (error)
-			return error;
+		if (error) return error;
 	}
 
 	return error;
@@ -751,18 +755,18 @@ enum Tfa98xx_Error tfaRunWriteDspMem(Tfa98xx_handle_t dev, nxpTfaDspMem_t *cfmem
 
 /*
  * write filter payload to DSP
- *  note that the data is in an aligned union for all filter variants
- *  the aa data is used but it's the same for all of them
+ *note that the data is in an aligned union for all filter variants
+ *the aa data is used but it's the same for all of them
  */
 enum Tfa98xx_Error tfaRunWriteFilter(Tfa98xx_handle_t dev, nxpTfaContBiquad_t *bq)
 {
 	enum Tfa98xx_Error error = Tfa98xx_Error_Ok;
 	enum Tfa98xx_DMEM dmem;
 	uint16_t address;
-	uint8_t data[3*3+sizeof(bq->aa.bytes)];
+	uint8_t data[3 * 3+sizeof(bq->aa.bytes)];
 	int i, channel = 0, runs = 1;
 
-	/* Channel=1 is primary, Channel=2 is secondary*/
+	/* Channel = 1 is primary, Channel = 2 is secondary */
 	if (bq->aa.index > 100) {
 		bq->aa.index -= 100;
 		channel = 2;
@@ -794,13 +798,13 @@ enum Tfa98xx_Error tfaRunWriteFilter(Tfa98xx_handle_t dev, nxpTfaContBiquad_t *b
 			return Tfa98xx_Error_Bad_Parameter;
 
 		/* send a DSP memory message that targets the devices specific memory for the filter
-		 * msg params: which_mem, start_offset, num_words
+		 * msg params : which_mem, start_offset, num_words
 		 */
-		memset(data, 0, 3*3);
+		memset(data, 0, 3 * 3);
 		data[2] = dmem; /* output[0] = which_mem */
 		data[4] = address >> 8; /* output[1] = start_offset */
 		data[5] = address & 0xff;
-		data[8] = sizeof(bq->aa.bytes)/3; /*output[2] = num_words */
+		data[8] = sizeof(bq->aa.bytes)/3; /* output[2] = num_words */
 		memcpy(&data[9], bq->aa.bytes, sizeof(bq->aa.bytes)); /* payload */
 
 		if (tfa98xx_dev_family(dev) == 2) {
@@ -829,7 +833,7 @@ enum Tfa98xx_Error tfaRunWriteFilter(Tfa98xx_handle_t dev, nxpTfaContBiquad_t *b
 
 /*
  * write the register based on the input address, value and mask
- *  only the part that is masked will be updated
+ *only the part that is masked will be updated
  */
 enum Tfa98xx_Error tfaRunWriteRegister(Tfa98xx_handle_t handle, nxpTfaRegpatch_t *reg)
 {
@@ -869,6 +873,7 @@ nxpTfaBitfield_t tfaContDsc2Bf(nxpTfaDescPtr_t dsc)
 	return num_bf.bf;
 }
 
+
 enum Tfa98xx_Error tfaContWriteRegsDev(int dev_idx)
 {
 	nxpTfaDeviceList_t *dev = tfaContDevice (dev_idx);
@@ -883,17 +888,17 @@ enum Tfa98xx_Error tfaContWriteRegsDev(int dev_idx)
 	/* process the list until a patch, file of profile is encountered */
 	for (i = 0; i < dev->length; i++) {
 		if (dev->list[i].type == dscPatch ||
-			  dev->list[i].type == dscFile  ||
-			  dev->list[i].type == dscProfile)
-				break;
+				dev->list[i].type == dscFile  ||
+				dev->list[i].type == dscProfile)
+			break;
 
-		if  (dev->list[i].type == dscBitfield) {
+		if (dev->list[i].type == dscBitfield) {
 			bitF = (nxpTfaBitfield_t *)(dev->list[i].offset+(uint8_t *)g_cont);
 			err = tfaRunWriteBitfield(dev_idx , *bitF);
 		}
-		if  (dev->list[i].type == dscRegister) {
+		if (dev->list[i].type == dscRegister) {
 			err = tfaRunWriteRegister(dev_idx, (nxpTfaRegpatch_t *)
-						(dev->list[i].offset+(char *)g_cont));
+					(dev->list[i].offset+(char *)g_cont));
 		}
 
 		if (err)
@@ -901,6 +906,7 @@ enum Tfa98xx_Error tfaContWriteRegsDev(int dev_idx)
 	}
 	return err;
 }
+
 
 enum Tfa98xx_Error tfaContWriteRegsProf(int dev_idx, int prof_idx)
 {
@@ -935,6 +941,7 @@ enum Tfa98xx_Error tfaContWriteRegsProf(int dev_idx, int prof_idx)
 	return err;
 }
 
+
 enum Tfa98xx_Error tfaContWritePatch(int dev_idx)
 {
 	nxpTfaDeviceList_t *dev = tfaContDevice(dev_idx);
@@ -952,8 +959,7 @@ enum Tfa98xx_Error tfaContWritePatch(int dev_idx)
 		if (dev->list[i].type == dscPatch) {
 			file = (nxpTfaFileDsc_t *)(dev->list[i].offset+(uint8_t *)g_cont);
 			patchfile = (nxpTfaPatch_t *)&file->data;
-			if (tfa98xx_cnt_verbose)
-				tfaContShowHeader(&patchfile->hdr);
+			if (tfa98xx_cnt_verbose) tfaContShowHeader(&patchfile->hdr);
 			size = patchfile->hdr.size - sizeof(nxpTfaPatch_t);
 			return tfa_dsp_patch(dev_idx,  size, (const unsigned char *) patchfile->data);
 		}
@@ -962,6 +968,7 @@ enum Tfa98xx_Error tfaContWritePatch(int dev_idx)
 
 	return Tfa98xx_Error_Bad_Parameter;
 }
+
 
 enum Tfa98xx_Error tfaContWriteFiles(int dev_idx)
 {
@@ -979,22 +986,22 @@ enum Tfa98xx_Error tfaContWriteFiles(int dev_idx)
 	for (i = 0; i < dev->length; i++) {
 		if (dev->list[i].type == dscFile) {
 			file = (nxpTfaFileDsc_t *)(dev->list[i].offset+(uint8_t *)g_cont);
-			if (tfaContWriteFile(dev_idx, file, 0, TFA_MAX_VSTEP_MSG_MARKER)) {
+			if (tfaContWriteFile(dev_idx,  file, 0 , TFA_MAX_VSTEP_MSG_MARKER)) {
 				return Tfa98xx_Error_Bad_Parameter;
 			}
 		}
 
-		if  (dev->list[i].type == dscSetInputSelect ||
-		      dev->list[i].type == dscSetOutputSelect ||
-		      dev->list[i].type == dscSetProgramConfig ||
-		      dev->list[i].type == dscSetLagW ||
-		      dev->list[i].type == dscSetGains ||
-		      dev->list[i].type == dscSetvBatFactors ||
-		      dev->list[i].type == dscSetSensesCal ||
-		      dev->list[i].type == dscSetSensesDelay ||
-		      dev->list[i].type == dscSetMBDrc) {
+		if (dev->list[i].type == dscSetInputSelect ||
+				dev->list[i].type == dscSetOutputSelect ||
+				dev->list[i].type == dscSetProgramConfig ||
+				dev->list[i].type == dscSetLagW ||
+				dev->list[i].type == dscSetGains ||
+				dev->list[i].type == dscSetvBatFactors ||
+				dev->list[i].type == dscSetSensesCal ||
+				dev->list[i].type == dscSetSensesDelay ||
+				dev->list[i].type == dscSetMBDrc) {
 			create_dsp_buffer_msg((nxpTfaMsg_t *)
-					(dev->list[i].offset+(char *)g_cont), buffer, &size);
+			(dev->list[i].offset+(char *)g_cont), buffer, &size);
 			err = tfa_dsp_msg(dev_idx, size, buffer);
 		}
 
@@ -1017,8 +1024,8 @@ enum Tfa98xx_Error tfaContWriteFiles(int dev_idx)
 }
 
 /*
- *  write all  param files in the profilelist to the target
- *   this is used during startup when maybe ACS is set
+ *write all  param files in the profilelist to the target
+ * this is used during startup when maybe ACS is set
  */
 enum Tfa98xx_Error tfaContWriteFilesProf(int dev_idx, int prof_idx, int vstep_idx)
 {
@@ -1050,14 +1057,13 @@ enum Tfa98xx_Error tfaContWriteFilesProf(int dev_idx, int prof_idx, int vstep_id
 		case dscPatch:
 			file = (nxpTfaFileDsc_t *)(prof->list[i].offset+(uint8_t *)g_cont);
 			patchfile = (nxpTfaPatch_t *)&file->data;
-			if (tfa98xx_cnt_verbose)
-				tfaContShowHeader(&patchfile->hdr);
+			if (tfa98xx_cnt_verbose) tfaContShowHeader(&patchfile->hdr);
 			size = patchfile->hdr.size - sizeof(nxpTfaPatch_t);
 			err = tfa_dsp_patch(dev_idx,  size, (const unsigned char *) patchfile->data);
 			break;
 		case dscCfMem:
 			err = tfaRunWriteDspMem(dev_idx, (nxpTfaDspMem_t *)(prof->list[i].offset+(uint8_t *)g_cont));
-		break;
+			break;
 		default:
 			/* ignore any other type */
 			break;
@@ -1179,9 +1185,9 @@ unsigned int tfa98xx_get_profile_sr(int dev_idx, unsigned int prof_idx)
 	/* Check for container default setting */
 	/* process the list until a patch, file of profile is encountered */
 	for (i = 0; i < dev->length; i++) {
-		if (dev->list[i].type == dscPatch
-			  || dev->list[i].type == dscFile
-			  || dev->list[i].type == dscProfile)
+		if (dev->list[i].type == dscPatch ||
+				dev->list[i].type == dscFile  ||
+				dev->list[i].type == dscProfile)
 			break;
 
 		if  (dev->list[i].type == dscBitfield) {
@@ -1249,6 +1255,13 @@ enum Tfa98xx_Error get_sample_rate_info(int dev_idx, nxpTfaProfileList_t *prof, 
 		}
 	}
 
+	/* Enable if needed for debugging!
+	if (tfa98xx_cnt_verbose) {
+		pr_debug("sample rate from the previous profile: %d \n", fs_previous_profile);
+		pr_debug("sample rate in the default section: %d \n", fs_default_profile);
+		pr_debug("sample rate for the next profile: %d \n", fs_next_profile);
+	}
+	 */
 
 	if (fs_next_profile != fs_default_profile) {
 		if (tfa98xx_cnt_verbose)
@@ -1273,8 +1286,8 @@ enum Tfa98xx_Error get_sample_rate_info(int dev_idx, nxpTfaProfileList_t *prof, 
 }
 
 /*
- *  process all items in the profilelist
- *   NOTE an error return during processing will leave the device muted
+ *process all items in the profilelist
+ * NOTE an error return during processing will leave the device muted
  *
  */
 enum Tfa98xx_Error tfaContWriteProfile(int dev_idx, int prof_idx, int vstep_idx)
@@ -1285,13 +1298,13 @@ enum Tfa98xx_Error tfaContWriteProfile(int dev_idx, int prof_idx, int vstep_idx)
 	char buffer[(MEMTRACK_MAX_WORDS * 3) + 3] = {0};
 	unsigned int i, k = 0, j = 0, tries = 0;
 	nxpTfaFileDsc_t *file;
-	int size = 0, ready, fs_previous_profile = 8; /* default fs is 48kHz*/
+	int size = 0, ready, fs_previous_profile = 8; /* default fs is 48kHz */
 
 	if (!prof)
 		return Tfa98xx_Error_Bad_Parameter;
 
 	if (tfa98xx_cnt_verbose) {
-		tfa98xx_trace_printk("device:%s profile:%s vstep:%d\n", tfaContDeviceName(dev_idx),
+		trace_printk("device:%s profile:%s vstep:%d\n", tfaContDeviceName(dev_idx),
 					tfaContProfileName(dev_idx, prof_idx), vstep_idx);
 	}
 
@@ -1375,7 +1388,7 @@ enum Tfa98xx_Error tfaContWriteProfile(int dev_idx, int prof_idx, int vstep_idx)
 
 	/* set new settings */
 	for (i = 0; i < prof->length; i++) {
-		/* Remember where we currently are with writing items*/
+		/* Remember where we currently are with writing items */
 		j = i;
 		/* We only want to write the values before the default section when we switch profile */
 		if (prof->list[i].type == dscDefault)
@@ -1464,13 +1477,13 @@ enum Tfa98xx_Error tfaContWriteProfile(int dev_idx, int prof_idx, int vstep_idx)
 		case dscSetSensesDelay:
 		case dscSetMBDrc:
 			create_dsp_buffer_msg((nxpTfaMsg_t *)
-				(prof->list[i].offset+(char *)g_cont), buffer, &size);
+					(prof->list[i].offset+(char *)g_cont), buffer, &size);
 			err = tfa_dsp_msg(dev_idx, size, buffer);
 
 			if (tfa98xx_cnt_verbose)
 				pr_debug("command: %s=0x%02x%02x%02x \n",
 					tfaContGetCommandString(prof->list[i].type),
-				(unsigned char)buffer[0], (unsigned char)buffer[1], (unsigned char)buffer[2]);
+					(unsigned char)buffer[0], (unsigned char)buffer[1], (unsigned char)buffer[2]);
 			break;
 		case dscCmd:
 			size = *(uint16_t *)(prof->list[i].offset+(char *)g_cont);
@@ -1488,7 +1501,7 @@ enum Tfa98xx_Error tfaContWriteProfile(int dev_idx, int prof_idx, int vstep_idx)
 	}
 
 	if ((prof->group != previous_prof->group || prof->group == 0) && tfa98xx_dev_family(dev_idx) == 2) {
-		/* set SBSL to go to operation mode -> tell DSP it's loaded*/
+		/* set SBSL to go to operation mode -> tell DSP it's loaded */
 		TFA_SET_BF(dev_idx, SBSL, 1);
 	}
 
@@ -1502,7 +1515,7 @@ enum Tfa98xx_Error tfaContWriteProfile(int dev_idx, int prof_idx, int vstep_idx)
 }
 
 /*
- *  process only vstep in the profilelist
+ *process only vstep in the profilelist
  *
  */
 enum Tfa98xx_Error tfaContWriteFilesVstep(int dev_idx, int prof_idx, int vstep_idx)
@@ -1518,7 +1531,7 @@ enum Tfa98xx_Error tfaContWriteFilesVstep(int dev_idx, int prof_idx, int vstep_i
 		return Tfa98xx_Error_Bad_Parameter;
 
 	if (tfa98xx_cnt_verbose)
-		tfa98xx_trace_printk("device:%s profile:%s vstep:%d\n", tfaContDeviceName(dev_idx),
+		trace_printk("device:%s profile:%s vstep:%d\n", tfaContDeviceName(dev_idx),
 					tfaContProfileName(dev_idx, prof_idx), vstep_idx);
 
 	/* write vstep file only! */
@@ -1601,9 +1614,9 @@ char *tfaContGetCommandString(uint32_t type)
 
 /*
  * Get the name of the device at a certain index in the container file
- *  return device name
+ *return device name
  */
-char *tfaContDeviceName(int dev_idx)
+char  *tfaContDeviceName(int dev_idx)
 {
 	nxpTfaDeviceList_t *dev;
 
@@ -1667,7 +1680,7 @@ int tfaContGetCalProfile(int dev_idx)
 
 /*
  * Get the name of the profile at certain index for a device in the container file
- *  return profile name
+ *return profile name
  */
 char *tfaContProfileName(int dev_idx, int prof_idx)
 {
@@ -1677,6 +1690,7 @@ char *tfaContProfileName(int dev_idx, int prof_idx)
 		return errorname;
 	if ((prof_idx < 0) || (prof_idx >= tfaContMaxProfile(dev_idx)))
 		return nonename;
+
 
 	prof = tfaContGetDevProfList(g_cont, dev_idx, prof_idx);
 	return tfaContGetString(&prof->name);
@@ -1693,10 +1707,13 @@ nxpTfaProfileList_t *tfaContGet1stProfList(nxpTfaContainer_t *cont)
 	int maxdev = 0;
 	nxpTfaDeviceList_t *dev;
 
+
 	maxdev = cont->ndev;
+
 	dev = tfaContGetDevList(cont, maxdev - 1);
+
 	b = (uint8_t *) dev + sizeof(nxpTfaDeviceList_t) +
-		dev->length * (sizeof(nxpTfaDescPtr_t));
+				dev->length * (sizeof(nxpTfaDescPtr_t));
 	prof = (nxpTfaProfileList_t *) b;
 	return prof;
 }
@@ -1706,29 +1723,33 @@ nxpTfaProfileList_t *tfaContGet1stProfList(nxpTfaContainer_t *cont)
  */
 nxpTfaLiveDataList_t *tfaContGet1stLiveDataList(nxpTfaContainer_t *cont)
 {
-	nxpTfaLiveDataList_t *ldata;
-	nxpTfaProfileList_t *prof;
-	nxpTfaDeviceList_t *dev;
+		 nxpTfaLiveDataList_t *ldata;
+		 nxpTfaProfileList_t *prof;
+		 nxpTfaDeviceList_t *dev;
 	uint8_t *b = (uint8_t *) cont;
 	int maxdev, maxprof;
 
+
 	maxdev = cont->ndev;
+
 	maxprof = cont->nprof;
 
+
 	dev = tfaContGetDevList(cont, maxdev - 1);
+
 	b = (uint8_t *) dev + sizeof(nxpTfaDeviceList_t) +
-		dev->length * (sizeof(nxpTfaDescPtr_t));
+				dev->length * (sizeof(nxpTfaDescPtr_t));
 
-	while (maxprof != 0) {
+		 while (maxprof != 0) {
 
-		prof = (nxpTfaProfileList_t *) b;
-		b += sizeof(nxpTfaProfileList_t) +
-			((prof->length-1) * (sizeof(nxpTfaDescPtr_t)));
-		maxprof--;
-	}
+	       prof = (nxpTfaProfileList_t *) b;
+				b += sizeof(nxpTfaProfileList_t) +
+					 ((prof->length-1) * (sizeof(nxpTfaDescPtr_t)));
+				maxprof--;
+		 }
 
-	/* Else the marker falls off */
-	b += 4;
+		 /* Else the marker falls off */
+		 b += 4;
 
 	ldata = (nxpTfaLiveDataList_t *) b;
 	return ldata;
@@ -1793,6 +1814,7 @@ nxpTfaDeviceList_t *tfaContDevice(int dev_idx)
 {
 	if (dev_idx < g_devs)
 		return g_dev[dev_idx];
+
 	return NULL;
 }
 
@@ -1802,6 +1824,7 @@ nxpTfaDeviceList_t *tfaContDevice(int dev_idx)
 int tfaContMaxProfile(int dev_idx)
 {
 	if (dev_idx >= g_devs) {
+
 		return 0;
 	}
 	return g_profs[dev_idx];
@@ -1809,9 +1832,9 @@ int tfaContMaxProfile(int dev_idx)
 
 /*
  * return the next profile:
- *  - assume that all profiles are adjacent
- *  - calculate the total length of the input
- *  - the input profile + its length is the next profile
+ *- assume that all profiles are adjacent
+ *- calculate the total length of the input
+ *- the input profile + its length is the next profile
  */
 nxpTfaProfileList_t *tfaContNextProfile(nxpTfaProfileList_t *prof)
 {
@@ -1823,8 +1846,8 @@ nxpTfaProfileList_t *tfaContNextProfile(nxpTfaProfileList_t *prof)
 		return NULL;	/* invalid input */
 
 	this = (uint8_t *)prof;
-	/* nr of items in the list, length includes name dsc so - 1*/
-	listlength = (prof->length - 1)*sizeof(nxpTfaDescPtr_t);
+	/* nr of items in the list, length includes name dsc so - 1 */
+	listlength = (prof->length - 1) * sizeof(nxpTfaDescPtr_t);
 	/* the sizeof(nxpTfaProfileList_t) includes the list[0] length */
 	next = this + listlength + sizeof(nxpTfaProfileList_t);
 	nextprof = (nxpTfaProfileList_t *)next;
@@ -1840,7 +1863,7 @@ nxpTfaProfileList_t *tfaContNextProfile(nxpTfaProfileList_t *prof)
  */
 nxpTfaLiveDataList_t *tfaContNextLiveData(nxpTfaLiveDataList_t *livedata)
 {
-	nxpTfaLiveDataList_t *nextlivedata = (nxpTfaLiveDataList_t *)((char *)livedata + (livedata->length*4) +
+	nxpTfaLiveDataList_t * nextlivedata = (nxpTfaLiveDataList_t * )((char * )livedata + (livedata->length * 4) +
 			sizeof(nxpTfaLiveDataList_t) - 4);
 
 	if (nextlivedata->ID == TFA_LIVEDATAID)
@@ -1868,9 +1891,9 @@ nxpTfaProfileList_t *tfaContProfile(int dev_idx, int prof_ipx)
 
 /*
  * check CRC for container
- *   CRC is calculated over the bytes following the CRC field
+ * CRC is calculated over the bytes following the CRC field
  *
- *   return 0 on error
+ * return 0 on error
  */
 int tfaContCrcCheckContainer(nxpTfaContainer_t *cont)
 {
@@ -1890,24 +1913,24 @@ int tfaContCrcCheckContainer(nxpTfaContainer_t *cont)
  */
 void create_dsp_buffer_msg(nxpTfaMsg_t *msg, char *buffer, int *size)
 {
-	int i, j = 0;
+		 int i, j = 0;
 
-	/* Copy cmdId. Remember that the cmdId is reversed */
-	buffer[0] = msg->cmdId[2];
-	buffer[1] = msg->cmdId[1];
-	buffer[2] = msg->cmdId[0];
+		 /* Copy cmdId. Remember that the cmdId is reversed */
+		 buffer[0] = msg->cmdId[2];
+		 buffer[1] = msg->cmdId[1];
+		 buffer[2] = msg->cmdId[0];
 
-	/* Copy the data to the buffer */
-	for (i = 3; i < 3+(msg->msg_size*3); i++) {
-		buffer[i] = (uint8_t) ((msg->data[j] >> 16) & 0xffff);
-		i++;
-		buffer[i] = (uint8_t) ((msg->data[j] >> 8) & 0xff);
-		i++;
-		buffer[i] = (uint8_t) (msg->data[j] & 0xff);
-		j++;
-	}
+		 /* Copy the data to the buffer */
+		for (i = 3; i < 3+(msg->msg_size * 3); i++) {
+				buffer[i] = (uint8_t) ((msg->data[j] >> 16) & 0xffff);
+				i++;
+				buffer[i] = (uint8_t) ((msg->data[j] >> 8) & 0xff);
+				i++;
+				buffer[i] = (uint8_t) (msg->data[j] & 0xff);
+				j++;
+		}
 
-	*size = (3+(msg->msg_size*3)) * sizeof(char);
+		*size = (3+(msg->msg_size *3)) * sizeof(char);
 }
 
 void get_all_features_from_cnt(Tfa98xx_handle_t dev_idx, int *hw_feature_register, int sw_feature_register[2])
@@ -1924,6 +1947,7 @@ void get_all_features_from_cnt(Tfa98xx_handle_t dev_idx, int *hw_feature_registe
 
 	if (dev == NULL)
 		return;
+
 
 	for (i = 0; i < dev->length; i++) {
 		if (dev->list[i].type == dscFeatures) {

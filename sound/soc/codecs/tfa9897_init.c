@@ -99,7 +99,7 @@ enum Tfa98xx_Error tfa9897_dsp_write_cvfracdelay_table(Tfa98xx_handle_t handle)
 		TFA1_FW_PAR_ID_SET_CURFRAC_DELAY,
 		sizeof(cvfracdelay_table),
 		cvfracdelay_table);
-	return error;
+		 return error;
 }
 
 static enum Tfa98xx_Error tfa9897_tfa_dsp_write_tables(Tfa98xx_handle_t dev_idx, int sample_rate)

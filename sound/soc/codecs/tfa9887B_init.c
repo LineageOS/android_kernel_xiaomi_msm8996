@@ -26,7 +26,7 @@
  */
 int tfa9887B_is87(Tfa98xx_handle_t handle)
 {
-	unsigned short save_value, check_value;
+		 unsigned short save_value, check_value;
 
 	tfa98xx_read_register16(handle, 0x08, &save_value);
 	if ((save_value&0x0400) == 0)
@@ -35,7 +35,7 @@ int tfa9887B_is87(Tfa98xx_handle_t handle)
 	tfa98xx_write_register16(handle, 0x08, (save_value & ~0x0400));
 	tfa98xx_read_register16(handle, 0x08, &check_value);
 	/* restore */
-	tfa98xx_write_register16(handle, 0x08, save_value);
+		 tfa98xx_write_register16(handle, 0x08, save_value);
 	/* could we write the bit */
 	return (check_value != save_value) ? 1 : 0;
 }

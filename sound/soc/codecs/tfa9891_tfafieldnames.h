@@ -397,12 +397,12 @@
 	{ 0x5240, "ctrl_test_cvia"},    /* tbd for rdson testing                             , */\
 	{ 0x5250, "ctrl_test_cvib"},    /* tbd for rdson testing                             , */\
 	{ 0x5260, "ctrl_test_cvibst"},    /* tbd for rdson testing                             , */\
-	{ 0x5290, "test_bypass_pwmdiscretea"},    /* for testing (ABIST)                              , */\
-	{ 0x52a0, "test_bypass_pwmdiscreteb"},    /* for testing (ABIST)                              , */\
+	{ 0x5290, "test_bypass_pwmdiscretea"},    /* for testing ( ABIST)                              , */\
+	{ 0x52a0, "test_bypass_pwmdiscreteb"},    /* for testing ( ABIST)                              , */\
 	{ 0x52b0, "ctrl_clipc_forcehigh"},    /* test signal for clipcontrol                       , */\
 	{ 0x52c0, "ctrl_clipc_forcelow"},    /* test signal for clipcontrol                       , */\
-	{ 0x52d0, "ctrl_test_sdelta"},    /* for testing (ABIST)                              , */\
-	{ 0x52e0, "ctrl_test_swhvp"},    /* for testing (ABIST)                              , */\
+	{ 0x52d0, "ctrl_test_sdelta"},    /* for testing ( ABIST)                              , */\
+	{ 0x52e0, "ctrl_test_swhvp"},    /* for testing ( ABIST)                              , */\
 	{ 0x52f0, "test_gain_reduction"},    /* test gain reduction                               , */\
 	{ 0x5303, "ctrl_digimux_out_test1"},    /* Digimux TEST1 out                                 , */\
 	{ 0x5343, "ctrl_digimux_out_test2"},    /* Digimux TEST2 out. output flag_clipa_low depending on cntr_bypassclip setting, */\

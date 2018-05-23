@@ -28,10 +28,6 @@ static enum Tfa98xx_Error tfa9890_specific(Tfa98xx_handle_t handle)
 	if (!tfa98xx_handle_is_open(handle))
 		return Tfa98xx_Error_NotOpen;
 
-	/* all i2C registers are already set to default for N1C2 */
-
-	/* some PLL registers must be set optimal for amplifier behaviour
-	 */
 	error = tfa98xx_write_register16(handle, 0x40, 0x5a6b);
 	if (error)
 		return error;
@@ -69,18 +65,15 @@ static enum Tfa98xx_Error tfa9890_dsp_system_stable(Tfa98xx_handle_t handle, int
 	}
 	status = (unsigned short)result;
 
-	/* if AMPS is set then we were already configured and running
-	 *   no need to check further
-	 */
 	*ready = (TFA_GET_BF_VALUE(handle, AMPS, status) == 1);
-	if (*ready)		/* if  ready go back */
-		return error;	/* will be Tfa98xx_Error_Ok */
+	if (*ready)
+		return error;
 
 	/* check AREFS and CLKS: not ready if either is clear */
 	*ready = !((TFA_GET_BF_VALUE(handle, AREFS, status) == 0)
 		   || (TFA_GET_BF_VALUE(handle, CLKS, status) == 0));
-	if (!*ready)		/* if not ready go back */
-		return error;	/* will be Tfa98xx_Error_Ok */
+	if (!*ready)
+		return error;
 
 	/* check MTPB
 	 *   mtpbusy will be active when the subsys copies MTP to I2C
@@ -96,10 +89,10 @@ static enum Tfa98xx_Error tfa9890_dsp_system_stable(Tfa98xx_handle_t handle, int
 
 		/* check the contents of the STATUS register */
 		*ready = (result == 0);
-		if (*ready)	/* if ready go on */
+		if (*ready)	
 			break;
 	}
-	if (tries == 0)		/* ready will be 0 if retries exausted */
+	if (tries == 0)
 		return Tfa98xx_Error_Ok;
 
 	/* check the contents of  MTP register for non-zero,
@@ -109,7 +102,7 @@ static enum Tfa98xx_Error tfa9890_dsp_system_stable(Tfa98xx_handle_t handle, int
 	if (error)
 		goto errorExit;
 
-	*ready = (mtp0 != 0);	/* The MTP register written? */
+	*ready = (mtp0 != 0);
 
 	return error;
 
@@ -137,9 +130,9 @@ static enum Tfa98xx_Error tfa9890_clockgating(Tfa98xx_handle_t handle, int on)
 		return error;
 
 	if (Tfa98xx_Error_Ok == error) {
-		if (on)  /* clock gating on - clear the bit */
+		if (on)
 			value &= ~TFA98XX_CURRENTSENSE4_CTRL_CLKGATECFOFF;
-		else  /* clock gating off - set the bit */
+		else
 			value |= TFA98XX_CURRENTSENSE4_CTRL_CLKGATECFOFF;
 
 		error = tfa98xx_write_register16(handle, TFA98XX_CURRENTSENSE4, value);
@@ -156,21 +149,15 @@ static enum Tfa98xx_Error tfa9890_dsp_reset(Tfa98xx_handle_t handle, int state)
 {
 	enum Tfa98xx_Error error;
 
-	/* for TFA9890 temporarily disable clock gating
-	   when dsp reset is used */
 	tfa9890_clockgating(handle, 0);
 
 	TFA_SET_BF(handle, RST, (uint16_t)state);
 
-	/* clock gating restore */
 	error = tfa9890_clockgating(handle, 1);
 
 	return error;
 }
 
-/*
- * register device specifics functions
- */
 void tfa9890_ops(struct tfa_device_ops *ops)
 {
 	ops->tfa_init = tfa9890_specific;

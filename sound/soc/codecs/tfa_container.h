@@ -1,8 +1,8 @@
 /*
  * tfaContainer.h
  *
- *  Created on: Sep 11, 2013
- *      Author: wim
+ *Created on: Sep 11, 2013
+ *Author: wim
  */
 
 #ifndef TFACONTAINER_H_
@@ -49,8 +49,8 @@ char *tfaContGetCommandString(uint32_t type);
 
 /**
  * get the device type from the patch in this devicelist
- *  - find the patch file for this devidx
- *  - return the devid from the patch or 0 if not found
+ *- find the patch file for this devidx
+ *- return the devid from the patch or 0 if not found
  * @param cnt pointer to container file
  * @param dev_idx device index
  * @return descriptor string
@@ -156,7 +156,7 @@ char  *tfaContDeviceName(int dev_idx);
 
 /**
  * Get the application name from the container file application field
- * @param name the input stringbuffer with size: sizeof(application field)+1
+ * @param name the input stringbuffer with size : sizeof(application field)+1
  * @return actual string length
  */
 int tfa_cnt_get_app_name(char *name);
@@ -164,7 +164,7 @@ int tfa_cnt_get_app_name(char *name);
 /**
  * Get profile index of the calibration profile
  * @param dev_idx the index of the device
- * @return profile index, -2 if no calibration profile is found or -1 on error
+ * @return profile index, - 2 if no calibration profile is found or - 1 on error
  */
 int tfaContGetCalProfile(int dev_idx);
 

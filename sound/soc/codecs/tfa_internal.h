@@ -62,6 +62,8 @@ struct tfa98xx_controls {
 	struct tfa98xx_control otc;
 	struct tfa98xx_control mtpex;
 	struct tfa98xx_control calib;
+
+
 };
 
 struct tfa_device_ops {
@@ -85,6 +87,9 @@ struct Tfa98xx_handle_private {
 	int hw_feature_bits; /* cached feature bits data */
 	int profile;	/* cached active profile */
 	int vstep[2]; /* cached active vsteps */
+
+
+
 	unsigned char spkr_count;
 	unsigned char spkr_select;
 	unsigned char support_tcoef;

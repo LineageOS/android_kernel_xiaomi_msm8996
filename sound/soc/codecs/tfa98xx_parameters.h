@@ -8,6 +8,9 @@
 #ifndef TFA98XXPARAMETERS_H_
 #define TFA98XXPARAMETERS_H_
 
+
+
+
 #ifdef __KERNEL__
 	#include <linux/types.h>
 #else
@@ -30,6 +33,10 @@
 #define TFA_MAX_VSTEPS                  (64)
 #define TFA_MAX_VSTEP_MSG_MARKER        (100) /* This marker  is used to indicate if all msgs need to be written to the device */
 #define TFA_MAX_MSGS                    (10)
+
+
+
+
 
 #pragma pack (push, 1)
 
@@ -189,7 +196,7 @@ typedef struct nxpTfaEqFilter {
 	float samplingFreq;
 	float Q;
 	float gainDb;
-} nxpTfaEqFilter_t;
+} nxpTfaEqFilter_t ;
 
 typedef struct nxpTfaContAntiAlias {
 	int8_t index; 	/**< index determines destination type; anti-alias, integrator,eq */
@@ -248,7 +255,7 @@ typedef enum nxpTfaHeaderType {
 	configHdr	 	= HDR('C', 'O'),
 	equalizerHdr	= HDR('E', 'Q'),
 	drcHdr		= HDR('D', 'R'),
-	msgHdr		= HDR('M', 'G'),	/* generic message */
+	msgHdr		= HDR('M', 'G'), 	/* generic message */
 	infoHdr		= HDR('I', 'N')
 } nxpTfaHeaderType_t;
 
@@ -379,6 +386,21 @@ typedef struct nxpTfaVolumeStep2 {
 	nxpTfaFilter_t filter[TFA98XX_MAX_EQ];
 } nxpTfaVolumeStep2_t;
 
+
+
+
+/** obsolete -DRC is now a different file
+#define NXPTFA_VP4_VERSION    "4"
+#define NXPTFA_VP4_SUBVERSION "01"
+typedef struct nxpTfaVolumeStep4 {
+    float attenuation;              // IEEE single float
+    uint8_t preset[TFA98XX_PRESET_LENGTH];
+    nxpTfaEqualizer_t eq;
+#if (defined(TFA9887B) || defined(TFA98XX_FULL))
+    uint8_t drc[TFA98XX_DRC_LENGTH];
+#endif
+} nxpTfaVolumeStep4_t;
+**/
 /*
  * volumestep file
  */
@@ -455,13 +477,14 @@ typedef struct nxpOldTfaFilter {
   uint8_t enabled;
 } nxpTfaOldFilter_t ;
 typedef struct nxpTfaOldVolumeStep2 {
-	float attenuation;
-	uint8_t preset[TFA98XX_PRESET_LENGTH];
-	nxpTfaOldFilter_t eq[10];
+    float attenuation;
+    uint8_t preset[TFA98XX_PRESET_LENGTH];
+    nxpTfaOldFilter_t eq[10];
 } nxpTfaOldVolumeStep2_t;
 typedef struct nxpTfaOldVolumeStepFile {
 	nxpTfaOldHeader_t hdr;
 	nxpTfaOldVolumeStep2_t step[];
+
 
 } nxpTfaOldVolumeStep2File_t;
 /**************************end old v2 *************************************************/
@@ -515,6 +538,9 @@ struct nxpTfaFWVer {
 
 struct nxpTfaCmdID {
 	int a;
+
+
+
 };
 
 struct nxpTfaFWMsg {
@@ -524,9 +550,9 @@ struct nxpTfaFWMsg {
 
 typedef struct nxpTfaLiveData {
 	uint8_t liveData_size;
-	char name[25];
+		 char name[25];
 	char addrs[25];
-	int tracker;
+		 int tracker;
 	int scalefactor[MEMTRACK_MAX_WORDS];
 } nxpTfaLiveData_t;
 
@@ -562,6 +588,7 @@ typedef enum nxpTfaDescriptorType {
 	dscPatch,
 	dscMarker,
 	dscMode,
+#if 1
 	dscSetInputSelect,
 	dscSetOutputSelect,
 	dscSetProgramConfig,
@@ -570,16 +597,19 @@ typedef enum nxpTfaDescriptorType {
 	dscSetvBatFactors,
 	dscSetSensesCal,
 	dscSetSensesDelay,
+#endif
 	dscBitfield,
 	dscDefault,
 	dscLiveData,
 	dscLiveDataString,
 	dscGroup,
 	dscCmd,
+#if 1
 	dscSetMBDrc,
+#endif
 	dscFilter,
 	dscNoInit,
-	dscFeatures,
+		 dscFeatures,
 	dscCfMem,
 	dsc_last
 } nxpTfaDescriptorType_t;

@@ -1,6 +1,7 @@
 /*
 ** =============================================================================
 ** Copyright (c) 2016  Texas Instruments Inc.
+** Copyright (C) 2018 XiaoMi, Inc.
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of the GNU General Public License as published by the Free Software
@@ -50,21 +51,30 @@
 #define dprintk(x...)
 #endif
 
+
+
 /* Function prototypes */
 #ifdef REG_DUMP
 static void dump_page(struct i2c_client *i2c, u8 page);
 #endif
 
 /* externs */
+
+
+
+
+
 static struct cdev *tiload_cdev;
-static int tiload_major;	/* Dynamic allocation of Mjr No. */
-static int tiload_opened;	/* Dynamic allocation of Mjr No. */
+static int tiload_major = 0;
+static int tiload_opened = 0;
 static struct tas2555_priv *g_TAS2555;
 struct class *tiload_class;
 static unsigned int magic_num = 0x00;
 
-static char gPage;
-static char gBook;
+
+
+static char gPage = 0;
+static char gBook = 0;
 /******************************** Debug section *****************************/
 
 #ifdef REG_DUMP
@@ -76,6 +86,24 @@ static char gBook;
  */
 static void dump_page(struct i2c_client *i2c, u8 page)
 {
+/*
+    int i;
+    u8 data;
+    u8 test_page_array[8];
+
+    dprintk("TiLoad DRIVER : %s\n", __FUNCTION__);
+//    aic3262_change_page(codec, page);
+
+    data = 0x0;
+
+    i2c_master_send(i2c, data, 1);
+    i2c_master_recv(i2c, test_page_array, 8);
+
+    printk("\n------- aic3262 PAGE %d DUMP --------\n", page);
+    for (i = 0; i < 8; i++) {
+		 printk(" [ %d ] = 0x%x\n", i, test_page_array[i]);
+    }
+*/
 }
 #endif
 
@@ -125,12 +153,14 @@ static ssize_t tiload_read(struct file *file, char __user *buf,
 {
 	static char rd_data[MAX_LENGTH + 1];
 	unsigned int nCompositeRegister = 0, Value;
+
 	char reg_addr;
 	size_t size;
 	int ret = 0;
 #ifdef DEBUG
 	int i;
 #endif
+
 
 	dprintk("TiLoad DRIVER : %s\n", __FUNCTION__);
 	if (count > MAX_LENGTH) {
@@ -161,6 +191,7 @@ static ssize_t tiload_read(struct file *file, char __user *buf,
 	if (ret < 0)
 		printk("%s, %d, ret=%d, count=%zu error happen!\n", __FUNCTION__,
 			__LINE__, ret, count);
+
 #ifdef DEBUG
 	printk(KERN_ERR "read size = %d, reg_addr= %x , count = %d\n",
 		(int) size, reg_addr, (int) count);
@@ -194,11 +225,14 @@ static ssize_t tiload_write(struct file *file, const char __user *buf,
 	char *pData = wr_data;
 	size_t size;
 	unsigned int nCompositeRegister = 0;
+
+
 	unsigned int nRegister;
 	int ret = 0;
 #ifdef DEBUG
 	int i;
 #endif
+
 
 	dprintk("TiLoad DRIVER : %s\n", __FUNCTION__);
 
@@ -275,6 +309,8 @@ static long tiload_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	BPR bpr;
 
 	printk(KERN_ERR "tiload_ioctl\n\r");
+
+
 
 	dprintk("TiLoad DRIVER : %s\n", __FUNCTION__);
 	switch (cmd) {
@@ -360,9 +396,11 @@ int tiload_driver_init(struct tas2555_priv *pTAS2555)
 		return 1;
 	}
 	printk("Registered TiLoad driver, Major number: %d \n", tiload_major);
+
 	return 0;
 }
 
 MODULE_AUTHOR("Texas Instruments Inc.");
 MODULE_DESCRIPTION("Utility for TAS2555 Android in-system tuning");
 MODULE_LICENSE("GPLv2");
+
