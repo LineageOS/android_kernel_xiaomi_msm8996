@@ -99,7 +99,7 @@
 			clock-names = "iface_clk", "core_clk";
 			clocks = <&clock_gcc clk_gcc_blsp2_ahb_clk>,
 				<&clock_gcc clk_gcc_blsp2_qup6_i2c_apps_clk>;
-			synaptics,backup-fw = "synaptics_sharp_backup_natrium.fw";
+			synaptics,backup-fw = "synaptics_sharp_backup_b7.fw";
 			synaptics,chip-3330 = <0>;
 			synaptics,chip-3331 = <1>;
 			synaptics,chip-4322 = <2>;
@@ -110,22 +110,22 @@
 			synaptics,cfg_1 {
 				synaptics,chip-id = <0>;
 				synaptics,tp-id = /bits/ 8 <0x31>;
-				synaptics,fw-name = "synaptics_jdi_3330_natrium.fw";
+				synaptics,fw-name = "synaptics_jdi_3330_b7.fw";
 			};
 			synaptics,cfg_2 {
 				synaptics,chip-id = <2>;
 				synaptics,tp-id = /bits/ 8 <0x38>;
-				synaptics,fw-name = "synaptics_sharp_4322_natrium.fw";
+				synaptics,fw-name = "synaptics_sharp_4322_b7.fw";
 			};
 			synaptics,cfg_3 {
 				synaptics,chip-id = <1>;
 				synaptics,tp-id = /bits/ 8 <0x31>;
-				synaptics,fw-name = "synaptics_jdi_3331_natrium.fw";
+				synaptics,fw-name = "synaptics_jdi_3331_b7.fw";
 			};
 			synaptics,cfg_4 {
 				synaptics,chip-id = <3>;
 				synaptics,tp-id = /bits/ 8 <0x38>;
-				synaptics,fw-name = "synaptics_sharp_4722_natrium.fw";
+				synaptics,fw-name = "synaptics_sharp_4722_b7.fw";
 			};
 
 		};

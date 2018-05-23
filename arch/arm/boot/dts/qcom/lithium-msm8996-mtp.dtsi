@@ -232,7 +232,7 @@
 				ft5x46_i2c,vendor = <0x3B>;
 				ft5x46_i2c,tp-vendor = <0x31>;
 				ft5x46_i2c,lcd-vendor = <0x34>;
-				ft5x46_i2c,fw-name = "fte8716_auo_incell_biel_lithium.fw";
+				ft5x46_i2c,fw-name = "fte8716_auo_incell_biel_a8.fw";
 				ft5x46_i2c,tx-num = <24>;
 				ft5x46_i2c,rx-num = <13>;
 			};
@@ -241,7 +241,7 @@
 				ft5x46_i2c,vendor = <0x3B>;
 				ft5x46_i2c,tp-vendor = <0x32>;
 				ft5x46_i2c,lcd-vendor = <0x34>;
-				ft5x46_i2c,fw-name = "fte8716_auo_incell_lens_lithium.fw";
+				ft5x46_i2c,fw-name = "fte8716_auo_incell_lens_a8.fw";
 				ft5x46_i2c,tx-num = <24>;
 				ft5x46_i2c,rx-num = <13>;
 			};
@@ -250,7 +250,7 @@
 				ft5x46_i2c,vendor = <0x3B>;
 				ft5x46_i2c,tp-vendor = <0x31>;
 				ft5x46_i2c,lcd-vendor = <0x33>;
-				ft5x46_i2c,fw-name = "fte8716_sharp_incell_biel_lithium.fw";
+				ft5x46_i2c,fw-name = "fte8716_sharp_incell_biel_a8.fw";
 				ft5x46_i2c,tx-num = <24>;
 				ft5x46_i2c,rx-num = <13>;
 			};
@@ -259,7 +259,7 @@
 				ft5x46_i2c,vendor = <0x6D>;
 				ft5x46_i2c,tp-vendor = <0x32>;
 				ft5x46_i2c,lcd-vendor = <0x33>;
-				ft5x46_i2c,fw-name = "fte8716_sharp_incell_lens_lithium.fw";
+				ft5x46_i2c,fw-name = "fte8716_sharp_incell_lens_a8.fw";
 				ft5x46_i2c,tx-num = <24>;
 				ft5x46_i2c,rx-num = <13>;
 			};
