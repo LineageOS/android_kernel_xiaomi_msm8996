@@ -16,6 +16,24 @@
       "revId": "e7f80cd306d0ecaff83905f19baec4a573c9a112",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "13e25f99_5db6c02d",
+        "filename": "sound/soc/codecs/tfa98xx.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2018-05-23T10:55:30Z",
+      "side": 1,
+      "message": "no, I just quickly pulled them.",
+      "parentUuid": "89755048_0322352d",
+      "revId": "e7f80cd306d0ecaff83905f19baec4a573c9a112",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
     }
   ]
 }
