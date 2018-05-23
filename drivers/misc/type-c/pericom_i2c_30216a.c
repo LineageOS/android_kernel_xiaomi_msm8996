@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2012 fengwei <fengwei@xiaomi.com>
  * Copyright (c) 2015-2015, The Linux Foundation. All rights reserved.
- * Copyright (C) 2016 XiaoMi, Inc.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,8 +31,8 @@
 #define DRIVER_NAME "pericom_30216a"
 
 /*
- * pericom data struct
- */
+   pericom data struct
+  */
 struct pericom_30216a_data{
 	struct i2c_client *i2c_client;
 	int irq;
@@ -172,7 +172,7 @@ static int pericom_30216a_set_role_mode(struct pericom_30216a_data *pericom_data
 		msleep(1500);
 		pericom_30216a_i2c_read(pericom_data, buf, 4);
 		dev_info(&pericom_data->i2c_client->dev,
-				"read:%d,%d,%d,%d\n", buf[0], buf[1], buf[2], buf[3]);
+				"read:%d, %d, %d, %d\n", buf[0], buf[1], buf[2], buf[3]);
 		/* mode=0 : device, reg4 must be 0x08
 		  * mode=1: host , reg4 must be 0x04
 		  * mode=2: drp,  all value is ok
@@ -183,8 +183,7 @@ static int pericom_30216a_set_role_mode(struct pericom_30216a_data *pericom_data
 			break;
 	}
 
-	if (i > 5)
-		dev_info(&pericom_data->i2c_client->dev, "try to %d mode fail \n", mode);
+	if (i > 5) dev_info(&pericom_data->i2c_client->dev, "try to %d mode fail \n", mode);
 	/* unmask interrupt*/
 	buf[1] &= ~PERICOM_INTERRUPT_MASK;
 
@@ -304,7 +303,7 @@ static bool ic_is_present(struct pericom_30216a_data *pericom_data)
 
 	ret = pericom_30216a_i2c_read(pericom_data, &buf, 1);
 
-	return (ret < 0) ? false : true;
+	return (ret < 0) ? false:true;
 }
 
 static irqreturn_t pericom_30216a_irq_handler(int irq, void *dev_id)
@@ -312,20 +311,20 @@ static irqreturn_t pericom_30216a_irq_handler(int irq, void *dev_id)
 	struct pericom_30216a_data *pericom_data = (struct pericom_30216a_data *) dev_id;
 	char reg[4] = {0, 0, 0, 0};
 	char curr_mode;
-	static bool  plug_flag;
+	static bool  plug_flag
 
 
 
-	pericom_30216a_i2c_read(pericom_data, reg, 2);
-	dev_info(&pericom_data->i2c_client->dev, "0.reg=%x,%x,%x,%x\n", reg[0], reg[1], reg[2], reg[3]);
+	pericom_30216a_i2c_read(pericom_data,  reg, 2);
+	dev_info(&pericom_data->i2c_client->dev, "0.reg=%x, %x, %x, %x\n", reg[0], reg[1], reg[2], reg[3]);
 	curr_mode = reg[1] & PERICOM_ROLE_MODE_MASK;
 	reg[1] = reg[1] | PERICOM_INTERRUPT_MASK;
 	pericom_30216a_i2c_write(pericom_data, reg, 2);
 
 	msleep(30);
 
-	pericom_30216a_i2c_read(pericom_data, reg, 4);
-	dev_info(&pericom_data->i2c_client->dev, "2.reg=%x,%x,%x,%x\n", reg[0], reg[1], reg[2], reg[3]);
+	pericom_30216a_i2c_read(pericom_data,  reg, 4);
+	dev_info(&pericom_data->i2c_client->dev, "2.reg=%x, %x, %x, %x\n", reg[0], reg[1], reg[2], reg[3]);
 
 	if ((reg[2] == 0x2) || (reg[3] == 0x00) || (reg[3] == 0x80)) {
 		if ((reg[2] == 0x2) && (reg[3] == 0x00))
@@ -340,7 +339,7 @@ static irqreturn_t pericom_30216a_irq_handler(int irq, void *dev_id)
 		reg[1] = PERICOM_INTERRUPT_MASK;
 		pericom_30216a_i2c_write(pericom_data, reg, 2);
 		curr_mode = DRP_MODE << PERICOM_ROLE_OFFSET;
-	} else {
+	} else{
 		if ((reg[3] == 0x05) || (reg[3] == 0x06)) {
 			if (plug_flag == false) {
 				plug_flag = true;
@@ -349,7 +348,7 @@ static irqreturn_t pericom_30216a_irq_handler(int irq, void *dev_id)
 
 				msleep(500);
 				pericom_30216a_i2c_read(pericom_data,  reg, 4);
-				dev_info(&pericom_data->i2c_client->dev, "3.reg=%x,%x,%x,%x\n", reg[0], reg[1], reg[2], reg[3]);
+				dev_info(&pericom_data->i2c_client->dev, "3.reg=%x, %x, %x, %x\n", reg[0], reg[1], reg[2], reg[3]);
 				if (reg[3] & 0x08)
 					curr_mode = DEVICE_MODE << PERICOM_ROLE_OFFSET;
 				else
@@ -452,7 +451,7 @@ static int pericom_30216a_probe(struct i2c_client *client,
 	return retval;
 
 err_fs:
-	free_irq(pericom_data->irq, pericom_data);
+       free_irq(pericom_data->irq, pericom_data);
 
 err_absent:
 	regulator_disable(i2c_vdd);

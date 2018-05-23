@@ -1,9 +1,11 @@
 /*
  * Pericom 30216a  driver IC for type C
  *
+ * Copyright (C) 2015 xiaomi Incorporated
+ *
  * Copyright (C) 2015 fengwei <fengwei@xiaomi.com	>
  * Copyright (c) 2015-2015, The Linux Foundation. All rights reserved.
- * Copyright (C) 2016 XiaoMi, Inc.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

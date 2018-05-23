@@ -1,8 +1,9 @@
 /* typec class
+ * Copyright (C) 2015 xiaomi Incorporated
  *
  * Copyright (C) 2015 fengwei <fengwei@xiaomi.com	>
  * Copyright (c) 2015-2015, The Linux Foundation. All rights reserved.
- * Copyright (C) 2016 XiaoMi, Inc.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  *
  * This software is licensed under the terms of the GNU General Public
@@ -91,7 +92,7 @@ int typec_dev_register(struct typec_dev *tdev)
 		return -EINVAL;
 
 	if (atomic_inc_return(&device_count) > 1) {
-		pr_err("Typec dev has registered,failed to register driver %s\n", tdev->name);
+		pr_err("Typec dev has registered, failed to register driver %s\n", tdev->name);
 		return -EINVAL;
 	}
 
