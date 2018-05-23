@@ -140,10 +140,10 @@ fw-shipped-$(CONFIG_TOUCHSCREEN_ATMEL_MXT) += mXT641T30AC.fw mXT640U13AA.fw \
 fw-shipped-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX) += synaptics_jdi_incell.fw \
 	synaptics_lgd_incell.fw synaptics_lgd_incell_backup.fw
 
-fw-shipped-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_FORCE) += synaptics_jdi_3330_capricorn.fw synaptics_jdi_3331_capricorn.fw synaptics_lgd_4322_capricorn.fw  synaptics_lgd_4722_capricorn.fw \
-	synaptics_jdi_3330_natrium.fw synaptics_jdi_3331_natrium.fw synaptics_sharp_4322_natrium.fw synaptics_sharp_4722_natrium.fw synaptics_lgd_backup_capricorn.fw synaptics_sharp_backup_natrium.fw
-fw-shipped-$(CONFIG_TOUCHSCREEN_FT5X46) += fte8716_auo_incell_lens_lithium.fw fte8716_auo_incell_biel_lithium.fw \
-	fte8716_sharp_incell_lens_lithium.fw fte8716_sharp_incell_biel_lithium.fw
+fw-shipped-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_FORCE) += synaptics_jdi_3330_a7.fw synaptics_jdi_3331_a7.fw synaptics_lgd_4322_a7.fw  synaptics_lgd_4722_a7.fw \
+	synaptics_jdi_3330_b7.fw synaptics_jdi_3331_b7.fw synaptics_sharp_4322_b7.fw synaptics_sharp_4722_b7.fw synaptics_lgd_backup_A7.fw synaptics_sharp_backup_b7.fw
+fw-shipped-$(CONFIG_TOUCHSCREEN_FT5X46) += fte8716_auo_incell_lens_a8.fw fte8716_auo_incell_biel_a8.fw \
+	fte8716_sharp_incell_lens_a8.fw fte8716_sharp_incell_biel_a8.fw
 
 fw-shipped-$(CONFIG_TOUCHSCREEN_ST_FTS) += st_fts.fw
 fw-shipped-$(CONFIG_TOUCHSCREEN_CYTTSP_BUTTON) += cyttsp_button_no_shielding.fw
