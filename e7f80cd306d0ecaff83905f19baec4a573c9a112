@@ -51,6 +51,24 @@
       "revId": "e7f80cd306d0ecaff83905f19baec4a573c9a112",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3eb97b4b_3e9274bd",
+        "filename": "sound/soc/codecs/tfa98xx.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 3118,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2018-05-23T15:21:17Z",
+      "side": 1,
+      "message": "Yea, ignore. This is the bare source from Xiaomi. We also used to skip these kind of changes in previous imports.",
+      "parentUuid": "7833f785_ec9166d0",
+      "revId": "e7f80cd306d0ecaff83905f19baec4a573c9a112",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
     }
   ]
 }
