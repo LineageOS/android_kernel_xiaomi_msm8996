@@ -1,7 +1,8 @@
 /*
  * bootinfo.c
  *
- * Copyright (C) 2016 XiaoMi, Inc.
+ * Copyright (C) 2011 Xiaomi Ltd.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -37,7 +38,7 @@ static const char * const reset_reasons[RS_REASON_MAX] = {
 	[RS_REASON_EVENT_OTHER]		= "other",
 };
 
-static struct kobject *bootinfo_kobj;
+static struct kobject *bootinfo_kobj = NULL;
 static powerup_reason_t powerup_reason;
 static unsigned int hw_version;
 
@@ -55,11 +56,11 @@ static struct kobj_attribute _name##_attr = {	\
 	    static type name = (initval);       \
 	    type get_##name(void)               \
 	    {                                   \
-		return name;                    \
+	       return name;                    \
 	    }                                   \
 	    void set_##name(type __##name)      \
 	    {                                   \
-		name = __##name;                \
+	       name = __##name;                \
 	    }                                   \
 	    EXPORT_SYMBOL(set_##name);          \
 	    EXPORT_SYMBOL(get_##name);
@@ -67,8 +68,7 @@ static struct kobj_attribute _name##_attr = {	\
 int is_abnormal_powerup(void)
 {
 	u32 pu_reason = get_powerup_reason();
-	return (pu_reason & (RESTART_EVENT_KPANIC | RESTART_EVENT_WDOG)) |
-		(pu_reason & BIT(PU_REASON_EVENT_HWRST) & RESTART_EVENT_OTHER);
+	return pu_reason & (RESTART_EVENT_KPANIC | RESTART_EVENT_WDOG | RESTART_EVENT_OTHER);
 }
 
 static ssize_t powerup_reason_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
@@ -118,7 +118,7 @@ static ssize_t powerup_reason_show(struct kobject *kobj, struct kobj_attribute *
 	}
 	s += sprintf(s, "unknown reboot");
 out:
-	return (s - buf);
+	return s - buf;
 }
 
 static ssize_t powerup_reason_details_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
@@ -145,20 +145,25 @@ bootinfo_attr(hw_version);
 bootinfo_func_init(u32, powerup_reason, 0);
 bootinfo_func_init(u32, hw_version, 0);
 
-unsigned int get_hw_version_devid(void){
-	return ((get_hw_version() & HW_DEVID_VERSION_MASK) >> HW_DEVID_VERSION_SHIFT);
+/*  return  device id
+  *  1: A1,   2:A2,   3:A3 ,  4:A4
+  *  5: A5,   7:A7,   8:A8  , 9:B1
+  */
+unsigned int get_hw_version_devid(void)
+{
+	return (get_hw_version() & HW_DEVID_VERSION_MASK) >> HW_DEVID_VERSION_SHIFT;
 }
 EXPORT_SYMBOL(get_hw_version_devid);
 
 unsigned int get_hw_version_major(void)
 {
-	return ((get_hw_version() & HW_MAJOR_VERSION_MASK) >> HW_MAJOR_VERSION_SHIFT);
+	return (get_hw_version() & HW_MAJOR_VERSION_MASK) >> HW_MAJOR_VERSION_SHIFT;
 }
 EXPORT_SYMBOL(get_hw_version_major);
 
 unsigned int get_hw_version_minor(void)
 {
-	return ((get_hw_version() & HW_MINOR_VERSION_MASK) >> HW_MINOR_VERSION_SHIFT);
+	return (get_hw_version() & HW_MINOR_VERSION_MASK) >> HW_MINOR_VERSION_SHIFT;
 }
 
 static struct attribute *g[] = {
