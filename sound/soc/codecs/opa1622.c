@@ -1,9 +1,10 @@
 /*
  * opa1622.c  --  PA driver for OPA1622
  *
- * Copyright (C) 2016 XiaoMi, Inc.
+ * Copyright (C) 2015 Xiaomi Corporation
  *
  * Author: Nannan Wang <wangnannan@xiaomi.com>
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute  it and/or modify it
  * under  the terms of  the GNU General  Public License as published by the
@@ -42,13 +43,13 @@ static void opa1622_power(struct opa1622_priv *opa1622, bool on)
 			ret = regulator_enable(opa1622->power);
 			if (ret < 0) {
 				dev_err(codec->dev, "%s: Failed to enable power(%d)\n",
-					__func__, ret);
+						__func__, ret);
 			}
 		} else {
 			ret = regulator_disable(opa1622->power);
 			if (ret < 0) {
 				dev_err(codec->dev, "%s: Failed to disable power(%d)\n",
-					__func__, ret);
+						__func__, ret);
 			}
 		}
 	}
@@ -58,13 +59,13 @@ static void opa1622_power(struct opa1622_priv *opa1622, bool on)
 			ret = regulator_enable(opa1622->aux_power);
 			if (ret < 0) {
 				dev_err(codec->dev, "%s: Failed to enable aux power(%d)\n",
-					__func__, ret);
+						__func__, ret);
 			}
 		} else {
 			ret = regulator_disable(opa1622->aux_power);
 			if (ret < 0) {
 				dev_err(codec->dev, "%s: Failed to disable aux power(%d)\n",
-					__func__, ret);
+						__func__, ret);
 			}
 		}
 	}
@@ -119,63 +120,63 @@ static int opa1622_probe(struct snd_soc_codec *codec)
 	memset(opa1622, 0, sizeof(struct opa1622_priv));
 
 	opa1622->enable_gpio = of_get_named_gpio(codec->dev->of_node,
-				"opa-en-gpio", 0);
+			"opa-en-gpio", 0);
 	dev_dbg(codec->dev, "%s: opa enable gpio %d\n", __func__, opa1622->enable_gpio);
 	if (gpio_is_valid(opa1622->enable_gpio)) {
 		ret = gpio_request(opa1622->enable_gpio, "opa1622 enable");
 		if (ret < 0) {
 			dev_err(codec->dev, "%s: Failed to request enable gpio %d\n",
-				__func__, ret);
+					__func__, ret);
 			goto opa1622_free;
 		}
 	} else {
 		ret = opa1622->enable_gpio;
 		dev_err(codec->dev, "%s: Failed to parse enable-gpio(%d)\n",
-			__func__, ret);
+				__func__, ret);
 		goto opa1622_free;
 	}
 	opa1622_enable(opa1622, 0);
 
 	opa1622->mute_gpio = of_get_named_gpio(codec->dev->of_node,
-				"mute-gpio", 0);
+			"mute-gpio", 0);
 	dev_dbg(codec->dev, "%s: mute gpio %d\n", __func__, opa1622->mute_gpio);
 	if (gpio_is_valid(opa1622->mute_gpio)) {
 		ret = gpio_request(opa1622->mute_gpio, "opa1622 mute");
 		if (ret < 0) {
 			dev_err(codec->dev, "%s: Failed to request mute gpio %d\n",
-				__func__, ret);
+					__func__, ret);
 			goto enable_free;
 		}
 	} else {
 		ret = opa1622->mute_gpio;
 		dev_err(codec->dev, "%s: Failed to parse mute-gpio(%d)\n",
-			__func__, ret);
+				__func__, ret);
 		goto enable_free;
 	}
 	opa1622_mute(opa1622, 0);
 
 	opa1622->switch_gpio = of_get_named_gpio(codec->dev->of_node,
-				"switch-gpio", 0);
+			"switch-gpio", 0);
 	dev_dbg(codec->dev, "%s: switch gpio %d\n", __func__, opa1622->switch_gpio);
 	if (gpio_is_valid(opa1622->switch_gpio)) {
 		ret = gpio_request(opa1622->switch_gpio, "opa1622 switch");
 		if (ret < 0) {
 			dev_err(codec->dev, "%s: Failed to request switch gpio %d\n",
-				__func__, ret);
+					__func__, ret);
 			goto mute_free;
 		}
 	} else {
 		ret = opa1622->switch_gpio;
 		dev_err(codec->dev, "%s: Failed to parse switch-gpio(%d)\n",
-			__func__, ret);
+				__func__, ret);
 		goto mute_free;
 	}
 	opa1622_switch(opa1622, 0);
 
 	/* initialize power supply */
 	if ((get_hw_version_devid() == 4) &&
-	    (get_hw_version() &
-	     (HW_MAJOR_VERSION_MASK | HW_MINOR_VERSION_MASK)) <= 0x20)
+			(get_hw_version() &
+			(HW_MAJOR_VERSION_MASK | HW_MINOR_VERSION_MASK)) <= 0x20)
 		opa1622->power = regulator_get(codec->dev, "opa-p2-power");
 	else
 		opa1622->power = regulator_get(codec->dev, "opa-power");
@@ -186,8 +187,8 @@ static int opa1622_probe(struct snd_soc_codec *codec)
 	}
 
 	if ((get_hw_version_devid() == 8) &&
-	    (get_hw_version() &
-	     (HW_MAJOR_VERSION_MASK | HW_MINOR_VERSION_MASK)) >= 0x30) {
+			(get_hw_version() &
+			(HW_MAJOR_VERSION_MASK | HW_MINOR_VERSION_MASK)) >= 0x30) {
 		opa1622->aux_power = NULL;
 	} else {
 		opa1622->aux_power = regulator_get(codec->dev, "opa-power-aux");
@@ -198,8 +199,8 @@ static int opa1622_probe(struct snd_soc_codec *codec)
 	}
 
 	snd_soc_dapm_ignore_suspend(&codec->dapm, "OPA IN1");
-	snd_soc_dapm_ignore_suspend(&codec->dapm, "OPA IN2");
-	snd_soc_dapm_ignore_suspend(&codec->dapm, "OPA OUT1");
+	snd_soc_dapm_ignore_suspend(&codec->dapm, "OPA IN1");
+	snd_soc_dapm_ignore_suspend(&codec->dapm, "OPA OUT2");
 	snd_soc_dapm_ignore_suspend(&codec->dapm, "OPA OUT2");
 
 	opa1622->codec = codec;
@@ -237,7 +238,7 @@ static int opa1622_remove(struct snd_soc_codec *codec)
 }
 
 static int opa1622_pa_event(struct snd_soc_dapm_widget *w,
-			struct snd_kcontrol *kcontrol, int event)
+		struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = w->codec;
 	struct opa1622_priv *opa1622 = snd_soc_codec_get_drvdata(codec);
@@ -321,7 +322,7 @@ static int opa1622_pa_probe(struct platform_device *pdev)
 {
 	dev_dbg(&pdev->dev, "%s: enter\n", __func__);
 	return snd_soc_register_codec(&pdev->dev, &opa1622_drv,
-					 NULL, 0);
+			NULL, 0);
 }
 
 static int opa1622_pa_remove(struct platform_device *pdev)

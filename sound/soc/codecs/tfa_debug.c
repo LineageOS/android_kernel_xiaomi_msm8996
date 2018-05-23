@@ -60,13 +60,13 @@ const char *tfa98xx_get_error_string(enum Tfa98xx_Error error)
 	return pErrStr;
 }
 /*****************************************************************************/
-/*      bitfield lookups */
+/*  bitfield lookups */
 /*
  * generic table lookup functions
  */
 /**
  * lookup bf in table
- *   return 'unkown' if not found
+ * return 'unkown' if not found
  */
 static char *tfa_bf2name(tfaBfName_t *table, uint16_t bf)
 {
@@ -82,7 +82,7 @@ static char *tfa_bf2name(tfaBfName_t *table, uint16_t bf)
 }
 /**
  * lookup name in table
- *   return 0xffff if not found
+ * return 0xffff if not found
  */
 static uint16_t tfa_name2bf(tfaBfName_t *table, const  char *name)
 {
@@ -135,7 +135,7 @@ char *tfaContBitName(uint16_t num, unsigned short rev)
 	case 0x92:
 		name =  tfa_bf2name(Tfa9891BitNames, num);
 		if (strcmp(unknown, name) == 0)
-			name = tfa_bf2name(Tfa9891BitNames, num);/* try long bitname table */
+			name = tfa_bf2name(Tfa9891BitNames, num); /* try long bitname table */
 		break;
 	case 0x91:
 	case 0x80:
@@ -147,7 +147,7 @@ char *tfaContBitName(uint16_t num, unsigned short rev)
 	case 0x12:
 		name = tfa_bf2name(Tfa9887BitNames, num); /* my tabel 1st */
 		if (strcmp(unknown, name) == 0)
-			name = tfa_bf2name(Tfa1BitNames, num);/* try generic table */
+			name = tfa_bf2name(Tfa1BitNames, num); /* try generic table */
 		break;
 	default:
 		PRINT_ERROR("unknown REVID:0x%0x\n", rev);
@@ -175,7 +175,7 @@ char *tfaContBfName(uint16_t num, unsigned short rev)
 	case 0x92:
 		name =  tfa_bf2name(Tfa9891DatasheetNames, num);
 		if (strcmp(unknown, name) == 0)
-			name = tfa_bf2name(Tfa9891BitNames, num);/* try long bitname table */
+			name = tfa_bf2name(Tfa9891BitNames, num); /* try long bitname table */
 		break;
 	case 0x91:
 	case 0x80:
@@ -187,7 +187,7 @@ char *tfaContBfName(uint16_t num, unsigned short rev)
 	case 0x12:
 		name = tfa_bf2name(Tfa9887DatasheetNames, num); /* my tabel 1st */
 		if (strcmp(unknown, name) == 0)
-			name = tfa_bf2name(Tfa1DatasheetNames, num);/* try generic table */
+			name = tfa_bf2name(Tfa1DatasheetNames, num); /* try generic table */
 		break;
 	default:
 		PRINT_ERROR("unknown REVID:0x%0x\n", rev);
@@ -206,33 +206,33 @@ uint16_t tfaContBfEnum(const char *name, unsigned short rev)
 	case 0x88:
 		bfnum =  tfa_name2bf(Tfa2DatasheetNames, name);
 		if (bfnum == 0xffff)
-			bfnum = tfa_name2bf(Tfa2BitNames, name);/* try long bitname table */
+			bfnum = tfa_name2bf(Tfa2BitNames, name); /* try long bitname table */
 		break;
 	case 0x97:
 		bfnum =  tfa_name2bf(Tfa1DatasheetNames, name);
 		if (bfnum == 0xffff)
-			bfnum = tfa_name2bf(Tfa1BitNames, name);/* try generic table */
+			bfnum = tfa_name2bf(Tfa1BitNames, name); /* try generic table */
 		break;
 	case 0x92:
 		bfnum =  tfa_name2bf(Tfa9891DatasheetNames, name);
 		if (bfnum == 0xffff)
-			bfnum = tfa_name2bf(Tfa9891BitNames, name);/* try long bitname table */
+			bfnum = tfa_name2bf(Tfa9891BitNames, name); /* try long bitname table */
 		break;
 	case 0x91:
 	case 0x80:
 	case 0x81:
 		bfnum = tfa_name2bf(Tfa9890DatasheetNames, name); /* my tabel 1st */
 		if (bfnum == 0xffff)
-			bfnum = tfa_name2bf(Tfa1DatasheetNames, name);/* try generic table */
+			bfnum = tfa_name2bf(Tfa1DatasheetNames, name); /* try generic table */
 		if (bfnum == 0xffff)
 			bfnum = tfa_name2bf(Tfa1BitNames, name); /* try 2nd generic table */
 		break;
 	case 0x12:
 		bfnum = tfa_name2bf(Tfa9887DatasheetNames, name); /* my tabel 1st */
 		if (bfnum == 0xffff)
-			bfnum = tfa_name2bf(Tfa1DatasheetNames, name);/* try generic table */
+			bfnum = tfa_name2bf(Tfa1DatasheetNames, name); /* try generic table */
 		if (bfnum == 0xffff)
-			bfnum = tfa_name2bf(Tfa1BitNames, name);/* try 2nd generic table */
+			bfnum = tfa_name2bf(Tfa1BitNames, name); /* try 2nd generic table */
 		break;
 	default:
 		PRINT_ERROR("unknown REVID:0x%0x\n", rev);
@@ -245,7 +245,7 @@ uint16_t tfaContBfEnum(const char *name, unsigned short rev)
 
 /*
  * check all lists for a hit
- *  this is for the parser to know if it's  an existing bitname
+ *this is for the parser to know if it's  an existing bitname
  */
 uint16_t tfaContBfEnumAny(const char *name)
 {

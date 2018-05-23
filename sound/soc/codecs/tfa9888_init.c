@@ -165,11 +165,11 @@ static enum Tfa98xx_Error tfa9888_tfa_dsp_write_tables(Tfa98xx_handle_t handle, 
 	}
 
 	/* First copy the msg_id to the buffer */
-	buffer[0] = (uint8_t) 0;
-	buffer[1] = (uint8_t) MODULE_FRAMEWORK + 128;
-	buffer[2] = (uint8_t) FW_PAR_ID_SET_SENSES_DELAY;
+		 buffer[0] = (uint8_t) 0;
+		 buffer[1] = (uint8_t) MODULE_FRAMEWORK + 128;
+		 buffer[2] = (uint8_t) FW_PAR_ID_SET_SENSES_DELAY;
 
-	/* Required for all FS exept 8kHz (8kHz is all zero) */
+		 /* Required for all FS exept 8kHz (8kHz is all zero) */
 	if (sample_rate != 0) {
 		buffer[5] = 1;	/* Vdelay_P */
 		buffer[8] = 0;	/* Idelay_P */

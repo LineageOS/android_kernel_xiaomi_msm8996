@@ -1,7 +1,7 @@
 /*
 ** =============================================================================
 ** Copyright (c) 2016  Texas Instruments Inc.
-** Copyright (C) 2016 XiaoMi, Inc.
+** Copyright (C) 2018 XiaoMi, Inc.
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of the GNU General Public License as published by the Free Software
@@ -366,15 +366,15 @@ struct tas2555_priv {
 	struct pinctrl *pinctrl;
 	struct clk *mclk;
 	int (*read) (struct tas2555_priv *pTAS2555, unsigned int reg,
-		unsigned int *pValue);
+			unsigned int *pValue);
 	int (*write) (struct tas2555_priv *pTAS2555, unsigned int reg,
-		unsigned int Value);
+			unsigned int Value);
 	int (*bulk_read) (struct tas2555_priv *pTAS2555, unsigned int reg,
-		unsigned char *pData, unsigned int len);
+			unsigned char *pData, unsigned int len);
 	int (*bulk_write) (struct tas2555_priv *pTAS2555, unsigned int reg,
-		unsigned char *pData, unsigned int len);
+			unsigned char *pData, unsigned int len);
 	int (*update_bits) (struct tas2555_priv *pTAS2555, unsigned int reg,
-		unsigned int mask, unsigned int value);
+			unsigned int mask, unsigned int value);
 	int (*set_mode) (struct tas2555_priv *pTAS2555, int mode);
 	int (*set_calibration) (struct tas2555_priv *pTAS2555, unsigned int calibration);
 	struct mutex codec_lock;
