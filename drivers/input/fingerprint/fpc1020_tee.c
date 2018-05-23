@@ -60,6 +60,7 @@
 struct fpc1020_data {
 	struct device *dev;
 	int  irq_gpio;
+	bool irq_enabled;
 	int  fp_id_gpio;
 	int  wakeup_enabled;
 
@@ -90,9 +91,7 @@ enum {
 
 static void config_irq(struct fpc1020_data *fpc1020, bool enabled)
 {
-	static bool irq_enabled = true;
-
-	if (enabled != irq_enabled) {
+	if (enabled != fpc1020->irq_enabled) {
 		if (enabled)
 			enable_irq(gpio_to_irq(fpc1020->irq_gpio));
 		else
@@ -100,7 +99,7 @@ static void config_irq(struct fpc1020_data *fpc1020, bool enabled)
 
 		dev_info(fpc1020->dev, "%s: %s fpc irq ---\n", __func__,
 			enabled ?  "enable" : "disable");
-		irq_enabled = enabled;
+		fpc1020->irq_enabled = enabled;
 	} else {
 		dev_info(fpc1020->dev, "%s: dual config irq status: %s\n", __func__,
 			enabled ?  "true" : "false");
