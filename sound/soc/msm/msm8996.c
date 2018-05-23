@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2014-2016, The Linux Foundation. All rights reserved.
- * Copyright (C) 2016 XiaoMi, Inc.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -63,6 +63,10 @@
 #define WSA8810_NAME_1 "wsa881x.20170211"
 #define WSA8810_NAME_2 "wsa881x.20170212"
 
+#define PIN_PULL_DOWN		0
+#define PIN_PULL_UP		1
+#define PIN_FLOAT		2
+
 static int slim0_rx_sample_rate = SAMPLING_RATE_48KHZ;
 static int slim0_tx_sample_rate = SAMPLING_RATE_48KHZ;
 static int slim1_tx_sample_rate = SAMPLING_RATE_96KHZ;
@@ -90,26 +94,8 @@ static int msm_vi_feed_tx_ch = 2;
 static int msm_hdmi_rx_ch = 2;
 static int msm_proxy_rx_ch = 2;
 static int hdmi_rx_sample_rate = SAMPLING_RATE_48KHZ;
-static int pri_mi2s_sample_rate = SAMPLING_RATE_48KHZ;
-static int sec_mi2s_sample_rate = SAMPLING_RATE_48KHZ;
-static int tert_mi2s_sample_rate = SAMPLING_RATE_48KHZ;
-static int quat_mi2s_sample_rate = SAMPLING_RATE_48KHZ;
 
-static int pri_mi2s_bit_format = SNDRV_PCM_FORMAT_S16_LE;
-static int sec_mi2s_bit_format = SNDRV_PCM_FORMAT_S16_LE;
-static int tert_mi2s_bit_format = SNDRV_PCM_FORMAT_S16_LE;
-static int quat_mi2s_bit_format = SNDRV_PCM_FORMAT_S16_LE;
-
-static int msm_pri_mi2s_tx_ch = 2;
-static int msm_pri_mi2s_rx_ch = 2;
-static int msm_sec_mi2s_tx_ch = 2;
-static int msm_sec_mi2s_rx_ch = 4;
-static int msm_tert_mi2s_tx_ch = 2;
-static int msm_tert_mi2s_rx_ch = 2;
-static int msm_quat_mi2s_tx_ch = 2;
-static int msm_quat_mi2s_rx_ch = 2;
-
-static int speaker_id = -1;
+static int speaker_id_gpio = -1;
 
 static bool codec_reg_done;
 
@@ -164,6 +150,25 @@ struct msm8996_wsa881x_dev_info {
 
 static struct snd_soc_aux_dev *msm8996_aux_dev;
 static struct snd_soc_codec_conf *msm8996_codec_conf;
+
+static int pri_mi2s_sample_rate = SAMPLING_RATE_48KHZ;
+static int sec_mi2s_sample_rate = SAMPLING_RATE_48KHZ;
+static int tert_mi2s_sample_rate = SAMPLING_RATE_48KHZ;
+static int quat_mi2s_sample_rate = SAMPLING_RATE_48KHZ;
+
+static int pri_mi2s_bit_format = SNDRV_PCM_FORMAT_S16_LE;
+static int sec_mi2s_bit_format = SNDRV_PCM_FORMAT_S16_LE;
+static int tert_mi2s_bit_format = SNDRV_PCM_FORMAT_S16_LE;
+static int quat_mi2s_bit_format = SNDRV_PCM_FORMAT_S16_LE;
+
+static int msm_pri_mi2s_tx_ch = 2;
+static int msm_pri_mi2s_rx_ch = 2;
+static int msm_sec_mi2s_tx_ch = 2;
+static int msm_sec_mi2s_rx_ch = 4;
+static int msm_tert_mi2s_tx_ch = 2;
+static int msm_tert_mi2s_rx_ch = 2;
+static int msm_quat_mi2s_tx_ch = 2;
+static int msm_quat_mi2s_rx_ch = 2;
 
 /* Maintain struct aligned with the one from msm-dai-q6-v2.h */
 struct msm_mi2s_pdata {
@@ -294,8 +299,6 @@ struct msm8996_asoc_mach_data {
 	int us_euro_gpio;
 	int hph_en1_gpio;
 	int hph_en0_gpio;
-	int spkr_id_gpio;
-	int spkr_id;
 	struct regulator *us_p_power;
 	struct regulator *us_n_power;
 	struct snd_info_entry *codec_root;
@@ -372,6 +375,96 @@ static void param_set_mask(struct snd_pcm_hw_params *p, int n, unsigned bit)
 		m->bits[1] = 0;
 		m->bits[bit >> 5] |= (1 << (bit & 31));
 	}
+}
+
+static int msm_get_pm_pin_3states(int pin)
+{
+	struct qpnp_pin_cfg pin_cfg;
+	int pu_value = 0;
+	int pd_value = 0;
+	int ret = 0;
+
+	ret = gpio_request(pin, "spkr_id_gpio");
+	if (ret) {
+		pr_err("%s: spkr_id_gpio request failed, ret:%d\n",
+			__func__, ret);
+		return -EINVAL;
+	}
+
+	memset(&pin_cfg, 0, sizeof(struct qpnp_pin_cfg));
+
+	pin_cfg.mode = QPNP_PIN_MODE_DIG_IN;
+	pin_cfg.pull = QPNP_PIN_GPIO_PULL_UP_30;
+	pin_cfg.vin_sel = QPNP_PIN_VIN2;
+	pin_cfg.out_strength = QPNP_PIN_OUT_STRENGTH_LOW;
+	pin_cfg.master_en = 1;
+	qpnp_pin_config(pin, &pin_cfg);
+	msleep(3);
+	pu_value = gpio_get_value(pin);
+
+	pin_cfg.mode = QPNP_PIN_MODE_DIG_IN;
+	pin_cfg.pull = QPNP_PIN_GPIO_PULL_DN;
+	pin_cfg.vin_sel = QPNP_PIN_VIN2;
+	pin_cfg.out_strength = QPNP_PIN_OUT_STRENGTH_LOW;
+	pin_cfg.master_en = 1;
+	qpnp_pin_config(pin, &pin_cfg);
+	msleep(3);
+	pd_value = gpio_get_value(pin);
+
+	gpio_free(pin);
+
+	if ((pu_value == pd_value) && (pu_value == 0)) {
+		pin_cfg.pull = QPNP_PIN_GPIO_PULL_DN;
+		pr_info("%s: pin%d = %d\n", __func__, pin, pu_value);
+		ret = PIN_PULL_DOWN;
+	} else if ((pu_value == pd_value) && (pu_value == 1)) {
+		pin_cfg.pull = QPNP_PIN_GPIO_PULL_UP_30;
+		pr_info("%s: pin%d = %d\n", __func__, pin, pu_value);
+		ret = PIN_PULL_UP;
+	} else {
+		pin_cfg.pull = QPNP_PIN_GPIO_PULL_NO;
+		pr_info("%s: pin%d = 2\n", __func__, pin);
+		ret = PIN_FLOAT;
+	}
+
+	pin_cfg.mode = QPNP_PIN_MODE_DIG_IN;
+	pin_cfg.out_strength = QPNP_PIN_OUT_STRENGTH_LOW;
+	pin_cfg.master_en = 0;
+	qpnp_pin_config(pin, &pin_cfg);
+
+	return ret;
+}
+
+static int msm_get_speaker_id(int pin)
+{
+	int hwid_major = get_hw_version_devid();
+	int pin_state = -1;
+	int id = 0;
+
+	pr_debug("%s: pin = %d, hwid_major = %d\n", __func__,
+			pin, hwid_major);
+	if (gpio_is_valid(pin))
+		pin_state = msm_get_pm_pin_3states(pin);
+
+	switch (pin_state) {
+	case 0:
+		if (hwid_major == 4)
+			id = 3;
+		else
+			id = 1;
+		break;
+	case 2:
+		if (hwid_major == 4)
+			id = 1;
+		else
+			id = 3;
+		break;
+	default:
+		id = 0;
+		break;
+	}
+
+	return id;
 }
 
 static void msm8996_liquid_docking_irq_work(struct work_struct *work)
@@ -1929,19 +2022,6 @@ static int msm8996_hdmi_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	return 0;
 }
 
-static int __maybe_unused msm_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
-				     struct snd_pcm_hw_params *params)
-{
-	struct snd_interval *rate = hw_param_interval(params,
-					SNDRV_PCM_HW_PARAM_RATE);
-	struct snd_interval *channels = hw_param_interval(params,
-					SNDRV_PCM_HW_PARAM_CHANNELS);
-
-	pr_debug("%s: channel:%d\n", __func__, msm_tert_mi2s_tx_ch);
-	rate->min = rate->max = SAMPLING_RATE_48KHZ;
-	channels->min = channels->max = msm_tert_mi2s_tx_ch;
-	return 0;
-}
 
 static int legacy_msm8996_mi2s_snd_startup(struct snd_pcm_substream *substream)
 {
@@ -2081,22 +2161,6 @@ static int msm_slim_0_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	return 0;
 }
 
-static int msm_slim_1_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
-					    struct snd_pcm_hw_params *params)
-{
-	struct snd_interval *rate = hw_param_interval(params,
-					SNDRV_PCM_HW_PARAM_RATE);
-	struct snd_interval *channels = hw_param_interval(params,
-					SNDRV_PCM_HW_PARAM_CHANNELS);
-
-	pr_debug("%s()\n", __func__);
-	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT, slim1_tx_bit_format);
-	rate->min = rate->max = slim1_tx_sample_rate;
-	channels->min = channels->max = msm_slim_1_tx_ch;
-
-	return 0;
-}
-
 static int msm_slim_4_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 					    struct snd_pcm_hw_params *params)
 {
@@ -2107,8 +2171,7 @@ static int msm_slim_4_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 					SNDRV_PCM_HW_PARAM_CHANNELS);
 
 	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
-		       SNDRV_PCM_FORMAT_S32_LE);
-
+			SNDRV_PCM_FORMAT_S32_LE);
 	rate->min = rate->max = SAMPLING_RATE_8KHZ;
 	channels->min = channels->max = msm_vi_feed_tx_ch;
 	pr_debug("%s: msm_vi_feed_tx_ch: %d\n", __func__, msm_vi_feed_tx_ch);
@@ -2284,6 +2347,22 @@ static int msm_tert_mi2s_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	 pr_debug("%s: format = %d, rate = %d, channels = %d\n",
 		  __func__, params_format(params), params_rate(params),
 		  msm_tert_mi2s_tx_ch);
+
+	return 0;
+}
+
+static int msm_slim_1_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
+					    struct snd_pcm_hw_params *params)
+{
+	struct snd_interval *rate = hw_param_interval(params,
+					SNDRV_PCM_HW_PARAM_RATE);
+	struct snd_interval *channels = hw_param_interval(params,
+					SNDRV_PCM_HW_PARAM_CHANNELS);
+
+	pr_debug("%s()\n", __func__);
+	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT, slim1_tx_bit_format);
+	rate->min = rate->max = slim1_tx_sample_rate;
+	channels->min = channels->max = msm_slim_1_tx_ch;
 
 	return 0;
 }
@@ -2509,7 +2588,7 @@ static void msm8996_mi2s_snd_shutdown(struct snd_pcm_substream *substream,
 			msm_mi2s_data->mi2s_mclk.enable = 0;
 			pr_debug("%s: Disabling mclk\n", __func__);
 			ret = afe_set_lpass_clock_v2(port_id,
-						  &msm_mi2s_data->mi2s_mclk);
+					&msm_mi2s_data->mi2s_mclk);
 			if (ret < 0)
 				pr_err("%s: afe lpass clock failed, err:%d\n",
 					__func__, ret);
@@ -2615,11 +2694,13 @@ static int msm_ultrasound_power_put(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct snd_soc_card *card = codec->component.card;
-	struct msm8996_asoc_mach_data *pdata = snd_soc_card_get_drvdata(card);
+	struct msm8996_asoc_mach_data *pdata =
+				snd_soc_card_get_drvdata(card);
 	int ret;
 
 	ultrasound_power = ucontrol->value.integer.value[0];
-	pr_debug("%s: ultrasound power %d\n", __func__, ultrasound_power);
+	pr_debug("%s: ultrasound power %d\n", __func__,
+		ultrasound_power);
 
 	if (ultrasound_power == 1) {
 		if (pdata->us_p_power)
@@ -2639,11 +2720,9 @@ static int msm_ultrasound_power_put(struct snd_kcontrol *kcontrol,
 static int msm_speaker_id_get(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
-	int hwid_major = get_hw_version_devid();
-
-	pr_debug("%s: speaker id = %d, hwid_major = %d\n", __func__,
-			speaker_id, hwid_major);
-	ucontrol->value.integer.value[0] = speaker_id;
+	ucontrol->value.integer.value[0] = msm_get_speaker_id(speaker_id_gpio);
+	pr_debug("%s: speaker id = %ld\n", __func__,
+		ucontrol->value.integer.value[0]);
 	return 0;
 }
 
@@ -3145,10 +3224,10 @@ static void *def_tasha_mbhc_cal(void)
 
 	/* A 500ohm resistor is connected on headset mic pin on A7P4.3,
 	   for fixing the noise issue introduced by NFC P2P. So need
-	   re-calculate the button threshold
-	*/
+	   re-calculate the button threshold */
 	if ((get_hw_version_devid() == 7) &&
-			(get_hw_version() & (HW_MAJOR_VERSION_MASK | HW_MINOR_VERSION_MASK)) > 0x43) {
+	    (get_hw_version() &
+	     (HW_MAJOR_VERSION_MASK | HW_MINOR_VERSION_MASK)) > 0x43) {
 		btn_high[0] = 360;
 		btn_high[1] = 500;
 	}
@@ -5197,7 +5276,8 @@ static int msm8996_init_wsa_dev(struct platform_device *pdev,
 					wsa881x_dev_info[i].of_node;
 	}
 
-	msm_register_aux_dev(pdev, card, msm8996_aux_dev, msm8996_codec_conf, wsa_max_devs);
+	msm_register_aux_dev(pdev, card,
+		msm8996_aux_dev, msm8996_codec_conf, wsa_max_devs);
 	devm_kfree(&pdev->dev, msm8996_aux_dev);
 	devm_kfree(&pdev->dev, msm8996_codec_conf);
 
@@ -5328,99 +5408,6 @@ static int msm8996_init_piezo_dev(struct platform_device *pdev,
 	devm_kfree(&pdev->dev, pa_codec_conf);
 
 	return 0;
-}
-
-#define PIN_PULL_DOWN		0
-#define PIN_PULL_UP		1
-#define PIN_FLOAT		2
-
-static int msm_get_pm_pin_3states(int pin)
-{
-	struct qpnp_pin_cfg pin_cfg;
-	int pu_value = 0;
-	int pd_value = 0;
-	int ret = 0;
-
-	ret = gpio_request(pin, "spkr_id_gpio");
-	if (ret) {
-		pr_err("%s: spkr_id_gpio request failed, ret:%d\n",
-			__func__, ret);
-		return -EPERM;
-	}
-
-	memset(&pin_cfg, 0, sizeof(struct qpnp_pin_cfg));
-
-	pin_cfg.mode = QPNP_PIN_MODE_DIG_IN;
-	pin_cfg.pull = QPNP_PIN_GPIO_PULL_UP_30;
-	pin_cfg.vin_sel = QPNP_PIN_VIN2;
-	pin_cfg.out_strength = QPNP_PIN_OUT_STRENGTH_LOW;
-	pin_cfg.master_en = 1;
-	qpnp_pin_config(pin, &pin_cfg);
-	msleep(3);
-	pu_value = gpio_get_value(pin);
-
-	pin_cfg.mode = QPNP_PIN_MODE_DIG_IN;
-	pin_cfg.pull = QPNP_PIN_GPIO_PULL_DN;
-	pin_cfg.vin_sel = QPNP_PIN_VIN2;
-	pin_cfg.out_strength = QPNP_PIN_OUT_STRENGTH_LOW;
-	pin_cfg.master_en = 1;
-	qpnp_pin_config(pin, &pin_cfg);
-	msleep(3);
-	pd_value = gpio_get_value(pin);
-
-	gpio_free(pin);
-
-	if ((pu_value == pd_value) && (pu_value == 0)) {
-		pin_cfg.pull = QPNP_PIN_GPIO_PULL_DN;
-		pr_info("%s: pin%d = %d\n", __func__, pin, pu_value);
-		ret = PIN_PULL_DOWN;
-	} else if ((pu_value == pd_value) && (pu_value == 1)) {
-		pin_cfg.pull = QPNP_PIN_GPIO_PULL_UP_30;
-		pr_info("%s: pin%d = %d\n", __func__, pin, pu_value);
-		ret = PIN_PULL_UP;
-	} else {
-		pin_cfg.pull = QPNP_PIN_GPIO_PULL_NO;
-		pr_info("%s: pin%d = 2\n", __func__, pin);
-		ret = PIN_FLOAT;
-	}
-
-	pin_cfg.mode = QPNP_PIN_MODE_DIG_IN;
-	pin_cfg.out_strength = QPNP_PIN_OUT_STRENGTH_LOW;
-	pin_cfg.master_en = 0;
-	qpnp_pin_config(pin, &pin_cfg);
-
-	return ret;
-}
-
-static int msm_get_speaker_id(int pin)
-{
-	int hwid_major = get_hw_version_devid();
-	int pin_state;
-	int id = -1;
-
-	pr_debug("%s: pin = %d, hwid_major = %d\n", __func__,
-			pin, hwid_major);
-	pin_state = msm_get_pm_pin_3states(pin);
-
-	switch (pin_state) {
-	case 0:
-		if (hwid_major == 4)
-			id = 3;
-		else
-			id = 1;
-		break;
-	case 2:
-		if (hwid_major == 4)
-			id = 1;
-		else
-			id = 3;
-		break;
-	default:
-		id = -1;
-		break;
-	}
-
-	return id;
 }
 
 static int msm8996_asoc_machine_probe(struct platform_device *pdev)
@@ -5602,7 +5589,8 @@ static int msm8996_asoc_machine_probe(struct platform_device *pdev)
 	}
 
 	if ((get_hw_version_devid() == 8) &&
-		(get_hw_version() & (HW_MAJOR_VERSION_MASK | HW_MINOR_VERSION_MASK)) < 0x30) {
+	    (get_hw_version() &
+	     (HW_MAJOR_VERSION_MASK | HW_MINOR_VERSION_MASK)) < 0x30) {
 		pdata->us_n_power = regulator_get(&pdev->dev, "vreg_pa_n_5p0");
 		if (IS_ERR(pdata->us_n_power)) {
 			dev_info(&pdev->dev, "ultrasound n power can't be found\n");
@@ -5612,16 +5600,11 @@ static int msm8996_asoc_machine_probe(struct platform_device *pdev)
 		pdata->us_n_power = NULL;
 	}
 
-	pdata->spkr_id_gpio = of_get_named_gpio(pdev->dev.of_node, "spkr-id-gpio", 0);
-	if (pdata->spkr_id_gpio < 0) {
+	speaker_id_gpio = of_get_named_gpio(pdev->dev.of_node, "spkr-id-gpio", 0);
+	if (!gpio_is_valid(speaker_id_gpio)) {
 		dev_info(&pdev->dev, "property %s not detected in node %s",
 			"spkr-id-gpio", pdev->dev.of_node->full_name);
-		speaker_id = -1;
-	} else {
-		speaker_id = msm_get_speaker_id(pdata->spkr_id_gpio);
 	}
-	pdata->spkr_id = speaker_id;
-	dev_dbg(&pdev->dev, "speaker id is %d\n", pdata->spkr_id);
 
 	return 0;
 err:
