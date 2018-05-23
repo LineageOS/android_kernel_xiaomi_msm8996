@@ -673,6 +673,8 @@ static void msm_sensor_fill_sensor_info(struct msm_sensor_ctrl_t *s_ctrl,
 	strlcpy(entity_name, s_ctrl->msm_sd.sd.entity.name, MAX_SENSOR_NAME);
 }
 
+extern unsigned int get_hw_version_devid(void);
+
 extern int gemini_get_front_sensor_name(char *);
 extern int scorpio_get_back_sensor_name(char *);
 extern int scorpio_get_front_sensor_name(char *);
@@ -681,8 +683,6 @@ extern int natrium_get_main_sensor_name(char *);
 extern int natrium_get_aux_sensor_name(char *);
 extern int lithium_get_rear_sensor_name(char *);
 extern int natrium_get_front_sensor_name(char *);
-
-extern unsigned int get_hw_version_devid(void);
 
 /* static function definition */
 int32_t msm_sensor_driver_probe(void *setting,
