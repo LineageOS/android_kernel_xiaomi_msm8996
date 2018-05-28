@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b2bab0c8_a2058b97",
+        "filename": "drivers/media/platform/msm/camera_v2/sensor/ois/msm_ois.c",
+        "patchSetId": 6
+      },
+      "lineNbr": 961,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2018-05-28T10:30:36Z",
+      "side": 1,
+      "message": "I think I\u0027ll remove this again.",
+      "range": {
+        "startLine": 946,
+        "startChar": 0,
+        "endLine": 961,
+        "endChar": 96
+      },
+      "revId": "735fdf3d98de5e3a53d85b68e5989ea4c4bcdfba",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
