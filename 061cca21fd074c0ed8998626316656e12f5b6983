@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3c320faf_a1d04afa",
+        "filename": "arch/arm/boot/dts/qcom/a7-msm8996-mtp.dtsi",
+        "patchSetId": 9
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2018-05-28T16:24:58Z",
+      "side": 1,
+      "message": "did you rename it?",
+      "revId": "061cca21fd074c0ed8998626316656e12f5b6983",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
