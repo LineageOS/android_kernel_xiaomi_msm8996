@@ -16,6 +16,24 @@
       "revId": "061cca21fd074c0ed8998626316656e12f5b6983",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5ff1d8e6_27b354c9",
+        "filename": "arch/arm/boot/dts/qcom/a7-msm8996-mtp.dtsi",
+        "patchSetId": 9
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2018-05-28T16:26:09Z",
+      "side": 1,
+      "message": "Yes, it was strange to see all in lowercase except this one.",
+      "parentUuid": "3c320faf_a1d04afa",
+      "revId": "061cca21fd074c0ed8998626316656e12f5b6983",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
     }
   ]
 }
