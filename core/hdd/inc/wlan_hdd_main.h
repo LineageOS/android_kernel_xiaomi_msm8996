@@ -426,20 +426,6 @@ struct hdd_apf_context {
 	qdf_spinlock_t lock;
 };
 
-/**
- * struct random_mac_context - Context used with hdd_random_mac_callback
- * @random_mac_completion: Event on which hdd_set_random_mac will wait
- * @adapter: Pointer to adapter
- * @magic: For valid context this is set to ACTION_FRAME_RANDOM_CONTEXT_MAGIC
- * @set_random_addr: Status of random filter set
- */
-struct random_mac_context {
-	struct completion random_mac_completion;
-	hdd_adapter_t *adapter;
-	unsigned int magic;
-	bool set_random_addr;
-};
-
 extern spinlock_t hdd_context_lock;
 extern struct mutex hdd_init_deinit_lock;
 
@@ -1803,7 +1789,7 @@ struct suspend_resume_stats {
  * @response_event: NUD stats request wait event
  */
 struct hdd_nud_stats_context {
-	struct completion response_event;
+	qdf_event_t response_event;
 };
 
 /**
@@ -2880,7 +2866,7 @@ static inline int wlan_hdd_validate_session_id(u8 session_id)
 	return -EINVAL;
 }
 
-bool hdd_is_roaming_in_progress(hdd_adapter_t *adapter);
+bool hdd_is_roaming_in_progress(hdd_context_t *hdd_ctx);
 void hdd_set_roaming_in_progress(bool value);
 /**
  * hdd_check_for_opened_interfaces()- Check for interface up
@@ -2903,7 +2889,9 @@ void hdd_set_rx_mode_rps(hdd_context_t *hdd_ctx, void *padapter, bool enable);
  */
 static inline void hdd_init_nud_stats_ctx(hdd_context_t *hdd_ctx)
 {
-	init_completion(&hdd_ctx->nud_stats_context.response_event);
+	if (qdf_event_create(&hdd_ctx->nud_stats_context.response_event) !=
+			     QDF_STATUS_SUCCESS)
+		hdd_err("NUD stats response event init failed!");
 }
 
 /**

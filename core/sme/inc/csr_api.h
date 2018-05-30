@@ -1000,6 +1000,7 @@ typedef struct tagCsrRoamProfile {
 	struct qdf_mac_addr bssid_hint;
 	bool force_24ghz_in_ht20;
 	bool supplicant_disabled_roaming;
+	bool driver_disabled_roaming;
 #ifdef WLAN_FEATURE_FILS_SK
 	bool fils_connection;
 	uint8_t *hlp_ie;
@@ -1413,6 +1414,7 @@ typedef struct tagCsrConfigParam {
 	uint32_t offload_11k_enable_bitmask;
 	struct csr_neighbor_report_offload_params neighbor_report_offload;
 	bool enable_ftopen;
+	bool roam_force_rssi_trigger;
 } tCsrConfigParam;
 
 /* Tush */

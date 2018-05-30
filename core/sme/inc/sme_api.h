@@ -1136,6 +1136,16 @@ QDF_STATUS sme_wifi_start_logger(tHalHandle hal,
 bool sme_neighbor_middle_of_roaming(tHalHandle hHal,
 						uint8_t sessionId);
 
+/*
+ * sme_is_any_session_in_middle_of_roaming() - check if roaming is in progress
+ * @hal: HAL Handle
+ *
+ * Checks if any SME session is in middle of roaming
+ *
+ * Return : true if roaming is in progress else false
+ */
+bool sme_is_any_session_in_middle_of_roaming(tHalHandle hal);
+
 QDF_STATUS sme_enable_uapsd_for_ac(void *cds_ctx, uint8_t sta_id,
 				      sme_ac_enum_type ac, uint8_t tid,
 				      uint8_t pri, uint32_t srvc_int,
@@ -2258,5 +2268,19 @@ static inline QDF_STATUS sme_handle_sae_msg(tHalHandle hal, uint8_t session_id,
 QDF_STATUS
 sme_get_roam_scan_stats(tHalHandle hal, roam_scan_stats_cb cb, void *context,
 			uint32_t vdev_id);
+
+/*
+ * sme_validate_channel_list() - Validate the given channel list
+ * @hal: handle to global hal context
+ * @chan_list: Pointer to the channel list
+ * @num_channels: number of channels present in the chan_list
+ *
+ * Validates the given channel list with base channels in mac context
+ *
+ * Return: True if all channels in the list are valid, false otherwise
+ */
+bool sme_validate_channel_list(tHalHandle hal,
+				      uint8_t *chan_list,
+				      uint8_t num_channels);
 
 #endif /* #if !defined( __SME_API_H ) */

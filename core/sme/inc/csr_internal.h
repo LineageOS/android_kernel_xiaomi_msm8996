@@ -166,6 +166,8 @@ typedef enum {
 	eCsrLostLink1Abort,
 	eCsrLostLink2Abort,
 	eCsrLostLink3Abort,
+	/* Roaming disabled from driver during connect/start BSS */
+	eCsrDriverDisabled,
 } eCsrRoamReason;
 
 typedef enum {
@@ -687,6 +689,7 @@ typedef struct tagCsrConfig {
 	uint32_t offload_11k_enable_bitmask;
 	struct csr_neighbor_report_offload_params neighbor_report_offload;
 	bool enable_ftopen;
+	bool roam_force_rssi_trigger;
 } tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo {
@@ -1049,6 +1052,7 @@ typedef struct tagCsrRoamSession {
 	bool ignore_assoc_disallowed;
 	bool discon_in_progress;
 	struct csr_disconnect_stats disconnect_stats;
+	struct rsn_caps rsn_caps;
 } tCsrRoamSession;
 
 typedef struct tagCsrRoamStruct {
