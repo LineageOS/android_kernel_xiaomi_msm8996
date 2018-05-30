@@ -2146,6 +2146,7 @@ QDF_STATUS send_set_mimops_cmd_tlv(wmi_unified_t wmi_handle,
 		break;
 	default:
 		WMI_LOGE("%s:INVALID Mimo PS CONFIG", __func__);
+		wmi_buf_free(buf);
 		return QDF_STATUS_E_FAILURE;
 	}
 
@@ -9785,6 +9786,18 @@ QDF_STATUS send_nan_req_cmd_tlv(wmi_unified_t wmi_handle,
 	nan_data_len = nan_req->request_data_len;
 	nan_data_len_aligned = roundup(nan_req->request_data_len,
 				       sizeof(uint32_t));
+	if (nan_data_len_aligned < nan_req->request_data_len) {
+		WMI_LOGE("%s: integer overflow while rounding up data_len",
+			 __func__);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	if (nan_data_len_aligned > WMI_SVC_MSG_MAX_SIZE - WMI_TLV_HDR_SIZE) {
+		WMI_LOGE("%s: wmi_max_msg_size overflow for given datalen",
+			 __func__);
+		return QDF_STATUS_E_FAILURE;
+	}
+
 	len += WMI_TLV_HDR_SIZE + nan_data_len_aligned;
 	buf = wmi_buf_alloc(wmi_handle, len);
 	if (!buf) {
@@ -14573,6 +14586,9 @@ extract_roam_scan_stats_res_evt_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 		WMI_LOGP("%s: Invalid roam scan stats event", __func__);
 		return QDF_STATUS_E_INVAL;
 	}
+	if (!(param_buf->num_channels && param_buf->num_roam_candidates &&
+	      param_buf->channel))
+		return QDF_STATUS_E_INVAL;
 
 	fixed_param = param_buf->fixed_param;
 	total_len = sizeof(*res) + fixed_param->num_roam_scans *
