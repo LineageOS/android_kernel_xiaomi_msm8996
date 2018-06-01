@@ -37650,6 +37650,8 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 				WMI_SERVICE_PEER_STATS_INFO))
 		cfg->get_peer_info_enabled = 1;
+	cfg->wow_support = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+						  WMI_SERVICE_WOW);
 }
 
 static inline void wma_update_target_ht_cap(tp_wma_handle wh,

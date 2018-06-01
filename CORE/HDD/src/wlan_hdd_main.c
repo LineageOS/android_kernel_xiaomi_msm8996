@@ -8750,6 +8750,12 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
     cfg_ini->enable_sap_auth_offload &= cfg->sap_auth_offload_service;
 #endif
     cfg_ini->sap_get_peer_info &= cfg->get_peer_info_enabled;
+    if (cfg_ini->wowEnable && (!cfg->wow_support)) {
+        hdd_ctx->prevent_suspend = true;
+        cfg_ini->wowEnable = 0;
+    } else {
+        hdd_ctx->prevent_suspend = false;
+    }
 }
 
 /**

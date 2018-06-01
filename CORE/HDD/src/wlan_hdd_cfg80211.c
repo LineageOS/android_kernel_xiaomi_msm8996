@@ -30583,6 +30583,11 @@ int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
         return 0;
     }
 
+    if (pHddCtx->prevent_suspend) {
+        hddLog(LOGE, FL("WOW is enabled in host while not supported in FW. Prevent suspend"));
+        return -EOPNOTSUPP;
+    }
+
     /* If RADAR detection is in progress (HDD), prevent suspend. The flag
      * "dfs_cac_block_tx" is set to TRUE when RADAR is found and stay TRUE until
      * CAC is done for a SoftAP which is in started state.
