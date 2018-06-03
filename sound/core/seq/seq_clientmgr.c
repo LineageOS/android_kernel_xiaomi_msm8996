@@ -3,6 +3,7 @@
  *  Copyright (c) 1998-2001 by Frank van de Pol <fvdpol@coil.demon.nl>
  *                             Jaroslav Kysela <perex@perex.cz>
  *                             Takashi Iwai <tiwai@suse.de>
+ *  Copyright (C) 2018 XiaoMi, Inc.
  *
  *
  *   This program is free software; you can redistribute it and/or modify
@@ -1251,8 +1252,8 @@ static int snd_seq_ioctl_set_client_info(struct snd_seq_client *client,
 }
 
 
-/* 
- * CREATE PORT ioctl() 
+/*
+ * CREATE PORT ioctl()
  */
 static int snd_seq_ioctl_create_port(struct snd_seq_client *client,
 				     void __user *arg)
@@ -1306,8 +1307,8 @@ static int snd_seq_ioctl_create_port(struct snd_seq_client *client,
 	return 0;
 }
 
-/* 
- * DELETE PORT ioctl() 
+/*
+ * DELETE PORT ioctl()
  */
 static int snd_seq_ioctl_delete_port(struct snd_seq_client *client,
 				     void __user *arg)

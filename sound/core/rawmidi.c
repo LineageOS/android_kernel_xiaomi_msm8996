@@ -1,6 +1,7 @@
 /*
  *  Abstract layer for MIDI v1.0 stream
  *  Copyright (c) by Jaroslav Kysela <perex@perex.cz>
+ *  Copyright (C) 2018 XiaoMi, Inc.
  *
  *
  *   This program is free software; you can redistribute it and/or modify
@@ -114,6 +115,7 @@ static int snd_rawmidi_runtime_create(struct snd_rawmidi_substream *substream)
 	if ((runtime = kzalloc(sizeof(*runtime), GFP_KERNEL)) == NULL)
 		return -ENOMEM;
 	runtime->substream = substream;
+	mutex_init(&runtime->realloc_mutex);
 	spin_lock_init(&runtime->lock);
 	mutex_init(&runtime->realloc_mutex);
 	init_waitqueue_head(&runtime->sleep);
@@ -1007,6 +1009,8 @@ static long snd_rawmidi_kernel_read1(struct snd_rawmidi_substream *substream,
 		result += count1;
 		count -= count1;
 	}
+	if (userbuf)
+		mutex_unlock(&runtime->realloc_mutex);
 	spin_unlock_irqrestore(&runtime->lock, flags);
 	if (userbuf)
 		mutex_unlock(&runtime->realloc_mutex);
