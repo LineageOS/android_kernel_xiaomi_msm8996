@@ -489,6 +489,12 @@ static void ol_rx_reorder_detect_hole(struct ol_txrx_peer_t *peer,
 {
 	uint32_t win_sz_mask, next_rel_idx, hole_size;
 
+	if (tid >= OL_TXRX_NUM_EXT_TIDS) {
+		TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+			   "%s:  invalid tid, %u\n", __func__, tid);
+		return;
+	}
+
 	if (peer->tids_next_rel_idx[tid] == INVALID_REORDER_INDEX)
 		return;
 
