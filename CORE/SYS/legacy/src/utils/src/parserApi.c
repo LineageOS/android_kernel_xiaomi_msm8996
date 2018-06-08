@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -5843,16 +5843,22 @@ tSirRetStatus PopulateDot11fAssocResWscIE(tpAniSirGlobal pMac,
 {
     tDot11fIEWscAssocReq parsedWscAssocReq = { 0, };
     tANI_U8         *wscIe;
+    tANI_U32 status;
 
 
     wscIe = limGetWscIEPtr(pMac, pRcvdAssocReq->addIE.addIEdata, pRcvdAssocReq->addIE.length);
     if(wscIe != NULL)
     {
         // retreive WSC IE from given AssocReq
-        dot11fUnpackIeWscAssocReq( pMac,
+        status = dot11fUnpackIeWscAssocReq( pMac,
                                     wscIe + 2 + 4,  // EID, length, OUI
                                     wscIe[ 1 ] - 4, // length without OUI
                                     &parsedWscAssocReq );
+        if (!DOT11F_SUCCEEDED(status))
+        {
+            limLog(pMac, LOGE, FL("Unpack wsc failed status: (0x%08x)"), status);
+            return eSIR_HAL_INPUT_INVALID;
+        }
         pDot11f->present = 1;
         // version has to be 0x10
         pDot11f->Version.present = 1;

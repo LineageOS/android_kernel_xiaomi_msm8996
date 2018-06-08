@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -235,9 +235,10 @@ typedef struct _VosSchedContext
    /* Free message queue for Tlshim Rx processing */
    struct list_head VosTlshimPktFreeQ;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
    /* cpu hotplug notifier */
    struct notifier_block *cpuHotPlugNotifier;
-
+#endif
    /* affinity lock */
    vos_lock_t affinity_lock;
 
@@ -415,6 +416,7 @@ typedef struct _VosContextType
    struct list_head wdthread_timer_work_list;
    struct work_struct wdthread_work;
    spinlock_t wdthread_work_lock;
+   bool is_closed;
 } VosContextType, *pVosContextType;
 
 

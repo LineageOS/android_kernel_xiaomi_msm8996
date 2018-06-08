@@ -2162,7 +2162,9 @@ VOS_STATUS hdd_wlan_shutdown(void)
    /* Wait for TLshim RX to exit */
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down TLshim RX thread",
           __func__);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
    unregister_hotcpu_notifier(vosSchedContext->cpuHotPlugNotifier);
+#endif
    set_bit(RX_SHUTDOWN_EVENT, &vosSchedContext->tlshimRxEvtFlg);
    set_bit(RX_POST_EVENT, &vosSchedContext->tlshimRxEvtFlg);
    wake_up_interruptible(&vosSchedContext->tlshimRxWaitQueue);
@@ -2224,16 +2226,11 @@ VOS_STATUS hdd_wlan_shutdown(void)
 
    hdd_unregister_mcast_bcast_filter(pHddCtx);
 
-   hddLog(VOS_TRACE_LEVEL_INFO, "%s: Flush Queues",__func__);
-   /* Clean up message queues of TX, RX and MC thread */
-   vos_sched_flush_mc_mqs(vosSchedContext);
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing VOS SCHED Close", __func__);
+   vos_sched_close(vosSchedContext);
 
-   /* Deinit all the TX, RX and MC queues */
-   vos_sched_deinit_mqs(vosSchedContext);
-
-   hddLog(VOS_TRACE_LEVEL_INFO, "%s: Doing VOS Shutdown",__func__);
-   /* shutdown VOSS */
-   vos_shutdown(pVosContext);
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing VOS Close", __func__);
+   vos_close(pVosContext);
 
    /*mac context has already been released in mac_close call
      so setting it to NULL in hdd context*/

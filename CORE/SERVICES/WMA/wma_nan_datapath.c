@@ -482,6 +482,7 @@ static int wma_ndp_indication_event_handler(void *handle, uint8_t  *event_info,
 	vos_msg_t pe_msg = {0};
 	struct ndp_indication_event *ind_event;
 	VOS_STATUS status;
+	size_t total_array_len = 0;
 
 	event = (WMI_NDP_INDICATION_EVENTID_param_tlvs *)event_info;
 	fixed_params =
@@ -496,6 +497,32 @@ static int wma_ndp_indication_event_handler(void *handle, uint8_t  *event_info,
 	if (fixed_params->ndp_app_info_len > event->num_ndp_app_info) {
 		WMA_LOGE("FW message ndp app info length %d more than TLV hdr %d",
 			 fixed_params->ndp_app_info_len, event->num_ndp_app_info);
+		return -EINVAL;
+	}
+
+	if (fixed_params->ndp_cfg_len >
+		(WMA_SVC_MSG_MAX_SIZE - sizeof(*fixed_params))) {
+		WMA_LOGE("%s: excess wmi buffer: ndp_cfg_len %d",
+			 __func__, fixed_params->ndp_cfg_len);
+		return -EINVAL;
+	} else {
+		total_array_len = fixed_params->ndp_cfg_len +
+					sizeof(*fixed_params);
+	}
+
+	if (fixed_params->ndp_app_info_len >
+		(WMA_SVC_MSG_MAX_SIZE - total_array_len)) {
+		WMA_LOGE("%s: excess wmi buffer: ndp_cfg_len %d",
+			 __func__, fixed_params->ndp_app_info_len);
+		return -EINVAL;
+	} else {
+		total_array_len += fixed_params->ndp_app_info_len;
+	}
+
+	if (fixed_params->nan_scid_len >
+		(WMA_SVC_MSG_MAX_SIZE - total_array_len)) {
+		WMA_LOGE("%s: excess wmi buffer: ndp_cfg_len %d",
+			 __func__, fixed_params->nan_scid_len);
 		return -EINVAL;
 	}
 

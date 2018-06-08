@@ -392,7 +392,13 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
         {
             u_int32_t *pl_hdr;
             u_int32_t log_type;
+            uint32_t len = adf_nbuf_len(htt_t2h_msg);
+            struct ol_fw_data pl_fw_data;
+
             pl_hdr = (msg_word + 1);
+            pl_fw_data.data = pl_hdr;
+            pl_fw_data.len = len - sizeof(*msg_word);
+
             log_type = (*(pl_hdr + 1) & ATH_PKTLOG_HDR_LOG_TYPE_MASK) >>
                                             ATH_PKTLOG_HDR_LOG_TYPE_SHIFT;
             if (log_type == PKTLOG_TYPE_TX_CTRL ||
@@ -400,14 +406,14 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
                (log_type) == PKTLOG_TYPE_TX_MSDU_ID ||
                (log_type) == PKTLOG_TYPE_TX_FRM_HDR ||
                (log_type) == PKTLOG_TYPE_TX_VIRT_ADDR) {
-                wdi_event_handler(WDI_EVENT_TX_STATUS, pdev->txrx_pdev, pl_hdr);
+                wdi_event_handler(WDI_EVENT_TX_STATUS, pdev->txrx_pdev, &pl_fw_data);
             } else if ((log_type) == PKTLOG_TYPE_RC_FIND) {
-                wdi_event_handler(WDI_EVENT_RATE_FIND, pdev->txrx_pdev, pl_hdr);
+                wdi_event_handler(WDI_EVENT_RATE_FIND, pdev->txrx_pdev, &pl_fw_data);
             } else if ((log_type) == PKTLOG_TYPE_RC_UPDATE) {
                 wdi_event_handler(
-                    WDI_EVENT_RATE_UPDATE, pdev->txrx_pdev, pl_hdr);
+                    WDI_EVENT_RATE_UPDATE, pdev->txrx_pdev, &pl_fw_data);
             } else if ((log_type) == PKTLOG_TYPE_RX_STAT) {
-                wdi_event_handler(WDI_EVENT_RX_DESC, pdev->txrx_pdev, pl_hdr);
+                wdi_event_handler(WDI_EVENT_RX_DESC, pdev->txrx_pdev, &pl_fw_data);
             }
             break;
         }

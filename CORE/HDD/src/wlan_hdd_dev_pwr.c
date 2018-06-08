@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -210,28 +210,15 @@ VOS_STATUS hddDevTmRegisterNotifyCallback(hdd_context_t *pHddCtx)
 ----------------------------------------------------------------------------*/
 VOS_STATUS hddDevTmUnregisterNotifyCallback(hdd_context_t *pHddCtx)
 {
-   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+	VOS_STATUS status;
 
-   wcnss_unregister_thermal_mitigation(hddDevTmLevelChangedHandler);
+	wcnss_unregister_thermal_mitigation(hddDevTmLevelChangedHandler);
+	status = vos_timer_deinit(&pHddCtx->tmInfo.txSleepTimer);
+	if (!VOS_IS_STATUS_SUCCESS(status)) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Fail to deinit timer, ret: %d",
+			  __func__, status);
+	}
 
-   if(VOS_TIMER_STATE_RUNNING ==
-           vos_timer_getCurrentState(&pHddCtx->tmInfo.txSleepTimer))
-   {
-       vosStatus = vos_timer_stop(&pHddCtx->tmInfo.txSleepTimer);
-       if(!VOS_IS_STATUS_SUCCESS(vosStatus))
-       {
-           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                                "%s: Timer stop fail", __func__);
-       }
-   }
-
-   // Destroy the vos timer...
-   vosStatus = vos_timer_destroy(&pHddCtx->tmInfo.txSleepTimer);
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-       VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_ERROR,
-                            "%s: Fail to destroy timer", __func__);
-   }
-
-   return VOS_STATUS_SUCCESS;
+	return VOS_STATUS_SUCCESS;
 }

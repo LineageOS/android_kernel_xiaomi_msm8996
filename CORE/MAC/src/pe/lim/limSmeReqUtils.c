@@ -261,6 +261,7 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
 {
     tANI_U8  wpaIndex = 0;
     tANI_U32 privacy, val;
+    tANI_U32 status;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED,
                   &privacy) != eSIR_SUCCESS)
@@ -331,9 +332,16 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
             limLog(pMac,
                    LOG1,
                    FL("Only RSN IE is present"));
-            dot11fUnpackIeRSN(pMac,&pRSNie->rsnIEdata[2],
+            status = dot11fUnpackIeRSN(pMac,&pRSNie->rsnIEdata[2],
                               pRSNie->rsnIEdata[1],
                               &pSessionEntry->gStartBssRSNIe);
+            if (!DOT11F_SUCCEEDED(status))
+            {
+                limLog(pMac,
+                       LOGE,FL("unpack failed for RSN IE (0x%08x)"),
+                       status);
+                return false;
+            }
             return true;
         }
         else if ((pRSNie->length == pRSNie->rsnIEdata[1] + 2) &&
@@ -343,9 +351,16 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
                    LOG1,
                    FL("Only WPA IE is present"));
 
-            dot11fUnpackIeWPA(pMac,&pRSNie->rsnIEdata[6],
+            status = dot11fUnpackIeWPA(pMac,&pRSNie->rsnIEdata[6],
                               pRSNie->rsnIEdata[1] - 4,
                               &pSessionEntry->gStartBssWPAIe);
+            if (!DOT11F_SUCCEEDED(status))
+            {
+                limLog(pMac,
+                       LOGE,FL("unpack failed for WPA IE (0x%08x)"),
+                       status);
+                return false;
+            }
             return true;
         }
 
@@ -368,13 +383,26 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
             else
             {
                 /* Both RSN and WPA IEs are present */
-                dot11fUnpackIeRSN(pMac,&pRSNie->rsnIEdata[2],
+                status = dot11fUnpackIeRSN(pMac,&pRSNie->rsnIEdata[2],
                       pRSNie->rsnIEdata[1], &pSessionEntry->gStartBssRSNIe);
+                if (!DOT11F_SUCCEEDED(status))
+                {
+                    limLog(pMac,
+                    LOGE,FL("unpack failed for RSN IE (0x%08x)"),
+                            status);
+                    return false;
+                }
 
-                dot11fUnpackIeWPA(pMac,&pRSNie->rsnIEdata[wpaIndex + 6],
+                status = dot11fUnpackIeWPA(pMac,&pRSNie->rsnIEdata[wpaIndex + 6],
                                  pRSNie->rsnIEdata[wpaIndex + 1]-4,
                                     &pSessionEntry->gStartBssWPAIe);
-
+                if (!DOT11F_SUCCEEDED(status))
+                {
+                    limLog(pMac,
+                    LOGE,FL("unpack failed for WPA IE (0x%08x)"),
+                            status);
+                    return false;
+                }
             }
         }
         else

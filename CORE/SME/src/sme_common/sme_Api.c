@@ -4476,6 +4476,9 @@ eHalStatus sme_RoamDisconnect(tHalHandle hHal, tANI_U8 sessionId, eCsrRoamDiscon
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+   if (!pMac)
+       return status;
+
    MTRACE(vos_trace(VOS_MODULE_ID_SME,
                         TRACE_CODE_SME_RX_HDD_ROAM_DISCONNECT, sessionId, reason));
    smsLog(pMac, LOG2, FL("enter"));
@@ -4529,6 +4532,9 @@ eHalStatus sme_RoamStopBss(tHalHandle hHal, tANI_U8 sessionId)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   if (!pMac)
+       return status;
 
    smsLog(pMac, LOG2, FL("enter"));
    status = sme_AcquireGlobalLock( &pMac->sme );
@@ -5128,6 +5134,10 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
       pParam->sta_change_cc_via_beacon = pMac->sta_change_cc_via_beacon;
       pParam->csrConfig.gStaLocalEDCAEnable =
               pMac->roam.configParam.gStaLocalEDCAEnable;
+#if defined WLAN_FEATURE_VOWIFI
+      vos_mem_copy(&pParam->rrmConfig, &pMac->rrm.rrmSmeContext.rrmConfig,
+                   sizeof(struct rrm_config_param));
+#endif
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -7459,6 +7469,9 @@ eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId,
    eHalStatus status;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+   if (!pMac)
+       return eHAL_STATUS_FAILURE;
+
    MTRACE(vos_trace(VOS_MODULE_ID_SME,
                  TRACE_CODE_SME_RX_HDD_CLOSE_SESSION, sessionId, 0));
    status = sme_AcquireGlobalLock( &pMac->sme );
@@ -7807,6 +7820,9 @@ eHalStatus sme_AbortMacScan(tHalHandle hHal, tANI_U8 sessionId,
     eHalStatus status;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+    if (!pMac)
+        return eHAL_STATUS_FAILURE;
+
     MTRACE(vos_trace(VOS_MODULE_ID_SME,
                TRACE_CODE_SME_RX_HDD_ABORT_MACSCAN, NO_SESSION, 0));
     status = sme_AcquireGlobalLock( &pMac->sme );
@@ -8010,6 +8026,9 @@ eHalStatus sme_DeregisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId,
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    if (!pMac)
+        return eHAL_STATUS_FAILURE;
 
     MTRACE(vos_trace(VOS_MODULE_ID_SME,
               TRACE_CODE_SME_RX_HDD_DEREGISTER_MGMTFR, sessionId, 0));
@@ -15825,6 +15844,10 @@ eHalStatus sme_ModifyAddIE(tHalHandle hHal,
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    if (!pMac)
+        return status;
+
     status = sme_AcquireGlobalLock( &pMac->sme );
 
     if ( HAL_STATUS_SUCCESS( status ) )
@@ -15849,6 +15872,10 @@ eHalStatus sme_UpdateAddIE(tHalHandle hHal,
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    if (!pMac)
+       return status;
+
     status = sme_AcquireGlobalLock( &pMac->sme );
 
     if ( HAL_STATUS_SUCCESS( status ) )

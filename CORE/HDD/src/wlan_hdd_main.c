@@ -482,19 +482,9 @@ static VOS_STATUS hdd_wlan_green_ap_deattach(hdd_context_t *pHddCtx)
         goto done;
     }
 
-    /* check if the timer status is destroyed */
-    if (VOS_TIMER_STATE_RUNNING ==
-            vos_timer_getCurrentState(&green_ap->ps_timer))
-    {
-        vos_timer_stop(&green_ap->ps_timer);
-    }
-
-    /* Destroy the Green AP timer */
-    if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
-                    &green_ap->ps_timer)))
-    {
+    status = vos_timer_deinit(&green_ap->ps_timer);
+    if (!VOS_IS_STATUS_SUCCESS(status))
         hddLog(LOG1, FL("Cannot deallocate Green-AP's timer"));
-    }
 
     /* release memory */
     vos_mem_zero((void *)green_ap, sizeof(*green_ap));
@@ -12970,6 +12960,7 @@ static enum nl80211_timeout_reason hdd_convert_timeout_reason(
 	}
 }
 
+#if defined CFG80211_CONNECT_TIMEOUT
 /**
  * hdd_cfg80211_connect_timeout() - API to send connection timeout reason
  * @dev: network device
@@ -12990,6 +12981,7 @@ static void hdd_cfg80211_connect_timeout(struct net_device *dev,
 	cfg80211_connect_timeout(dev, bssid, NULL, 0, GFP_KERNEL,
 				 nl_timeout_reason);
 }
+#endif /* CFG80211_CONNECT_TIMEOUT */
 
 /**
  * __hdd_connect_bss() - API to send connection status to supplicant
@@ -14522,6 +14514,34 @@ enum driver_unload_state{
 	unload_finish = 0xff
 };
 
+#ifdef FEATURE_BUS_BANDWIDTH
+static void hdd_deinit_bus_bw_timer(hdd_context_t *hdd_ctx)
+{
+	VOS_TIMER_STATE vos_timer_state;
+
+	vos_timer_state = vos_timer_getCurrentState(&hdd_ctx->bus_bw_timer);
+
+	if (vos_timer_state == VOS_TIMER_STATE_UNUSED)
+		return;
+
+	if (VOS_TIMER_STATE_RUNNING == vos_timer_state) {
+		vos_timer_stop(&hdd_ctx->bus_bw_timer);
+		hdd_rst_tcp_delack(hdd_ctx);
+
+		if (hdd_ctx->hbw_requested) {
+			vos_remove_pm_qos();
+			hdd_ctx->hbw_requested = false;
+		}
+	}
+
+	if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(&hdd_ctx->bus_bw_timer)))
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Cannot deallocate Bus bandwidth timer", __func__);
+}
+#else
+static inline void hdd_deinit_bus_bw_timer(hdd_context_t *hdd_ctx) {}
+#endif
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_exit() - HDD WLAN exit function
@@ -14594,10 +14614,10 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDevTmUnregisterNotifyCallback failed",__func__);
    }
 
-   if (VOS_TIMER_STATE_RUNNING ==
-                  vos_timer_getCurrentState(&pHddCtx->tdls_source_timer))
-       vos_timer_stop(&pHddCtx->tdls_source_timer);
-   vos_timer_destroy(&pHddCtx->tdls_source_timer);
+   vosStatus = vos_timer_deinit(&pHddCtx->tdls_source_timer);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+      hddLog(VOS_TRACE_LEVEL_FATAL,
+             "%s: deinit tdls source timer failed", __func__);
 
    /*
     * Cancel any outstanding scan requests.  We are about to close all
@@ -14616,38 +14636,14 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     */
    TRACK_UNLOAD_STATUS(unload_aborting_all_scan);
    hdd_abort_mac_scan_all_adapters(pHddCtx);
-#ifdef FEATURE_BUS_BANDWIDTH
-   if (VOS_TIMER_STATE_RUNNING ==
-                        vos_timer_getCurrentState(&pHddCtx->bus_bw_timer))
-   {
-      vos_timer_stop(&pHddCtx->bus_bw_timer);
-      hdd_rst_tcp_delack(pHddCtx);
-
-      if (pHddCtx->hbw_requested) {
-          vos_remove_pm_qos();
-          pHddCtx->hbw_requested = false;
-      }
-   }
-
-   if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
-                         &pHddCtx->bus_bw_timer)))
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,
-            "%s: Cannot deallocate Bus bandwidth timer", __func__);
-   }
-#endif
+   hdd_deinit_bus_bw_timer(pHddCtx);
 
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
-   if (VOS_TIMER_STATE_RUNNING ==
-                vos_timer_getCurrentState(&pHddCtx->skip_acs_scan_timer)) {
-       vos_timer_stop(&pHddCtx->skip_acs_scan_timer);
-   }
+   vosStatus = vos_timer_deinit(&pHddCtx->skip_acs_scan_timer);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: deinit skip acs scan timer failed",
+              __func__);
 
-   if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(
-                         &pHddCtx->skip_acs_scan_timer))) {
-       hddLog(VOS_TRACE_LEVEL_ERROR,
-            "%s: Cannot deallocate ACS Skip timer", __func__);
-   }
    spin_lock(&pHddCtx->acs_skip_lock);
    vos_mem_free(pHddCtx->last_acs_channel_list);
    pHddCtx->last_acs_channel_list = NULL;
@@ -18097,14 +18093,14 @@ static void __exit hdd_module_exit(void)
 
 #ifdef MODULE
 static int fwpath_changed_handler(const char *kmessage,
-                                 struct kernel_param *kp)
+                                  const struct kernel_param *kp)
 {
    return param_set_copystring(kmessage, kp);
 }
 
 #if ! defined(QCA_WIFI_FTM)
 static int con_mode_handler(const char *kmessage,
-                                 struct kernel_param *kp)
+                            const struct kernel_param *kp)
 {
    return param_set_int(kmessage, kp);
 }
@@ -18121,7 +18117,7 @@ static int con_mode_handler(const char *kmessage,
 
   --------------------------------------------------------------------------*/
 static int fwpath_changed_handler(const char *kmessage,
-                                  struct kernel_param *kp)
+                                  const struct kernel_param *kp)
 {
 	int ret;
 	bool mode_change;
@@ -18170,7 +18166,8 @@ static int fwpath_changed_handler(const char *kmessage,
   \return -
 
   --------------------------------------------------------------------------*/
-static int con_mode_handler(const char *kmessage, struct kernel_param *kp)
+static int con_mode_handler(const char *kmessage,
+                            const struct kernel_param *kp)
 {
    int ret;
 
@@ -20422,15 +20419,27 @@ MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Qualcomm Atheros, Inc.");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
 
+#if !defined(QCA_WIFI_FTM)
+static const struct kernel_param_ops con_mode_ops = {
+    .set = con_mode_handler,
+    .get = param_get_int,
+};
+#endif
+
+static const struct kernel_param_ops fwpath_ops = {
+    .set = fwpath_changed_handler,
+    .get = param_get_string,
+};
+
 #if  defined(QCA_WIFI_FTM)
 module_param(con_mode, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 #else
-module_param_call(con_mode, con_mode_handler, param_get_int, &con_mode,
-                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+module_param_cb(con_mode, &con_mode_ops, &con_mode,
+                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 #endif
 
-module_param_call(fwpath, fwpath_changed_handler, param_get_string, &fwpath,
-                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+module_param_cb(fwpath, &fwpath_ops, &fwpath,
+                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 module_param(enable_dfs_chan_scan, int,
              S_IRUSR | S_IRGRP | S_IROTH);

@@ -16541,13 +16541,22 @@ static bool wlan_hdd_get_sap_obss(hdd_adapter_t *pHostapdAdapter)
     hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(pHostapdAdapter);
     beacon_data_t *beacon = pHostapdAdapter->sessionCtx.ap.beacon;
     uint8_t *ie = NULL;
+    uint32_t status;
 
     ie = wlan_hdd_cfg80211_get_ie_ptr(beacon->tail, beacon->tail_len,
                                                         WLAN_EID_HT_CAPABILITY);
     if (ie && ie[1]) {
         vos_mem_copy(ht_cap_ie, &ie[2], DOT11F_IE_HTCAPS_MAX_LEN);
-        dot11fUnpackIeHTCaps((tpAniSirGlobal)hdd_ctx->hHal, ht_cap_ie, ie[1],
+        status = dot11fUnpackIeHTCaps((tpAniSirGlobal)hdd_ctx->hHal, ht_cap_ie, ie[1],
                                                            &dot11_ht_cap_ie);
+        if (DOT11F_FAILED(status))
+        {
+            hddLog(LOGE,
+            FL("unpack failed for HT Caps status:(0x%08x)"),
+               status);
+            return false;
+        }
+
         return dot11_ht_cap_ie.supportedChannelWidthSet;
     }
 
@@ -21073,8 +21082,11 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
         kfree(mgmt);
         return NULL;
     }
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0))
+    chan = ieee80211_get_channel(wiphy, freq);
+#else
     chan = __ieee80211_get_channel(wiphy, freq);
+#endif
     /*
      * When the band is changed on the fly using the GUI, three things are done
      * 1. scan abort
@@ -24620,6 +24632,7 @@ static int wlan_hdd_cfg80211_set_privacy_ibss(
                                          )
 {
     int status = 0;
+    tANI_U32 ret;
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     eCsrEncryptionType encryptionType = eCSR_ENCRYPT_TYPE_NONE;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
@@ -24658,10 +24671,18 @@ static int wlan_hdd_cfg80211_set_privacy_ibss(
 		}
                 // Unpack the WPA IE
                 //Skip past the EID byte and length byte - and four byte WiFi OUI
-                dot11fUnpackIeWPA((tpAniSirGlobal) halHandle,
+                ret = dot11fUnpackIeWPA((tpAniSirGlobal) halHandle,
                                 &ie[2+4],
                                 ie[1] - 4,
                                 &dot11WPAIE);
+                if (DOT11F_FAILED(ret))
+                {
+                    hddLog(LOGE,
+                    FL("unpack failed status:(0x%08x)"),
+                       ret);
+                    return -EINVAL;
+                }
+
                 /*Extract the multicast cipher, the encType for unicast
                                cipher for wpa-none is none*/
                 encryptionType =
