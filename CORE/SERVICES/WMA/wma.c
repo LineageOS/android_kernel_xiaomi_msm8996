@@ -21749,6 +21749,10 @@ static void wma_send_beacon(tp_wma_handle wma, tpSendbeaconParams bcn_info)
 				WMA_LOGE("%s : failed to send vdev up", __func__);
 				return;
 			}
+			if (wma->interfaces[vdev_id].pause_bitmap) {
+				wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle, 0xffffffff);
+				wma->interfaces[vdev_id].pause_bitmap = 0;
+			}
 			wma->interfaces[vdev_id].vdev_up = TRUE;
 			wma_set_sap_keepalive(wma, vdev_id);
 		}
