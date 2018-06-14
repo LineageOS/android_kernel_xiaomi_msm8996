@@ -18022,7 +18022,7 @@ eHalStatus sme_configure_modulated_dtim(tHalHandle h_hal, tANI_U8 session_id,
 	if (NULL == iwcmd) {
 		VOS_TRACE(VOS_MODULE_ID_SME,
 			  VOS_TRACE_LEVEL_FATAL,
-			  "%s: vos_mem_alloc failed", __func__);
+			  "%s: vos_mem_malloc failed", __func__);
 		return eHAL_STATUS_FAILED_ALLOC;
 	}
 
@@ -18099,6 +18099,79 @@ VOS_STATUS sme_mnt_filter_type_cmd(struct sme_mnt_filter_type_req *input)
     }
 
     return VOS_STATUS_SUCCESS;
+}
+
+#define THROTTLE_PERIOD_MIN        (10)
+#define THROTTLE_PERIOD_MAX        (10000)
+#define THROTTLE_TX_THRESHOLD_MIN  (1)
+#define THROTTLE_TX_THRESHOLD_MAX  (400)
+#define MAX_DUTY_CYCLE_VAL         (100)
+
+eHalStatus sme_thermal_throttle_mgmt_cmd(tHalHandle hHal, tANI_U16 lower_thresh_deg,
+                                         tANI_U16 higher_thresh_deg)
+{
+    vos_msg_t msg;
+    struct hal_thermal_mgmt_cmd_params *therm_mgmt_cmd;
+
+    therm_mgmt_cmd = vos_mem_malloc(sizeof(*therm_mgmt_cmd));
+    if (!therm_mgmt_cmd) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("Unable to allocate memory"));
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+    vos_mem_zero(therm_mgmt_cmd, sizeof(*therm_mgmt_cmd));
+
+    therm_mgmt_cmd->min_temp = lower_thresh_deg;
+    therm_mgmt_cmd->max_temp = higher_thresh_deg;
+    therm_mgmt_cmd->enable = 1;
+
+    msg.type = WDA_THERMAL_MGMT_CMD;
+    msg.reserved = 0;
+    msg.bodyptr = therm_mgmt_cmd;
+
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("Unable to post WDA_THERMAL_MGMT_CMD message"));
+        vos_mem_free(therm_mgmt_cmd);
+        return eHAL_STATUS_FAILURE;
+    }
+    return eHAL_STATUS_SUCCESS;
+}
+
+eHalStatus sme_thermal_throttle_set_conf_cmd(tHalHandle hHal, bool enable,
+                                             tANI_U32 dc, tANI_U32 dc_off_percent,
+                                             tANI_U32 prio)
+{
+    vos_msg_t msg;
+    struct hal_thermal_mitigation_params *therm_data;
+
+    therm_data = vos_mem_malloc(sizeof(*therm_data));
+    if (!therm_data) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("Unable to allocate memory"));
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+    vos_mem_zero(therm_data, sizeof(*therm_data));
+
+
+    therm_data->enable = enable;
+    therm_data->dc = dc;
+    therm_data->level_conf[0].dcoffpercent = dc_off_percent;
+    therm_data->level_conf[0].priority = prio;
+
+    msg.type = WDA_THERM_THROT_SET_CONF_CMD;
+    msg.reserved = 0;
+    msg.bodyptr = therm_data;
+
+    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  FL("Unable to post WMI_THERM_THROT_SET_CONF_CMDID message"));
+        vos_mem_free(therm_data);
+        return eHAL_STATUS_FAILURE;
+    }
+    return eHAL_STATUS_SUCCESS;
 }
 
 /**

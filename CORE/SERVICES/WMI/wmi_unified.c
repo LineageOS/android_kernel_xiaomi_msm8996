@@ -1273,6 +1273,12 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 	default:
 		pr_info("%s: Unhandled WMI event %d\n", __func__, id);
 		break;
+	case WMI_SERVICE_AVAILABLE_EVENTID:
+		pr_info("%s: WMI UNIFIED SERVICE AVAILABLE event\n", __func__);
+		wma_rx_service_available_event(wmi_handle->scn_handle,
+					   wmi_cmd_struct_ptr);
+		break;
+
 	case WMI_SERVICE_READY_EVENTID:
 		pr_info("%s: WMI UNIFIED SERVICE READY event\n", __func__);
 		wma_rx_service_ready_event(wmi_handle->scn_handle,

@@ -106,8 +106,9 @@ VOS_STATUS wma_wmi_work_close(v_VOID_t *vos_context);
 
 v_VOID_t wma_rx_ready_event(WMA_HANDLE handle, v_VOID_t *ev);
 
-v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle,
-				v_VOID_t *ev);
+v_VOID_t wma_rx_service_ready_event(WMA_HANDLE handle, v_VOID_t *ev);
+
+v_VOID_t wma_rx_service_available_event(WMA_HANDLE handle, v_VOID_t *ev);
 
 v_VOID_t wma_setneedshutdown(v_VOID_t *vos_context);
 
