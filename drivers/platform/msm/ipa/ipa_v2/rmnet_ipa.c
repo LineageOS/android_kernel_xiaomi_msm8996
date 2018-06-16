@@ -2309,8 +2309,8 @@ static int ssr_notifier_cb(struct notifier_block *this,
 			ipa_qmi_stop_workqueues();
 			wan_ioctl_stop_qmi_messages();
 			ipa_stop_polling_stats();
-			if (atomic_read(&is_initialized))
-				platform_driver_unregister(&rmnet_ipa_driver);
+			if (atomic_read(&is_initialized)){
+				platform_driver_unregister(&rmnet_ipa_driver);}
 			pr_info("IPA BEFORE_SHUTDOWN handling is complete\n");
 			return NOTIFY_DONE;
 		}

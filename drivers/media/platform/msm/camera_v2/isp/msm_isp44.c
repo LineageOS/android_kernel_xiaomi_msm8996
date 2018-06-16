@@ -523,8 +523,8 @@ static void msm_vfe44_process_epoch_irq(struct vfe_device *vfe_dev,
 			msm_isp_notify(vfe_dev, ISP_EVENT_SOF, VFE_PIX_0, ts);
 			if (vfe_dev->axi_data.stream_update[VFE_PIX_0])
 				msm_isp_axi_stream_update(vfe_dev, VFE_PIX_0);
-				vfe_dev->hw_info->vfe_ops.core_ops.reg_update(
-				   vfe_dev, VFE_PIX_0);
+			vfe_dev->hw_info->vfe_ops.core_ops.reg_update(
+				vfe_dev, VFE_PIX_0);
 		}
 	}
 }

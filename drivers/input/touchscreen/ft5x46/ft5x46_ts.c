@@ -1772,12 +1772,13 @@ static irqreturn_t ft5x46_interrupt(int irq, void *dev_id)
 		if (error)
 			dev_err(ft5x46->dev, "Error reading register 0xD0\n");
 		else
-			if (val == 1) {
+			{if (val == 1) 
+            {
 				error = ft5x46_read_gesture(ft5x46);
 				if (error)
 					dev_err(ft5x46->dev, "Failed to read wakeup gesture\n");
 			} else
-				dev_err(ft5x46->dev, "Chip is in suspend, but wakeup gesture is not enabled.\n");
+				dev_err(ft5x46->dev, "Chip is in suspend, but wakeup gesture is not enabled.\n");}
 
 			goto out;
 	}

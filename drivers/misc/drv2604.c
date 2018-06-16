@@ -320,16 +320,16 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 		 hrtimer_start(&pDrv2604data->timer, ns_to_ktime((u64)value * NSEC_PER_MSEC), HRTIMER_MODE_REL);
 	} else if (value < 0 && value >= -3) {
 
-		if (value == -1)
-			pDrv2604data->sequence[0] = 1;
-		else if (value == -2)
-			pDrv2604data->sequence[0] = 3;
+		if (value == -1){
+			pDrv2604data->sequence[0] = 1;}
+		else if (value == -2){
+			pDrv2604data->sequence[0] = 3;}
 		else
-			pDrv2604data->sequence[0] = 2;
+			{pDrv2604data->sequence[0] = 2;
 		wake_lock(&pDrv2604data->wklock);
 		pDrv2604data->should_stop = NO;
 		drv2604_change_mode(pDrv2604data, WORK_SEQ_PLAYBACK, DEV_IDLE);
-		schedule_work(&pDrv2604data->vibrator_work);
+		schedule_work(&pDrv2604data->vibrator_work);}
 	}
 
 	mutex_unlock(&pDrv2604data->lock);

@@ -26,13 +26,13 @@ static enum Tfa98xx_Error tfa9887_specific(Tfa98xx_handle_t handle)
 	int result;
 
 	if (!tfa98xx_handle_is_open(handle))
-		return Tfa98xx_Error_NotOpen;
+		{return Tfa98xx_Error_NotOpen;}
 
 		/* all i2C registers are already set to default */
 
 		result = TFA_SET_BF(handle, AMPE, 1);
 		if (result < 0)
-			return -result;
+			{return -result;}
 
 		/* some other registers must be set for optimal amplifier behaviour */
 		tfa98xx_write_register16(handle, 0x05, 0x13AB);

@@ -399,11 +399,16 @@ LINUXINCLUDE    := \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
-KBUILD_CFLAGS   := -Werror -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
-		   -fno-strict-aliasing -fno-common \
-		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
-		   -std=gnu89
+KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+		           -fno-strict-aliasing -fno-common \
+		           -Wno-packed-not-aligned \
+		           -Wno-implicit-function-declaration \
+		           -Wno-stringop-overflow \
+		           -Wno-switch-unreachable \
+		           -Wno-logical-not-parentheses \
+		           -Wno-duplicate-decl-specifier \
+		           -Wno-memset-elt-size \
+		           -std=gnu89
 
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
@@ -623,6 +628,27 @@ KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
 else
 KBUILD_CFLAGS	+= -O2
 endif
+
+# Disable all maybe-uninitialized warnings
+KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
+
+# Disable unused-constant-variable warnings
+KBUILD_CFLAGS	+= $(call cc-disable-warning,unused-const-variable,)
+ 
+# Disable format-truncation warnings
+KBUILD_CFLAGS   += $(call cc-disable-warning,format-truncation,)
+ 
+# Disable attributes warnings
+KBUILD_CFLAGS   += $(call cc-disable-warning,attributes,)
+
+# Disable Wint-in-bool-context  warnings
+KBUILD_CFLAGS	+= $(call cc-disable-warning, int-in-bool-context)
+
+# Needed to unbreak GCC 7.x and above
+KBUILD_CFLAGS   += $(call cc-option,-fno-store-merging,)
+KBUILD_CFLAGS   += $(call cc-disable-warning,array-bounds)
+KBUILD_CFLAGS   += $(call cc-disable-warning,unused-function)
+KBUILD_CFLAGS   += $(call cc-disable-warning, unused-variable)
 
 # Tell gcc to never replace conditional load with a non-conditional one
 KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
