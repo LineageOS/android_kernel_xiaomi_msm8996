@@ -23,7 +23,7 @@ ifneq ($(DTB_NAMES),)
 DTB_LIST := $(addsuffix .dtb,$(DTB_NAMES))
 DTB_OBJS := $(addprefix $(obj)/dts/,$(DTB_LIST))
 else
-DTB_OBJS := $(shell find $(obj)/dts/ -name \*.dtb)
+DTB_OBJS := $(shell find $(obj)/dts/qcom/ -name \*.dtb)
 endif
 
 $(obj)/Image: vmlinux FORCE
