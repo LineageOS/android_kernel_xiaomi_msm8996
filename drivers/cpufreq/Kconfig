@@ -273,6 +273,15 @@ config INPUT_BOOST_FREQ_PERF
 	help
 	  Input boost frequency for the performance CPU cluster.
 
+config REMOVE_INPUT_BOOST_FREQ_LP
+	int "Low-power cluster return frequency"
+	default "0"
+	help
+	  This is the frequency the low-power cluster will fallback to
+	  once the boost is over. The default 0 will make the policy
+	  use cpuinfo.min_freq. In case the device has some kind of quirk
+	  of using a higher than cpuinfo.min_freq (e.g. OnePlus 5/5T/6)
+	  this frequency will be used.
 endif
 
 comment "CPU frequency scaling drivers"

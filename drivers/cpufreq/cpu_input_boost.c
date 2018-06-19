@@ -185,7 +185,7 @@ static int cpu_notifier_cb(struct notifier_block *nb,
 		boost_freq = get_boost_freq(b, policy->cpu);
 		policy->min = min(policy->max, boost_freq);
 	} else {
-		policy->min = policy->cpuinfo.min_freq;
+		policy->min = CONFIG_REMOVE_INPUT_BOOST_FREQ_LP;
 	}
 
 	return NOTIFY_OK;
