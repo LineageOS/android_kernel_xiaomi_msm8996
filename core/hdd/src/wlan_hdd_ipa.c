@@ -89,6 +89,8 @@
 
 #define HDD_IPA_MAX_BANDWIDTH 800
 
+#define HDD_IPA_UC_STAT_LOG_RATE 10
+
 enum hdd_ipa_uc_op_code {
 	HDD_IPA_UC_OPCODE_TX_SUSPEND = 0,
 	HDD_IPA_UC_OPCODE_TX_RESUME = 1,
@@ -3464,8 +3466,9 @@ static void __hdd_ipa_uc_stat_query(hdd_context_t *hdd_ctx,
 		(false == hdd_ipa->resource_loading)) {
 		*ipa_tx_diff = hdd_ipa->ipa_tx_packets_diff;
 		*ipa_rx_diff = hdd_ipa->ipa_rx_packets_diff;
-		hdd_debug("STAT Query TX DIFF %d, RX DIFF %d",
-			    *ipa_tx_diff, *ipa_rx_diff);
+		hdd_debug_ratelimited(HDD_IPA_UC_STAT_LOG_RATE,
+				      "STAT Query TX DIFF %d, RX DIFF %d",
+				      *ipa_tx_diff, *ipa_rx_diff);
 	}
 	qdf_mutex_release(&hdd_ipa->ipa_lock);
 }
@@ -4997,8 +5000,7 @@ static int hdd_ipa_uc_disconnect_client(hdd_adapter_t *adapter)
  *
  * Return: 0 - Success
  */
-
-static int hdd_ipa_uc_disconnect_ap(hdd_adapter_t *adapter)
+int hdd_ipa_uc_disconnect_ap(hdd_adapter_t *adapter)
 {
 	int ret = 0;
 
@@ -5486,6 +5488,8 @@ static void hdd_ipa_send_skb_to_network(qdf_nbuf_t skb,
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 	unsigned int cpu_index;
 	uint32_t enabled;
+	struct qdf_mac_addr src_mac;
+	uint8_t staid;
 
 	if (hdd_validate_adapter(adapter)) {
 		HDD_IPA_LOG(QDF_TRACE_LEVEL_DEBUG, "Invalid adapter: 0x%pK",
@@ -5508,6 +5512,15 @@ static void hdd_ipa_send_skb_to_network(qdf_nbuf_t skb,
 	enabled = hdd_ipa_get_wake_up_idle();
 	if (!enabled)
 		hdd_ipa_set_wake_up_idle(true);
+
+	if (adapter->device_mode == QDF_SAP_MODE) {
+		/* Send DHCP Indication to FW */
+		qdf_mem_copy(&src_mac, skb->data + QDF_NBUF_SRC_MAC_OFFSET,
+			     sizeof(src_mac));
+		if (QDF_STATUS_SUCCESS ==
+			hdd_softap_get_sta_id(adapter, &src_mac, &staid))
+			hdd_dhcp_indication(adapter, staid, skb, QDF_RX);
+	}
 
 	skb->destructor = hdd_ipa_uc_rt_debug_destructor;
 	skb->dev = adapter->dev;
@@ -6368,9 +6381,11 @@ static void hdd_ipa_cleanup_iface(struct hdd_ipa_iface_context *iface_context)
 
 	if (iface_context == NULL)
 		return;
-	if (hdd_validate_adapter(iface_context->adapter))
+	if (hdd_validate_adapter(iface_context->adapter)) {
 		HDD_IPA_LOG(QDF_TRACE_LEVEL_DEBUG, "Invalid adapter: 0x%pK",
 			    iface_context->adapter);
+		return;
+	}
 
 	hdd_ipa_wdi_dereg_intf(iface_context->hdd_ipa,
 			iface_context->adapter->dev->name);
@@ -7177,11 +7192,13 @@ hdd_ipa_uc_proc_pending_event(struct hdd_ipa_priv *hdd_ipa, bool is_loading)
 	qdf_list_remove_front(&hdd_ipa->pending_event,
 			(qdf_list_node_t **)&pending_event);
 	while (pending_event != NULL) {
-		if (pending_event->is_loading == is_loading)
+		if (pending_event->is_loading == is_loading &&
+		    !hdd_validate_adapter(pending_event->adapter)) {
 			__hdd_ipa_wlan_evt(pending_event->adapter,
 					pending_event->sta_id,
 					pending_event->type,
 					pending_event->mac_addr);
+		}
 		qdf_mem_free(pending_event);
 		pending_event = NULL;
 		qdf_list_remove_front(&hdd_ipa->pending_event,

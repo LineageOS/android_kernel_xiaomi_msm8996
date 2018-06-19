@@ -384,12 +384,6 @@ int wma_cli_get_command(int vdev_id, int param_id, int vpdev)
 		case WMI_PDEV_PARAM_TXPOWER_LIMIT5G:
 			ret = wma->pdevconfig.txpow5g;
 			break;
-		case WMI_PDEV_PARAM_BURST_ENABLE:
-			ret = wma->pdevconfig.burst_enable;
-			break;
-		case WMI_PDEV_PARAM_BURST_DUR:
-			ret = wma->pdevconfig.burst_dur;
-			break;
 		default:
 			WMA_LOGE("Invalid cli_get pdev command/Not yet implemented 0x%x",
 				 param_id);
@@ -1503,18 +1497,6 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 			break;
 		case WMI_PDEV_PARAM_RX_CHAIN_MASK:
 			wma->pdevconfig.rxchainmask = privcmd->param_value;
-			break;
-		case WMI_PDEV_PARAM_BURST_ENABLE:
-			wma->pdevconfig.burst_enable = privcmd->param_value;
-			if ((wma->pdevconfig.burst_enable == 1) &&
-			    (wma->pdevconfig.burst_dur == 0))
-				wma->pdevconfig.burst_dur =
-					WMA_DEFAULT_SIFS_BURST_DURATION;
-			else if (wma->pdevconfig.burst_enable == 0)
-				wma->pdevconfig.burst_dur = 0;
-			break;
-		case WMI_PDEV_PARAM_BURST_DUR:
-			wma->pdevconfig.burst_dur = privcmd->param_value;
 			break;
 		case WMI_PDEV_PARAM_TXPOWER_LIMIT2G:
 			wma->pdevconfig.txpow2g = privcmd->param_value;
@@ -3172,6 +3154,11 @@ static int wma_pdev_set_hw_mode_resp_evt_handler(void *handle,
 			QDF_BUG(0);
 			goto fail;
 		}
+		if (vdev_id >= wma->max_bssid) {
+			WMA_LOGE("%s: vdev_id: %d is invalid, max_bssid: %d",
+					__func__, vdev_id, wma->max_bssid);
+			goto fail;
+		}
 		mac_id = WMA_PDEV_TO_MAC_MAP(vdev_mac_entry[i].pdev_id);
 
 		WMA_LOGE("%s: vdev_id:%d mac_id:%d",
@@ -3258,6 +3245,11 @@ void wma_process_pdev_hw_mode_trans_ind(void *handle,
 			WMA_LOGE("%s: soc level id received for mac id)",
 					__func__);
 			QDF_BUG(0);
+			return;
+		}
+		if (vdev_id >= wma->max_bssid) {
+			WMA_LOGE("%s: vdev_id: %d is invalid, max_bssid: %d",
+					__func__, vdev_id, wma->max_bssid);
 			return;
 		}
 
@@ -4281,6 +4273,9 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 
 	/* Enable WOW */
 	g_fw_wlan_feat_caps |= (1 << WOW);
+
+	if (WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap, WMI_SERVICE_NLO))
+		g_fw_wlan_feat_caps |= (1 << PNO);
 
 	/* ARP offload */
 	cfg->arp_offload = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,

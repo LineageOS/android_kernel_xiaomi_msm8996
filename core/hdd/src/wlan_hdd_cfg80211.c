@@ -3725,24 +3725,37 @@ static int32_t hdd_add_tx_bitrate(struct sk_buff *skb,
 	uint32_t bitrate, bitrate_compat;
 
 	nla_attr = nla_nest_start(skb, idx);
-	if (!nla_attr)
+	if (!nla_attr) {
+		hdd_err("nla_nest_start failed");
 		goto fail;
+	}
+
 	/* cfg80211_calculate_bitrate will return 0 for mcs >= 32 */
 	bitrate = cfg80211_calculate_bitrate(&hdd_sta_ctx->
 						cache_conn_info.txrate);
 
 	/* report 16-bit bitrate only if we can */
 	bitrate_compat = bitrate < (1UL << 16) ? bitrate : 0;
-	if (bitrate > 0 &&
-	    nla_put_u32(skb, NL80211_RATE_INFO_BITRATE32, bitrate)) {
-		hdd_err("put fail");
-		goto fail;
+
+	if (bitrate > 0) {
+		if (nla_put_u32(skb, NL80211_RATE_INFO_BITRATE32, bitrate)) {
+			hdd_err("put fail bitrate: %u", bitrate);
+			goto fail;
+		}
+	} else {
+		hdd_err("Invalid bitrate: %u", bitrate);
 	}
-	if (bitrate_compat > 0 &&
-	    nla_put_u16(skb, NL80211_RATE_INFO_BITRATE, bitrate_compat)) {
-		hdd_err("put fail");
-		goto fail;
+
+	if (bitrate_compat > 0) {
+		if (nla_put_u16(skb, NL80211_RATE_INFO_BITRATE,
+				bitrate_compat)) {
+			hdd_err("put fail bitrate_compat: %u", bitrate_compat);
+			goto fail;
+		}
+	} else {
+		hdd_err("Invalid bitrate_compat: %u", bitrate_compat);
 	}
+
 	if (nla_put_u8(skb, NL80211_RATE_INFO_VHT_NSS,
 		       hdd_sta_ctx->cache_conn_info.txrate.nss)) {
 		hdd_err("put fail");
@@ -3768,15 +3781,21 @@ static int32_t hdd_add_sta_info(struct sk_buff *skb,
 	struct nlattr *nla_attr;
 
 	nla_attr = nla_nest_start(skb, idx);
-	if (!nla_attr)
+	if (!nla_attr) {
+		hdd_err("nla_nest_start failed");
 		goto fail;
+	}
+
 	if (nla_put_u8(skb, NL80211_STA_INFO_SIGNAL,
 		       (hdd_sta_ctx->cache_conn_info.signal + 100))) {
 		hdd_err("put fail");
 		goto fail;
 	}
-	if (hdd_add_tx_bitrate(skb, hdd_sta_ctx, NL80211_STA_INFO_TX_BITRATE))
+	if (hdd_add_tx_bitrate(skb, hdd_sta_ctx, NL80211_STA_INFO_TX_BITRATE)) {
+		hdd_err("hdd_add_tx_bitrate failed");
 		goto fail;
+	}
+
 	nla_nest_end(skb, nla_attr);
 	return 0;
 fail:
@@ -3828,8 +3847,11 @@ hdd_add_link_standard_info(struct sk_buff *skb,
 	struct nlattr *nla_attr;
 
 	nla_attr = nla_nest_start(skb, idx);
-	if (!nla_attr)
+	if (!nla_attr) {
+		hdd_err("nla_nest_start failed");
 		goto fail;
+	}
+
 	if (nla_put(skb,
 		    NL80211_ATTR_SSID,
 		    hdd_sta_ctx->cache_conn_info.last_ssid.SSID.length,
@@ -3839,12 +3861,18 @@ hdd_add_link_standard_info(struct sk_buff *skb,
 	}
 	if (nla_put(skb, NL80211_ATTR_MAC, QDF_MAC_ADDR_SIZE,
 		    hdd_sta_ctx->cache_conn_info.bssId.bytes)) {
+		hdd_err("put bssid failed");
 		goto fail;
 	}
-	if (hdd_add_survey_info(skb, hdd_sta_ctx, NL80211_ATTR_SURVEY_INFO))
+	if (hdd_add_survey_info(skb, hdd_sta_ctx, NL80211_ATTR_SURVEY_INFO)) {
+		hdd_err("hdd_add_survey_info failed");
 		goto fail;
-	if (hdd_add_sta_info(skb, hdd_sta_ctx, NL80211_ATTR_STA_INFO))
+	}
+
+	if (hdd_add_sta_info(skb, hdd_sta_ctx, NL80211_ATTR_STA_INFO)) {
+		hdd_err("hdd_add_sta_info failed");
 		goto fail;
+	}
 	nla_nest_end(skb, nla_attr);
 	return 0;
 fail:
@@ -11613,13 +11641,18 @@ static int __wlan_hdd_cfg80211_get_nud_stats(struct wiphy *wiphy,
 					     const void *data, int data_len)
 {
 	int err = 0;
-	struct hdd_nud_stats_context *context;
 	struct net_device *dev = wdev->netdev;
 	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	struct get_arp_stats_params arp_stats_params;
 	uint32_t pkt_type_bitmap;
 	struct sk_buff *skb;
+	struct hdd_request *request = NULL;
+	static const struct hdd_request_params params = {
+		.priv_size = 0,
+		.timeout_ms = WLAN_WAIT_TIME_NUD_STATS,
+	};
+	void *cookie = NULL;
 
 	ENTER();
 
@@ -11642,13 +11675,17 @@ static int __wlan_hdd_cfg80211_get_nud_stats(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
+	request = hdd_request_alloc(&params);
+	if (!request) {
+		hdd_err("Request allocation failure");
+		return -ENOMEM;
+	}
+
+	cookie = hdd_request_cookie(request);
+
 	arp_stats_params.pkt_type = WLAN_NUD_STATS_ARP_PKT_TYPE;
 	arp_stats_params.vdev_id = adapter->sessionId;
 
-	spin_lock(&hdd_context_lock);
-	context = &hdd_ctx->nud_stats_context;
-	qdf_event_reset(&context->response_event);
-	spin_unlock(&hdd_context_lock);
 
 	pkt_type_bitmap = adapter->pkt_type_bitmap;
 
@@ -11661,18 +11698,26 @@ static int __wlan_hdd_cfg80211_get_nud_stats(struct wiphy *wiphy,
 					0xFF, 0XFF,
 					DATA_STALL_LOG_RECOVERY_TRIGGER_PDR);
 
+	if (sme_set_nud_debug_stats_cb(hdd_ctx->hHal, hdd_get_nud_stats_cb,
+				       cookie) != QDF_STATUS_SUCCESS) {
+		hdd_err("Setting NUD debug stats callback failure");
+		err = -EINVAL;
+		goto exit;
+	}
+
 	if (QDF_STATUS_SUCCESS !=
 	    sme_get_nud_debug_stats(hdd_ctx->hHal, &arp_stats_params)) {
 		QDF_TRACE(QDF_MODULE_ID_HDD, QDF_TRACE_LEVEL_ERROR,
 			  "%s STATS_SET_START CMD Failed!!", __func__);
-		return -EINVAL;
+		err = -EINVAL;
+		goto exit;
 	}
 
-	if (qdf_wait_for_event_completion(&context->response_event,
-					  WLAN_WAIT_TIME_NUD_STATS) !=
-					  QDF_STATUS_SUCCESS) {
-		hdd_err("Target response timed out request ");
-		return -ETIMEDOUT;
+	err = hdd_request_wait_for_response(request);
+	if (err) {
+		hdd_err("SME timedout while retrieving NUD stats");
+		err = -ETIMEDOUT;
+		goto exit;
 	}
 
 	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy,
@@ -11680,7 +11725,8 @@ static int __wlan_hdd_cfg80211_get_nud_stats(struct wiphy *wiphy,
 	if (!skb) {
 		hdd_err("%s: cfg80211_vendor_cmd_alloc_reply_skb failed",
 			__func__);
-		return -ENOMEM;
+		err = -ENOMEM;
+		goto exit;
 	}
 
 	if (nla_put_u16(skb, COUNT_FROM_NETDEV,
@@ -11702,7 +11748,8 @@ static int __wlan_hdd_cfg80211_get_nud_stats(struct wiphy *wiphy,
 			rx_host_drop_reorder)) {
 		hdd_err("nla put fail");
 		kfree_skb(skb);
-		return -EINVAL;
+		err = -EINVAL;
+		goto exit;
 	}
 	if (adapter->con_status)
 		nla_put_flag(skb, AP_LINK_ACTIVE);
@@ -11713,11 +11760,15 @@ static int __wlan_hdd_cfg80211_get_nud_stats(struct wiphy *wiphy,
 	pkt_type_bitmap &= ~CONNECTIVITY_CHECK_SET_ARP;
 
 	if (pkt_type_bitmap) {
-		if (hdd_populate_connectivity_check_stats_info(adapter, skb))
-			return -EINVAL;
+		if (hdd_populate_connectivity_check_stats_info(adapter, skb)) {
+			err = -EINVAL;
+			goto exit;
+		}
 	}
 
 	cfg80211_vendor_cmd_reply(skb);
+exit:
+	hdd_request_put(request);
 	return err;
 }
 
@@ -16978,6 +17029,14 @@ static bool wlan_hdd_fils_data_in_limits(struct cfg80211_connect_params *req)
 		return false;
 	}
 
+	if (!req->fils_erp_rrk || !req->fils_erp_realm ||
+	    !req->fils_erp_username) {
+		hdd_err("buffer incorrect, user=%pK rrk=%pK realm=%pK",
+			req->fils_erp_username, req->fils_erp_rrk,
+			req->fils_erp_realm);
+		return false;
+	}
+
 	return true;
 }
 
@@ -17969,6 +18028,7 @@ int wlan_hdd_try_disconnect(hdd_adapter_t *pAdapter)
 	hdd_context_t *hdd_ctx;
 	int status, result = 0;
 	tHalHandle hal;
+	uint32_t wait_time = WLAN_WAIT_TIME_DISCONNECT;
 
 	hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
 	pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
@@ -18004,6 +18064,9 @@ int wlan_hdd_try_disconnect(hdd_adapter_t *pAdapter)
 	  (eConnectionState_Associated == pHddStaCtx->conn_info.connState) ||
 	  (eConnectionState_Connecting == pHddStaCtx->conn_info.connState) ||
 	  (eConnectionState_IbssConnected == pHddStaCtx->conn_info.connState)) {
+		eConnectionState prev_conn_state;
+
+		prev_conn_state = pHddStaCtx->conn_info.connState;
 		hdd_conn_set_connection_state(pAdapter,
 						eConnectionState_Disconnecting);
 		/* Issue disconnect to CSR */
@@ -18012,13 +18075,25 @@ int wlan_hdd_try_disconnect(hdd_adapter_t *pAdapter)
 		status = sme_roam_disconnect(WLAN_HDD_GET_HAL_CTX(pAdapter),
 				pAdapter->sessionId,
 				eCSR_DISCONNECT_REASON_UNSPECIFIED);
-		/*
-		 * Wait here instead of returning directly, this will block the
-		 * next connect command and allow processing of the scan for
-		 * ssid and the previous connect command in CSR. Else we might
-		 * hit some race conditions leading to SME and HDD out of sync.
-		 */
-		if (QDF_STATUS_CMD_NOT_QUEUED == status) {
+
+		if ((status == QDF_STATUS_CMD_NOT_QUEUED) &&
+		    prev_conn_state != eConnectionState_Connecting) {
+			hdd_debug("Already disconnect in progress");
+			result = 0;
+			/*
+			 * Wait here instead of returning directly. This will
+			 * block the connect command and allow processing
+			 * of the disconnect in SME. As disconnect is already
+			 * in progress, wait here for 1 sec instead of 5 sec.
+			 */
+			wait_time = WLAN_WAIT_DISCONNECT_ALREADY_IN_PROGRESS;
+		} else if (status == QDF_STATUS_CMD_NOT_QUEUED) {
+			/*
+			 * Wait here instead of returning directly, this will
+			 * block the connect command and allow processing
+			 * of the scan for ssid and the previous connect command
+			 * in CSR.
+			 */
 			hdd_debug("Already disconnected or connect was in sme/roam pending list and removed by disconnect");
 		} else if (0 != status) {
 			hdd_err("sme_roam_disconnect failure, status: %d",
@@ -18028,9 +18103,8 @@ int wlan_hdd_try_disconnect(hdd_adapter_t *pAdapter)
 			goto disconnected;
 		}
 
-		rc = wait_for_completion_timeout(
-			&pAdapter->disconnect_comp_var,
-			msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+		rc = wait_for_completion_timeout(&pAdapter->disconnect_comp_var,
+						 msecs_to_jiffies(wait_time));
 		if (!rc && (QDF_STATUS_CMD_NOT_QUEUED != status)) {
 			hdd_err("Sme disconnect event timed out session Id: %d staDebugState: %d",
 				pAdapter->sessionId, pHddStaCtx->staDebugState);
@@ -18039,7 +18113,7 @@ int wlan_hdd_try_disconnect(hdd_adapter_t *pAdapter)
 	} else if (eConnectionState_Disconnecting ==
 				pHddStaCtx->conn_info.connState) {
 		rc = wait_for_completion_timeout(&pAdapter->disconnect_comp_var,
-				msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+						 msecs_to_jiffies(wait_time));
 		if (!rc) {
 			hdd_err("Disconnect event timed out session Id: %d staDebugState: %d",
 				pAdapter->sessionId, pHddStaCtx->staDebugState);
@@ -19620,13 +19694,15 @@ static inline bool wlan_hdd_is_pmksa_valid(struct cfg80211_pmksa *pmksa)
 
 /*
  * hdd_fill_pmksa_info: API to update tPmkidCacheInfo from cfg80211_pmksa
- * @pmk_cache: pmksa from supplicant
- * @pmk_cache: pmk needs to be updated
- *
+ * @adapter: Pointer to hdd adapter
+ * @pmk_cache: pmk that needs to be udated
+ * @pmksa: pmk from supplicant
+ * @is_delete: Bool to decide set or delete PMK
  * Return: None
  */
-static void hdd_fill_pmksa_info(tPmkidCacheInfo *pmk_cache,
-				  struct cfg80211_pmksa *pmksa, bool is_delete)
+static void hdd_fill_pmksa_info(hdd_adapter_t *adapter,
+				tPmkidCacheInfo *pmk_cache,
+				struct cfg80211_pmksa *pmksa, bool is_delete)
 {
 	if (pmksa->bssid) {
 		hdd_debug("%s PMKSA for " MAC_ADDRESS_STR,
@@ -19674,14 +19750,18 @@ static inline bool wlan_hdd_is_pmksa_valid(struct cfg80211_pmksa *pmksa)
 
 /*
  * hdd_fill_pmksa_info: API to update tPmkidCacheInfo from cfg80211_pmksa
- * @pmk_cache: pmksa from supplicant
- * @pmk_cache: pmk needs to be updated
+ * @adapter: Pointer to hdd adapter
+ * @pmk_cache: pmk which needs to be updated
+ * @pmksa: pmk from supplicant
+ * @is_delete: Bool to decide whether to set or delete PMK
  *
  * Return: None
  */
-static void hdd_fill_pmksa_info(tPmkidCacheInfo *pmk_cache,
-				  struct cfg80211_pmksa *pmksa, bool is_delete)
+static void hdd_fill_pmksa_info(hdd_adapter_t *adapter,
+				tPmkidCacheInfo *pmk_cache,
+				struct cfg80211_pmksa *pmksa, bool is_delete)
 {
+	tHalHandle hal = WLAN_HDD_GET_HAL_CTX(adapter);
 	hdd_debug("%s PMKSA for " MAC_ADDRESS_STR, is_delete ? "Delete" : "Set",
 	MAC_ADDR_ARRAY(pmksa->bssid));
 	qdf_mem_copy(pmk_cache->BSSID.bytes,
@@ -19689,7 +19769,7 @@ static void hdd_fill_pmksa_info(tPmkidCacheInfo *pmk_cache,
 
 	if (is_delete)
 		return;
-
+	sme_get_pmk_info(hal, adapter->sessionId, pmk_cache);
 	qdf_mem_copy(pmk_cache->PMKID, pmksa->pmkid, CSR_RSN_PMKID_SIZE);
 }
 #endif
@@ -19748,7 +19828,7 @@ static int __wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy,
 
 	qdf_mem_zero(&pmk_cache, sizeof(pmk_cache));
 
-	hdd_fill_pmksa_info(&pmk_cache, pmksa, false);
+	hdd_fill_pmksa_info(pAdapter, &pmk_cache, pmksa, false);
 
 	/*
 	 * Add to the PMKSA Cache in CSR
@@ -19843,7 +19923,7 @@ static int __wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy,
 
 	qdf_mem_zero(&pmk_cache, sizeof(pmk_cache));
 
-	hdd_fill_pmksa_info(&pmk_cache, pmksa, true);
+	hdd_fill_pmksa_info(pAdapter, &pmk_cache, pmksa, true);
 
 	/* Delete the PMKID CSR cache */
 	if (QDF_STATUS_SUCCESS !=

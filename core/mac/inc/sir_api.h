@@ -1340,6 +1340,7 @@ typedef struct sSirSmeJoinReq {
 	bool supported_nss_1x1;
 	uint8_t vdev_nss;
 	uint8_t nss;
+	bool nss_forced_1x1;
 	tSirBssDescription bssDescription;
 	/*
 	 * WARNING: Pls make bssDescription as last variable in struct
@@ -1753,6 +1754,7 @@ typedef struct sSirSmeDisassocInd {
 typedef struct sSirSmeDisassocCnf {
 	uint16_t messageType;   /* eWNI_SME_DISASSOC_CNF */
 	uint16_t length;
+	uint8_t sme_session_id;
 	tSirResultCodes statusCode;
 	struct qdf_mac_addr bssid;
 	struct qdf_mac_addr peer_macaddr;

@@ -5717,11 +5717,6 @@ QDF_STATUS cds_get_pcl(enum cds_con_mode mode,
 		return status;
 	}
 
-	if (mode >= CDS_MAX_NUM_OF_MODE) {
-		cds_err("requested mode:%d is not supported", mode);
-		return status;
-	}
-
 	/* find the current connection state from conc_connection_list*/
 	num_connections = cds_get_connection_count();
 
@@ -8092,8 +8087,7 @@ sap_restart:
 				hdd_ap_ctx->sapConfig.channel, intf_ch);
 	}
 	hdd_ap_ctx->sapConfig.channel = intf_ch;
-	hdd_ap_ctx->sapConfig.ch_params.ch_width =
-		hdd_ap_ctx->sapConfig.ch_width_orig;
+	hdd_ap_ctx->sapConfig.ch_params.ch_width = CH_WIDTH_MAX;
 	hdd_ap_ctx->bss_stop_reason = BSS_STOP_DUE_TO_MCC_SCC_SWITCH;
 	cds_set_channel_params(hdd_ap_ctx->sapConfig.channel,
 			hdd_ap_ctx->sapConfig.sec_ch,

@@ -86,6 +86,10 @@ struct nla_policy scan_policy[QCA_WLAN_VENDOR_ATTR_SCAN_MAX + 1] = {
 	[QCA_WLAN_VENDOR_ATTR_SCAN_COOKIE] = {.type = NLA_U64},
 	[QCA_WLAN_VENDOR_ATTR_SCAN_IE] = {.type = NLA_BINARY,
 					  .len = MAX_DEFAULT_SCAN_IE_LEN},
+	[QCA_WLAN_VENDOR_ATTR_SCAN_MAC] = {.type = NLA_UNSPEC,
+					   .len = QDF_MAC_ADDR_SIZE},
+	[QCA_WLAN_VENDOR_ATTR_SCAN_MAC_MASK] = {.type = NLA_UNSPEC,
+						.len = QDF_MAC_ADDR_SIZE},
 };
 
 /**
@@ -2813,7 +2817,7 @@ static int __wlan_hdd_cfg80211_vendor_scan(struct wiphy *wiphy,
 
 	if (ie_len)
 		nla_memcpy((void *)request->ie,
-			   nla_data(tb[QCA_WLAN_VENDOR_ATTR_SCAN_IE]), ie_len);
+			   tb[QCA_WLAN_VENDOR_ATTR_SCAN_IE], ie_len);
 
 	for (count = 0; count < HDD_NUM_NL80211_BANDS; count++)
 		if (wiphy->bands[count])
