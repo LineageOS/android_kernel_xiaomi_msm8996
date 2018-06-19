@@ -540,7 +540,9 @@ ol_tx_discard_target_frms(ol_txrx_pdev_handle pdev)
 void
 ol_tx_credit_completion_handler(ol_txrx_pdev_handle pdev, int credits)
 {
-    ol_tx_target_credit_update(pdev, credits);
+    if (credits > 0)
+        ol_tx_target_credit_update(pdev, credits);
+
     if (pdev->cfg.is_high_latency) {
         ol_tx_sched(pdev);
     }
