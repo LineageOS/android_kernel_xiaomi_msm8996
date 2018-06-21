@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -563,7 +563,7 @@ enum {
 #define WNI_CFG_LISTEN_INTERVAL_STADEF    1
 
 #define WNI_CFG_CURRENT_CHANNEL_STAMIN    0
-#define WNI_CFG_CURRENT_CHANNEL_STAMAX    165
+#define WNI_CFG_CURRENT_CHANNEL_STAMAX    173
 #define WNI_CFG_CURRENT_CHANNEL_STADEF    1
 
 #define WNI_CFG_DEFAULT_RATE_INDEX_5GHZ_STAMIN    0

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2016, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -276,6 +276,7 @@ typedef enum
     RF_CHAN_157,
     RF_CHAN_161,
     RF_CHAN_165,
+    RF_CHAN_169,
 
     // 802.11p
     RF_CHAN_170,
