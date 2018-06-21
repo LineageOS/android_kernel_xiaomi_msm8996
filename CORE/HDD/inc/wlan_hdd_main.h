@@ -1417,7 +1417,6 @@ struct hdd_adapter_s
     v_TIME_t startRocTs;
 
     /* State for synchronous OCB requests to WMI */
-    struct sir_ocb_set_config_response ocb_set_config_resp;
     struct sir_dcc_update_ndl_response dcc_update_ndl_resp;
     struct dsrc_radio_chan_stats_ctxt dsrc_chan_stats;
 #ifdef WLAN_FEATURE_DSRC

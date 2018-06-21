@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2158,6 +2158,11 @@ limTdlsPopulateMatchingRateSet(tpAniSirGlobal pMac,
         if (wlan_cfgGetStr(pMac, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET,
                                                   (tANI_U8 *) &tempRateSet2.rate,
                                                   &val) != eSIR_SUCCESS)
+        {
+            // Could not get extended rateset from CFG. Log error.
+            limLog(pMac, LOGE, FL("could not retrieve extended rateset"));
+            val = 0;
+        }
         tempRateSet2.numRates = val;
     }
 

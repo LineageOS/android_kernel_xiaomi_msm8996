@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -642,14 +642,37 @@ htt_t2h_tx_ppdu_log_print(
 {
     int i;
     int record_size;
+    int calculated_record_size;
     int num_records;
 
-    record_size =
-        sizeof(*record) +
-        hdr->mpdu_bytes_array_len * sizeof(u_int16_t) +
-        hdr->mpdu_msdus_array_len * sizeof(u_int8_t) +
-        hdr->msdu_bytes_array_len * sizeof(u_int16_t);
+    record_size = sizeof(*record);
+    calculated_record_size = record_size +
+        hdr->mpdu_bytes_array_len * sizeof(uint16_t);
+    if (calculated_record_size < record_size) {
+        adf_os_print("Overflow due to record and hdr->mpdu_bytes_array_len %u\n",
+            hdr->mpdu_bytes_array_len);
+        return;
+    }
+    record_size = calculated_record_size;
+    calculated_record_size += hdr->mpdu_msdus_array_len * sizeof(uint8_t);
+    if (calculated_record_size < record_size) {
+        adf_os_print("Overflow due to hdr->mpdu_msdus_array_len %u\n",
+            hdr->mpdu_msdus_array_len);
+        return;
+    }
+    record_size = calculated_record_size;
+    calculated_record_size += hdr->msdu_bytes_array_len * sizeof(uint16_t);
+    if (calculated_record_size < record_size) {
+        adf_os_print("Overflow due to hdr->msdu_bytes_array_len %u\n",
+            hdr->msdu_bytes_array_len);
+        return;
+    }
+    record_size = calculated_record_size;
     num_records = (length - sizeof(*hdr)) / record_size;
+    if (num_records < 0) {
+        adf_os_print("Underflow due to length %d\n", length);
+        return;
+    }
     adf_os_print("Tx PPDU log elements:\n");
 
     for (i = 0; i < num_records; i++) {
@@ -681,6 +704,8 @@ htt_t2h_tx_ppdu_log_print(
             #define BUF_SIZE 80
             char buf[BUF_SIZE];
             u_int8_t *p8;
+            u_int8_t *calculated_p8;
+
             time_enqueue_us = HTT_T2H_STATS_TX_PPDU_TIME_TO_MICROSEC(
                     record->timestamp_enqueue, hdr->microsec_per_tick);
             time_completion_us = HTT_T2H_STATS_TX_PPDU_TIME_TO_MICROSEC(
@@ -742,19 +767,36 @@ htt_t2h_tx_ppdu_log_print(
             }
             /* skip past the regular message fields to reach the tail area */
             p8 = (u_int8_t *) record;
-            p8 += sizeof(struct ol_fw_tx_dbg_ppdu_base);
+            calculated_p8 = p8 + sizeof(struct ol_fw_tx_dbg_ppdu_base);
+            if (calculated_p8 < p8) {
+                adf_os_print("Overflow due to record %p\n", p8);
+                continue;
+            }
+            p8 = calculated_p8;
             if (hdr->mpdu_bytes_array_len) {
                 htt_make_u16_list_str(
                     (u_int32_t *) p8, buf, BUF_SIZE, hdr->mpdu_bytes_array_len);
                 adf_os_print("    MPDU bytes: %s\n", buf);
             }
-            p8 += hdr->mpdu_bytes_array_len * sizeof(u_int16_t);
+            calculated_p8 += hdr->mpdu_bytes_array_len * sizeof(u_int16_t);
+            if (calculated_p8 < p8) {
+                adf_os_print("Overflow due to hdr->mpdu_bytes_array_len %u\n",
+                    hdr->mpdu_bytes_array_len);
+                continue;
+            }
+            p8 = calculated_p8;
             if (hdr->mpdu_msdus_array_len) {
                 htt_make_u8_list_str(
                     (u_int32_t *) p8, buf, BUF_SIZE, hdr->mpdu_msdus_array_len);
                 adf_os_print("    MPDU MSDUs: %s\n", buf);
             }
-            p8 += hdr->mpdu_msdus_array_len * sizeof(u_int8_t);
+            calculated_p8 += hdr->mpdu_msdus_array_len * sizeof(u_int8_t);
+            if (calculated_p8 < p8) {
+                adf_os_print("Overflow due to hdr->mpdu_msdus_array_len %u\n",
+                    hdr->mpdu_msdus_array_len);
+                continue;
+            }
+            p8 = calculated_p8;
             if (hdr->msdu_bytes_array_len) {
                 htt_make_u16_list_str(
                     (u_int32_t *) p8, buf, BUF_SIZE, hdr->msdu_bytes_array_len);

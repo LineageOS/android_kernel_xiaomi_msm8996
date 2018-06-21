@@ -3150,6 +3150,14 @@ hdd_parse_set_roam_scan_channels_v2(hdd_adapter_t *pAdapter,
 
    for (i = 0; i < num_chan; i++) {
       channel = *value++;
+      if (!channel) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Channels end at index %d, expected %d",
+                   __func__, i, num_chan);
+         ret = -EINVAL;
+         goto exit;
+      }
+
       if (channel > WNI_CFG_CURRENT_CHANNEL_STAMAX) {
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                    "%s: index %d invalid channel %d", __func__, i, channel);

@@ -19697,6 +19697,12 @@ tANI_U32 csrGetdot11Mode(tHalHandle hHal, tANI_U32 sessionId,
     tDot11fBeaconIEs *ies_local = NULL;
     tANI_U32 dot11mode = 0;
 
+    if (!pSession)
+    {
+        smsLog( pMac, LOGE, FL( "  Session does not exist for session id %d" ), sessionId);
+        return 0;
+    }
+
     smsLog(pMac, LOG1, FL("phyMode %d"), pSession->pCurRoamProfile->phyMode);
 
     /* Get IE's */
