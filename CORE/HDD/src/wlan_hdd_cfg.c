@@ -4701,6 +4701,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_WOW_PULSE_INTERVAL_HIGH_DEFAULT,
                 CFG_WOW_PULSE_INTERVAL_HIGH_MIN,
                 CFG_WOW_PULSE_INTERVAL_HIGH_MAX),
+
+   REG_VARIABLE(CFG_WOW_PULSE_REPEAT_COUNT_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, wow_pulse_repeat_count,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_WOW_PULSE_REPEAT_COUNT_DEFAULT,
+                CFG_WOW_PULSE_REPEAT_COUNT_MIN,
+                CFG_WOW_PULSE_REPEAT_COUNT_MAX),
 #endif
 
    REG_VARIABLE(CFG_MIB_STATS_ENABLED_NAME, WLAN_PARAM_Integer,

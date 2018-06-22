@@ -16015,17 +16015,21 @@ static int wlan_hdd_set_wow_pulse(hdd_context_t *phddctx, bool enable)
 				pcfg_ini->wow_pulse_interval_low;
 		wow_pulse_set_info.wow_pulse_interval_high=
 				pcfg_ini->wow_pulse_interval_high;
+		wow_pulse_set_info.wow_pulse_repeat_count=
+				pcfg_ini->wow_pulse_repeat_count;
 	} else {
 		wow_pulse_set_info.wow_pulse_enable = false;
 		wow_pulse_set_info.wow_pulse_pin = 0;
 		wow_pulse_set_info.wow_pulse_interval_low = 0;
 		wow_pulse_set_info.wow_pulse_interval_high= 0;
+		wow_pulse_set_info.wow_pulse_repeat_count= 0;
 	}
-	hddLog(LOG1,"%s: enable %d pin %d low %d high %d",
+	hddLog(LOG1,"%s: enable %d pin %d low %d high %d count = %d",
 		__func__, wow_pulse_set_info.wow_pulse_enable,
 		wow_pulse_set_info.wow_pulse_pin,
 		wow_pulse_set_info.wow_pulse_interval_low,
-		wow_pulse_set_info.wow_pulse_interval_high);
+		wow_pulse_set_info.wow_pulse_interval_high,
+		wow_pulse_set_info.wow_pulse_repeat_count);
 
 	status = sme_set_wow_pulse(&wow_pulse_set_info);
 	if (VOS_STATUS_E_FAILURE == status) {
