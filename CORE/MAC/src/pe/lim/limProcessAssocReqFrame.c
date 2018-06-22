@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -235,6 +235,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     tLimMlmStates           mlmPrevState;
     tDot11fIERSN            Dot11fIERSN;
     tDot11fIEWPA            Dot11fIEWPA;
+    tANI_U16                prevAuthSeqno = 0xFFFF;
     tANI_U32 phyMode;
     tHalBitVal qosMode;
     tHalBitVal wsmMode, wmeMode;
@@ -303,7 +304,8 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
     if (NULL != pStaDs)
     {
-        if (pHdr->fc.retry > 0) {
+        if (pStaDs->PrevAssocSeqno == ((pHdr->seqControl.seqNumHi << 4) |
+                                       (pHdr->seqControl.seqNumLo))) {
             /* Ignore the Retry */
             limLog(pMac, LOGE,
                    FL("STA is initiating Assoc Req after ACK lost. "
@@ -951,6 +953,10 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
         /// Delete 'pre-auth' context of STA
         authType = pStaPreAuthContext->authType;
+
+        /// Store the seq number of previous auth frame
+        prevAuthSeqno = pStaPreAuthContext->seqNum;
+
         limDeletePreAuthNode(pMac, pHdr->sa);
 
         // All is well. Assign AID (after else part)
@@ -1186,6 +1192,16 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
         goto error;
     }
+    /// Store the previous auth frame's seq no
+    if (prevAuthSeqno != 0xFFFF)
+    {
+        pStaDs->PrevAuthSeqno = prevAuthSeqno;
+    }
+     /// Store the current assoc seq no
+    pStaDs->PrevAssocSeqno = ((pHdr->seqControl.seqNumHi << 4) |
+                              (pHdr->seqControl.seqNumLo));
+    limLog(pMac, LOG1, FL("Prev auth seq no %d Prev Assoc seq no. %d"),
+                          pStaDs->PrevAuthSeqno, pStaDs->PrevAssocSeqno);
 
 
 sendIndToSme:
