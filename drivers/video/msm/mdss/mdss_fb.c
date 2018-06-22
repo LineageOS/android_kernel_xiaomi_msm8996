@@ -84,6 +84,9 @@
  */
 #define MDP_TIME_PERIOD_CALC_FPS_US	1000000
 
+bool backlight_dimmer = true;
+module_param(backlight_dimmer, bool, 0755);
+
 static struct fb_info *fbi_list[MAX_FBI_LIST];
 static int fbi_list_index;
 static struct msm_fb_data_type *mfd_data = NULL;
@@ -292,6 +295,14 @@ static void mdss_fb_set_bl_brightness(struct led_classdev *led_cdev,
 	if (value > mfd->panel_info->brightness_max)
 		value = mfd->panel_info->brightness_max;
 
+	if (backlight_dimmer && value < 150) {			
+		if (value < 50)
+			value /= 3;
+		
+		else
+			value /= 2;
+	}
+
 	if (mfd->panel_info->is_oled_hbm_mode) {
 		if (value > 254)
 			value = 254;
@@ -309,7 +320,7 @@ static void mdss_fb_set_bl_brightness(struct led_classdev *led_cdev,
 	}
 #endif
 
-	if (!bl_lvl && value)
+	if (!bl_lvl)
 		bl_lvl = 1;
 
 	if (!IS_CALIB_MODE_BL(mfd) && (!mfd->ext_bl_ctrl || !value ||
