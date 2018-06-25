@@ -200,6 +200,16 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                psessionEntry->limMlmState, MAC_ADDR_ARRAY(pHdr->bssId),
               (uint)abs((tANI_S8)WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo)));
 
+    if (psessionEntry->prev_auth_seq_num == currSeqNum) {
+        limLog(pMac, LOGE,
+               FL("auth frame, seq num: %d is already processed, drop it"),
+               currSeqNum);
+        return;
+    }
+
+    /* save seq number in pe_session */
+    psessionEntry->prev_auth_seq_num = currSeqNum;
+
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
     //Restore default failure timeout
