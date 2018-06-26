@@ -23,30 +23,22 @@
 #define SCREEN_AWAKE		(1U << 0)
 #define INPUT_BOOST		(1U << 1)
 #define WAKE_BOOST		(1U << 2)
+#define MAX_BOOST		(1U << 3)
 
 struct boost_drv {
 	struct workqueue_struct *wq;
 	struct work_struct input_boost;
 	struct delayed_work input_unboost;
-	struct work_struct wake_boost;
-	struct delayed_work wake_unboost;
+	struct work_struct max_boost;
+	struct delayed_work max_unboost;
 	struct notifier_block cpu_notif;
 	struct notifier_block fb_notif;
+	atomic_t max_boost_dur;
 	spinlock_t lock;
 	u32 state;
 };
 
 static struct boost_drv *boost_drv_g;
-
-void cpu_input_boost_kick(void)
-{
-	struct boost_drv *b = boost_drv_g;
-
-	if (!b)
-		return;
-
-	queue_work(b->wq, &b->input_boost);
-}
 
 static u32 get_boost_freq(struct boost_drv *b, u32 cpu)
 {
@@ -95,11 +87,39 @@ static void update_online_cpu_policy(void)
 static void unboost_all_cpus(struct boost_drv *b)
 {
 	if (!cancel_delayed_work_sync(&b->input_unboost) &&
-		!cancel_delayed_work_sync(&b->wake_unboost))
+		!cancel_delayed_work_sync(&b->max_unboost))
 		return;
 
-	clear_boost_bit(b, WAKE_BOOST | INPUT_BOOST);
+	clear_boost_bit(b, INPUT_BOOST | WAKE_BOOST | MAX_BOOST);
 	update_online_cpu_policy();
+}
+
+void cpu_input_boost_kick(void)
+{
+	struct boost_drv *b = boost_drv_g;
+
+	if (!b)
+		return;
+
+	queue_work(b->wq, &b->input_boost);
+}
+
+void cpu_input_boost_kick_max(unsigned int duration_ms)
+{
+	struct boost_drv *b = boost_drv_g;
+	u32 state;
+
+	if (!b)
+		return;
+
+	state = get_boost_state(b);
+
+	/* Don't mess with wake boosts */
+	if (state & WAKE_BOOST)
+		return;
+
+	atomic_set(&b->max_boost_dur, duration_ms);
+	queue_work(b->wq, &b->max_boost);
 }
 
 static void input_boost_worker(struct work_struct *work)
@@ -124,25 +144,25 @@ static void input_unboost_worker(struct work_struct *work)
 	update_online_cpu_policy();
 }
 
-static void wake_boost_worker(struct work_struct *work)
+static void max_boost_worker(struct work_struct *work)
 {
-	struct boost_drv *b = container_of(work, typeof(*b), wake_boost);
+	struct boost_drv *b = container_of(work, typeof(*b), max_boost);
 
-	if (!cancel_delayed_work_sync(&b->wake_unboost)) {
-		set_boost_bit(b, WAKE_BOOST);
+	if (!cancel_delayed_work_sync(&b->max_unboost)) {
+		set_boost_bit(b, MAX_BOOST);
 		update_online_cpu_policy();
 	}
 
-	queue_delayed_work(b->wq, &b->wake_unboost,
-		msecs_to_jiffies(CONFIG_WAKE_BOOST_DURATION_MS));
+	queue_delayed_work(b->wq, &b->max_unboost,
+		msecs_to_jiffies(atomic_read(&b->max_boost_dur)));
 }
 
-static void wake_unboost_worker(struct work_struct *work)
+static void max_unboost_worker(struct work_struct *work)
 {
 	struct boost_drv *b =
-		container_of(to_delayed_work(work), typeof(*b), wake_unboost);
+		container_of(to_delayed_work(work), typeof(*b), max_unboost);
 
-	clear_boost_bit(b, WAKE_BOOST);
+	clear_boost_bit(b, WAKE_BOOST | MAX_BOOST);
 	update_online_cpu_policy();
 }
 
@@ -158,8 +178,8 @@ static int cpu_notifier_cb(struct notifier_block *nb,
 
 	state = get_boost_state(b);
 
-	/* Boost CPU to max frequency for wake boost */
-	if (state & WAKE_BOOST) {
+	/* Boost CPU to max frequency for max boost */
+	if (state & MAX_BOOST) {
 		policy->min = policy->max;
 		return NOTIFY_OK;
 	}
@@ -195,7 +215,8 @@ static int fb_notifier_cb(struct notifier_block *nb,
 	/* Boost when the screen turns on and unboost when it turns off */
 	if (*blank == FB_BLANK_UNBLANK) {
 		set_boost_bit(b, SCREEN_AWAKE);
-		queue_work(b->wq, &b->wake_boost);
+		atomic_set(&b->max_boost_dur, CONFIG_INPUT_BOOST_DURATION_MS);
+		queue_work(b->wq, &b->max_boost);
 	} else {
 		clear_boost_bit(b, SCREEN_AWAKE);
 		unboost_all_cpus(b);
@@ -325,8 +346,8 @@ static int __init cpu_input_boost_init(void)
 	spin_lock_init(&b->lock);
 	INIT_WORK(&b->input_boost, input_boost_worker);
 	INIT_DELAYED_WORK(&b->input_unboost, input_unboost_worker);
-	INIT_WORK(&b->wake_boost, wake_boost_worker);
-	INIT_DELAYED_WORK(&b->wake_unboost, wake_unboost_worker);
+	INIT_WORK(&b->max_boost, max_boost_worker);
+	INIT_DELAYED_WORK(&b->max_unboost, max_unboost_worker);
 	b->state = SCREEN_AWAKE;
 
 	b->cpu_notif.notifier_call = cpu_notifier_cb;
