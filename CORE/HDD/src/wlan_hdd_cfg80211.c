@@ -8238,12 +8238,19 @@ wlan_hdd_thermal_cmd_get_temperature(struct wiphy *wiphy,
 		struct wireless_dev *wdev)
 {
 	eHalStatus status;
-	struct statsContext temp_context;
+	int ret;
 	unsigned long rc;
 	struct sk_buff *nl_resp = 0;
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	struct net_device *dev = wdev->netdev;
 	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+	void *cookie;
+	struct hdd_request *request;
+	struct temperature_info *priv = NULL;
+	static const struct hdd_request_params params = {
+		.priv_size = sizeof(*priv),
+		.timeout_ms = WLAN_WAIT_TIME_STATS,
+	};
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		  hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -8253,28 +8260,43 @@ wlan_hdd_thermal_cmd_get_temperature(struct wiphy *wiphy,
 	if (wlan_hdd_validate_context(hdd_ctx))
 		  return -EINVAL;
 
-	/* prepare callback context and magic pattern */
-	init_completion(&temp_context.completion);
-	temp_context.pAdapter = adapter;
-	temp_context.magic = TEMP_CONTEXT_MAGIC;
+	if (NULL == adapter)
+	{
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("adapter is NULL"));
+		return VOS_STATUS_E_FAULT;
+	}
+
+	request = hdd_request_alloc(&params);
+	if (!request) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Request allocation failure", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	cookie = hdd_request_cookie(request);
 
 	status = sme_GetTemperature(WLAN_HDD_GET_HAL_CTX(adapter),
-				&temp_context, hdd_GetTemperatureCB);
+				cookie, hdd_GetTemperatureCB);
 	if (eHAL_STATUS_SUCCESS != status) {
 		  hddLog(VOS_TRACE_LEVEL_ERROR, FL("Unable to get temperature"));
 	} else {
-		  rc = wait_for_completion_timeout(&temp_context.completion,
-				msecs_to_jiffies(1000));
-		  if (!rc) {
-			hddLog(VOS_TRACE_LEVEL_ERROR,
-				FL("SME timed out while getting temperature"));
-			return -EBUSY;
-		  }
+		/* request was sent -- wait for the response */
+		ret = hdd_request_wait_for_response(request);
+		if (ret) {
+			hddLog(VOS_TRACE_LEVEL_WARN,
+			       FL("timeout when get temperature"));
+			/* we'll returned a cached value below */
+		} else {
+			/* update the adapter with the fresh results */
+			priv = hdd_request_priv(request);
+			/* ignore it if this was 0 */
+			if (priv->temperature != 0)
+				adapter->temperature =
+						 priv->temperature;
+		}
 	}
 
-	spin_lock(&hdd_context_lock);
-	temp_context.magic = 0;
-	spin_unlock(&hdd_context_lock);
+	hdd_request_put(request);
 
 	nl_resp = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, 4 + NLMSG_HDRLEN);
 	if (!nl_resp) {

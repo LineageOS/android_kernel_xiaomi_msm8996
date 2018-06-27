@@ -346,6 +346,10 @@ typedef struct ccp_freq_chan_map_s{
     v_U32_t chan;
 }hdd_freq_chan_map_t;
 
+struct temperature_info {
+	int temperature;
+};
+
 #define wlan_hdd_get_wps_ie_ptr(ie, ie_len) \
     wlan_hdd_get_vendor_oui_ie_ptr(WPS_OUI_TYPE, WPS_OUI_TYPE_SIZE, ie, ie_len)
 
