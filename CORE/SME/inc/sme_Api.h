@@ -4955,4 +4955,9 @@ eHalStatus sme_set_mt_host_ev_cb(tHalHandle hHal,
 	VOS_STATUS (*pcallbackfn)(void *pcallbackcontext, tSirMtEvent* pEvent),
 	void *pcallbackcontext);
 #endif
+eHalStatus sme_thermal_throttle_set_conf_cmd(tHalHandle hHal, bool enable,
+                                             tANI_U32 dc, tANI_U32 dc_off_percent,
+                                             tANI_U32 prio);
+eHalStatus sme_thermal_throttle_mgmt_cmd(tHalHandle hHal, tANI_U16 lower_thresh_deg,
+                                         tANI_U16 higher_thresh_deg);
 #endif //#if !defined( __SME_API_H )

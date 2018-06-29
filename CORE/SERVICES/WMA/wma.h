@@ -755,6 +755,7 @@ typedef struct wma_handle {
 	u_int32_t phy_capability; /* PHY Capability from Target*/
 	u_int32_t max_frag_entry; /* Max number of Fragment entry */
 	u_int32_t wmi_service_bitmap[WMI_SERVICE_BM_SIZE]; /* wmi services bitmap received from Target */
+	u_int32_t wmi_service_ext_bitmap[WMI_SERVICE_EXT_BM_SIZE32]; /* wmi services ext bitmap received from Target */
 	wmi_resource_config   wlan_resource_config;
 	u_int32_t frameTransRequired;
 	tBssSystemRole       wmaGlobalSystemRole;
@@ -961,13 +962,14 @@ typedef struct wma_handle {
 
 	/* NAN datapath support enabled in firmware */
 	bool nan_datapath_enabled;
+	bool fw_therm_throt_enabled;
 	tSirLLStatsResults *link_stats_results;
 	vos_timer_t wma_fw_time_sync_timer;
 	struct sir_allowed_action_frames allowed_action_frames;
 	tSirAddonPsReq psSetting;
 	bool sub_20_support;
 	bool get_one_peer_info;
-    t_dpd_recal_mgmt dpd_recal_info;
+	t_dpd_recal_mgmt dpd_recal_info;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

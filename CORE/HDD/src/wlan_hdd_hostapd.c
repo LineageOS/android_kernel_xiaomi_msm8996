@@ -7647,6 +7647,10 @@ static const struct iw_priv_args hostapd_private_args[] = {
     {   QCSAP_IOCTL_DUMP_DP_TRACE_LEVEL,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
         0, "dump_dp_trace" },
+
+    {   WE_SET_THERMAL_THROTTLE_CONFIG,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, "setThermalConfig" },
 };
 
 static const iw_handler hostapd_private[] = {

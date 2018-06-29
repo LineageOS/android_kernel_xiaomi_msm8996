@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -137,75 +137,72 @@ typedef struct
  *     (regardless of the incorrect comment in wireless.h!)
  */
 
-#define QCSAP_IOCTL_SETPARAM          (SIOCIWFIRSTPRIV+0)
-#define QCSAP_IOCTL_GETPARAM          (SIOCIWFIRSTPRIV+1)
+#define QCSAP_IOCTL_SETPARAM                    (SIOCIWFIRSTPRIV+0)
+#define QCSAP_IOCTL_GETPARAM                    (SIOCIWFIRSTPRIV+1)
 /* (SIOCIWFIRSTPRIV+2) is unused */
-#define QCSAP_IOCTL_SET_NONE_GET_THREE      (SIOCIWFIRSTPRIV+3)
-#define WE_GET_TSF 1
-#define QCSAP_IOCTL_GET_STAWPAIE      (SIOCIWFIRSTPRIV+4)
+#define QCSAP_IOCTL_SET_NONE_GET_THREE          (SIOCIWFIRSTPRIV+3)
+#define WE_GET_TSF                              1
 
-#define QCSAP_IOCTL_STOPBSS           (SIOCIWFIRSTPRIV+6)
-#define QCSAP_IOCTL_VERSION           (SIOCIWFIRSTPRIV+7)
-#define QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES       (SIOCIWFIRSTPRIV+8)
-#define QCSAP_IOCTL_GET_CHANNEL       (SIOCIWFIRSTPRIV+9)
-#define QCSAP_IOCTL_ASSOC_STA_MACADDR (SIOCIWFIRSTPRIV+10)
-#define QCSAP_IOCTL_DISASSOC_STA      (SIOCIWFIRSTPRIV+11)
-#define QCSAP_IOCTL_AP_STATS          (SIOCIWFIRSTPRIV+12)
+#define QCSAP_IOCTL_GET_STAWPAIE                (SIOCIWFIRSTPRIV+4)
+#define QCSAP_IOCTL_STOPBSS                     (SIOCIWFIRSTPRIV+6)
+#define QCSAP_IOCTL_VERSION                     (SIOCIWFIRSTPRIV+7)
+#define QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES   (SIOCIWFIRSTPRIV+8)
+#define QCSAP_IOCTL_GET_CHANNEL                 (SIOCIWFIRSTPRIV+9)
+#define QCSAP_IOCTL_ASSOC_STA_MACADDR           (SIOCIWFIRSTPRIV+10)
+#define QCSAP_IOCTL_DISASSOC_STA                (SIOCIWFIRSTPRIV+11)
+#define QCSAP_IOCTL_AP_STATS                    (SIOCIWFIRSTPRIV+12)
 /* Private ioctls and their sub-ioctls */
-#define QCSAP_PRIV_GET_CHAR_SET_NONE   (SIOCIWFIRSTPRIV + 13)
-#define QCSAP_GET_STATS 1
-#define QCSAP_IOCTL_CLR_STATS         (SIOCIWFIRSTPRIV+14)
+#define QCSAP_PRIV_GET_CHAR_SET_NONE            (SIOCIWFIRSTPRIV + 13)
+#define QCSAP_GET_STATS                         1
 
+#define QCSAP_IOCTL_CLR_STATS                   (SIOCIWFIRSTPRIV+14)
 #define QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE (SIOCIWFIRSTPRIV+15)
-#define WE_SET_WLAN_DBG 1
-#define WE_SET_DP_TRACE 2
-#define WE_SET_SAP_CHANNELS  3
+#define WE_SET_WLAN_DBG                         1
+#define WE_SET_DP_TRACE                         2
+#define WE_SET_SAP_CHANNELS                     3
 
-#define QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE (SIOCIWFIRSTPRIV+16)
-#define QCSAP_IOCTL_SET_CHANNEL_RANGE (SIOCIWFIRSTPRIV+17)
-#define WE_LOG_DUMP_CMD 1
-
-#define WE_P2P_NOA_CMD  2
+#define QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE   (SIOCIWFIRSTPRIV+16)
+#define MAX_VAR_ARGS                            7
+#define WE_LOG_DUMP_CMD                         1
+#define WE_P2P_NOA_CMD                          2
 //IOCTL to configure MCC params
-#define WE_MCC_CONFIG_CREDENTIAL 3
-#define WE_MCC_CONFIG_PARAMS  4
-#define WE_UNIT_TEST_CMD   7
+#define WE_MCC_CONFIG_CREDENTIAL                3
+#define WE_MCC_CONFIG_PARAMS                    4
+#define WE_UNIT_TEST_CMD                        7
 #ifdef MEMORY_DEBUG
-#define WE_MEM_TRACE_DUMP     11
+#define WE_MEM_TRACE_DUMP                       11
 #endif
+#define WE_SET_THERMAL_THROTTLE_CONFIG          14
 
-#define QCSAP_IOCTL_MODIFY_ACL          (SIOCIWFIRSTPRIV+18)
-#define QCSAP_IOCTL_GET_CHANNEL_LIST    (SIOCIWFIRSTPRIV+19)
-#define QCSAP_IOCTL_SET_TX_POWER        (SIOCIWFIRSTPRIV+20)
-#define QCSAP_IOCTL_GET_STA_INFO        (SIOCIWFIRSTPRIV+21)
-#define QCSAP_IOCTL_SET_MAX_TX_POWER    (SIOCIWFIRSTPRIV+22)
-#define QCSAP_IOCTL_DATAPATH_SNAP_SHOT  (SIOCIWFIRSTPRIV+23)
-#define QCSAP_IOCTL_GET_INI_CFG         (SIOCIWFIRSTPRIV+25)
-#define QCSAP_IOCTL_SET_INI_CFG         (SIOCIWFIRSTPRIV+26)
-#define QCSAP_IOCTL_WOWL_CONFIG_PTRN    (SIOCIWFIRSTPRIV+27)
-#define WE_WOWL_ADD_PTRN     1
-#define WE_WOWL_DEL_PTRN     2
-#define QCSAP_IOCTL_SET_TWO_INT_GET_NONE (SIOCIWFIRSTPRIV + 28)
+#define QCSAP_IOCTL_SET_CHANNEL_RANGE           (SIOCIWFIRSTPRIV+17)
+#define QCSAP_IOCTL_MODIFY_ACL                  (SIOCIWFIRSTPRIV+18)
+#define QCSAP_IOCTL_GET_CHANNEL_LIST            (SIOCIWFIRSTPRIV+19)
+#define QCSAP_IOCTL_SET_TX_POWER                (SIOCIWFIRSTPRIV+20)
+#define QCSAP_IOCTL_GET_STA_INFO                (SIOCIWFIRSTPRIV+21)
+#define QCSAP_IOCTL_SET_MAX_TX_POWER            (SIOCIWFIRSTPRIV+22)
+#define QCSAP_IOCTL_DATAPATH_SNAP_SHOT          (SIOCIWFIRSTPRIV+23)
+#define QCSAP_IOCTL_GET_INI_CFG                 (SIOCIWFIRSTPRIV+25)
+#define QCSAP_IOCTL_SET_INI_CFG                 (SIOCIWFIRSTPRIV+26)
+#define QCSAP_IOCTL_WOWL_CONFIG_PTRN            (SIOCIWFIRSTPRIV+27)
+#define WE_WOWL_ADD_PTRN                        1
+#define WE_WOWL_DEL_PTRN                        2
+
+#define QCSAP_IOCTL_SET_TWO_INT_GET_NONE        (SIOCIWFIRSTPRIV + 28)
 #ifdef WLAN_DEBUG
-#define QCSAP_IOCTL_SET_FW_CRASH_INJECT 1
+#define QCSAP_IOCTL_SET_FW_CRASH_INJECT         1
 #endif
-#define QCSAP_IOCTL_DUMP_DP_TRACE_LEVEL 2
+#define QCSAP_IOCTL_DUMP_DP_TRACE_LEVEL         2
 
-#define MAX_VAR_ARGS         7
+#define QCSAP_IOCTL_PRIV_GET_RSSI               (SIOCIWFIRSTPRIV + 29)
+#define QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED  (SIOCIWFIRSTPRIV + 31)
 
-#define QCSAP_IOCTL_PRIV_GET_RSSI       (SIOCIWFIRSTPRIV + 29)
 
-#define QCSAP_IOCTL_PRIV_GET_SOFTAP_LINK_SPEED (SIOCIWFIRSTPRIV + 31)
-
-#define QCSAP_IOCTL_MAX_STR_LEN 1024
-
+#define QCSAP_IOCTL_MAX_STR_LEN                 1024
 
 #define RC_2_RATE_IDX(_rc)              ((_rc) & 0x7)
 #define HT_RC_2_STREAMS(_rc)            ((((_rc) & 0x78) >> 3) + 1)
-
 #define RC_2_RATE_IDX_11AC(_rc)         ((_rc) & 0xf)
 #define HT_RC_2_STREAMS_11AC(_rc)       ((((_rc) & 0x30) >> 4) + 1)
-
 
 enum {
     QCSAP_PARAM_MAX_ASSOC = 1,
