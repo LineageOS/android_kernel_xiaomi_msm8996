@@ -311,23 +311,29 @@ const static struct ieee80211_channel hdd_channels_5_GHZ[] =
     HDD5GHZCHAN(5785,157, 0) ,
     HDD5GHZCHAN(5805,161, 0) ,
     HDD5GHZCHAN(5825,165, 0) ,
-#ifndef FEATURE_STATICALLY_ADD_11P_CHANNELS
-    HDD5GHZCHAN(5852,170, 0) ,
-    HDD5GHZCHAN(5855,171, 0) ,
-    HDD5GHZCHAN(5860,172, 0) ,
-    HDD5GHZCHAN(5865,173, 0) ,
-    HDD5GHZCHAN(5870,174, 0) ,
-    HDD5GHZCHAN(5875,175, 0) ,
-    HDD5GHZCHAN(5880,176, 0) ,
-    HDD5GHZCHAN(5885,177, 0) ,
-    HDD5GHZCHAN(5890,178, 0) ,
-    HDD5GHZCHAN(5895,179, 0) ,
-    HDD5GHZCHAN(5900,180, 0) ,
-    HDD5GHZCHAN(5905,181, 0) ,
-    HDD5GHZCHAN(5910,182, 0) ,
-    HDD5GHZCHAN(5915,183, 0) ,
-    HDD5GHZCHAN(5920,184, 0) ,
-#endif
+};
+
+static const struct ieee80211_channel hdd_etsi_srd_chan[] = {
+	HDD5GHZCHAN(5845, 169, 0),
+	HDD5GHZCHAN(5865, 173, 0),
+};
+
+static const struct ieee80211_channel hdd_channels_dot11p[] = {
+	HDD5GHZCHAN(5852, 170, 0),
+	HDD5GHZCHAN(5855, 171, 0),
+	HDD5GHZCHAN(5860, 172, 0),
+	HDD5GHZCHAN(5865, 173, 0),
+	HDD5GHZCHAN(5870, 174, 0),
+	HDD5GHZCHAN(5875, 175, 0),
+	HDD5GHZCHAN(5880, 176, 0),
+	HDD5GHZCHAN(5885, 177, 0),
+	HDD5GHZCHAN(5890, 178, 0),
+	HDD5GHZCHAN(5895, 179, 0),
+	HDD5GHZCHAN(5900, 180, 0),
+	HDD5GHZCHAN(5905, 181, 0),
+	HDD5GHZCHAN(5910, 182, 0),
+	HDD5GHZCHAN(5915, 183, 0),
+	HDD5GHZCHAN(5920, 184, 0),
 };
 
 static struct ieee80211_rate g_mode_rates[] =
@@ -15976,26 +15982,63 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     vos_mem_copy(wiphy->bands[IEEE80211_BAND_2GHZ]->channels,
             &hdd_channels_2_4_GHZ[0],
             sizeof(hdd_channels_2_4_GHZ));
-   if (hdd_is_5g_supported(pHddCtx) &&
-       ((eHDD_DOT11_MODE_11b != pCfg->dot11Mode) &&
-       (eHDD_DOT11_MODE_11g != pCfg->dot11Mode) &&
-       (eHDD_DOT11_MODE_11b_ONLY != pCfg->dot11Mode) &&
-       (eHDD_DOT11_MODE_11g_ONLY != pCfg->dot11Mode)))
-   {
+    if (hdd_is_5g_supported(pHddCtx) &&
+        ((eHDD_DOT11_MODE_11b != pCfg->dot11Mode) &&
+        (eHDD_DOT11_MODE_11g != pCfg->dot11Mode) &&
+        (eHDD_DOT11_MODE_11b_ONLY != pCfg->dot11Mode) &&
+        (eHDD_DOT11_MODE_11g_ONLY != pCfg->dot11Mode)))
+    {
         wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
-        wiphy->bands[IEEE80211_BAND_5GHZ]->channels =
-            vos_mem_malloc(sizeof(hdd_channels_5_GHZ));
-        if (wiphy->bands[IEEE80211_BAND_5GHZ]->channels == NULL) {
-            hddLog(VOS_TRACE_LEVEL_ERROR,
-                    FL("Not enough memory to allocate channels"));
-            vos_mem_free(wiphy->bands[IEEE80211_BAND_2GHZ]->channels);
-            wiphy->bands[IEEE80211_BAND_2GHZ]->channels = NULL;
-            return -ENOMEM;
+
+        if (pCfg->dot11p_mode) {
+            wiphy->bands[IEEE80211_BAND_5GHZ]->channels =
+                vos_mem_malloc(sizeof(hdd_channels_5_GHZ) +
+                                sizeof(hdd_channels_dot11p));
+            if (wiphy->bands[IEEE80211_BAND_5GHZ]->channels == NULL) {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                        FL("Not enough memory to allocate channels"));
+                vos_mem_free(wiphy->bands[IEEE80211_BAND_2GHZ]->channels);
+                wiphy->bands[IEEE80211_BAND_2GHZ]->channels = NULL;
+                return -ENOMEM;
+            }
+            wiphy->bands[IEEE80211_BAND_5GHZ]->n_channels =
+                ARRAY_SIZE(hdd_channels_5_GHZ) +
+                ARRAY_SIZE(hdd_channels_dot11p);
+
+            vos_mem_copy(wiphy->bands[IEEE80211_BAND_5GHZ]->channels,
+                            &hdd_channels_5_GHZ[0],
+                            sizeof(hdd_channels_5_GHZ));
+
+            vos_mem_copy((char *)wiphy->bands[IEEE80211_BAND_5GHZ]->channels
+                            + sizeof(hdd_channels_5_GHZ),
+                            &hdd_channels_dot11p[0],
+                            sizeof(hdd_channels_dot11p));
+        } else {
+
+            wiphy->bands[IEEE80211_BAND_5GHZ]->channels =
+                 vos_mem_malloc(sizeof(hdd_channels_5_GHZ) +
+                                sizeof(hdd_etsi_srd_chan));
+            if (wiphy->bands[IEEE80211_BAND_5GHZ]->channels == NULL) {
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                        FL("Not enough memory to allocate channels"));
+                vos_mem_free(wiphy->bands[IEEE80211_BAND_2GHZ]->channels);
+                wiphy->bands[IEEE80211_BAND_2GHZ]->channels = NULL;
+                return -ENOMEM;
+            }
+            wiphy->bands[IEEE80211_BAND_5GHZ]->n_channels =
+                ARRAY_SIZE(hdd_channels_5_GHZ) +
+                ARRAY_SIZE(hdd_etsi_srd_chan);
+
+            vos_mem_copy(wiphy->bands[IEEE80211_BAND_5GHZ]->channels,
+                            &hdd_channels_5_GHZ[0],
+                            sizeof(hdd_channels_5_GHZ));
+
+            vos_mem_copy((char *)wiphy->bands[IEEE80211_BAND_5GHZ]->channels
+                            + sizeof(hdd_channels_5_GHZ),
+                            &hdd_etsi_srd_chan[0],
+                            sizeof(hdd_etsi_srd_chan));
         }
-        vos_mem_copy(wiphy->bands[IEEE80211_BAND_5GHZ]->channels,
-                &hdd_channels_5_GHZ[0],
-                sizeof(hdd_channels_5_GHZ));
-   }
+    }
 
    for (i = 0; i < IEEE80211_NUM_BANDS; i++)
    {

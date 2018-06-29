@@ -143,7 +143,8 @@ static const struct bonded_chan bonded_chan_40mhz_array[] = {
 	{132, 136},
 	{140, 144},
 	{149, 153},
-	{157, 161}
+	{157, 161},
+	{165, 169}
 };
 
 static const struct bonded_chan bonded_chan_80mhz_array[] = {
@@ -532,6 +533,7 @@ const tRfChannelProps rfChannels[NUM_RF_CHANNELS] =
     { 5785, 157, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_157,
     { 5805, 161, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_161,
     { 5825, 165, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_165,
+    { 5845, 169, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_169,
 
     /* 5.9GHz 10 MHz bandwidth (802.11p) */
     { 5852, 170, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_170,
