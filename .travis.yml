@@ -95,9 +95,9 @@ before_deploy:
 # Set up git user name and tag this commit
 - git config --local user.name "jonascardoso"
 - git config --local user.email "jonascard60@gmail.com"
-- git tag "${customkernel}-$(date +'%d/%m/%Y')-Oreo-HMP" --force
+- git tag "${customkernel}-$(date +'%d/%m/%Y')-Oreo-MIUI" --force
 #  Force to use this tag
-- export TRAVIS_TAG="${customkernel}-$(date +'%d/%m/%Y')-Oreo-HMP"
+- export TRAVIS_TAG="${customkernel}-$(date +'%d/%m/%Y')-Oreo-MIUI"
 #  - git tag "$(date +'%d/%m/%Y')-$(git log --format=%h -1)"
 #  - git tag "$(date +'%d/%m/%Y-%Hh%Mm%Ss')-$(git log --format=%h -1)"
 deploy:
@@ -110,5 +110,5 @@ deploy:
     - "zip-creator/${zipfile0}"
   on:
     repo: JonasCardoso/android_kernel_xiaomi_msm8996
-    branch: lineage-15.1
+    branch: miui-o
 
