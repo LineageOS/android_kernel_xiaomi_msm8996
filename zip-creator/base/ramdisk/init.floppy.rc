@@ -1,0 +1,8 @@
+# Copyright (c) 2017, Code Aurora Forum. All rights reserved.
+#
+# add support for spectrum
+import /init.spectrum.rc
+
+on property:sys.boot_completed=1
+# fingerprint unlock with screen off by default
+	write /sys/devices/soc/soc:fpc_fpc1020/enable_wakeup 1
