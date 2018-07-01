@@ -57,6 +57,7 @@ Module.symvers
 #
 !.gitignore
 !.mailmap
+!.travis.yml
 
 #
 # Generated include files

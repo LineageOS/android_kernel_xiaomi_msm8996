@@ -1,0 +1,114 @@
+sudo: required
+language: c
+env:
+  matrix:
+# Xiaomi Mi5
+    - ndevicechoice="0"
+      ntoolchain="42"
+    - ndevicechoice="0"
+      ntoolchain="46"
+    - ndevicechoice="0"
+      ntoolchain="47"
+    - ndevicechoice="0"
+      ntoolchain="49"
+# Xiaomi Mi5S
+    - ndevicechoice="1"
+      ntoolchain="42"
+    - ndevicechoice="1"
+      ntoolchain="46"
+    - ndevicechoice="1"
+      ntoolchain="47"
+    - ndevicechoice="1"
+      ntoolchain="49"
+# Xiaomi Mi5S Plus
+    - ndevicechoice="2"
+      ntoolchain="42"
+    - ndevicechoice="2"
+      ntoolchain="46"
+    - ndevicechoice="2"
+      ntoolchain="47"
+    - ndevicechoice="2"
+      ntoolchain="49"
+# Xiaomi Mi Mix
+    - ndevicechoice="3"
+      ntoolchain="42"
+    - ndevicechoice="3"
+      ntoolchain="46"
+    - ndevicechoice="3"
+      ntoolchain="47"
+    - ndevicechoice="3"
+      ntoolchain="49"
+# Xiaomi Mi Note 2
+    - ndevicechoice="4"
+      ntoolchain="42"
+    - ndevicechoice="4"
+      ntoolchain="46"
+    - ndevicechoice="4"
+      ntoolchain="47"
+    - ndevicechoice="4"
+      ntoolchain="49"
+before_script:
+# Print build info that binary is compiled with.
+  - echo $TRAVIS_COMMIT
+  - echo $TRAVIS_TAG
+  - echo $TRAVIS_BRANCH
+  - echo $TRAVIS_BUILD_NUMBER
+  - echo $TRAVIS_REPO_SLUG
+# Get last remaining tags, if any.
+  - git fetch --tags
+#  - git tag
+script:
+# The build.sh need LZ4 and ubuntu 12.xx not support 'LZ4' officialy
+- sudo add-apt-repository ppa:nathan-renniewaldock/ppa -y
+- sudo apt-get update
+#
+# Travis CI Script by Jonas Cardoso aka JonasCardoso <jonascard60@gmail.com>
+# Toolchain 
+- export ntoolchainbranch="master"
+- git clone --depth=1 -b "${ntoolchainbranch}" "https://bitbucket.org/jonascardoso/toolchain_aarch64_travis" "../Toolchain"
+#
+# This will call build.sh with following parameters inside ${nbasebuildsh}:
+#
+# 'export ndevicechoice="#"'
+# 'export nbasebuildsh="${ndevice}${ndevicechoice}${ntoolchain}${nbuild}q""'
+# 'source build.sh <<< "${nbasebuildsh}"'
+# 'export zipfile#="${zipfile}"'
+#
+# ${nclean} = Clean zip "1" and "2" is "Clean Kernel" 
+- nclean="12"
+# "o" is to disable/enable output when building kernel
+- noutput="o"
+# "3" is "Device Choice"
+- ndevice="3"
+# ${ntoolchain} = "4" is "Toolchain Choice", "7" is your Toolchain Choice Google
+#- ntoolchain="47"
+# ${nbuild} = "5" is "Build Kernel" and "6" is "Zip the kernel and Modules"
+- nbuild="56"
+# ${nimage} = "7" is "Compressed image on/off"
+#- nimage="7"
+# Last "q" is to Exit of Script
+# ${ndevicechoice} is "Number of Choice under Device Choice"
+- export nbasebuildsh="${nclean}${ntoolchain}${ndevice}${ndevicechoice}${nimage}${nbuild}q"
+- source build.sh <<< "${nbasebuildsh}"
+- export zipfile0="${zipfile}"
+before_deploy:
+# Set up git user name and tag this commit
+- git config --local user.name "jonascardoso"
+- git config --local user.email "jonascard60@gmail.com"
+- git tag "${customkernel}-$(date +'%d/%m/%Y')-Oreo-HMP" --force
+#  Force to use this tag
+- export TRAVIS_TAG="${customkernel}-$(date +'%d/%m/%Y')-Oreo-HMP"
+#  - git tag "$(date +'%d/%m/%Y')-$(git log --format=%h -1)"
+#  - git tag "$(date +'%d/%m/%Y-%Hh%Mm%Ss')-$(git log --format=%h -1)"
+deploy:
+  overwrite: true
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: vGS/cjZ0SKarICr8UfIZaXzhzi7ZZisLkDLvFD0Uf5RK1Q2QuiL7iM1i1T2ni+wmXWmlUpB5aP2oVE6fH32nFI9nShzjpKxPcols2gkHXfJ7mrKs7ahiXZVPYwKgT8hQC1dqKci4X1BhmWzt2DoMXEnNL36D7qYsVRCo9qk7jq9eymJqJg821QsN9gGyPF+9Ow3DeoDRthVOzH30k803hJ6TUuZl+F9og5mJsjphP6+t17ixfr7TW0yFJyknq+36dqlin3nW20eUErJMpker17vRko2E9ssIZUHkDBFohbwBghsoaSkcoUDFVhSIdls+2cayBcNuUqgsKbMQ9xB3nCaBYi9OJ62BbjxpWX8dA12jrB2b2b+sM7azrpUp9FFXHSmQdJ2iN9UTG8ZjZbITHdvzqJ2qLX+3YccVBDP+eNqFkr3Gxp+pUTi/EzA3v/EUpswa4/uh7YAwEA+C0okBCWBYSxYrFMcyfDEmdY/bpCtSPBtCUORcmAd5e4uGJRaOVRH3dJj3YQ9RINzXqeu2k9y9Hs6ryFDPyxCz3hNu46OxIUqNgvwGBIjekl2NMH/ipAkcPwWiHIzoFg77lJDbNq5kPqCslG4zkmGUjPCm2Mj81B+49WbSHcH9dzubukKNyUBbpur0iG4fwul0fMCclFruin0AauriIl/u6Cqt0U0=
+  file:
+    - "zip-creator/${zipfile0}"
+  on:
+    repo: JonasCardoso/android_kernel_xiaomi_msm8996
+    branch: lineage-15.1
+
