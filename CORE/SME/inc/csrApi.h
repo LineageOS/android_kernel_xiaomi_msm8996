@@ -446,6 +446,9 @@ typedef struct tagCsrScanResultFilter
      */
     uint8_t scan_filter_for_roam;
     tCsrBssid bssid_hint;
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+    tVOS_CON_MODE csrPersona;
+#endif
 #ifdef WLAN_FEATURE_FILS_SK
     bool realm_check;
     uint8_t fils_realm[2];

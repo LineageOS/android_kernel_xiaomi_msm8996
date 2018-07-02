@@ -6453,7 +6453,6 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                                 &unsafe_chan_cnt,
                                 sizeof(unsafe_chan));
 
-
                         for ( index = 0; index < pSrcReq->ChannelInfo.numOfChannels ; index++ )
                         {
                             /* Allow scan on valid channels only.
@@ -6543,6 +6542,10 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                                         continue;
                                     }
                                 }
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+                                if (!vos_is_chan_ok_for_dnbs(pSrcReq->ChannelInfo.ChannelList[index]))
+                                    continue;
+#endif
 
                                 pDstReq->ChannelInfo.ChannelList[new_index] =
                                     pSrcReq->ChannelInfo.ChannelList[index];

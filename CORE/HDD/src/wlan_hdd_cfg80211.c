@@ -242,6 +242,8 @@
  */
 #define HDD_SCAN_REJECT_RATE_LIMIT 5
 
+extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
+
 static const u32 hdd_cipher_suites[] =
 {
     WLAN_CIPHER_SUITE_WEP40,
@@ -993,7 +995,6 @@ int wlan_hdd_send_avoid_freq_event(hdd_context_t *pHddCtx,
     struct sk_buff *vendor_event;
 
     ENTER();
-
     if (!pHddCtx)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -1233,6 +1234,163 @@ static int wlan_hdd_cfg80211_apfind_cmd(struct wiphy *wiphy,
 	return ret;
 }
 #endif /* WLAN_FEATURE_APFIND */
+
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+static eRfChannels wlan_hdd_get_chan_enum(uint8_t chan)
+{
+	uint32_t channel_loop;
+	eRfChannels channel_enum = INVALID_RF_CHANNEL;
+
+	for (channel_loop = RF_CHAN_1; channel_loop < NUM_RF_CHANNELS; channel_loop++)
+		if (rfChannels[channel_loop].channelNum == chan) {
+			channel_enum = channel_loop;
+			break;
+		}
+
+	return channel_enum;
+}
+
+/**
+ * wlan_hdd_get_adjacent_chan(): Gets next/previous channel
+ * with respect to the channel passed.
+ * @chan: Channel
+ * @upper: If "true" then next channel is returned or else
+ * previous channel is returned.
+ *
+ * This function returns the next/previous adjacent-channel to
+ * the channel passed. If "upper = true" then next channel is
+ * returned else previous is returned.
+ */
+static int wlan_hdd_get_adjacent_chan(uint8_t chan, bool upper)
+{
+	eRfChannels ch_idx = wlan_hdd_get_chan_enum(chan);
+
+	if (ch_idx == INVALID_RF_CHANNEL)
+		return -EINVAL;
+
+	if (upper && (ch_idx < (NUM_RF_CHANNELS - 1)))
+		ch_idx++;
+	else if (!upper && (ch_idx > RF_CHAN_1))
+		ch_idx--;
+	else
+		return -EINVAL;
+
+	return  rfChannels[ch_idx].channelNum;
+}
+
+/**
+ * wlan_hdd_send_avoid_freq_for_dnbs(): Sends list of frequencies to be
+ * avoided when Do_Not_Break_Stream is active.
+ * @hdd_ctx:  HDD Context
+ * @op_chan:  AP/P2P-GO operating channel
+ *
+ * This function sends list of frequencies to be avoided when
+ * Do_Not_Break_Stream is active.
+ * To clear the avoid_frequency_list in the application,
+ * op_chan = 0 can be passed.
+ *
+ * Return: 0 on success and errno on failure
+ */
+int wlan_hdd_send_avoid_freq_for_dnbs(hdd_context_t *hdd_ctx, uint8_t op_chan)
+{
+	tHddAvoidFreqList p2p_avoid_freq_list;
+	uint8_t min_chan, max_chan;
+	int ret;
+	int chan;
+
+	ENTER();
+
+	if (!hdd_ctx) {
+		hddLog(LOGE, FL("invalid param"));
+		return -EINVAL;
+	}
+
+	vos_mem_zero(&p2p_avoid_freq_list, sizeof(tHddAvoidFreqList));
+	/*
+	 * If channel passed is zero, clear the avoid_freq list in application.
+	 */
+	if (!op_chan) {
+#ifdef FEATURE_WLAN_CH_AVOID
+		mutex_lock(&hdd_ctx->avoid_freq_lock);
+		vos_mem_zero(&hdd_ctx->dnbs_avoid_freq_list,
+				sizeof(tHddAvoidFreqList));
+		mutex_unlock(&hdd_ctx->avoid_freq_lock);
+#endif
+		ret = wlan_hdd_send_avoid_freq_event(hdd_ctx,
+						     &p2p_avoid_freq_list);
+		if (ret)
+			hddLog(LOGE, FL("wlan_hdd_send_avoid_freq_event error:%d"),
+				ret);
+
+		return ret;
+	}
+
+	if ((op_chan >= rfChannels[RF_CHAN_1].channelNum) &&
+	 (op_chan <= rfChannels[RF_CHAN_14].channelNum)) {
+		min_chan = rfChannels[MIN_2_4GHZ_CHANNEL].channelNum;
+		max_chan = rfChannels[MAX_2_4GHZ_CHANNEL].channelNum;
+	} else if ((op_chan >= rfChannels[RF_CHAN_36].channelNum) &&
+	 (op_chan <= rfChannels[RF_CHAN_184].channelNum)) {
+		min_chan = rfChannels[MIN_5GHZ_CHANNEL].channelNum;
+		max_chan = rfChannels[MAX_5GHZ_CHANNEL].channelNum;
+	} else {
+		hddLog(LOGE, FL("invalid channel:%d"), op_chan);
+		return -EINVAL;
+	}
+
+	if ((op_chan > min_chan) && (op_chan < max_chan)) {
+		p2p_avoid_freq_list.avoidFreqRangeCount = 2;
+		p2p_avoid_freq_list.avoidFreqRange[0].startFreq =
+			vos_chan_to_freq(min_chan);
+
+		/* Get channel before the op_chan */
+		chan = wlan_hdd_get_adjacent_chan(op_chan, false);
+		if (chan < 0)
+			return -EINVAL;
+		p2p_avoid_freq_list.avoidFreqRange[0].endFreq =
+			vos_chan_to_freq(chan);
+
+		/* Get channel next to the op_chan */
+		chan = wlan_hdd_get_adjacent_chan(op_chan, true);
+		if (chan < 0)
+			return -EINVAL;
+		p2p_avoid_freq_list.avoidFreqRange[1].startFreq =
+			vos_chan_to_freq(chan);
+		p2p_avoid_freq_list.avoidFreqRange[1].endFreq =
+			vos_chan_to_freq(max_chan);
+	} else if (op_chan == min_chan) {
+		p2p_avoid_freq_list.avoidFreqRangeCount = 1;
+
+		chan = wlan_hdd_get_adjacent_chan(op_chan, true);
+		if (chan < 0)
+			return -EINVAL;
+		p2p_avoid_freq_list.avoidFreqRange[0].startFreq =
+			vos_chan_to_freq(chan);
+		p2p_avoid_freq_list.avoidFreqRange[0].endFreq =
+			vos_chan_to_freq(max_chan);
+	} else {
+		p2p_avoid_freq_list.avoidFreqRangeCount = 1;
+		p2p_avoid_freq_list.avoidFreqRange[0].startFreq =
+			vos_chan_to_freq(min_chan);
+
+		chan = wlan_hdd_get_adjacent_chan(op_chan, false);
+		if (chan < 0)
+			return -EINVAL;
+		p2p_avoid_freq_list.avoidFreqRange[0].endFreq =
+			vos_chan_to_freq(chan);
+	}
+#ifdef FEATURE_WLAN_CH_AVOID
+	mutex_lock(&hdd_ctx->avoid_freq_lock);
+	hdd_ctx->dnbs_avoid_freq_list = p2p_avoid_freq_list;
+	mutex_unlock(&hdd_ctx->avoid_freq_lock);
+#endif
+	ret = wlan_hdd_send_avoid_freq_event(hdd_ctx, &p2p_avoid_freq_list);
+	if (ret)
+		hddLog(LOGE, FL("wlan_hdd_send_avoid_freq_event error:%d"), ret);
+
+	return ret;
+}
+#endif
 
 /* vendor specific events */
 static const struct nl80211_vendor_cmd_info wlan_hdd_cfg80211_vendor_events[] =
@@ -9668,6 +9826,15 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 		return -EPERM;
 	}
 
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+	spin_lock_bh(&hdd_ctx->restrict_offchan_lock);
+	if(hdd_ctx->restrict_offchan_flag) {
+		hddLog(LOGE, FL("Channel switch is disabled, reject ACS"));
+		spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
+		return -EPERM;
+	}
+	spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
+#endif
 	/* ***Note*** Donot set SME config related to ACS operation here because
 	 * ACS operation is not synchronouse and ACS for Second AP may come when
 	 * ACS operation for first AP is going on. So only do_acs is split to
@@ -10098,6 +10265,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 							.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_SUB20_CHAN_WIDTH] = {.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_ABS_DELAY] = {.type = NLA_U32},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_RESTRICT_OFFCHANNEL] = {.type = NLA_U8},
 };
 
 /**
@@ -10280,6 +10448,69 @@ hdd_get_sub20_channelwidth(hdd_adapter_t *adapter, uint32_t *sub20_channelwidth)
 
 	return VOS_STATUS_SUCCESS;
 }
+
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+/**
+ * wlan_hdd_handle_restrict_offchan_config() -
+ * Handle wifi configuration attribute :
+ * QCA_WLAN_VENDOR_ATTR_CONFIG_RESTRICT_OFFCHANNEL
+ * @adapter: Pointer to HDD adapter
+ * @restrict_offchan: Restrict offchannel setting done by
+ * application
+ *
+ * Return: 0 on success; error number otherwise
+ */
+static int wlan_hdd_handle_restrict_offchan_config(hdd_adapter_t *adapter,
+						   uint8_t restrict_offchan)
+{
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	device_mode_t dev_mode = adapter->device_mode;
+	int ret_val = 0;
+
+	if (!(dev_mode == WLAN_HDD_SOFTAP || dev_mode == WLAN_HDD_P2P_GO)) {
+		hddLog(LOGE, FL("Invalid interface type:%d"), dev_mode);
+		return -EINVAL;
+	}
+	/*
+	 * To cater to multiple apps we maintain
+	 * a counter to check if restrict_offchannel
+	 * is enabled or disabled per AP/GO vdev.
+	 */
+	if (restrict_offchan == 1) {
+		int chan;
+		adapter->restrict_offchannel_cnt++;
+		if (adapter->restrict_offchannel_cnt == 1) {
+			spin_lock_bh(&hdd_ctx->restrict_offchan_lock);
+			hdd_ctx->restrict_offchan_flag = true;
+			spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
+			chan = hdd_get_operating_channel(hdd_ctx, dev_mode);
+			hddLog(LOGE, FL("chan is %d"), chan);
+			if (!chan ||
+			    wlan_hdd_send_avoid_freq_for_dnbs(hdd_ctx, chan)) {
+				hddLog(LOGE, FL("unable to send avoid_freq"));
+				ret_val = -EINVAL;
+			}
+		}
+	} else if ((restrict_offchan == 0) &&
+			(adapter->restrict_offchannel_cnt > 0)) {
+		adapter->restrict_offchannel_cnt--;
+		if (adapter->restrict_offchannel_cnt == 0) {
+			spin_lock_bh(&hdd_ctx->restrict_offchan_lock);
+			hdd_ctx->restrict_offchan_flag = false;
+			spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
+			if (wlan_hdd_send_avoid_freq_for_dnbs(hdd_ctx, 0)) {
+				hddLog(LOGE, FL("unable to clear avoid_freq"));
+				ret_val = -EINVAL;
+			}
+		}
+	} else {
+		ret_val = -EINVAL;
+		hddLog(LOGE, FL("Invalid RESTRICT_OFFCHAN setting"));
+	}
+
+	return ret_val;
+}
+#endif
 
 /**
  * __wlan_hdd_cfg80211_wifi_configuration_set() - Wifi configuration
@@ -10864,6 +11095,21 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		}
 	}
 
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RESTRICT_OFFCHANNEL]) {
+		uint8_t restrict_offchan = nla_get_u8(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RESTRICT_OFFCHANNEL]);
+		hddLog(LOG1, FL("Restrict offchannel:%d"), restrict_offchan);
+		if (restrict_offchan <= 1)
+			ret_val =
+			wlan_hdd_handle_restrict_offchan_config(pAdapter,
+							restrict_offchan);
+		else {
+			ret_val = -EINVAL;
+			hddLog(LOGE, FL("Invalid RESTRICT_OFFCHAN setting"));
+		}
+	}
+#endif
 	return ret_val;
 }
 
@@ -13448,7 +13694,6 @@ __wlan_hdd_cfg80211_avoid_freq(struct wiphy *wiphy,
 	tVOS_CON_MODE curr_mode;
 
 	ENTER();
-
         curr_mode = hdd_get_conparam();
 	if (VOS_FTM_MODE == curr_mode ||
 	    VOS_MONITOR_MODE == curr_mode) {
@@ -19026,6 +19271,10 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
         enum nl80211_channel_type channel_type;
 #endif
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+        tsap_Config_t *sap_config =
+            &((WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig);
+#endif
         old = pAdapter->sessionCtx.ap.beacon;
 
         if (old)
@@ -19094,6 +19343,17 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
             }
         }
         hdd_change_ch_avoidance_status(pHddCtx, false);
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+        /*
+         * If Do_Not_Break_Stream enabled send avoid channel list
+         * to application.
+         */
+        if (pHddCtx->restrict_offchan_flag &&
+            sap_config->channel) {
+            wlan_hdd_send_avoid_freq_for_dnbs(pHddCtx,
+                              sap_config->channel);
+        }
+#endif
         if (pHddCtx->cfg_ini->sap_max_inactivity_override)
             sme_update_sta_inactivity_timeout(WLAN_HDD_GET_HAL_CTX(pAdapter),
                     pAdapter->sessionId, params->inactivity_timeout);
@@ -24324,6 +24584,30 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         return -EALREADY;
     }
 
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+    if (req->channel && req->channel->hw_value) {
+        if (!vos_is_chan_ok_for_dnbs(req->channel->hw_value)) {
+            struct ieee80211_channel *chan =
+                ieee80211_get_channel(wiphy,
+                vos_chan_to_freq(req->channel->hw_value));
+            struct cfg80211_bss *bss;
+
+            hddLog(VOS_TRACE_LEVEL_ERROR, FL("Channel:%d not OK for DNBS"),
+                req->channel->hw_value);
+            if (chan) {
+                bss = hdd_cfg80211_get_bss(wiphy,
+                            chan,
+                            req->bssid, req->ssid,
+                            req->ssid_len);
+                if (bss) {
+                    cfg80211_assoc_timeout(ndev, bss);
+                    return -ETIMEDOUT;
+                }
+            }
+            return -EINVAL;
+        }
+    }
+#endif
     /* Check for max concurrent connections after doing disconnect if any */
     if (vos_max_concurrent_connections_reached()) {
         hddLog(VOS_TRACE_LEVEL_ERROR, FL("Reached max concurrent connections"));
@@ -28057,7 +28341,6 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
     hdd_station_ctx_t *station_ctx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
     ENTER();
-
     pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     ret = wlan_hdd_validate_context(pHddCtx);
     if (0 != ret)
@@ -28184,7 +28467,14 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
                         num_ignore_dfs_ch++;
                         break;
                     }
-
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+                    if (!vos_is_chan_ok_for_dnbs(request->channels[i]->hw_value)) {
+                        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+                        "%s : Dropping channel : %d for dnbs",
+                        __func__,request->channels[i]->hw_value);
+                        break;
+                    }
+#endif
                     if (!vos_is_dsrc_channel(vos_chan_to_freq(
                         request->channels[i]->hw_value))) {
                        valid_ch[num_ch++] = request->channels[i]->hw_value;

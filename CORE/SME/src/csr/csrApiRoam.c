@@ -7647,7 +7647,9 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     tANI_U32 roamId = 0;
     tANI_BOOLEAN fCallCallback = eANI_BOOLEAN_FALSE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+    tSirBssDescription *first_ap_profile;
+#endif
     if (NULL == pSession) {
         smsLog(pMac, LOGE,
                FL("session does not exist for given sessionId:%d"), sessionId);
@@ -7658,6 +7660,13 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
         smsLog(pMac, LOGP, FL("No profile specified"));
         return eHAL_STATUS_FAILURE;
     }
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+    first_ap_profile = vos_mem_malloc(sizeof(*first_ap_profile));
+    if (NULL == first_ap_profile) {
+        smsLog(pMac, LOGE, FL("malloc fails for first_ap_profile"));
+        return VOS_STATUS_E_NOMEM;
+    }
+#endif
     /* Initialize the bssid count before proceeding with the Join requests */
     pSession->join_bssid_count = 0;
 #ifdef WLAN_FEATURE_FILS_SK
@@ -7675,6 +7684,9 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     {
         smsLog(pMac, LOGE, FL("Request for BT AMP connection failed, channel requested is different than infra = %d"),
                pProfile->operationChannel);
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+        vos_mem_free(first_ap_profile);
+#endif
         return status;
     }
     csrRoamCancelRoaming(pMac, sessionId);
@@ -7782,6 +7794,18 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
                     smsLog(pMac, LOG1, "************ csrScanGetResult Status ********* %d", status);
                     if(HAL_STATUS_SUCCESS(status))
                     {
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+                        if ((pScanFilter->csrPersona == VOS_STA_MODE) ||
+                            (pScanFilter->csrPersona == VOS_P2P_CLIENT_MODE)){
+                            csr_get_bssdescr_from_scan_handle(hBSSList, first_ap_profile);
+                            if (!vos_is_chan_ok_for_dnbs(first_ap_profile->channelId)) {
+                                smsLog(pMac, LOGE, FL(" channel not valid for dnbs"));
+                                fCallCallback = eANI_BOOLEAN_TRUE;
+                                csrScanResultPurge(pMac, hBSSList);
+                                break;
+                            }
+                        }
+#endif
                         status = csrRoamIssueConnect(pMac, sessionId, pProfile, hBSSList, eCsrHddIssued,
                                                     roamId, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);
                         if(!HAL_STATUS_SUCCESS(status))
@@ -7837,7 +7861,10 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     {
         csrRoamCallCallback(pMac, sessionId, NULL, roamId, eCSR_ROAM_FAILED, eCSR_ROAM_RESULT_FAILURE);
     }
-
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+    if(first_ap_profile)
+        vos_mem_free(first_ap_profile);
+#endif
     return (status);
 }
 eHalStatus csrRoamReassoc(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pProfile,
@@ -10463,6 +10490,9 @@ eHalStatus csrRoamPrepareFilterFromProfile(tpAniSirGlobal pMac, tCsrRoamProfile 
         pScanFilter->MFPEnabled = pProfile->MFPEnabled;
         pScanFilter->MFPRequired = pProfile->MFPRequired;
         pScanFilter->MFPCapable = pProfile->MFPCapable;
+#endif
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+        pScanFilter->csrPersona = pProfile->csrPersona;
 #endif
         csr_update_fils_scan_filter(pScanFilter, pProfile);
     }while(0);

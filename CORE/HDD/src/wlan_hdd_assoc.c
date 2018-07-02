@@ -2462,6 +2462,20 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
         wlan_hdd_auto_shutdown_enable(pHddCtx, VOS_FALSE);
 #endif
+#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+        if (!vos_is_chan_ok_for_dnbs(pHddStaCtx->conn_info.operationChannel)) {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                          "%s: chan-%d is not suitable for DNBS", __func__, pHddStaCtx->conn_info.operationChannel);
+            wlan_hdd_netif_queue_control(pAdapter, WLAN_NETIF_CARRIER_OFF, WLAN_CONTROL_PATH);
+            if (!hddDisconInProgress) {
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Disconnecting...", __func__);
+                sme_RoamDisconnect(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                    pAdapter->sessionId,
+                                    eCSR_DISCONNECT_REASON_UNSPECIFIED);
+            }
+            return eHAL_STATUS_FAILURE;
+        }
+#endif
         /* validate cfg_ini */
         if (!pHddCtx->cfg_ini) {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
