@@ -1446,6 +1446,12 @@ struct hdd_adapter_s
     /* random address management for management action frames */
     spinlock_t random_mac_lock;
     struct action_frame_random_mac random_mac[MAX_RANDOM_MAC_ADDRS];
+    /*
+     * Store the restrict_offchannel count
+     * to cater to multiple application.
+     */
+    uint8_t restrict_offchannel_cnt;
+
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
@@ -2133,6 +2139,14 @@ struct hdd_context_s
 #ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
     sap_ch_switch_ctx  ch_switch_ctx;
 #endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_CHAN
+#ifdef FEATURE_WLAN_CH_AVOID
+    tHddAvoidFreqList dnbs_avoid_freq_list;
+    /* Lock to control access to dnbs avoid freq list */
+    struct mutex avoid_freq_lock;
+#endif
+    spinlock_t restrict_offchan_lock;
+    bool  restrict_offchan_flag;
+
 };
 
 /*---------------------------------------------------------------------------
