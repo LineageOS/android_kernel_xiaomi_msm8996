@@ -2658,6 +2658,8 @@ HIF_PCIDeviceProbed(hif_handle_t hif_hdl)
                      break;
              }
 
+         } else if (CHIP_ID_VERSION_GET(chip_id) == 0xE) {
+             banks_switched = 9; /* QCA9377 shall use 9 IRAM banks */
          }
          ealloc_value |= ((banks_switched << HI_EARLY_ALLOC_IRAM_BANKS_SHIFT) & HI_EARLY_ALLOC_IRAM_BANKS_MASK);
         }

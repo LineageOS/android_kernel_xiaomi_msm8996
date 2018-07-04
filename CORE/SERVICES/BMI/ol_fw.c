@@ -191,6 +191,7 @@ int get_fw_files_for_non_qc_pci_target(struct non_qc_platform_pci_fw_files *pfw_
 			break;
 		case AR6320_REV3_VERSION:
 		case AR6320_REV3_2_VERSION:
+		case QCA9377_REV1_1_VERSION:
 		case QCA9379_REV1_VERSION:
 			memcpy(pfw_files, &FW_FILES_QCA6174_FW_3_0,
 						sizeof(*pfw_files));
