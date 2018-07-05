@@ -5368,7 +5368,7 @@ limIsChannelValidForChannelSwitch(tpAniSirGlobal pMac, tANI_U8 channel)
     tANI_U8  index;
     tANI_U32    validChannelListLen = WNI_CFG_VALID_CHANNEL_LIST_LEN;
     tSirMacChanNum   validChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
     if (!vos_is_chan_ok_for_dnbs(channel)) {
         PELOGE(limLog(pMac, LOGE, FL("channel is not valid for dnbs"));)
         return (eSIR_FALSE);

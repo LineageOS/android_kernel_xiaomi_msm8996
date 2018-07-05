@@ -3082,7 +3082,7 @@ void wlan_hdd_cfg80211_scan_block_cb(struct work_struct *work);
  */
 int wlan_hdd_disconnect(hdd_adapter_t *pAdapter, u16 reason);
 
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
 int wlan_hdd_send_avoid_freq_for_dnbs(hdd_context_t *hdd_ctx, uint8_t op_chan);
 #endif
 #endif

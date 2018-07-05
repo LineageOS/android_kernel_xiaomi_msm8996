@@ -3355,7 +3355,7 @@ v_BOOL_t vos_is_ch_switch_with_csa_enabled(void)
 }
 #endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
 
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
 /**
  * vos_is_chan_ok_for_dnbs() - check if the channel is valid for dnbs
  *

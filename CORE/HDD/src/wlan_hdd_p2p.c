@@ -1408,7 +1408,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
     hdd_adapter_t *sta_adapter;
     int ret = 0;
     int status = 0;
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
     uint8_t channel;
 #endif
     hddLog(LOG1, FL("Device_mode %s(%d)"),
@@ -1441,7 +1441,7 @@ static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
         hddLog(LOGE, FL("Connection is in progress"));
         isBusy = VOS_TRUE;
     }
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
     channel = vos_freq_to_chan(chan->center_freq);
     if (!vos_is_chan_ok_for_dnbs(channel)) {
         hddLog(LOGE, FL("chan-%d is not valid for DNBS"), channel);

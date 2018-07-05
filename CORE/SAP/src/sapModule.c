@@ -1712,7 +1712,7 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
              return VOS_STATUS_E_FAULT;
          }
 #endif
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
         if (VOS_FALSE == vos_is_chan_ok_for_dnbs((uint8_t)targetChannel)) {
             VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
                        FL("Channel switch to %u is not allowed due to dnbs"),
@@ -4190,7 +4190,7 @@ wlansap_set_invalid_session(v_PVOID_t pctx)
 
 	return VOS_STATUS_SUCCESS;
 }
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
 /*
  * wlansap_channel_compare() - compare the given channel to SAP's channel
  * @hHal: handle to the hal

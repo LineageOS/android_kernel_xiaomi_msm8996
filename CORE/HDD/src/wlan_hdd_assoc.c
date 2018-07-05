@@ -2462,7 +2462,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
         wlan_hdd_auto_shutdown_enable(pHddCtx, VOS_FALSE);
 #endif
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
         if (!vos_is_chan_ok_for_dnbs(pHddStaCtx->conn_info.operationChannel)) {
             hddLog(VOS_TRACE_LEVEL_ERROR,
                           "%s: chan-%d is not suitable for DNBS", __func__, pHddStaCtx->conn_info.operationChannel);

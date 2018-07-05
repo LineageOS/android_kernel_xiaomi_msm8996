@@ -1235,7 +1235,7 @@ static int wlan_hdd_cfg80211_apfind_cmd(struct wiphy *wiphy,
 }
 #endif /* WLAN_FEATURE_APFIND */
 
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
 static eRfChannels wlan_hdd_get_chan_enum(uint8_t chan)
 {
 	uint32_t channel_loop;
@@ -9826,7 +9826,7 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 		return -EPERM;
 	}
 
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
 	spin_lock_bh(&hdd_ctx->restrict_offchan_lock);
 	if(hdd_ctx->restrict_offchan_flag) {
 		hddLog(LOGE, FL("Channel switch is disabled, reject ACS"));
@@ -10449,7 +10449,7 @@ hdd_get_sub20_channelwidth(hdd_adapter_t *adapter, uint32_t *sub20_channelwidth)
 	return VOS_STATUS_SUCCESS;
 }
 
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
 /**
  * wlan_hdd_handle_restrict_offchan_config() -
  * Handle wifi configuration attribute :
@@ -11095,7 +11095,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		}
 	}
 
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
 	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RESTRICT_OFFCHANNEL]) {
 		uint8_t restrict_offchan = nla_get_u8(
 			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_RESTRICT_OFFCHANNEL]);
@@ -19271,7 +19271,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) || defined(WITH_BACKPORTS)
         enum nl80211_channel_type channel_type;
 #endif
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
         tsap_Config_t *sap_config =
             &((WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->sapConfig);
 #endif
@@ -19343,7 +19343,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
             }
         }
         hdd_change_ch_avoidance_status(pHddCtx, false);
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
         /*
          * If Do_Not_Break_Stream enabled send avoid channel list
          * to application.
@@ -24584,7 +24584,7 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         return -EALREADY;
     }
 
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
     if (req->channel && req->channel->hw_value) {
         if (!vos_is_chan_ok_for_dnbs(req->channel->hw_value)) {
             struct ieee80211_channel *chan =
@@ -28467,7 +28467,7 @@ static int __wlan_hdd_cfg80211_sched_scan_start(struct wiphy *wiphy,
                         num_ignore_dfs_ch++;
                         break;
                     }
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
                     if (!vos_is_chan_ok_for_dnbs(request->channels[i]->hw_value)) {
                         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                         "%s : Dropping channel : %d for dnbs",

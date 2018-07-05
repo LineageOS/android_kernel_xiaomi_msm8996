@@ -6542,7 +6542,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                                         continue;
                                     }
                                 }
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
                                 if (!vos_is_chan_ok_for_dnbs(pSrcReq->ChannelInfo.ChannelList[index]))
                                     continue;
 #endif

@@ -7647,7 +7647,7 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     tANI_U32 roamId = 0;
     tANI_BOOLEAN fCallCallback = eANI_BOOLEAN_FALSE;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
     tSirBssDescription *first_ap_profile;
 #endif
     if (NULL == pSession) {
@@ -7660,7 +7660,7 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
         smsLog(pMac, LOGP, FL("No profile specified"));
         return eHAL_STATUS_FAILURE;
     }
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
     first_ap_profile = vos_mem_malloc(sizeof(*first_ap_profile));
     if (NULL == first_ap_profile) {
         smsLog(pMac, LOGE, FL("malloc fails for first_ap_profile"));
@@ -7684,7 +7684,7 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     {
         smsLog(pMac, LOGE, FL("Request for BT AMP connection failed, channel requested is different than infra = %d"),
                pProfile->operationChannel);
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
         vos_mem_free(first_ap_profile);
 #endif
         return status;
@@ -7794,7 +7794,7 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
                     smsLog(pMac, LOG1, "************ csrScanGetResult Status ********* %d", status);
                     if(HAL_STATUS_SUCCESS(status))
                     {
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
                         if ((pScanFilter->csrPersona == VOS_STA_MODE) ||
                             (pScanFilter->csrPersona == VOS_P2P_CLIENT_MODE)){
                             csr_get_bssdescr_from_scan_handle(hBSSList, first_ap_profile);
@@ -7861,7 +7861,7 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     {
         csrRoamCallCallback(pMac, sessionId, NULL, roamId, eCSR_ROAM_FAILED, eCSR_ROAM_RESULT_FAILURE);
     }
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
     if(first_ap_profile)
         vos_mem_free(first_ap_profile);
 #endif
@@ -10491,7 +10491,7 @@ eHalStatus csrRoamPrepareFilterFromProfile(tpAniSirGlobal pMac, tCsrRoamProfile 
         pScanFilter->MFPRequired = pProfile->MFPRequired;
         pScanFilter->MFPCapable = pProfile->MFPCapable;
 #endif
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
         pScanFilter->csrPersona = pProfile->csrPersona;
 #endif
         csr_update_fils_scan_filter(pScanFilter, pProfile);

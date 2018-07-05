@@ -12771,7 +12771,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 #ifdef WLAN_NS_OFFLOAD
          cancel_work_sync(&pAdapter->ipv6NotifierWorkQueue);
 #endif
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
          /*
           * If Do_Not_Break_Stream was enabled clear avoid channel list.
           */
@@ -16555,7 +16555,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
        goto err_free_hdd_context;
    }
 
-#ifdef FEATURE_WLAN_CARPLAY_CHANNEL_SWITCH
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
    spin_lock_init(&pHddCtx->restrict_offchan_lock);
    mutex_init(&pHddCtx->avoid_freq_lock);
 #endif
