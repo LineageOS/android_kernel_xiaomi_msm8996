@@ -1232,8 +1232,7 @@ struct ol_txrx_peer_t {
 	u_int16_t tx_pause_flag;
 #endif
 	adf_os_time_t last_assoc_rcvd;
-	adf_os_time_t last_disassoc_rcvd;
-	adf_os_time_t last_deauth_rcvd;
+	adf_os_time_t last_disassoc_deauth_rcvd;
 	struct ol_rx_reorder_history * reorder_history;
 };
 

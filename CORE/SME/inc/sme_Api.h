@@ -4881,4 +4881,78 @@ VOS_STATUS sme_mnt_filter_type_cmd(struct sme_mnt_filter_type_req *input);
  *         false - if not in progress
  */
 bool sme_is_sta_key_exchange_in_progress(tHalHandle hal, uint8_t session_id);
+
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+typedef struct {
+	uint8_t vdev_id;                             /** Vdev ID */
+	uint32_t time_t1;                             /** T1 for motion detection (in ms) */
+	uint32_t time_t2;                             /** T2 for fine motion detection (in ms) */
+	uint32_t n1;                                  /** number of packets for coarse detection */
+	uint32_t n2;                                  /** number of packets for fine detection */
+	uint32_t time_t1_gap;                         /** gap between packets in course detection (in ms) */
+	uint32_t time_t2_gap;                         /** gap between packets in fine detection (in ms) */
+	uint32_t coarse_K;                            /** number of times fine motion detection has to be
+							  performed for coarse detection*/
+	uint32_t fine_K;                              /** number of times fine motion detection has to be
+							  performed for fine detection*/
+	uint32_t coarse_Q;                            /** number of times motion is expected to be detected
+							  for success case in coarse detection*/
+	uint32_t fine_Q;                              /** number of times motion is expected to be detected
+							  for success case in fine detection*/
+	uint8_t md_coarse_thr_high;                  /** higher threshold value (in percent)
+                                                          from host to FW, which will be used in
+                                                          coarse detection phase of motion detection.
+                                                          This is the threshold for the correlation
+                                                          of the old RF local-scattering environment
+                                                          with the current RF local-scattering
+                                                          environment.  A value of 100(%) indicates
+                                                          that neither the transceiver nor any
+                                                          nearby objects have changed position. */
+	uint8_t md_fine_thr_high;                    /** higher threshold value (in percent)
+	                                                  from host to FW, which will be used in
+	                                                  fine detection phase of motion detection.
+	                                                  This is the threshold for correlation
+                                                          between the old and current RF environments,
+                                                          as explained above. */
+	uint8_t md_coarse_thr_low;                   /** lower threshold value (in percent)
+                                                          for immediate detection of motion in
+                                                          coarse detection phase.
+                                                          This is the threshold for correlation
+                                                          between the old and current RF environments,
+                                                          as explained above. */
+	uint8_t md_fine_thr_low;                     /** lower threshold value (in percent)
+                                                          for immediate detection of motion in
+                                                          fine detection phase.
+                                                          This is the threshold for correlation
+                                                          between the old and current RF environments,
+                                                          as explained above. */
+} tSirMotionDetConfig;
+
+typedef struct {
+	uint8_t vdev_id;              /** Vdev ID */
+	uint32_t bl_time_t;            /** time T for baseline (in ms), every bl_time_t, bl_n packets are sent */
+	uint32_t bl_packet_gap;        /** gap between packets for baseline (in ms) */
+	uint32_t bl_n;                 /** number of packets to be sent during one baseline */
+	uint32_t bl_num_meas;          /** number of times the baseline measurement to be done */
+} tSirMotionDetBaseLineConfig;
+
+typedef struct {
+	uint8_t vdev_id;              /** Vdev ID */
+	bool enable;               /** start = 1, stop =0 */
+} tSirMotionDetEnable;
+
+typedef struct {
+	uint8_t vdev_id;              /** Vdev ID */
+	bool enable;               /** start = 1, stop =0 */
+} tSirMotionDetBaseLineEnable;
+
+eHalStatus sme_MotionDetConfig(tHalHandle hHal, tSirMotionDetConfig *pMotionDetConfig);
+eHalStatus sme_MotionDetEnable(tHalHandle hHal, tSirMotionDetEnable *pMotionDetEanble);
+eHalStatus sme_MotionDetBaseLineConfig(tHalHandle hHal, tSirMotionDetBaseLineConfig *pMotionDetBaseLineConfig);
+eHalStatus sme_MotionDetBaseLineEnable(tHalHandle hHal, tSirMotionDetBaseLineEnable *pMotionDetBaseLineEnable);
+
+eHalStatus sme_set_mt_host_ev_cb(tHalHandle hHal,
+	VOS_STATUS (*pcallbackfn)(void *pcallbackcontext, tSirMtEvent* pEvent),
+	void *pcallbackcontext);
+#endif
 #endif //#if !defined( __SME_API_H )

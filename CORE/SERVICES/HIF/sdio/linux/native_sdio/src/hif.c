@@ -33,6 +33,7 @@
 #include <linux/mmc/sdio.h>
 #include <linux/mmc/sd.h>
 #include <linux/kthread.h>
+#include <linux/pm_qos.h>
 #include "vos_cnss.h"
 #include "if_ath_sdio.h"
 #include "regtable.h"
@@ -2895,16 +2896,25 @@ static void hif_sdio_device_removed(struct sdio_func *func)
 
 static int hif_sdio_device_reinit(struct sdio_func *func, const struct sdio_device_id * id)
 {
+	int ret;
+
 	if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL) &&
 	    !vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL)) {
 		printk("%s: Load/unload is in progress and SSR is not,"
 		       "ignore SSR reinit...\n", __func__);
 		return 0;
 	}
-	if ((func != NULL) && (id != NULL))
-		return hifDeviceInserted(func, id);
-	else
+
+	if ((func != NULL) && (id != NULL)) {
+		vos_request_pm_qos_type(PM_QOS_CPU_DMA_LATENCY,
+					DISABLE_KRAIT_IDLE_PS_VAL);
+		ret = hifDeviceInserted(func, id);
+		vos_remove_pm_qos();
+
+		return ret;
+	} else {
 		printk("%s: Invalid sdio func and device id. Card removed?\n", __func__);
+	}
 
 	return -ENODEV;
 }

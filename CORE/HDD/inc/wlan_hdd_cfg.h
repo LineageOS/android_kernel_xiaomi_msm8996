@@ -3935,7 +3935,7 @@ enum dot11p_mode {
  */
 #define CFG_BTC_DYNAMIC_WLAN_BT_COEX           "gDynamicBTCOEX"
 #define CFG_BTC_DYNAMIC_WLAN_BT_COEX_MIN       (0)
-#define CFG_BTC_DYNAMIC_WLAN_BT_COEX_MAX       (1)
+#define CFG_BTC_DYNAMIC_WLAN_BT_COEX_MAX       (2)
 #define CFG_BTC_DYNAMIC_WLAN_BT_COEX_DEFAULT   (0)
 
 /**
