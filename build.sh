@@ -274,6 +274,10 @@ if [ -f arch/${ARCH}/boot/Image.gz ] || [ -f arch/${ARCH}/boot/Image.lzma ] || [
 		echo "name3=${name3}" >> ${zipdirout}/device.prop
 		echo "name4=${name4}" >> ${zipdirout}/device.prop
 
+		mkdir ${zipdirout}/modules
+		find . -name *.ko | xargs cp -a --target-directory=${zipdirout}/modules/ &> /dev/null
+		${CROSS_COMPILE}strip --strip-unneeded ${zipdirout}/modules/*.ko
+
 		cd ${zipdirout}
 		zip -r ${zipfile} * -x .gitignore &> /dev/null
 		cd ..
