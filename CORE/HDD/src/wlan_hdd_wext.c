@@ -5572,10 +5572,6 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
     return 0;
 }
 
-struct temperature_info {
-	int temperature;
-};
-
 void hdd_GetTemperatureCB(int temperature, void *cookie)
 {
 	struct hdd_request *request;
