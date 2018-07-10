@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -567,7 +567,7 @@ htt_h2t_dbg_stats_get(
     u_int32_t stats_type_reset_mask,
     u_int8_t cfg_stat_type,
     u_int32_t cfg_val,
-    u_int64_t cookie)
+    u_int8_t cookie)
 {
     struct htt_htc_pkt *pkt;
     adf_nbuf_t msg;
@@ -647,11 +647,11 @@ htt_h2t_dbg_stats_get(
 
     /* cookie LSBs */
     msg_word++;
-    *msg_word = cookie & 0xffffffff;
+    *msg_word = cookie;
 
     /* cookie MSBs */
     msg_word++;
-    *msg_word = cookie >> 32;
+    *msg_word = 0;
 
     SET_HTC_PACKET_INFO_TX(
         &pkt->htc_pkt,
