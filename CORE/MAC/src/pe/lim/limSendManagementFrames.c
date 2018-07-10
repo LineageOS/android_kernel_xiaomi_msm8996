@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -4709,6 +4709,10 @@ lim_send_extended_chan_switch_action_frame(tpAniSirGlobal mac_ctx,
 				(void*) frame, (void*) packet);
 		return eSIR_FAILURE;
 	}
+
+#ifdef WLAN_FEATURE_11W
+	limSetProtectedBit(mac_ctx, session_entry, peer, mac_hdr);
+#endif
 
 	status = dot11fPackext_channel_switch_action_frame( mac_ctx, &frm,
 		frame + sizeof(tSirMacMgmtHdr), n_payload, &n_payload);
