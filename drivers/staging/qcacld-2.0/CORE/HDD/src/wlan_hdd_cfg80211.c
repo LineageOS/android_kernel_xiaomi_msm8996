@@ -5793,6 +5793,7 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
     struct nlattr *wmmInfo;
     struct nlattr *wmmStats;
     u64 average_tsf_offset;
+    wmi_iface_link_stats *link_stats = &pWifiIfaceStat->link_stats;
 
     if (FALSE == put_wifi_interface_info(
             &pWifiIfaceStat->info,
@@ -5804,9 +5805,9 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
 
     }
 
-    average_tsf_offset =  pWifiIfaceStat->avg_bcn_spread_offset_high;
+    average_tsf_offset =  link_stats->avg_bcn_spread_offset_high;
     average_tsf_offset =  (average_tsf_offset << 32) |
-        pWifiIfaceStat->avg_bcn_spread_offset_low ;
+        link_stats->avg_bcn_spread_offset_low ;
 
     if (nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_TYPE,
@@ -5816,34 +5817,34 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
                     num_peers) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_BEACON_RX,
-                    pWifiIfaceStat->beaconRx) ||
+                    link_stats->beacon_rx) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_MGMT_RX,
-                    pWifiIfaceStat->mgmtRx) ||
+                    link_stats->mgmt_rx) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_MGMT_ACTION_RX,
-                    pWifiIfaceStat->mgmtActionRx) ||
+                    link_stats->mgmt_action_rx) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_MGMT_ACTION_TX,
-                    pWifiIfaceStat->mgmtActionTx) ||
+                    link_stats->mgmt_action_tx) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RSSI_MGMT,
-                    pWifiIfaceStat->rssiMgmt) ||
+                    link_stats->rssi_mgmt) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RSSI_DATA,
-                    pWifiIfaceStat->rssiData) ||
+                    link_stats->rssi_data) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_RSSI_ACK,
-                    pWifiIfaceStat->rssiAck) ||
+                    link_stats->rssi_ack) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_LEAKY_AP_DETECTED,
-                    pWifiIfaceStat->is_leaky_ap) ||
+                    link_stats->is_leaky_ap) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_LEAKY_AP_AVG_NUM_FRAMES_LEAKED,
-                    pWifiIfaceStat->avg_rx_frms_leaked) ||
+                    link_stats->avg_rx_frms_leaked) ||
         nla_put_u32(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_LEAKY_AP_GUARD_TIME,
-                    pWifiIfaceStat->rx_leak_window) ||
+                    link_stats->rx_leak_window) ||
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
         nla_put_u64_64bit(vendor_event,
                     QCA_WLAN_VENDOR_ATTR_LL_STATS_IFACE_AVERAGE_TSF_OFFSET,
@@ -5884,7 +5885,7 @@ static bool put_wifi_iface_stats(tpSirWifiIfaceStat pWifiIfaceStat,
             return FALSE;
 
         if (FALSE == put_wifi_wmm_ac_stat(
-                &pWifiIfaceStat->AccessclassStats[i],
+                &pWifiIfaceStat->ac_stats[i],
                 vendor_event))
         {
             hddLog(VOS_TRACE_LEVEL_ERROR,

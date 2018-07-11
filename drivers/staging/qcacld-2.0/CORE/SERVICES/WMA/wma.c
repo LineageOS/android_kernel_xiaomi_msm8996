@@ -5026,12 +5026,11 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 	tp_wma_handle wma_handle = (tp_wma_handle) handle;
 	WMI_IFACE_LINK_STATS_EVENTID_param_tlvs *param_tlvs;
 	wmi_iface_link_stats_event_fixed_param *fixed_param;
-	wmi_iface_link_stats *link_stats;
-	wmi_wmm_ac_stats *ac_stats;
+	wmi_iface_link_stats *link_stats, *iface_link_stats;
+	wmi_wmm_ac_stats *ac_stats, *iface_ac_stats;
 	tSirLLStatsResults *link_stats_results;
-	u_int8_t *results, *t_link_stats, *t_ac_stats;
-	u_int32_t next_res_offset, next_ac_offset, count;
-	u_int32_t roaming_offset , roaming_size;
+	tSirWifiIfaceStat *iface_stat;
+	uint32_t count;
 	size_t link_stats_size, ac_stats_size, iface_info_size;
 	size_t link_stats_results_size;
 
@@ -5077,7 +5076,7 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 
 	link_stats_size = sizeof(tSirWifiIfaceStat);
 	iface_info_size = sizeof(tSirWifiInterfaceInfo);
-	ac_stats_size   = sizeof(tSirWifiWmmAcStat);
+	ac_stats_size   = sizeof(wmi_wmm_ac_stats);
 	link_stats_results_size = sizeof(*link_stats_results) +
 					link_stats_size;
 
@@ -5097,32 +5096,19 @@ static int wma_unified_link_iface_stats_event_handler(void *handle,
 	link_stats_results->peer_event_number  = 0;
 	link_stats_results->moreResultToFollow = 0;
 
-	results      = (u_int8_t *)link_stats_results->results;
-	t_link_stats = (u_int8_t *)link_stats;
-	t_ac_stats   = (u_int8_t *)ac_stats;
+	iface_stat = (tSirWifiIfaceStat *)link_stats_results->results;
+
+	iface_link_stats = &iface_stat->link_stats;
+	*iface_link_stats = *link_stats;
 
 	/* Copy roaming state */
-	roaming_offset = offsetof(tSirWifiInterfaceInfo, roaming);
-	roaming_size   = member_size(tSirWifiInterfaceInfo, roaming);
+	iface_stat->info.roaming = link_stats->roam_state;
 
-	vos_mem_copy(results + roaming_offset, &link_stats->roam_state,
-				roaming_size);
-
-	vos_mem_copy(results + iface_info_size,
-		t_link_stats + WMI_TLV_HDR_SIZE,
-		link_stats_size - iface_info_size - WIFI_AC_MAX * ac_stats_size);
-
-	next_res_offset = link_stats_size - WIFI_AC_MAX * ac_stats_size;
-	next_ac_offset = WMI_TLV_HDR_SIZE;
-
+	iface_ac_stats = &iface_stat->ac_stats[0];
 	for (count = 0; count < link_stats->num_ac; count++) {
+		*iface_ac_stats = *ac_stats;
 		ac_stats++;
-
-		vos_mem_copy(results + next_res_offset,
-				t_ac_stats + next_ac_offset,
-				ac_stats_size);
-		next_res_offset += ac_stats_size;
-		next_ac_offset  += sizeof(*ac_stats);
+		iface_ac_stats++;
 	}
 
 	/* call hdd callback with Link Layer Statistics

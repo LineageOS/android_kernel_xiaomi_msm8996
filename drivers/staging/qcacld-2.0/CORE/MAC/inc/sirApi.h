@@ -52,6 +52,7 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #include "sirMacProtDef.h"
 #include "aniSystemDefs.h"
 #include "sirParams.h"
+#include "wmi_unified.h"
 #include <dot11f.h>
 #if defined(FEATURE_WLAN_ESE) && !defined(FEATURE_WLAN_ESE_UPLOAD)
 #include "eseGlobal.h"
@@ -6530,48 +6531,17 @@ typedef struct
 {
     /* current state of the interface */
     tSirWifiInterfaceInfo info;
-    /* access point beacon received count from connected AP */
-    tANI_U32            beaconRx;
-    /* access point mgmt frames received count from */
-    /* connected AP (including Beacon) */
-    tANI_U32            mgmtRx;
-    /* action frames received count */
-    tANI_U32            mgmtActionRx;
-    /* action frames transmit count */
-    tANI_U32            mgmtActionTx;
-    /* access Point Beacon and Management frames RSSI (averaged) */
-    tANI_U32            rssiMgmt;
-    /* access Point Data Frames RSSI (averaged) from connected AP */
-    tANI_U32            rssiData;
-    /* access Point ACK RSSI (averaged) from connected AP */
-    tANI_U32            rssiAck;
-    /** number of peers */
-    tANI_U32 num_peers;
-    /** Indicates how many peer_stats events will be sent depending on the num_peers. */
-    tANI_U32 num_peer_events;
-    /** number of ac */
-    tANI_U32 num_ac;
-    /** Roaming Stat */
-    tANI_U32 roam_state;
-    /** Average Beacon spread offset is the averaged time delay between TBTT and beacon TSF */
-    /** Upper 32 bits of averaged 64 bit beacon spread offset */
-    tANI_U32 avg_bcn_spread_offset_high;
-    /** Lower 32 bits of averaged 64 bit beacon spread offset */
-    tANI_U32 avg_bcn_spread_offset_low;
-    /** Takes value of 1 if AP leaks packets after sending an ACK for PM=1 otherwise 0 */
-    tANI_U32 is_leaky_ap;
-    /** Average number of frames received from AP after receiving the ACK for a frame with PM=1 */
-    tANI_U32 avg_rx_frms_leaked;
-    /** Rx leak watch window currently in force to minimize data loss because of leaky AP. Rx leak window is the
-        time driver waits before shutting down the radio or switching the channel and after receiving an ACK for
-        a data frame with PM bit set) */
-    tANI_U32 rx_leak_window;
+
     uint32_t rts_succ_cnt;
     uint32_t rts_fail_cnt;
     uint32_t ppdu_succ_cnt;
     uint32_t ppdu_fail_cnt;
+
+    /* link statistics */
+    wmi_iface_link_stats link_stats;
+
     /* per ac data packet statistics */
-    tSirWifiWmmAcStat    AccessclassStats[WIFI_AC_MAX];
+    wmi_wmm_ac_stats ac_stats[WIFI_AC_MAX];
 } tSirWifiIfaceStat, *tpSirWifiIfaceStat;
 
 /* Peer statistics - corresponding to 3rd most LSB in
