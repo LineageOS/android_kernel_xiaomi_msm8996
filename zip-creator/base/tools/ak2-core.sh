@@ -107,7 +107,7 @@ dump_boot() {
 ##########################################################################################
 
 ramdisk_patch(){
-if [ -f /tmp/anykernel/patch/010-no-force-encrypt ] || [ -f /tmp/anykernel/patch/015-no-dm-verity ] || [ -f /tmp/anykernel/patch/020-magisk-patch-dtb ]; then
+if [ -f /tmp/anykernel/patch/*.sh ]; then
 	$bb chmod -R 755 /tmp/anykernel/ramdisk;
 	find /tmp/anykernel/patch/ -type f | sort > patchfiles
 	while read -r patchfile; do
