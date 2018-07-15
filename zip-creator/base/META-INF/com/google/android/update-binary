@@ -161,10 +161,16 @@ if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.modules)" == 1 ]; then
   ui_print " ";
   ui_print "Pushing modules...";
   mount -o rw,remount -t auto /system;
+
   $bb cp -rLf /tmp/anykernel/modules/* $root/system/lib/modules/;
   set_perm_recursive 0 0 0755 0644 $root/system/lib/modules;
   chcon -R 'u:object_r:system_file:s0' $root/system/lib/modules;
+
+  $bb cp -rLf /tmp/anykernel/qca_cld/* $root/system/vendor/lib/modules/qca_cld/;
+  set_perm_recursive 0 0 0755 0644 $root/system/vendor/lib/modules/qca_cld;
+  chcon -R 'u:object_r:system_file:s0' $root/system/vendor/lib/modules/qca_cld;
   mount -o ro,remount -t auto /system;
+
 fi;
 
 debugging;

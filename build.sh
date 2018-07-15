@@ -275,8 +275,15 @@ if [ -f arch/${ARCH}/boot/Image.gz ] || [ -f arch/${ARCH}/boot/Image.lzma ] || [
 		echo "name4=${name4}" >> ${zipdirout}/device.prop
 
 		mkdir ${zipdirout}/modules
+		mkdir ${zipdirout}/qca_cld
 		find . -name *.ko | xargs cp -a --target-directory=${zipdirout}/modules/ &> /dev/null
+		find . -name wlan.ko | xargs cp -a --target-directory=${zipdirout}/qca_cld/ &> /dev/null
+        cp ${zipdirout}/qca_cld/wlan.ko ${zipdirout}/qca_cld/qca_cld_wlan.ko
+		rm -rf ${zipdirout}/modules/wlan.ko
+		rm -rf ${zipdirout}/qca_cld/wlan.ko
 		${CROSS_COMPILE}strip --strip-unneeded ${zipdirout}/modules/*.ko
+		${CROSS_COMPILE}strip --strip-unneeded ${zipdirout}/qca_cld/*.ko
+
 
 		cd ${zipdirout}
 		zip -r ${zipfile} * -x .gitignore &> /dev/null
