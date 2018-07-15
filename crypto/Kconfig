@@ -1366,7 +1366,7 @@ comment "Random Number Generation"
 
 config CRYPTO_ANSI_CPRNG
 	tristate "Pseudo Random Number Generation for Cryptographic modules"
-	default m
+	default y
 	select CRYPTO_AES
 	select CRYPTO_RNG
 	help
