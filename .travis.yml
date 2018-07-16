@@ -55,7 +55,7 @@ before_script:
   - echo $TRAVIS_BUILD_NUMBER
   - echo $TRAVIS_REPO_SLUG
 # Get last remaining tags, if any.
-  - git fetch --tags
+#  - git fetch --tags
 #  - git tag
 script:
 # The build.sh need LZ4 and ubuntu 12.xx not support 'LZ4' officialy
