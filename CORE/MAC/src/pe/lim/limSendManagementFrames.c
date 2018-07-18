@@ -2399,9 +2399,6 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
         mlmAssocCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
 
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                ( void* ) pFrame, ( void* ) pPacket );
-
         limPostSmeMessage( pMac, LIM_MLM_ASSOC_CNF,
                 ( tANI_U32* ) &mlmAssocCnf);
 
