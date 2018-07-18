@@ -492,6 +492,12 @@ config LAZYPLUG
 	  This enables the conservative hotplugging, lazyplug by arter97
 	  based on intelli_plug. Refer to the comments for more info.
 
+config FINGERPRINT_BOOST
+	bool "Fingerprint Boost"
+	default y
+	help
+	  Boosts available CPUs to max frequency on fingerprint sensor input.
+
 menu "x86 CPU frequency scaling drivers"
 depends on X86
 source "drivers/cpufreq/Kconfig.x86"
