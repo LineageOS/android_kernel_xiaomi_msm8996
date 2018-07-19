@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -348,6 +348,7 @@ int vos_sched_handle_throughput_req(bool high_tput_required)
 	return 0;
 }
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
 /**
  * __vos_cpu_hotplug_notify - cpu core on-off notification handler
  * @block:	notifier block
@@ -463,7 +464,8 @@ static int vos_cpu_hotplug_notify(struct notifier_block *block,
 static struct notifier_block vos_cpu_hotplug_notifier = {
    .notifier_call = vos_cpu_hotplug_notify,
 };
-#endif
+#endif //LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0)
+#endif //#ifdef QCA_CONFIG_SMP
 
 /*---------------------------------------------------------------------------
  * External Function implementation
@@ -501,6 +503,9 @@ vos_sched_open
 )
 {
   VOS_STATUS  vStatus = VOS_STATUS_SUCCESS;
+#ifdef CONFIG_PERF_NON_QC_PLATFORM
+  struct sched_param param = {.sched_priority = 99};
+#endif
 /*-------------------------------------------------------------------------*/
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
              "%s: Opening the VOSS Scheduler",__func__);
@@ -556,8 +561,10 @@ vos_sched_open
        return VOS_STATUS_E_FAILURE;
   }
   spin_unlock_bh(&pSchedContext->VosTlshimPktFreeQLock);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
   register_hotcpu_notifier(&vos_cpu_hotplug_notifier);
   pSchedContext->cpuHotPlugNotifier = &vos_cpu_hotplug_notifier;
+#endif
   vos_lock_init(&pSchedContext->affinity_lock);
   pSchedContext->high_throughput_required = false;
 #endif
@@ -589,6 +596,9 @@ vos_sched_open
   pSchedContext->TlshimRxThread = kthread_create(VosTlshimRxThread,
                                                  pSchedContext,
                                                  "VosTlshimRxThread");
+#ifdef CONFIG_PERF_NON_QC_PLATFORM
+  sched_setscheduler(pSchedContext->TlshimRxThread, SCHED_FIFO, &param);
+#endif
   if (IS_ERR(pSchedContext->TlshimRxThread))
   {
 
@@ -637,7 +647,9 @@ MC_THREAD_START_FAILURE:
 
 
 #ifdef QCA_CONFIG_SMP
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
   unregister_hotcpu_notifier(&vos_cpu_hotplug_notifier);
+#endif
   vos_free_tlshim_pkt_freeq(gpVosSchedContext);
 #endif
 
@@ -1147,7 +1159,8 @@ VosWDThread
       if (test_and_clear_bit(WD_WLAN_DETECT_THREAD_STUCK,
                                    &pWdContext->wdEventFlag)) {
 
-       if (!test_bit(MC_SUSPEND_EVENT, &gpVosSchedContext->mcEventFlag))
+       if (gpVosSchedContext &&
+           !test_bit(MC_SUSPEND_EVENT, &gpVosSchedContext->mcEventFlag))
             vos_wd_detect_thread_stuck();
        else
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
@@ -1576,8 +1589,8 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     if (gpVosSchedContext == NULL)
     {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: gpVosSchedContext == NULL",__func__);
-       return VOS_STATUS_E_FAILURE;
+           "%s: gpVosSchedContext == NULL, already closed", __func__);
+       return VOS_STATUS_SUCCESS;
     }
 
     // shut down MC Thread
@@ -1604,7 +1617,10 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     gpVosSchedContext->TlshimRxThread = NULL;
     vos_drop_rxpkt_by_staid(gpVosSchedContext, WLAN_MAX_STA_COUNT);
     vos_free_tlshim_pkt_freeq(gpVosSchedContext);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4,10,0))
     unregister_hotcpu_notifier(&vos_cpu_hotplug_notifier);
+#endif
+    gpVosSchedContext = NULL;
 #endif
     return VOS_STATUS_SUCCESS;
 } /* vox_sched_close() */

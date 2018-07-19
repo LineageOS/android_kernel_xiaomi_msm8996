@@ -7201,6 +7201,15 @@ struct stsf {
 	uint32_t tsf_high;
 };
 
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+typedef struct
+{
+    uint8_t vdev_id;
+    uint32_t status;
+} tSirMtEvent, *tpSirMtEvent;
+#endif
+
+
 /**
  * OCB structures
  */

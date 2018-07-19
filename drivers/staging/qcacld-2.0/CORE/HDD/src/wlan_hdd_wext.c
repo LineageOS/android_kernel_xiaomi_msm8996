@@ -258,6 +258,11 @@ typedef enum eMonFilterType{
 #define WE_SET_TDLS_OFFCHANNEL                91
 #define WE_SET_TDLS_OFFCHANNEL_SEC_OFFSET     92
 
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+#define WE_MOTION_DET_START_STOP              93
+#define WE_MOTION_DET_BASE_LINE_START_STOP    94
+#endif
+
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT    (SIOCIWFIRSTPRIV + 1)
 #define WE_GET_11D_STATE     1
@@ -408,6 +413,13 @@ typedef enum eMonFilterType{
 #define MAX_VAR_ARGS                                11
 #else
 #define MAX_VAR_ARGS                                 7
+#endif
+
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+#undef  MAX_VAR_ARGS
+#define MAX_VAR_ARGS                                15
+#define WE_MOTION_DET_CONFIG_PARAM                  12
+#define WE_MOTION_DET_BASE_LINE_CONFIG_PARAM        13
 #endif
 
 /* Private ioctls (with no sub-ioctls) */
@@ -2024,193 +2036,6 @@ static int iw_get_name(struct net_device *dev,
 	return ret;
 }
 
-
-/**
- * __iw_set_mode() - SIOCSIWMODE ioctl handler
- * @dev: device upon which the ioctl was received
- * @info: ioctl request information
- * @wrqu: ioctl request data
- * @extra: ioctl extra data
- *
- * Return: 0 on success, non-zero on error
- */
-static int __iw_set_mode(struct net_device *dev, struct iw_request_info *info,
-			 union iwreq_data *wrqu, char *extra)
-{
-    hdd_wext_state_t         *pWextState;
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    tCsrRoamProfile          *pRoamProfile;
-    eCsrRoamBssType          LastBSSType;
-    eMib_dot11DesiredBssType connectedBssType;
-    hdd_config_t             *pConfig;
-    struct wireless_dev      *wdev;
-    hdd_context_t *hdd_ctx;
-    int ret;
-
-    ENTER();
-
-    hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
-    ret = wlan_hdd_validate_context(hdd_ctx);
-    if (0 != ret)
-        return ret;
-
-    pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-    wdev = dev->ieee80211_ptr;
-    pRoamProfile = &pWextState->roamProfile;
-    LastBSSType = pRoamProfile->BSSType;
-
-    hddLog(LOG1, "%s Old Bss type = %d", __func__, LastBSSType);
-
-    switch (wrqu->mode)
-    {
-    case IW_MODE_ADHOC:
-        hddLog(LOG1, "%s Setting AP Mode as IW_MODE_ADHOC", __func__);
-        pRoamProfile->BSSType = eCSR_BSS_TYPE_START_IBSS;
-        // Set the phymode correctly for IBSS.
-        pConfig  = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
-        pWextState->roamProfile.phyMode = hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
-        pAdapter->device_mode = WLAN_HDD_IBSS;
-        wdev->iftype = NL80211_IFTYPE_ADHOC;
-        break;
-    case IW_MODE_INFRA:
-        hddLog(LOG1, "%s Setting AP Mode as IW_MODE_INFRA", __func__);
-        pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
-        wdev->iftype = NL80211_IFTYPE_STATION;
-        break;
-    case IW_MODE_AUTO:
-        hddLog(LOG1, "%s Setting AP Mode as IW_MODE_AUTO", __func__);
-        pRoamProfile->BSSType = eCSR_BSS_TYPE_ANY;
-        break;
-    default:
-        hddLog(LOGE, "%s Unknown AP Mode value %d ", __func__, wrqu->mode);
-        return -EOPNOTSUPP;
-    }
-
-    if ( LastBSSType != pRoamProfile->BSSType )
-    {
-        //the BSS mode changed
-        // We need to issue disconnect if connected or in IBSS disconnect state
-        if ( hdd_connGetConnectedBssType( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), &connectedBssType ) ||
-             ( eCSR_BSS_TYPE_START_IBSS == LastBSSType ) )
-        {
-            VOS_STATUS vosStatus;
-            // need to issue a disconnect to CSR.
-            INIT_COMPLETION(pAdapter->disconnect_comp_var);
-            vosStatus = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
-                                          pAdapter->sessionId,
-                                          eCSR_DISCONNECT_REASON_IBSS_LEAVE );
-            if(VOS_STATUS_SUCCESS == vosStatus)
-            {
-                 unsigned long rc;
-                 rc = wait_for_completion_timeout(
-                                  &pAdapter->disconnect_comp_var,
-                                    msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-                 if (!rc)
-                     hddLog(VOS_TRACE_LEVEL_ERROR,
-                            FL("failed wait on disconnect_comp_var"));
-            }
-        }
-    }
-
-    EXIT();
-    return 0;
-}
-
-/**
- * iw_set_mode() - SSR wrapper for __iw_set_mode()
- * @dev: pointer to net_device
- * @info: pointer to iw_request_info
- * @wrqu: pointer to iwreq_data
- * @extra: pointer to extra ioctl payload
- *
- * Return: 0 on success, error number otherwise
- */
-static int iw_set_mode(struct net_device *dev, struct iw_request_info *info,
-		       union iwreq_data *wrqu, char *extra)
-{
-	int ret;
-
-	vos_ssr_protect(__func__);
-	ret = __iw_set_mode(dev, info, wrqu, extra);
-	vos_ssr_unprotect(__func__);
-
-	return ret;
-}
-
-/**
- * __iw_get_mode() - SIOCGIWMODE ioctl handler
- * @dev: device upon which the ioctl was received
- * @info: ioctl request information
- * @wrqu: ioctl request data
- * @extra: ioctl extra data
- *
- * Return: 0 on success, non-zero on error
- */
-static int
-__iw_get_mode(struct net_device *dev, struct iw_request_info *info,
-	      union iwreq_data *wrqu, char *extra)
-{
-    hdd_wext_state_t *pWextState;
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    hdd_context_t *hdd_ctx;
-    int ret;
-
-    ENTER();
-
-    hdd_ctx = WLAN_HDD_GET_CTX(pAdapter);
-    ret = wlan_hdd_validate_context(hdd_ctx);
-    if (0 != ret)
-        return ret;
-
-    pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
-
-    switch (pWextState->roamProfile.BSSType) {
-    case eCSR_BSS_TYPE_INFRASTRUCTURE:
-        if(VOS_MONITOR_MODE == vos_get_conparam()){
-            hddLog(LOG1, FL("returns IW_MODE_MONITOR"));
-            wrqu->mode = IW_MODE_MONITOR;
-        }else{
-            hddLog(LOG1, FL("returns IW_MODE_INFRA"));
-            wrqu->mode = IW_MODE_INFRA;
-        }
-        break;
-    case eCSR_BSS_TYPE_IBSS:
-    case eCSR_BSS_TYPE_START_IBSS:
-        hddLog(LOG1, FL("returns IW_MODE_ADHOC"));
-        wrqu->mode = IW_MODE_ADHOC;
-        break;
-    case eCSR_BSS_TYPE_ANY:
-    default:
-        hddLog(LOG1, FL("returns IW_MODE_AUTO"));
-        wrqu->mode = IW_MODE_AUTO;
-        break;
-    }
-
-    EXIT();
-    return 0;
-}
-
-/**
- * iw_get_mode() - SSR wrapper for __iw_get_mode()
- * @dev: pointer to net_device
- * @info: pointer to iw_request_info
- * @wrqu: pointer to iwreq_data
- * @extra: pointer to extra ioctl payload
- *
- * Return: 0 on success, error number otherwise
- */
-static int iw_get_mode(struct net_device *dev, struct iw_request_info *info,
-		       union iwreq_data *wrqu, char *extra)
-{
-	int ret;
-
-	vos_ssr_protect(__func__);
-	ret = __iw_get_mode(dev, info, wrqu, extra);
-	vos_ssr_unprotect(__func__);
-
-	return ret;
-}
-
 /**
  * __iw_set_freq() - SIOCSIWFREQ ioctl handler
  * @dev: device upon which the ioctl was received
@@ -2654,7 +2479,8 @@ static int __iw_set_bitrate(struct net_device *dev,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_wext_state_t *pWextState;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-    v_U8_t supp_rates[WNI_CFG_SUPPORTED_RATES_11A_LEN];
+    uint8_t supp_rates[WNI_CFG_SUPPORTED_RATES_11A_LEN +
+			WNI_CFG_SUPPORTED_RATES_11B_LEN];
     v_U32_t a_len = WNI_CFG_SUPPORTED_RATES_11A_LEN;
     v_U32_t b_len = WNI_CFG_SUPPORTED_RATES_11B_LEN;
     v_U32_t i, rate;
@@ -2694,7 +2520,7 @@ static int __iw_set_bitrate(struct net_device *dev,
                         supp_rates, &a_len) == eHAL_STATUS_SUCCESS) &&
                 (ccmCfgGetStr(WLAN_HDD_GET_HAL_CTX(pAdapter),
                         WNI_CFG_SUPPORTED_RATES_11B,
-                        supp_rates, &b_len) == eHAL_STATUS_SUCCESS))
+                        supp_rates + a_len, &b_len) == eHAL_STATUS_SUCCESS))
             {
                 for (i = 0; i < (b_len + a_len); ++i)
                 {
@@ -7236,6 +7062,7 @@ static int __iw_setint_getnone(struct net_device *dev,
             wlan_hdd_mnt_filter_type_cmd(pAdapter, &filter_type,sizeof(v_U8_t));
             break;
         }
+#ifdef FEATURE_WLAN_TDLS
         case WE_SET_TDLS_OFFCHANNEL_MODE:
         {
             hddLog(LOG1, "SET tdls_offchannel_mode  val %d", set_value);
@@ -7262,6 +7089,43 @@ static int __iw_setint_getnone(struct net_device *dev,
             ret = hdd_set_tdls_secoffchanneloffset(pHddCtx, set_value);
 	    break;
 	}
+#endif
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+        case WE_MOTION_DET_START_STOP:
+            {
+                tSirMotionDetEnable enable;
+
+                if ( (set_value != 1) && (set_value != 0)) {
+                     hddLog(LOGE, FL("Invalid value %d in mt_start"),
+                             set_value);
+                    return -EINVAL;
+                }
+
+                enable.vdev_id = (int)pAdapter->sessionId;
+                enable.enable = set_value;
+
+		if (set_value == 0) {
+			pAdapter->motion_detection_mode = 0;
+		}
+                sme_MotionDetEnable(hHal, &enable);
+            }
+            break;
+        case WE_MOTION_DET_BASE_LINE_START_STOP:
+            {
+                tSirMotionDetBaseLineEnable enable;
+
+                if ( (set_value != 1) && (set_value != 0)) {
+                     hddLog(LOGE, FL("Invalid value %d in mt_bl_start"),
+                             set_value);
+                    return -EINVAL;
+                }
+
+                enable.vdev_id = (int)pAdapter->sessionId;
+                enable.enable = set_value;
+                sme_MotionDetBaseLineEnable(hHal, &enable);
+            }
+            break;
+#endif
         default:
         {
             hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
@@ -9024,6 +8888,73 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
                     level = apps_args[0];
                 }
                 vos_mem_trace_dump(level);
+            }
+            break;
+#endif
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+        case WE_MOTION_DET_CONFIG_PARAM:
+            {
+                tSirMotionDetConfig config;
+
+                if (num_args != 15) {
+                    hddLog(LOGE, FL("motion_det_config: <time_t1>"
+                                                       " <time_t2>"
+                                                       " <n1>"
+                                                       " <n2>"
+                                                       " <time_t1_gap>"
+                                                       " <time_t2_gap>"
+                                                       " <coarse K>"
+                                                       " <fine K>"
+                                                       " <coarse Q>"
+                                                       " <fine Q>"
+                                                       " <coarse thr high>"
+                                                       " <fine thr threshold>"
+                                                       " <coarse thr low>"
+                                                       " <fine thr low>"
+                                                       " <mode>"));
+                    return -EINVAL;
+                }
+
+                config.vdev_id = (int)pAdapter->sessionId;
+                config.time_t1 = apps_args[0];
+                config.time_t2 = apps_args[1];
+                config.n1 = apps_args[2];
+                config.n2 = apps_args[3];
+                config.time_t1_gap = apps_args[4];
+                config.time_t2_gap = apps_args[5];
+                config.coarse_K = apps_args[6];
+                config.fine_K = apps_args[7];
+                config.coarse_Q = apps_args[8];
+                config.fine_Q = apps_args[9];
+                config.md_coarse_thr_high = apps_args[10];
+                config.md_fine_thr_high = apps_args[11];
+                config.md_coarse_thr_low = apps_args[12];
+                config.md_fine_thr_low = apps_args[13];
+
+                pAdapter->motion_detection_mode = apps_args[14];
+
+                sme_MotionDetConfig(hHal, &config);
+            }
+            break;
+	case WE_MOTION_DET_BASE_LINE_CONFIG_PARAM:
+            {
+                tSirMotionDetBaseLineConfig config;
+                if (num_args != 4) {
+                    hddLog(LOGE,
+                          FL("motion_det_base_line_config: <time>"
+                                                          " <packet_gap>"
+                                                          " <n>"
+                                                          " <num_meas>"));
+                    return -EINVAL;
+                }
+
+                config.vdev_id = (int)pAdapter->sessionId;
+                config.bl_time_t = apps_args[0];
+                config.bl_packet_gap = apps_args[1];
+                config.bl_n = apps_args[2];
+                config.bl_num_meas = apps_args[3];
+
+                sme_MotionDetBaseLineConfig(hHal, &config);
             }
             break;
 #endif
@@ -11439,8 +11370,8 @@ static const iw_handler      we_handler[] =
    (iw_handler) NULL,            /* SIOCGIWNWID */
    (iw_handler) iw_set_freq,      /* SIOCSIWFREQ */
    (iw_handler) iw_get_freq,      /* SIOCGIWFREQ */
-   (iw_handler) iw_set_mode,      /* SIOCSIWMODE */
-   (iw_handler) iw_get_mode,      /* SIOCGIWMODE */
+   (iw_handler) NULL,             /* SIOCSIWMODE */
+   (iw_handler) NULL,             /* SIOCGIWMODE */
    (iw_handler) NULL,              /* SIOCSIWSENS */
    (iw_handler) NULL,              /* SIOCGIWSENS */
    (iw_handler) NULL,             /* SIOCSIWRANGE */
@@ -12645,6 +12576,24 @@ static const struct iw_priv_args we_private_args[] = {
         WLAN_PRIV_SET_FTIES,
         IW_PRIV_TYPE_CHAR | MAX_FTIE_SIZE,
         0, "set_ft_ies"},
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+    {
+        WE_MOTION_DET_CONFIG_PARAM,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, "mt_config"},
+    {
+        WE_MOTION_DET_START_STOP,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "mt_start"},
+    {
+        WE_MOTION_DET_BASE_LINE_CONFIG_PARAM,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, "mt_bl_config"},
+    {
+        WE_MOTION_DET_BASE_LINE_START_STOP,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "mt_bl_start"},
+#endif
 };
 
 

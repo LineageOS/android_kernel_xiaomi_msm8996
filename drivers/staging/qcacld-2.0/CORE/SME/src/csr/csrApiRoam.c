@@ -13841,7 +13841,7 @@ eHalStatus csrRoamDelPMKIDfromCache( tpAniSirGlobal pMac, tANI_U32 sessionId,
                                          (v_MACADDR_t *)pmksa->BSSID))) {
                 fMatchFound = 1;
 
-            } else if ((!adf_os_mem_cmp(cached_pmksa->ssid,
+            } else if (pmksa->ssid_len && (!adf_os_mem_cmp(cached_pmksa->ssid,
                         pmksa->ssid, pmksa->ssid_len)) &&
                         (!adf_os_mem_cmp(cached_pmksa->cache_id,
                         pmksa->cache_id, CACHE_ID_LEN)))
@@ -19696,6 +19696,12 @@ tANI_U32 csrGetdot11Mode(tHalHandle hHal, tANI_U32 sessionId,
     eHalStatus status;
     tDot11fBeaconIEs *ies_local = NULL;
     tANI_U32 dot11mode = 0;
+
+    if (!pSession)
+    {
+        smsLog( pMac, LOGE, FL( "  Session does not exist for session id %d" ), sessionId);
+        return 0;
+    }
 
     smsLog(pMac, LOG1, FL("phyMode %d"), pSession->pCurRoamProfile->phyMode);
 

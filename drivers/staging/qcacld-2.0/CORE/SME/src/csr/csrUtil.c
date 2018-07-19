@@ -3735,7 +3735,8 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
 #endif
     tDot11fBeaconIEs *pIesLocal = pIes;
     eCsrAuthType negAuthType = eCSR_AUTH_TYPE_UNKNOWN;
-
+    tDot11fIERSN dot11RSNIE;
+    tANI_U32 status;
     smsLog(pMac, LOGW, "%s called...", __func__);
 
     do
@@ -3745,6 +3746,24 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
         if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal))) )
         {
             break;
+        }
+
+        memset(&dot11RSNIE, 0, sizeof(tDot11fIERSN));
+        /*
+         *  Use intersection of the RSN cap sent by user space and
+         *  the AP, so that only common capability are enabled.
+         */
+        if(pProfile->nRSNReqIELength && pProfile->pRSNReqIE) {
+            status = dot11fUnpackIeRSN(hHal, pProfile->pRSNReqIE + 2,
+                                       pProfile->nRSNReqIELength - 2, &dot11RSNIE);
+            if (DOT11F_SUCCEEDED(status)) {
+                pIesLocal->RSN.RSN_Cap[0] =
+                        pIesLocal->RSN.RSN_Cap[0] &
+                        dot11RSNIE.RSN_Cap[0];
+                pIesLocal->RSN.RSN_Cap[1] =
+                        pIesLocal->RSN.RSN_Cap[1] &
+                        dot11RSNIE.RSN_Cap[1];
+            }
         }
 
         // See if the cyphers in the Bss description match with the settings in the profile.

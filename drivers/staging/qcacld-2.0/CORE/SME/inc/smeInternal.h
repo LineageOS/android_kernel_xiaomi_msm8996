@@ -224,6 +224,10 @@ typedef struct tagSmeStruct
 #ifdef WLAN_FEATURE_NAN
     void (*nanCallback) (void*, tSirNanEvent*);
 #endif
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+    VOS_STATUS (*mt_host_ev_cb) (void*, tSirMtEvent*);
+    void *mt_cxt;
+#endif
 
     int (*get_tsf_cb)(void *pcb_cxt, struct stsf *ptsf);
     void *get_tsf_cxt;
