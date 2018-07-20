@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1974,6 +1974,12 @@ struct cgstatic cfg_static[WNI_CFG_MAX] = {
 	{WNI_CFG_EDCA_HOSTAPD_ACVO_LOCAL,
 	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_RESTART,
 	 0, 0, 0},
+
+	{WNI_CFG_REMOVE_TIME_SYNC_CMD,
+	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_INT,
+	 WNI_CFG_REMOVE_TIME_SYNC_CMD_STAMIN,
+	 WNI_CFG_REMOVE_TIME_SYNC_CMD_STAMAX,
+	 WNI_CFG_REMOVE_TIME_SYNC_CMD_STADEF},
 };
 
 struct cfgstatic_string cfg_static_string[CFG_MAX_STATIC_STRING] = {
