@@ -386,8 +386,7 @@ static void dfs_process_dc_pulse(struct ath_dfs *dfs, struct dfs_event *event,
                     for (i=0; i < rf->rf_dl.dl_numelems; i++) {
                         miss_pulse_number = vos_round_div(
                                (rf->rf_dl.dl_elems[i].de_time), min_pri);
-                        deviation = __adf_os_abs(min_pri *
-                                        miss_pulse_number -
+                        deviation = (min_pri * miss_pulse_number -
                                         rf->rf_dl.dl_elems[i].de_time);
                         if (deviation > miss_pulse_number*3) {
                             dfs_reset_delayline(&rf->rf_dl);
