@@ -81,6 +81,7 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     tANI_U8           roamSessionId;
 #ifdef WLAN_FEATURE_11W
     tANI_U32          frameLen;
+    bool need_ind_uplayer = true;
 #endif
     int8_t frame_rssi;
 
@@ -134,35 +135,42 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
         return;
     }
 
-#ifdef WLAN_FEATURE_11W
-    /* PMF: If this session is a PMF session, then ensure that this frame was protected */
-    if(psessionEntry->limRmfEnabled  && (WDA_GET_RX_DPU_FEEDBACK(pRxPacketInfo) & DPU_FEEDBACK_UNPROTECTED_ERROR))
-    {
-        PELOGE(limLog(pMac, LOGE, FL("received an unprotected deauth from AP"));)
-        // If the frame received is unprotected, forward it to the supplicant to initiate
-        // an SA query
-        frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
-
-        //send the unprotected frame indication to SME
-        limSendSmeUnprotectedMgmtFrameInd( pMac, pHdr->fc.subType,
-                                           (tANI_U8*)pHdr, (frameLen + sizeof(tSirMacMgmtHdr)),
-                                           psessionEntry->smeSessionId, psessionEntry);
-        return;
-    }
-#endif
-
     // Get reasonCode from Deauthentication frame body
     reasonCode = sirReadU16(pBody);
 
     PELOGE(limLog(pMac, LOGE,
-        FL("Received Deauth frame for Addr: "MAC_ADDRESS_STR" (mlm state=%s "
-        "sme state=%d systemrole=%d RSSI=%d) with reason code %d [%s] from "
-        MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->da),
-        limMlmStateStr(psessionEntry->limMlmState),
-        psessionEntry->limSmeState,
-        GET_LIM_SYSTEM_ROLE(psessionEntry), frame_rssi,
-        reasonCode, limDot11ReasonStr(reasonCode),
-        MAC_ADDR_ARRAY(pHdr->sa));)
+           FL("Received Deauth frame for Addr: "MAC_ADDRESS_STR" (mlm state=%s previous state=%s"
+           "sme state=%d previous state=%d systemrole=%d RSSI=%d) with reason code %d [%s] from "
+           MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->da),
+           limMlmStateStr(psessionEntry->limMlmState),
+           limMlmStateStr(psessionEntry->limPrevMlmState),
+           psessionEntry->limSmeState, psessionEntry->limPrevSmeState,
+           GET_LIM_SYSTEM_ROLE(psessionEntry), frame_rssi,
+           reasonCode, limDot11ReasonStr(reasonCode),
+           MAC_ADDR_ARRAY(pHdr->sa));)
+
+#ifdef WLAN_FEATURE_11W
+    /* PMF: If this session is a PMF session, then ensure that this frame was protected */
+    if(psessionEntry->limRmfEnabled  && (WDA_GET_RX_DPU_FEEDBACK(pRxPacketInfo) & DPU_FEEDBACK_UNPROTECTED_ERROR))
+    {
+        if (psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE &&
+            psessionEntry->limPrevMlmState ==  eLIM_MLM_JOINED_STATE)
+            need_ind_uplayer = false;
+
+        if (need_ind_uplayer) {
+            PELOGE(limLog(pMac, LOGE, FL("received an unprotected deauth from AP"));)
+            // If the frame received is unprotected, forward it to the supplicant to initiate
+            // an SA query
+            frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+
+            //send the unprotected frame indication to SME
+            limSendSmeUnprotectedMgmtFrameInd(pMac, pHdr->fc.subType,
+                                              (tANI_U8*)pHdr, (frameLen + sizeof(tSirMacMgmtHdr)),
+                                              psessionEntry->smeSessionId, psessionEntry);
+            return;
+        }
+    }
+#endif
 
     if (limCheckDisassocDeauthAckPending(pMac, (tANI_U8*)pHdr->sa))
     {
