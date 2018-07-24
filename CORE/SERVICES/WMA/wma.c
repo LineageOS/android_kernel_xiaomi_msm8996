@@ -9528,7 +9528,8 @@ VOS_STATUS WDA_open(v_VOID_t *vos_context, v_VOID_t *os_ctx,
 
 	mac_params->maxBssId = WMA_MAX_SUPPORTED_BSS;
 	mac_params->frameTransRequired = 0;
-
+	wma_handle->keep_dwell_time_passive =
+		mac_params->keep_dwell_time_passive;
 #ifdef WLAN_FEATURE_LPSS
 	wma_handle->is_lpass_enabled = mac_params->is_lpass_enabled;
 #endif
@@ -11418,6 +11419,25 @@ static bool wma_is_mcc_starting(WMA_HANDLE handle, A_UINT32 starting_mhz)
 	return false;
 }
 
+/**
+ * wma_keep_dwell_time_passive() - Check passive dwell time can change or not.
+ * Keep passive dwell time only when ini keep_dwell_time_passwive is set as 1
+ * and interface is not started.
+ * @wma_handle: wma handler
+ * @vdev_id: vdev id
+ *
+ * Return: True if passive dwell time should be kept, false otherwise.
+ */
+static v_BOOL_t wma_keep_dwell_time_passive(tp_wma_handle wma_handle,
+					    u_int8_t vdev_id)
+{
+	if (wma_handle->keep_dwell_time_passive &&
+	    (!wma_handle->interfaces[vdev_id].vdev_up))
+		return true;
+
+	return false;
+}
+
 /* function   : wma_get_buf_start_scan_cmd
  * Description :
  * Args       :
@@ -11619,7 +11639,14 @@ VOS_STATUS wma_get_buf_start_scan_cmd(tp_wma_handle wma_handle,
 		                    WMA_3PORT_CONC_SCAN_MAX_BURST_DURATION;
 		        break;
 		    }
-		    if (wma_is_SAP_active(wma_handle)) {
+		    /*
+		     * Background SAP can't send probe request before peer is
+		     * created. To make sure passive scan work well, keep
+		     * passive dwell time.
+		     */
+		    if (wma_is_SAP_active(wma_handle) &&
+		        (!wma_keep_dwell_time_passive(wma_handle,
+		        scan_req->sessionId))) {
 			/* Background scan while SoftAP is sending beacons.
 			 * Max duration of CTS2self is 32 ms, which limits
 			 * the dwell time.

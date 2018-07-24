@@ -888,6 +888,7 @@ typedef struct wma_handle {
 	v_BOOL_t IsRArateLimitEnabled;
 	u_int16_t RArateLimitInterval;
 #endif
+	bool keep_dwell_time_passive;
 #ifdef WLAN_FEATURE_LPSS
 	bool is_lpass_enabled;
 #endif

@@ -22607,7 +22607,8 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
              */
             if((WLAN_HDD_SOFTAP == pAdapter->device_mode) && \
                (pHddCtx->no_of_active_sessions[VOS_STA_SAP_MODE] >= 1) && \
-               (pHddCtx->no_of_open_sessions[VOS_STA_SAP_MODE] > 1)) {
+               (pHddCtx->no_of_open_sessions[VOS_STA_SAP_MODE] > 1) && \
+	       (!cfg_param->keeppassivedwelltime)) {
                 scanRequest.scanType = eSIR_ACTIVE_SCAN;
             }
             else {
