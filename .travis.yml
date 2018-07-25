@@ -95,7 +95,7 @@ before_deploy:
 # Set up git user name and tag this commit
 - git config --local user.name "jonascardoso"
 - git config --local user.email "jonascard60@gmail.com"
-- git tag "${customkernel}-$(date +'%d/%m/%Y')-Oreo-MIUI" --force
+- git tag "${customkernel}-$(date +'%d/%m/%Y')-Oreo-MIUI" miui-o --force
 #  Force to use this tag
 - export TRAVIS_TAG="${customkernel}-$(date +'%d/%m/%Y')-Oreo-MIUI"
 #  - git tag "$(date +'%d/%m/%Y')-$(git log --format=%h -1)"
