@@ -2339,6 +2339,7 @@ int ol_txrx_fw_stats_desc_pool_init(struct ol_txrx_pdev_t *pdev,
 	pdev->ol_txrx_fw_stats_desc_pool.pool[i].desc.desc_id = i;
 	pdev->ol_txrx_fw_stats_desc_pool.pool[i].desc.req = NULL;
 	pdev->ol_txrx_fw_stats_desc_pool.pool[i].next = NULL;
+	adf_os_spinlock_init(&pdev->ol_txrx_fw_stats_desc_pool.pool_lock);
 	adf_os_atomic_init(&pdev->ol_txrx_fw_stats_desc_pool.initialized);
 	adf_os_atomic_set(&pdev->ol_txrx_fw_stats_desc_pool.initialized, 1);
 	return 0;
