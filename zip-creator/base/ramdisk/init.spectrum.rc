@@ -189,7 +189,7 @@ on property:persist.spectrum.profile=0
 
 	#Low memory killer
 		write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 0
-		write /sys/module/lowmemorykiller/parameters/minfree "23939,44091,58788,73485,88182,102879"
+		write /sys/module/lowmemorykiller/parameters/minfree "13776,20664,27552,34440,41328,48216"
 
 	#Set noop block I/O scheduler
 		setprop sys.io.scheduler "sio"
@@ -381,9 +381,9 @@ on property:persist.spectrum.profile=1
 		write /proc/sys/kernel/random/read_wakeup_threshold 612
 		write /proc/sys/kernel/random/write_wakeup_threshold 1024
 
-	#Low memoery killer
+	#Low memory killer
 		write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 1
-		write /sys/module/lowmemorykiller/parameters/minfree "22149,30059,38760,58536,67238,79104"
+		write /sys/module/lowmemorykiller/parameters/minfree "20664,27552,34440,41328,48216,61992"
 
 	#Set noop block I/O scheduler
 		setprop sys.io.scheduler "fiops"
@@ -577,7 +577,7 @@ on property:persist.spectrum.profile=2
 
 	#Low memory killer
 		write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 0
-		write /sys/module/lowmemorykiller/parameters/minfree "23939,44091,58788,73485,88182,102879"
+		write /sys/module/lowmemorykiller/parameters/minfree "6888,13776,20664,27552,34440,41328"
 
 	#Set noop block I/O scheduler
 		setprop sys.io.scheduler "noop"
@@ -744,9 +744,9 @@ on property:persist.spectrum.profile=3
 		write /proc/sys/kernel/random/read_wakeup_threshold 740
 		write /proc/sys/kernel/random/write_wakeup_threshold 1152
 
-	#Low memoery killer
+	#Low memory killer
 		write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 1
-		write /sys/module/lowmemorykiller/parameters/minfree "22149,30059,38760,58536,67238,79104"
+		write /sys/module/lowmemorykiller/parameters/minfree "13776,20664,41328,68880,96432,103320"
 
 	#Set noop block I/O scheduler
 		setprop sys.io.scheduler "sioplus"
