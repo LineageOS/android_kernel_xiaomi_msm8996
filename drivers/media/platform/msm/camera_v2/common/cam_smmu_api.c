@@ -2327,7 +2327,7 @@ static int cam_smmu_populate_sids(struct device *dev,
 		if (rc < 0)
 			pr_err("misconfiguration, can't fetch SID\n");
 
-		pr_err("__debug cnt = %d, cb->name: :%s sid [%d] = %d\n,",
+		pr_err("__debug cnt = %d, cb->name: :%s sid [%d] = %d\n",
 			cnt, cb->name, j, cb->sids[j]);
 	}
 	return rc;
