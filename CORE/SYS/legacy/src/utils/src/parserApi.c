@@ -2378,6 +2378,11 @@ static void update_fils_data(struct sir_fils_indication *fils_ind,
 {
     uint8_t *data;
     uint8_t remaining_data = fils_indication->num_variable_data;
+    VosContextType *pVosContext = NULL;
+    tpAniSirGlobal pMac = NULL;
+
+    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+    pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE, pVosContext);
 
     data = fils_indication->variable_data;
     fils_ind->is_present = true;
@@ -2391,7 +2396,8 @@ static void update_fils_data(struct sir_fils_indication *fils_ind,
             fils_indication->is_pk_auth_supported;
     if (fils_indication->is_cache_id_present) {
         if (remaining_data < SIR_CACHE_IDENTIFIER_LEN) {
-            pe_err("Failed to copy Cache Identifier, Invalid remaining data %d",
+            limLog(pMac, LOGE,
+                FL("Failed to copy Cache Identifier, Invalid remaining data %d"),
                 remaining_data);
             return;
         }
@@ -2403,7 +2409,8 @@ static void update_fils_data(struct sir_fils_indication *fils_ind,
     }
     if (fils_indication->is_hessid_present) {
         if (remaining_data < SIR_HESSID_LEN) {
-            pe_err("Failed to copy HESSID, Invalid remaining data %d",
+            limLog(pMac, LOGE,
+                FL("Failed to copy HESSID, Invalid remaining data %d"),
                 remaining_data);
             return;
         }
@@ -2416,7 +2423,8 @@ static void update_fils_data(struct sir_fils_indication *fils_ind,
     if (fils_indication->realm_identifiers_cnt) {
         if (remaining_data < (fils_indication->realm_identifiers_cnt *
             SIR_REALM_LEN)) {
-            pe_err("Failed to copy Realm Identifier, Invalid remaining data %d realm_cnt %d",
+            limLog(pMac, LOGE,
+                FL("Failed to copy Realm Identifier, Invalid remaining data %d realm_cnt %d"),
                 remaining_data, fils_indication->realm_identifiers_cnt);
             return;
         }
