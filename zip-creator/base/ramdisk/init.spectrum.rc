@@ -185,7 +185,7 @@ on property:persist.spectrum.profile=0
 
 	#Entropy
 		write /proc/sys/kernel/random/read_wakeup_threshold 64
-		write /proc/sys/kernel/random/write_wakeup_threshold 768
+		write /proc/sys/kernel/random/write_wakeup_threshold 896
 
 	#Low memory killer
 		write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 0
@@ -379,7 +379,7 @@ on property:persist.spectrum.profile=1
 
 	#Entropy
 		write /proc/sys/kernel/random/read_wakeup_threshold 192
-		write /proc/sys/kernel/random/write_wakeup_threshold 896
+		write /proc/sys/kernel/random/write_wakeup_threshold 1024
 
 	#Low memory killer
 		write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 1
@@ -573,7 +573,7 @@ on property:persist.spectrum.profile=2
 
 	#Entropy
 		write /proc/sys/kernel/random/read_wakeup_threshold 64
-		write /proc/sys/kernel/random/write_wakeup_threshold 640
+		write /proc/sys/kernel/random/write_wakeup_threshold 768
 
 	#Low memory killer
 		write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 0
@@ -742,7 +742,7 @@ on property:persist.spectrum.profile=3
 
 	#Entropy
 		write /proc/sys/kernel/random/read_wakeup_threshold 320
-		write /proc/sys/kernel/random/write_wakeup_threshold 1024
+		write /proc/sys/kernel/random/write_wakeup_threshold 1152
 
 	#Low memory killer
 		write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 1
