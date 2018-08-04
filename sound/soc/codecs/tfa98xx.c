@@ -2631,6 +2631,10 @@ static int tfa98xx_probe(struct snd_soc_codec *codec)
 
 	tfa98xx->codec = codec;
 
+#ifdef CONFIG_SOUND_CONTROL
+	tfa98xx_codec_ptr = codec;
+#endif
+
 	ret = tfa98xx_load_container(tfa98xx);
 	pr_debug("Container loading requested: %d\n", ret);
 
