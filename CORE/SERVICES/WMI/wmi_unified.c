@@ -1355,6 +1355,8 @@ wmi_unified_attach(ol_scn_t scn_handle, wma_wow_tx_complete_cbk func)
     adf_os_spinlock_init(&wmi_handle->wmi_record_lock);
 #endif
     wmi_handle->wma_wow_tx_complete_cbk = func;
+
+    adf_os_init_mutex(&wmi_handle->wmi_mutex);
     return wmi_handle;
 }
 
