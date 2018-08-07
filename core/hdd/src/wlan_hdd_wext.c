@@ -2703,7 +2703,7 @@ int hdd_priv_get_data(struct iw_point *p_priv_data, union iwreq_data *wrqu)
 		return -EINVAL;
 
 #ifdef CONFIG_COMPAT
-	if (is_compat_task()) {
+	if (in_compat_syscall()) {
 		struct compat_iw_point *p_compat_priv_data;
 
 		/* Compat task:
@@ -9367,7 +9367,6 @@ static int __iw_get_char_setnone(struct net_device *dev,
 		int count = 0, check = 1;
 
 		tHalHandle hHal = NULL;
-		tpAniSirGlobal pMac = NULL;
 		hdd_station_ctx_t *pHddStaCtx = NULL;
 
 		hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
@@ -9424,16 +9423,7 @@ static int __iw_get_char_setnone(struct net_device *dev,
 				buf =
 					scnprintf(extra + len,
 						  WE_MAX_STR_LEN - len,
-						  "\n pMac is NULL");
-				len += buf;
-				break;
-			}
-			pMac = PMAC_STRUCT(hHal);
-			if (!pMac) {
-				buf =
-					scnprintf(extra + len,
-						  WE_MAX_STR_LEN - len,
-						  "\n pMac is NULL");
+						  "\n hHal is NULL");
 				len += buf;
 				break;
 			}
@@ -9880,7 +9870,7 @@ static int __iw_setnone_getnone(struct net_device *dev,
 	 * compat support in the kernel does not handle this case.  so we
 	 * need to explicitly handle it here.
 	 */
-	if (is_compat_task()) {
+	if (in_compat_syscall()) {
 		struct compat_iw_point *compat_iw_point =
 			(struct compat_iw_point *)&wrqu->data;
 		sub_cmd = compat_iw_point->flags;
@@ -12230,6 +12220,12 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
 			   value[1], value[2]);
 		if (!hdd_ctx->config->crash_inject_enabled) {
 			hdd_warn("Crash Inject ini disabled");
+			return 0;
+		}
+
+		if (value[1] == 3) {
+			hdd_warn("Trigger host initiated recovery");
+			cds_trigger_recovery(CDS_REASON_UNSPECIFIED);
 			return 0;
 		}
 		ret = wma_cli_set2_command(pAdapter->sessionId,

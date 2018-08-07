@@ -644,8 +644,8 @@ static void hdd_update_dbs_scan_ctrl_ext_flag(hdd_context_t *hdd_ctx,
 	}
 	if (!(hdd_ctx->is_dbs_scan_duty_cycle_enabled)) {
 		scan_dbs_policy = SME_SCAN_DBS_POLICY_IGNORE_DUTY;
-		hdd_info_ratelimited(HDD_DBS_SCAN_DISABLE_RATE_LIMIT,
-				     "DBS scan duty cycle is disabled");
+		hdd_debug_ratelimited(HDD_DBS_SCAN_DISABLE_RATE_LIMIT,
+				      "DBS scan duty cycle is disabled");
 		goto end;
 	}
 
@@ -2363,6 +2363,12 @@ static int __wlan_hdd_cfg80211_scan(struct wiphy *wiphy,
 			pAdapter->sessionId);
 	}
 	if (request->ie_len) {
+		if (request->ie_len > SIR_MAC_MAX_ADD_IE_LENGTH) {
+			hdd_debug("Invalid ie_len: %zu", request->ie_len);
+			status = -EINVAL;
+			goto free_mem;
+		}
+
 		/* save this for future association (join requires this) */
 		memset(&pScanInfo->scanAddIE, 0, sizeof(pScanInfo->scanAddIE));
 		memcpy(pScanInfo->scanAddIE.addIEdata, request->ie,
@@ -2729,6 +2735,16 @@ static int wlan_hdd_vendor_scan_random_attr(struct wiphy *wiphy,
 	    (wdev->current_bss)) {
 		hdd_err("SCAN RANDOMIZATION not supported");
 		return -EOPNOTSUPP;
+	}
+
+	if (!tb[QCA_WLAN_VENDOR_ATTR_SCAN_MAC] &&
+	    !tb[QCA_WLAN_VENDOR_ATTR_SCAN_MAC_MASK]) {
+		qdf_mem_zero(request->mac_addr, QDF_MAC_ADDR_SIZE);
+		qdf_mem_zero(request->mac_addr_mask, QDF_MAC_ADDR_SIZE);
+		request->mac_addr[0] = 0x2;
+		request->mac_addr_mask[0] = 0x3;
+
+		return 0;
 	}
 
 	if (!tb[QCA_WLAN_VENDOR_ATTR_SCAN_MAC] ||
@@ -3941,6 +3957,8 @@ void hdd_cleanup_scan_queue(hdd_context_t *hdd_ctx, hdd_adapter_t *padapter)
 			} else if (!req) {
 				hdd_debug("pending scan is wext triggered");
 			} else {
+				hdd_debug("Removing scan id: %d, req = %pK",
+					  scan_id, req);
 				if (NL_SCAN == source)
 					hdd_cfg80211_scan_done(adapter,
 								req, aborted);
@@ -3948,8 +3966,6 @@ void hdd_cleanup_scan_queue(hdd_context_t *hdd_ctx, hdd_adapter_t *padapter)
 					hdd_vendor_scan_callback(adapter,
 								 req, aborted,
 								 scan_id);
-				hdd_debug("removed Scan id: %d, req = %pK",
-					scan_id, req);
 			}
 			qdf_mem_free(hdd_scan_req);
 			qdf_spin_lock(&hdd_ctx->hdd_scan_req_q_lock);
