@@ -139,11 +139,6 @@ on property:persist.spectrum.profile=0
 	#Disable BCL
 		write /sys/devices/soc/soc:qcom,bcl/mode "-n disable"
 
-	#Disable Core Control and Control VDD and MSM Thermal Throttling allowing for longer sustained performance
-		write /sys/module/msm_thermal/core_control/enabled 0
-		write /sys/module/msm_thermal/vdd_restriction/enabled 0	
-		write /sys/module/msm_thermal/parameters/enabled N
-
 	#Tweak HMP Scheduler to feed the Big cluster more tasks
 		#write /proc/sys/kernel/sched_window_stats_policy 2
 		#write /proc/sys/kernel/sched_upmigrate 95 
@@ -327,11 +322,6 @@ on property:persist.spectrum.profile=1
 
 	#Disable BCL
 		write /sys/devices/soc/soc:qcom,bcl/mode "-n disable"
-
-	#Disable Core Control and Control VDD and MSM Thermal Throttling allowing for longer sustained performance
-		write /sys/module/msm_thermal/core_control/enabled 0
-		write /sys/module/msm_thermal/vdd_restriction/enabled 0	
-		write /sys/module/msm_thermal/parameters/enabled N
 
 	#Tweak HMP Scheduler to feed the Big cluster more tasks
 		write /proc/sys/kernel/sched_window_stats_policy 1
@@ -522,11 +512,6 @@ on property:persist.spectrum.profile=2
 	#Disable BCL
 		write /sys/devices/soc/soc:qcom,bcl/mode "-n disable"
 
-	#Disable Core Control and Control VDD and MSM Thermal Throttling allowing for longer sustained performance
-		write /sys/module/msm_thermal/core_control/enabled 0
-		write /sys/module/msm_thermal/vdd_restriction/enabled 0	
-		write /sys/module/msm_thermal/parameters/enabled N
-
 	#Tweak HMP Scheduler for correcting BIG Cluster utilization
 		write /proc/sys/kernel/sched_window_stats_policy 2
 		write /proc/sys/kernel/sched_upmigrate 90
@@ -689,11 +674,6 @@ on property:persist.spectrum.profile=3
 
 	#Disable BCL
 		write /sys/devices/soc/soc:qcom,bcl/mode "-n disable"
-
-	#Disable Core Control and Control VDD and MSM Thermal Throttling allowing for longer sustained performance
-		write /sys/module/msm_thermal/core_control/enabled 0
-		write /sys/module/msm_thermal/vdd_restriction/enabled 0	
-		write /sys/module/msm_thermal/parameters/enabled N
 
 	#Tweaking HMP Scheduler for correcting BIG Cluster utilization
 		write /proc/sys/kernel/sched_window_stats_policy 2
