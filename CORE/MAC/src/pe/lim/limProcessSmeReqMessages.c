@@ -3408,7 +3408,8 @@ __limProcessSmeDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             return;
     } // end switch (pMac->lim.gLimSystemRole)
 
-    if (smeDeauthReq.reasonCode == eLIM_LINK_MONITORING_DEAUTH)
+    if (smeDeauthReq.reasonCode == eLIM_LINK_MONITORING_DEAUTH &&
+        psessionEntry->limSystemRole == eLIM_STA_ROLE)
     {
         /// Deauthentication is triggered by Link Monitoring
         PELOG1(limLog(pMac, LOG1, FL("**** Lost link with AP ****"));)
