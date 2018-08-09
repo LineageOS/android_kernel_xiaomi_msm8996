@@ -325,7 +325,6 @@ int amap_create(struct super_block *sb, u32 pack_ratio, u32 sect_per_au, u32 hid
 	int i, i_clu, i_au;
 	int i_au_root = -1, i_au_hot_from = INT_MAX;
 	u32 misaligned_sect = hidden_sect;
-	u64 tmp;
 
 	BUG_ON(!fsi->bd_opened);
 
@@ -384,9 +383,7 @@ int amap_create(struct super_block *sb, u32 pack_ratio, u32 sect_per_au, u32 hid
 
 	amap->sb = sb;
 
-	tmp = fsi->num_sectors + misaligned_sect + sect_per_au - 1;
-	do_div(tmp, sect_per_au);
-	amap->n_au = tmp;
+	amap->n_au = (fsi->num_sectors + misaligned_sect + sect_per_au - 1) / sect_per_au;
 	amap->n_clean_au = 0;
 	amap->n_full_au = 0;
 
