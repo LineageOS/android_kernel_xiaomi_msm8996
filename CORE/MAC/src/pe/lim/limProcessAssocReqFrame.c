@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -745,7 +745,8 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
             psessionEntry->pLimStartBssReq->privacy &&
             psessionEntry->pLimStartBssReq->rsnIE.length) {
             limLog(pMac, LOG1,
-                   FL("RSN enabled auth, Re/Assoc req from STA: "MAC_ADDRESS_STR),
+                   FL("RSN enabled auth, peer(%d, %d) Re/Assoc req from STA: "MAC_ADDRESS_STR),
+                   pAssocReq->rsnPresent,pAssocReq->rsn.length,
                        MAC_ADDR_ARRAY(pHdr->sa));
             if(pAssocReq->rsnPresent)
             {
@@ -823,9 +824,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                     goto error;
 
                 }
-            } /* end - if(pAssocReq->rsnPresent) */
-            if((!pAssocReq->rsnPresent) && pAssocReq->wpaPresent)
-            {
+            } else if (pAssocReq->wpaPresent) {
                 // Unpack the WPA IE
                 if(pAssocReq->wpa.length)
                 {
@@ -872,7 +871,14 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
                     goto error;
                 }/* end - if(pAssocReq->wpa.length) */
-            } /* end - if(pAssocReq->wpaPresent) */
+            } else {
+		    limLog(pMac, LOG1,
+			FL("Non RSNIE and WPA IE received"));
+		    limSendAssocRspMgmtFrame(pMac,
+			eSIR_MAC_INVALID_RSN_IE_CAPABILITIES_STATUS,
+			1, pHdr->sa, subType, 0,psessionEntry);
+		    goto error;
+	    }
         } /* end of if(psessionEntry->pLimStartBssReq->privacy
             && psessionEntry->pLimStartBssReq->rsnIE->length) */
 
