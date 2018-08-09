@@ -47,8 +47,10 @@ static struct kset *sdfat_statistics_kset;
 static ssize_t vfat_cl_show(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buff)
 {
-	return snprintf(buff, PAGE_SIZE, "VCL_512B_I:%u,VCL_1K_I:%u,VCL_2K_I:%u,"
-			"VCL_4K_I:%u,VCL_8K_I:%u,VCL_16K_I:%u,VCL_32K_I:%u\n",
+	return snprintf(buff, PAGE_SIZE, "\"VCL_512B_I\":\"%u\","
+			"\"VCL_1K_I\":\"%u\",\"VCL_2K_I\":\"%u\","
+			"\"VCL_4K_I\":\"%u\",\"VCL_8K_I\":\"%u\","
+			"\"VCL_16K_I\":\"%u\",\"VCL_32K_I\":\"%u\"\n",
 			statistics.clus_vfat[0], statistics.clus_vfat[1],
 			statistics.clus_vfat[2], statistics.clus_vfat[3],
 			statistics.clus_vfat[4], statistics.clus_vfat[5],
@@ -58,10 +60,15 @@ static ssize_t vfat_cl_show(struct kobject *kobj,
 static ssize_t exfat_cl_show(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buff)
 {
-	return snprintf(buff, PAGE_SIZE, "ECL_512B_I:%u,ECL_1K_I:%u,ECL_2K_I:%u,"
-			"ECL_4K_I:%u,ECL_8K_I:%u,ECL_16K_I:%u,ECL_32K_I:%u,ECL_64K_I:%u,"
-			"ECL_128K_I:%u,ECL_256K_I:%u,ECL_512K_I:%u,ECL_1M_I:%u,"
-			"ECL_2M_I:%u,ECL_4M_I:%u,ECL_8M_I:%u,ECL_16M_I:%u,ECL_32M_I:%u\n",
+	return snprintf(buff, PAGE_SIZE, "\"ECL_512B_I\":\"%u\","
+			"\"ECL_1K_I\":\"%u\",\"ECL_2K_I\":\"%u\","
+			"\"ECL_4K_I\":\"%u\",\"ECL_8K_I\":\"%u\","
+			"\"ECL_16K_I\":\"%u\",\"ECL_32K_I\":\"%u\","
+			"\"ECL_64K_I\":\"%u\",\"ECL_128K_I\":\"%u\","
+			"\"ECL_256K_I\":\"%u\",\"ECL_512K_I\":\"%u\","
+			"\"ECL_1M_I\":\"%u\",\"ECL_2M_I\":\"%u\","
+			"\"ECL_4M_I\":\"%u\",\"ECL_8M_I\":\"%u\","
+			"\"ECL_16M_I\":\"%u\",\"ECL_32M_I\":\"%u\"\n",
 			statistics.clus_exfat[0], statistics.clus_exfat[1],
 			statistics.clus_exfat[2], statistics.clus_exfat[3],
 			statistics.clus_exfat[4], statistics.clus_exfat[5],
@@ -76,8 +83,9 @@ static ssize_t exfat_cl_show(struct kobject *kobj,
 static ssize_t mount_show(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buff)
 {
-	return snprintf(buff, PAGE_SIZE, "FAT12_MNT_I:%u,FAT16_MNT_I:%u,FAT32_MNT_I:%u,"
-			"EXFAT_MNT_I:%u\n",
+	return snprintf(buff, PAGE_SIZE, "\"FAT12_MNT_I\":\"%u\","
+			"\"FAT16_MNT_I\":\"%u\",\"FAT32_MNT_I\":\"%u\","
+			"\"EXFAT_MNT_I\":\"%u\"\n",
 			statistics.mnt_cnt[SDFAT_MNT_FAT12],
 			statistics.mnt_cnt[SDFAT_MNT_FAT16],
 			statistics.mnt_cnt[SDFAT_MNT_FAT32],
@@ -87,8 +95,10 @@ static ssize_t mount_show(struct kobject *kobj,
 static ssize_t nofat_op_show(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buff)
 {
-	return snprintf(buff, PAGE_SIZE, "NOFAT_MOUNT_I:%u,NOFAT_MKDIR_I:%u,NOFAT_CREATE_I:%u,"
-			"NOFAT_READ_I:%u,NOFAT_WRITE_I:%u,NOFAT_TRUNC_I:%u\n",
+	return snprintf(buff, PAGE_SIZE, "\"NOFAT_MOUNT_I\":\"%u\","
+			"\"NOFAT_MKDIR_I\":\"%u\",\"NOFAT_CREATE_I\":\"%u\","
+			"\"NOFAT_READ_I\":\"%u\",\"NOFAT_WRITE_I\":\"%u\","
+			"\"NOFAT_TRUNC_I\":\"%u\"\n",
 			statistics.nofat_op[SDFAT_OP_EXFAT_MNT],
 			statistics.nofat_op[SDFAT_OP_MKDIR],
 			statistics.nofat_op[SDFAT_OP_CREATE],
@@ -100,9 +110,11 @@ static ssize_t nofat_op_show(struct kobject *kobj,
 static ssize_t vol_size_show(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buff)
 {
-	return snprintf(buff, PAGE_SIZE, "VOL_4G_I:%u,VOL_8G_I:%u,VOL_16G_I:%u,"
-			"VOL_32G_I:%u,VOL_64G_I:%u,VOL_128G_I:%u,VOL_256G_I:%u,"
-			"VOL_512G_I:%u,VOL_XTB_I:%u\n",
+	return snprintf(buff, PAGE_SIZE, "\"VOL_4G_I\":\"%u\","
+			"\"VOL_8G_I\":\"%u\",\"VOL_16G_I\":\"%u\","
+			"\"VOL_32G_I\":\"%u\",\"VOL_64G_I\":\"%u\","
+			"\"VOL_128G_I\":\"%u\",\"VOL_256G_I\":\"%u\","
+			"\"VOL_512G_I\":\"%u\",\"VOL_XTB_I\":\"%u\"\n",
 			statistics.vol_size[SDFAT_VOL_4G],
 			statistics.vol_size[SDFAT_VOL_8G],
 			statistics.vol_size[SDFAT_VOL_16G],
