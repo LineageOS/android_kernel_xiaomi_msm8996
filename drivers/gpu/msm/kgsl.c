@@ -520,7 +520,7 @@ int kgsl_context_init(struct kgsl_device_private *dev_priv,
 	struct kgsl_process_private  *proc_priv = dev_priv->process_priv;
 
 	if (atomic_read(&proc_priv->ctxt_count) > KGSL_MAX_CONTEXTS_PER_PROC) {
-		KGSL_DRV_ERR(device,
+		KGSL_DRV_ERR_RATELIMIT(device,
 			"Per process context limit reached for pid %u",
 			dev_priv->process_priv->pid);
 		return -ENOSPC;
