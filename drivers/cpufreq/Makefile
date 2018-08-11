@@ -123,5 +123,6 @@ obj-$(CONFIG_SPARC_US3_CPUFREQ)		+= sparc-us3-cpufreq.o
 obj-$(CONFIG_UNICORE32)			+= unicore2-cpufreq.o
 obj-$(CONFIG_ASMP)			+= autosmp.o
 obj-$(CONFIG_THUNDERPLUG_CONTROL)	+= thunderplug.o
+obj-$(CONFIG_ALUCARD_HOTPLUG) += alucard_hotplug.o
 obj-$(CONFIG_LAZYPLUG)			+= lazyplug.o
 CFLAGS_lazyplug.o			+= -finline-functions
