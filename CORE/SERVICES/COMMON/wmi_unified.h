@@ -8120,23 +8120,6 @@ typedef enum {
     /* pause adjust enable/disable */
     WMI_VDEV_PARAM_EARLY_RX_ADJUST_PAUSE,                     /* 0x37 */
 
-    /** Parameter to configure BA mode.
-     * Valid values: 0- Auto mode,
-     *               1- Manual mode(addba req not sent).
-     *               2- buffer size 64
-     *               3- buffer size 256
-     */
-    WMI_VDEV_PARAM_BA_MODE,                                 /* 0x7e */
-
-    /**
-     * VDEV parameter to force to set modulate DTIM count as listen interval,
-     * no matter whether WoW is enabled
-     * Default: Disabled.
-     * Valid values: 0- Disabled,
-     *               1- Enabled.
-     */
-    WMI_VDEV_PARAM_FORCED_MODDTIM_ENABLE,                   /* 0x7f */
-
     /* Set channel pwr limit value of the vdev the minimal value of all
      * vdevs operating on this channel will be set as channel tx power
      * limit, which is used to configure ratearray
@@ -8456,6 +8439,23 @@ typedef enum {
       * valid values: 0-Disable responder role 1-Enable responder role
       */
     WMI_VDEV_PARAM_ENABLE_DISABLE_RTT_RESPONDER_ROLE,        /* 0x7d */
+
+    /** Parameter to configure BA mode.
+     * Valid values: 0- Auto mode,
+     *               1- Manual mode(addba req not sent).
+     *               2- buffer size 64
+     *               3- buffer size 256
+     */
+    WMI_VDEV_PARAM_BA_MODE,                                 /* 0x7e */
+
+    /**
+     * VDEV parameter to force to set modulate DTIM count as listen interval,
+     * no matter whether WoW is enabled
+     * Default: Disabled.
+     * Valid values: 0- Disabled,
+     *               1- Enabled.
+     */
+    WMI_VDEV_PARAM_FORCED_MODDTIM_ENABLE,                   /* 0x7f */
 
     /** specify the setting that are valid for auto rate transmissions.
      * bits 7:0 (LTF): When bitmask is set, then corresponding LTF value is
