@@ -11,3 +11,6 @@ on property:sys.boot_completed=1
 #Disable Core Control and Control VDD
     write /sys/module/msm_thermal/core_control/enabled 0
     write /sys/module/msm_thermal/vdd_restriction/enabled 0	
+
+#Enable Fingerprint Boost
+    write /sys/kernel/fp_boost/enabled 1
