@@ -499,6 +499,13 @@ config ASMP
 	  Automatically hotplugs the multiple cpu cores on and off
 	  based on cpu load and suspend state
 
+config THUNDERPLUG_CONTROL
+      bool "Enable plugging down/up of cores using powersuspend"
+      default n
+      help
+       This driver uses powersuspend to take down the cpu cores
+       on a octa core device. Tuned to work on a quad core device.
+
 config FINGERPRINT_BOOST
 	bool "Fingerprint Boost"
 	default y
