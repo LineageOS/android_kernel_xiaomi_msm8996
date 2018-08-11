@@ -492,6 +492,13 @@ config LAZYPLUG
 	  This enables the conservative hotplugging, lazyplug by arter97
 	  based on intelli_plug. Refer to the comments for more info.
 
+config ASMP
+	bool "Multi-core automatic hotplug support"
+	default n
+	help
+	  Automatically hotplugs the multiple cpu cores on and off
+	  based on cpu load and suspend state
+
 config FINGERPRINT_BOOST
 	bool "Fingerprint Boost"
 	default y
