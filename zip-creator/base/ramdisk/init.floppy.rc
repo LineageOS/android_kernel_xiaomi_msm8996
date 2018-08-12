@@ -8,6 +8,9 @@ on property:sys.boot_completed=1
 #Fingerprint unlock with screen off by default
 	write /sys/devices/soc/soc:fpc_fpc1020/enable_wakeup 1
 
+#Enable intellithermal from faux123
+    write /sys/module/msm_thermal/parameters/enabled Y
+
 #Disable Core Control and Control VDD
     write /sys/module/msm_thermal/core_control/enabled 0
     write /sys/module/msm_thermal/vdd_restriction/enabled 0	
