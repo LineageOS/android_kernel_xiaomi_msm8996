@@ -9874,6 +9874,13 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	if (0 != status)
 		return status;
 
+	if (!((adapter->device_mode == WLAN_HDD_SOFTAP) ||
+	      (adapter->device_mode == WLAN_HDD_P2P_GO))) {
+		hddLog(LOGE, FL("Invalid device mode %d"),
+		       adapter->device_mode);
+		return -EINVAL;
+	}
+
 	if (hdd_cfg_is_static_sub20_channel_width_enabled(hdd_ctx)) {
 		hddLog(LOGE, FL("ACS not support if static sub20 enable"));
 		status = -EINVAL;
