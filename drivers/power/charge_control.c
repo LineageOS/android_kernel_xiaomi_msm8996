@@ -25,20 +25,19 @@ static struct kobj_attribute _name##_attr = \
 	__ATTR(_name, 0444, _name##_show, _name##_store)
 
 // Define variables
-struct smbchg_chip *chip_pointer;
-bool force_fast_charge = 1;
-int charge_limit = 0;
+bool force_fast_charge = 0;
+int charge_limit = 100;
 int recharge_at = 0;
-int maximum_qc_current = 2700;
-int full_charge_every = 1;
-int charges_counter = 1;
-bool trigger_full_charge = 1;
+int maximum_qc_current = 2800;
+int full_charge_every = 0;
+int charges_counter = 0;
+bool trigger_full_charge = 0;
 
 void count_charge() {
 	charges_counter++;
 
 	if(charges_counter == full_charge_every){
-		charges_counter = 1;
+		charges_counter = 0;
 		trigger_full_charge = 1;
 	}
 }
@@ -46,9 +45,8 @@ void count_charge() {
 void finish_full_charge() {
 	if(full_charge_every != 1) {
 		trigger_full_charge = 0;
+		charges_counter = 0;
 	}
-
-	charges_counter = 1;
 }
 
 static ssize_t maximum_qc_current_show(struct kobject *kobj,
@@ -60,16 +58,13 @@ static ssize_t maximum_qc_current_store(struct kobject *kobj,
 				   struct kobj_attribute *attr,
 				   const char *buf, size_t count)
 {
-	int val, err;
+	int val;
 	if (kstrtoint(buf, 0, &val))
 		return -EINVAL;
 	if(val < 900 && val > 3000)
 		return -EINVAL;
 
 	maximum_qc_current = val;
-	err = smbchg_set_fastchg_current_user(chip_pointer, val);
-	if(err)
-		pr_warn("%s: Failed to set current limit!", __func__);
 
 	return count;
 }
@@ -87,16 +82,10 @@ static ssize_t charge_limit_store(struct kobject *kobj,
 	int val;
 	if (kstrtoint(buf, 0, &val))
 		return -EINVAL;
-	if(val < 0 && val > 100 && recharge_at > val)
+	if(val < 1 && val > 100)
 		return -EINVAL;
-	if(val == 100){
-		full_charge_every = 1;
-		val = 0;
-	}
-	else if(full_charge_every == 1) {
-		full_charge_every = 0;
-		finish_full_charge();
-	}
+	if(val == 1)
+		trigger_full_charge = 1;
 
 	charge_limit = val;
 
@@ -132,7 +121,7 @@ static ssize_t recharge_at_store(struct kobject *kobj,
 	int val;
 	if (kstrtoint(buf, 0, &val))
 		return -EINVAL;
-	if(val < 0 && val > 99 && charge_limit < val)
+	if(val < 0 && val > 99)
 		return -EINVAL;
 
 	recharge_at = val;
@@ -155,13 +144,8 @@ static ssize_t full_charge_every_store(struct kobject *kobj,
 		return -EINVAL;
 	if(val < 0 && val > 100)
 		return -EINVAL;
-	if(val == 1) {
-		charge_limit = 0;
-		trigger_full_charge = 1;
-	}
 
 	full_charge_every = val;
-	finish_full_charge();
 
 	return count;
 }
@@ -170,7 +154,7 @@ ATTR_RW(full_charge_every);
 static ssize_t charges_counter_show(struct kobject *kobj,
 				  struct kobj_attribute *attr, char *buf)
 {
-	return (full_charge_every ? sprintf(buf, "%d\n", charges_counter) : -EINVAL);
+	return charges_counter > 1 ? sprintf(buf, "%d\n", charges_counter) : -EINVAL;
 }
 static ssize_t charges_counter_store(struct kobject *kobj,
 				   struct kobj_attribute *attr,
@@ -212,7 +196,7 @@ static int __init chgctl_init(void) {
 		return err;
 	}
 
-	pr_info("Charge Control ver. %d.%d loaded!\n", module_version_major, module_version_minor);
+	pr_info("Charge Control ver. %s loaded!\n", module_version);
 
 	return 0;
 }
