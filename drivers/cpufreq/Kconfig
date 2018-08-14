@@ -197,6 +197,11 @@ config CPU_FREQ_DEFAULT_GOV_CAFACTIVE
  	  loading your cpufreq low-level hardware driver, using the
  	  'cafactive' governor for latency-sensitive workloads.
 
+config CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
+	bool "interactivex"
+	select CPU_FREQ_GOV_INTERACTIVEX
+        help
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -460,6 +465,9 @@ config CPU_FREQ_GOV_CAFACTIVE
  	  module will be called cpufreq_cafactive.
  
  	  If in doubt, say N.
+
+config CPU_FREQ_GOV_INTERACTIVEX
+	tristate "'interactivex' cpufreq policy governor"
 
 config CPUFREQ_DT
 	tristate "Generic DT based cpufreq driver"
