@@ -39,10 +39,7 @@ dump_boot;
 ## begin ramdisk changes
 
 # add floppy script
-insert_line init.qcom.rc "init.floppy.rc" after "import init.target.rc" "import init.floppy.rc";
-
-# add support for spectrum
-insert_line init.rc "import /init.spectrum.rc" after "import /init.floppy.rc" "import /init.spectrum.rc";
+insert_line init.rc "import /init.floppy.rc" before "import /init.environ.rc" "import /init.floppy.rc";
 
 # ramdisk patch
 ramdisk_patch;
