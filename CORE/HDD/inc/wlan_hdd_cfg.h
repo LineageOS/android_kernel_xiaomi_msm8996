@@ -5319,6 +5319,27 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 
 /*
  * <ini>
+ * gSkipCrashInject - skip crash inject
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to skip crash inject or not
+ *
+ * Related: None
+ *
+ * Usage: Internal/External
+ *
+ * </ini>
+ */
+
+#define CFG_SKIP_CRASH_INJECT_NAME      "gSkipCrashInject"
+#define CFG_SKIP_CRASH_INJECT_MIN       (0)
+#define CFG_SKIP_CRASH_INJECT_MAX       (1)
+#define CFG_SKIP_CRASH_INJECT_DEFAULT   (0)
+
+/*
+ * <ini>
  * gEnableMonOnSta - extend the monitor capability for STA
  * @Min: 0
  * @Max: 1
@@ -6251,6 +6272,7 @@ struct hdd_config {
    bool      cca_threshold_enable;
    uint32_t  cca_threshold_2g;
    uint32_t  cca_threshold_5g;
+   uint8_t                     skip_crash_inject;
    uint8_t                     mon_on_sta_enable;
 #ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
    uint32_t                    sap_ch_switch_with_csa;

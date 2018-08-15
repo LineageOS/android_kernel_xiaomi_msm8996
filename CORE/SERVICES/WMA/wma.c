@@ -26711,6 +26711,8 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 	int32_t len;
 	int ret;
 #ifdef CONFIG_CNSS
+	tSirRetStatus nSirStatus;
+	uint32_t cfg_val = 0;
 	struct ol_softc *scn =
 		vos_get_context(VOS_MODULE_ID_HIF, wma->vos_context);
 	tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
@@ -26763,8 +26765,18 @@ static VOS_STATUS wma_send_host_wakeup_ind_to_fw(tp_wma_handle wma)
 		if (!vos_is_logp_in_progress(VOS_MODULE_ID_WDA, NULL)) {
 #ifdef CONFIG_CNSS
 			if (pMac->sme.enableSelfRecovery) {
-				wmi_tag_crash_inject(wma->wmi_handle, true);
-				vos_trigger_recovery(false);
+				nSirStatus = wlan_cfgGetInt(pMac,
+					WNI_CFG_SKIP_CRASH_INJECT, &cfg_val);
+				if (nSirStatus == eSIR_SUCCESS &&
+					cfg_val != 0) {
+					wmi_tag_crash_inject(wma->wmi_handle,
+								false);
+					vos_trigger_recovery(true);
+				} else {
+					wmi_tag_crash_inject(wma->wmi_handle,
+								true);
+					vos_trigger_recovery(false);
+				}
 			} else {
 				if (scn && scn->adf_dev)
 					vos_device_crashed(scn->adf_dev->dev);
