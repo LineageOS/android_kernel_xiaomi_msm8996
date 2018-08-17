@@ -3682,8 +3682,10 @@ static void hdd_get_station_statistics_cb(void *stats, void *context)
  */
 VOS_STATUS wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
 {
-	hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+	hdd_station_ctx_t *pHddStaCtx;
+	hdd_ap_ctx_t *sap_ctx;
 	eHalStatus hstatus;
+	tANI_U8 sta_id;
 	int ret;
 	void *cookie;
 	struct hdd_request *request;
@@ -3696,6 +3698,14 @@ VOS_STATUS wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
 	if (NULL == pAdapter) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL", __func__);
 		return VOS_STATUS_SUCCESS;
+	}
+
+	if (pAdapter->device_mode == WLAN_HDD_SOFTAP) {
+		sap_ctx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
+		sta_id = sap_ctx->uBCStaId;
+	} else {
+		pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+		sta_id = pHddStaCtx->conn_info.staId[0];
 	}
 
 	request = hdd_request_alloc(&params);
@@ -3715,7 +3725,7 @@ VOS_STATUS wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
 				     hdd_get_station_statistics_cb,
 				     0, /* not periodic */
 				     FALSE, /* non-cached results */
-				     pHddStaCtx->conn_info.staId[0],
+				     sta_id,
 				     cookie, pAdapter->sessionId);
 	if (eHAL_STATUS_SUCCESS != hstatus) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
