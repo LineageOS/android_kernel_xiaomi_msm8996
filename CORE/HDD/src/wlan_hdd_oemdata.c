@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1283,5 +1283,22 @@ int oem_activate_service(void *hdd_ctx)
    nl_srv_register(WLAN_NL_MSG_OEM, __oem_msg_callback);
    return 0;
 }
+
+/**---------------------------------------------------------------------------
+
+  \brief oem_deactivate_service() - Deactivate oem message handler
+
+  This function unregisters a handler to receive netlink message from
+  an OEM application process.
+
+  \return - none
+  --------------------------------------------------------------------------*/
+void oem_deactivate_service()
+{
+   /* unregister the msg handler for msgs addressed to WLAN_NL_MSG_OEM */
+   nl_srv_unregister(WLAN_NL_MSG_OEM, __oem_msg_callback);
+}
+
+
 #endif
 #endif

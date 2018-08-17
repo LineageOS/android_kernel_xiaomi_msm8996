@@ -306,6 +306,11 @@ int ptt_sock_activate_svc(void *hdd_ctx)
 	register_cld_cmd_cb(ANI_NL_MSG_PTT, ptt_cmd_handler, NULL);
 	return 0;
 }
+
+void ptt_sock_deactivate_svc()
+{
+}
+
 #else
 int ptt_sock_activate_svc(void *hdd_ctx)
 {
@@ -314,6 +319,12 @@ int ptt_sock_activate_svc(void *hdd_ctx)
    nl_srv_register(ANI_NL_MSG_PUMAC, ptt_sock_rx_nlink_msg);
    nl_srv_register(ANI_NL_MSG_PTT, ptt_sock_rx_nlink_msg);
    return 0;
+}
+
+void ptt_sock_deactivate_svc()
+{
+	nl_srv_unregister(ANI_NL_MSG_PUMAC, ptt_sock_rx_nlink_msg);
+	nl_srv_unregister(ANI_NL_MSG_PTT, ptt_sock_rx_nlink_msg);
 }
 #endif
 #endif // PTT_SOCK_SVC_ENABLE
