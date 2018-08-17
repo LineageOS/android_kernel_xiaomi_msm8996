@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -434,6 +434,8 @@ tpPESession peCreateSession(tpAniSirGlobal pMac,
 #endif
             pMac->lim.gpSession[i].fWaitForProbeRsp = 0;
             pMac->lim.gpSession[i].fIgnoreCapsChange = 0;
+            /* following is invalid value since seq number is 12 bit */
+            pMac->lim.gpSession[i].prev_auth_seq_num = 0xFFFF;
 
             VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_DEBUG,
               "Create a new PE session (%d) with BSSID: "
