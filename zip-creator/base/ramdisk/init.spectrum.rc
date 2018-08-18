@@ -571,7 +571,7 @@ on property:persist.spectrum.profile=3
 		write /proc/sys/kernel/sched_big_waker_task_load 25
 		write /proc/sys/kernel/sched_freq_dec_notify 200000
 		write /proc/sys/kernel/sched_freq_inc_notify 300000
-		write /proc/sys/kernel/sched_boost 0
+		write /proc/sys/kernel/sched_boost 1
 
 	#Scheduler I/O 
 		write /sys/block/sda/queue/read_ahead_kb 1024
