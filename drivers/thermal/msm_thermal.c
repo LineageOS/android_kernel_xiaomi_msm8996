@@ -2079,7 +2079,7 @@ static struct vdd_rstr_enable vdd_rstr_en = {
 	.ko_attr.attr.mode = 0644,
 	.ko_attr.show = vdd_rstr_en_show,
 	.ko_attr.store = vdd_rstr_en_store,
-	.enabled = 0,
+	.enabled = 1,
 };
 
 static struct attribute *vdd_rstr_en_attribs[] = {
