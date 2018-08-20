@@ -3799,11 +3799,13 @@ static __iw_softap_wowl_config_pattern(struct net_device *dev,
     {
     case WE_WOWL_ADD_PTRN:
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "ADD_PTRN");
-        hdd_add_wowl_ptrn(pAdapter, pBuffer);
+        if (!hdd_add_wowl_ptrn(pAdapter, pBuffer))
+            ret = -EINVAL;
         break;
     case WE_WOWL_DEL_PTRN:
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "DEL_PTRN");
-        hdd_del_wowl_ptrn(pAdapter, pBuffer);
+        if (!hdd_del_wowl_ptrn(pAdapter, pBuffer))
+            ret = -EINVAL;
         break;
     default:
         hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);

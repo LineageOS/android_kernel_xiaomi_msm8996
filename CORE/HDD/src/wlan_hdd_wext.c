@@ -7205,11 +7205,13 @@ static int __iw_setchar_getnone(struct net_device *dev,
     {
        case WE_WOWL_ADD_PTRN:
           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "ADD_PTRN");
-          hdd_add_wowl_ptrn(pAdapter, pBuffer);
+          if (!hdd_add_wowl_ptrn(pAdapter, pBuffer))
+             ret = -EINVAL;
           break;
        case WE_WOWL_DEL_PTRN:
           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "DEL_PTRN");
-          hdd_del_wowl_ptrn(pAdapter, pBuffer);
+          if (!hdd_del_wowl_ptrn(pAdapter, pBuffer))
+             ret = -EINVAL;
           break;
 #if defined WLAN_FEATURE_VOWIFI
        case WE_NEIGHBOR_REPORT_REQUEST:
