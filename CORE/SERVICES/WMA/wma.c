@@ -1368,10 +1368,20 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 
 	iface = &wma->interfaces[resp_event->vdev_id];
 
+	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id,
+				    WMA_TARGET_REQ_TYPE_VDEV_START);
+
+	if (!req_msg) {
+		WMA_LOGE("%s: Failed to lookup request message for vdev %d",
+			 __func__, resp_event->vdev_id);
+		return -EINVAL;
+	}
+
 	if ((resp_event->vdev_id < wma->max_bssid) &&
 		(adf_os_atomic_read(
 		&wma->interfaces[resp_event->vdev_id].vdev_restart_params.hidden_ssid_restart_in_progress)) &&
-		(wma_is_vdev_in_ap_mode(wma, resp_event->vdev_id) == true)) {
+		(wma_is_vdev_in_ap_mode(wma, resp_event->vdev_id) == true) &&
+		(req_msg->msg_type == WDA_HIDDEN_SSID_VDEV_RESTART)) {
 		WMA_LOGE(
 			"%s: vdev restart event recevied for hidden ssid set using IOCTL",
 			__func__);
@@ -1394,15 +1404,6 @@ static int wma_vdev_start_rsp_ind(tp_wma_handle wma, u_int8_t *buf)
 		                            OL_TXQ_PAUSE_REASON_VDEV_STOP);
 		iface->pause_bitmap &= ~(1 << PAUSE_TYPE_HOST);
 
-	}
-
-	req_msg = wma_find_vdev_req(wma, resp_event->vdev_id,
-				    WMA_TARGET_REQ_TYPE_VDEV_START);
-
-	if (!req_msg) {
-		WMA_LOGE("%s: Failed to lookup request message for vdev %d",
-			 __func__, resp_event->vdev_id);
-		return -EINVAL;
 	}
 
 	vos_timer_stop(&req_msg->event_timeout);
