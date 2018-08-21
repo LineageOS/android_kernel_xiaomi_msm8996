@@ -26708,6 +26708,62 @@ static int wlan_hdd_get_station_remote(struct wiphy *wiphy,
 	return status;
 }
 
+/*
+ * wlan_hdd_fill_summary_stats() - populate station_info summary stats
+ * @stats: summary stats to use as a source
+ * @info: kernel station_info struct to use as a destination
+ *
+ * Return: None
+ */
+static void wlan_hdd_fill_summary_stats(tCsrSummaryStatsInfo *stats,
+					struct station_info *info)
+{
+	int i;
+
+	info->rx_packets = stats->rx_frm_cnt;
+	info->tx_packets = 0;
+	info->tx_retries = 0;
+	info->tx_failed = 0;
+
+	for (i = 0; i < 4; ++i) {
+		info->tx_packets += stats->tx_frm_cnt[i];
+		info->tx_retries += stats->multiple_retry_cnt[i];
+		info->tx_failed += stats->fail_cnt[i];
+	}
+
+	info->filled |= STATION_INFO_TX_PACKETS |
+			STATION_INFO_TX_RETRIES |
+			STATION_INFO_TX_FAILED |
+			STATION_INFO_RX_PACKETS;
+}
+
+/**
+ * wlan_hdd_get_sap_stats() - get aggregate SAP stats
+ * @adapter: sap adapter to get stats for
+ * @info: kernel station_info struct to populate
+ *
+ * Fetch the vdev-level aggregate stats for the given SAP adapter. This is to
+ * support "station dump" and "station get" for SAP vdevs, even though they
+ * aren't technically stations.
+ *
+ * Return: errno
+ */
+static int
+wlan_hdd_get_sap_stats(hdd_adapter_t *adapter, struct station_info *info)
+{
+	VOS_STATUS status;
+
+	status = wlan_hdd_get_station_stats(adapter);
+	if (!VOS_IS_STATUS_SUCCESS(status)) {
+		hddLog(LOGE, FL("Failed to get SAP stats; status:%d"), status);
+		return 0;
+	}
+
+	wlan_hdd_fill_summary_stats(&adapter->hdd_stats.summary_stat, info);
+
+	return 0;
+}
+
 static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
                                            struct net_device *dev,
                                            const u8* mac,
@@ -26750,13 +26806,20 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
 
     ENTER();
 
+    status = wlan_hdd_validate_context(pHddCtx);
+    if (0 != status)
+        return status;
+
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
         return -EINVAL;
     }
-    if (pAdapter->device_mode == WLAN_HDD_SOFTAP &&
-		    pCfg->sap_get_peer_info)
-        return wlan_hdd_get_station_remote(wiphy, dev, mac, sinfo);
+    if (pAdapter->device_mode == WLAN_HDD_SOFTAP) {
+        if (pCfg->sap_get_peer_info)
+            return wlan_hdd_get_station_remote(wiphy, dev, mac, sinfo);
+        else
+            return wlan_hdd_get_sap_stats(pAdapter, sinfo);
+    }
 
     if ((eConnectionState_Associated != pHddStaCtx->conn_info.connState) ||
             (0 == ssidlen))
@@ -26778,10 +26841,6 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
         sinfo->signal = pAdapter->rssi;
         return 0;
     }
-
-    status = wlan_hdd_validate_context(pHddCtx);
-    if (0 != status)
-        return status;
 
     wlan_hdd_get_rssi(pAdapter, &sinfo->signal);
     wlan_hdd_get_snr(pAdapter, &snr);
