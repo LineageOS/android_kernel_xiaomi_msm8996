@@ -511,36 +511,33 @@ static bool tlshim_is_pkt_drop_candidate(tp_wma_handle wma_handle,
 
 	switch (subtype) {
 	case IEEE80211_FC0_SUBTYPE_ASSOC_REQ:
-		if (peer->last_assoc_rcvd) {
-			if (adf_os_gettimestamp() - peer->last_assoc_rcvd <
-			    TLSHIM_MGMT_FRAME_DETECT_DOS_TIMER) {
-				TLSHIM_LOGD(FL("Dropping Assoc Req received"));
-				should_drop = TRUE;
-			}
+		if (peer->last_assoc_rcvd &&
+		    vos_system_time_after(peer->last_assoc_rcvd +
+					  TLSHIM_MGMT_FRAME_DETECT_DOS_TIMER,
+					  adf_os_gettimestamp())) {
+			TLSHIM_LOGD(FL("Dropping Assoc Req as it is received after %d ms of last frame. Allow it only after %d ms"),
+				    (int) (adf_os_gettimestamp() -
+				    peer->last_assoc_rcvd),
+				    TLSHIM_MGMT_FRAME_DETECT_DOS_TIMER);
+			should_drop = TRUE;
+			break;
 		}
 		peer->last_assoc_rcvd = adf_os_gettimestamp();
 		break;
 	case IEEE80211_FC0_SUBTYPE_DISASSOC:
-		if (peer->last_disassoc_rcvd) {
-			if (adf_os_gettimestamp() -
-			    peer->last_disassoc_rcvd <
-			    TLSHIM_MGMT_FRAME_DETECT_DOS_TIMER) {
-				TLSHIM_LOGD(FL("Dropping DisAssoc received"));
-				should_drop = TRUE;
-			}
-		}
-		peer->last_disassoc_rcvd = adf_os_gettimestamp();
-		break;
 	case IEEE80211_FC0_SUBTYPE_DEAUTH:
-		if (peer->last_deauth_rcvd) {
-			if (adf_os_gettimestamp() -
-			    peer->last_deauth_rcvd <
-			    TLSHIM_MGMT_FRAME_DETECT_DOS_TIMER) {
-				TLSHIM_LOGD(FL("Dropping Deauth received"));
-				should_drop = TRUE;
-			}
+		if (peer->last_disassoc_deauth_rcvd &&
+		    vos_system_time_after(peer->last_disassoc_deauth_rcvd +
+					  TLSHIM_MGMT_FRAME_DETECT_DOS_TIMER,
+					  adf_os_gettimestamp())) {
+			TLSHIM_LOGD(FL("Dropping subtype %x frame as it is received after %d ms of last frame. Allow it only after %d ms"),
+				    subtype, (int) (adf_os_gettimestamp() -
+				    peer->last_disassoc_deauth_rcvd),
+				    TLSHIM_MGMT_FRAME_DETECT_DOS_TIMER);
+			should_drop = TRUE;
+			break;
 		}
-		peer->last_deauth_rcvd = adf_os_gettimestamp();
+		peer->last_disassoc_deauth_rcvd = adf_os_gettimestamp();
 		break;
 	default:
 		break;
@@ -550,6 +547,7 @@ end:
 	return should_drop;
 }
 
+#define RESERVE_BYTES   100
 static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 				       u_int32_t data_len, bool saved_beacon, u_int32_t vdev_id)
 {
@@ -661,9 +659,28 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
      */
 	rx_pkt->pkt_meta.roamCandidateInd = saved_beacon ? 1 : 0;
 	rx_pkt->pkt_meta.sessionId = vdev_id;
-	/* Why not just use rx_event->hdr.buf_len? */
+	/*
+	 * Allocate the memory for this rx packet, add extra 100 bytes for:-
+	 *
+	 * 1.  Filling the missing RSN capabilites by some APs, which fill the
+	 *     RSN IE length as extra 2 bytes but dont fill the IE data with
+	 *     capabilities, resulting in failure in unpack core due to length
+	 *     mismatch. Check sir_validate_and_rectify_ies for more info.
+	 *
+	 * 2.  In the API wma_process_rmf_frame(), the driver trims the CCMP
+	 *     header by overwriting the IEEE header to memory occupied by CCMP
+	 *     header, but an overflow is possible if the memory allocated to
+	 *     frame is less than the sizeof(struct ieee80211_frame) +CCMP
+	 *     HEADER len, so allocating 100 bytes would solve this issue too.
+	 *
+	 * 3.  CCMP header is pointing to orig_hdr +
+	 *     sizeof(struct ieee80211_frame) which could also result in OOB
+	 *     access, if the data len is less than
+	 *     sizeof(struct ieee80211_frame), allocating extra bytes would
+	 *     result in solving this issue too.
+	 */
 	wbuf = adf_nbuf_alloc(NULL,
-			      roundup(hdr->buf_len, 4),
+			      roundup(hdr->buf_len + RESERVE_BYTES, 4),
 			      0, 4, FALSE);
 	if (!wbuf) {
 		adf_os_spin_unlock_bh(&tl_shim->mgmt_lock);

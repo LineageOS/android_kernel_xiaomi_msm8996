@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -199,6 +199,23 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                psessionEntry->peSessionId, GET_LIM_SYSTEM_ROLE(psessionEntry),
                psessionEntry->limMlmState, MAC_ADDR_ARRAY(pHdr->bssId),
               (uint)abs((tANI_S8)WDA_GET_RX_RSSI_NORMALIZED(pRxPacketInfo)));
+
+    /*
+     * IOT AP configured in WEP open type sends auth frame with
+     * same sequence number. DUT sends auth frame, first with auth
+     * algo as shared key and then as open system. Since, AP sends
+     * auth frame with same sequence number, DUT drops the second
+     * auth frame from AP which results in authentication failure.
+     */
+    if (psessionEntry->prev_auth_seq_num == currSeqNum && pHdr->fc.retry) {
+        limLog(pMac, LOGE,
+               FL("auth frame, seq num: %d is already processed, drop it"),
+               currSeqNum);
+        return;
+    }
+
+    /* save seq number in pe_session */
+    psessionEntry->prev_auth_seq_num = currSeqNum;
 
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
@@ -662,11 +679,11 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                  * SA-Query procedure determines that the original SA is
                  * invalid.
                  */
-                if (isConnected
+                if (isConnected && pStaDs->PrevAuthSeqno != currSeqNum
 #ifdef WLAN_FEATURE_11W
                     && !pStaDs->rmfEnabled
 #endif
-                                          )
+                   )
                 {
                     limLog(pMac, LOGE,
                             FL("STA is already connected but received auth frame"
@@ -683,7 +700,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             if (pAuthNode)
             {
                 /// Pre-auth context exists for the STA
-                if (pHdr->fc.retry == 0 || pAuthNode->seqNum != currSeqNum)
+                if (pAuthNode->seqNum != currSeqNum)
                 {
                     /**
                      * STA is initiating brand-new Authentication

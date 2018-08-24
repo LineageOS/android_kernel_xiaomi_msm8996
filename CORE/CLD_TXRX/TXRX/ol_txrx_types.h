@@ -449,6 +449,16 @@ struct ol_tx_group_credit_stats_t {
 	u_int16_t wrap_around;
 };
 
+struct ol_txrx_fw_stats_desc_t {
+	struct ol_txrx_stats_req_internal *req;
+	unsigned char desc_id;
+};
+
+struct ol_txrx_fw_stats_desc_elem_t {
+	struct ol_txrx_fw_stats_desc_elem_t *next;
+	struct ol_txrx_fw_stats_desc_t desc;
+};
+
 /*
  * As depicted in the diagram below, the pdev contains an array of
  * NUM_EXT_TID ol_tx_active_queues_in_tid_t elements.
@@ -553,6 +563,14 @@ struct ol_txrx_pdev_t {
 	 */
 	adf_os_atomic_t target_tx_credit;
 	adf_os_atomic_t orig_target_tx_credit;
+
+	struct {
+		uint16_t pool_size;
+		struct ol_txrx_fw_stats_desc_elem_t *pool;
+		struct ol_txrx_fw_stats_desc_elem_t *freelist;
+		adf_os_spinlock_t pool_lock;
+		adf_os_atomic_t initialized;
+	} ol_txrx_fw_stats_desc_pool;
 
 	/* Peer mac address to staid mapping */
 	struct ol_mac_addr mac_to_staid[WLAN_MAX_STA_COUNT + 3];
@@ -1232,8 +1250,7 @@ struct ol_txrx_peer_t {
 	u_int16_t tx_pause_flag;
 #endif
 	adf_os_time_t last_assoc_rcvd;
-	adf_os_time_t last_disassoc_rcvd;
-	adf_os_time_t last_deauth_rcvd;
+	adf_os_time_t last_disassoc_deauth_rcvd;
 	struct ol_rx_reorder_history * reorder_history;
 };
 

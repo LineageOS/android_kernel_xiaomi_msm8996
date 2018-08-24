@@ -755,6 +755,7 @@ typedef struct wma_handle {
 	u_int32_t phy_capability; /* PHY Capability from Target*/
 	u_int32_t max_frag_entry; /* Max number of Fragment entry */
 	u_int32_t wmi_service_bitmap[WMI_SERVICE_BM_SIZE]; /* wmi services bitmap received from Target */
+	u_int32_t wmi_service_ext_bitmap[WMI_SERVICE_EXT_BM_SIZE32]; /* wmi services ext bitmap received from Target */
 	wmi_resource_config   wlan_resource_config;
 	u_int32_t frameTransRequired;
 	tBssSystemRole       wmaGlobalSystemRole;
@@ -887,6 +888,7 @@ typedef struct wma_handle {
 	v_BOOL_t IsRArateLimitEnabled;
 	u_int16_t RArateLimitInterval;
 #endif
+	bool keep_dwell_time_passive;
 #ifdef WLAN_FEATURE_LPSS
 	bool is_lpass_enabled;
 #endif
@@ -927,6 +929,11 @@ typedef struct wma_handle {
 	uint32_t num_of_diag_events_logs;
 	uint32_t *events_logs_list;
 
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+	uint32_t wow_md_wake_up_count;
+	uint32_t wow_bl_wake_up_count;
+#endif
+
 	uint32_t wow_pno_match_wake_up_count;
 	uint32_t wow_pno_complete_wake_up_count;
 	uint32_t wow_gscan_wake_up_count;
@@ -956,13 +963,14 @@ typedef struct wma_handle {
 
 	/* NAN datapath support enabled in firmware */
 	bool nan_datapath_enabled;
+	bool fw_therm_throt_enabled;
 	tSirLLStatsResults *link_stats_results;
 	vos_timer_t wma_fw_time_sync_timer;
 	struct sir_allowed_action_frames allowed_action_frames;
 	tSirAddonPsReq psSetting;
 	bool sub_20_support;
 	bool get_one_peer_info;
-    t_dpd_recal_mgmt dpd_recal_info;
+	t_dpd_recal_mgmt dpd_recal_info;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {

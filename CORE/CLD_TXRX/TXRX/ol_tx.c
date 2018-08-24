@@ -436,14 +436,22 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
     while (msdu) {
         adf_nbuf_t next;
         struct ol_tx_desc_t *tx_desc;
+        a_status_t ret;
 
         msdu_info.htt.info.ext_tid = adf_nbuf_get_tid(msdu);
         msdu_info.peer = NULL;
 
         if (!adf_nbuf_is_ipa_nbuf(msdu)) {
-            adf_nbuf_map_single(adf_ctx, msdu,
-                             ADF_OS_DMA_TO_DEVICE);
+            ret = adf_nbuf_map_single(adf_ctx, msdu,
+                                      ADF_OS_DMA_TO_DEVICE);
+            if (unlikely(ret != A_STATUS_OK)) {
+                TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                           "%s dma mapping error\n", __func__);
+                adf_nbuf_tx_free(msdu, ADF_NBUF_PKT_ERROR);
+                return NULL;
+            }
         }
+
         ol_tx_prepare_ll(tx_desc, vdev, msdu, &msdu_info);
 
         /*
@@ -2304,6 +2312,7 @@ ol_txrx_mgmt_send(
     struct ol_txrx_pdev_t *pdev = vdev->pdev;
     struct ol_tx_desc_t *tx_desc;
     struct ol_txrx_msdu_info_t tx_msdu_info;
+    a_status_t ret;
 
     vos_mem_zero(&tx_msdu_info, sizeof(tx_msdu_info));
     tx_msdu_info.htt.action.use_6mbps = use_6mbps;
@@ -2352,7 +2361,13 @@ ol_txrx_mgmt_send(
 
     tx_msdu_info.peer = NULL;
 
-    adf_nbuf_map_single(pdev->osdev, tx_mgmt_frm, ADF_OS_DMA_TO_DEVICE);
+    ret = adf_nbuf_map_single(pdev->osdev, tx_mgmt_frm, ADF_OS_DMA_TO_DEVICE);
+    if (unlikely(ret != A_STATUS_OK)) {
+        TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+                   "%s dma mapping error\n", __func__);
+        return ret;
+    }
+
     if (pdev->cfg.is_high_latency) {
         tx_msdu_info.htt.action.tx_comp_req = 1;
         tx_desc = ol_tx_desc_hl(pdev, vdev, tx_mgmt_frm, &tx_msdu_info);

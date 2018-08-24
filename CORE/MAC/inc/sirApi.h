@@ -7201,6 +7201,15 @@ struct stsf {
 	uint32_t tsf_high;
 };
 
+#ifdef WLAN_FEATURE_MOTION_DETECTION
+typedef struct
+{
+    uint8_t vdev_id;
+    uint32_t status;
+} tSirMtEvent, *tpSirMtEvent;
+#endif
+
+
 /**
  * OCB structures
  */
@@ -7688,6 +7697,7 @@ struct udp_resp_offload {
  * @wow_pulse_pin: GPIO PIN for Pulse
  * @wow_pulse_interval_low: Pulse interval low
  * @wow_pulse_interval_high: Pulse interval high
+ * @wow_pulse_repeat_count: Pulse repeat count
  *
  * SME uses this structure to configure wow pulse info
  * and send it to WMA
@@ -7697,6 +7707,7 @@ struct wow_pulse_mode {
 	uint8_t                    wow_pulse_pin;
 	uint16_t                   wow_pulse_interval_high;
 	uint16_t                   wow_pulse_interval_low;
+	uint16_t                   wow_pulse_repeat_count;
 };
 
 /*

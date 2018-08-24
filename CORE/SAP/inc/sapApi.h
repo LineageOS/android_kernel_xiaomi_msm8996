@@ -2529,6 +2529,7 @@ eHalStatus sapRoamSessionCloseCallback(void *pContext);
 #ifdef __cplusplus
  }
 #endif
-
-
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
+eHalStatus wlansap_channel_compare(tHalHandle hHal, uint8_t channel, bool *equal);
+#endif
 #endif /* #ifndef WLAN_QCT_WLANSAP_H */

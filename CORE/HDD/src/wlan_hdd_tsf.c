@@ -1305,6 +1305,10 @@ fail:
 void wlan_hdd_tsf_deinit(hdd_context_t *hdd_ctx)
 {
 	eHalStatus hal_status;
+	VOS_STATUS vos_status, ret;
+	VOS_TIMER_STATE capture_req_timer_status;
+	hdd_adapter_list_node_t *adapternode_ptr, *next_ptr;
+	hdd_adapter_t *adapter;
 
 	if (!hdd_ctx)
 		return;
@@ -1319,6 +1323,28 @@ void wlan_hdd_tsf_deinit(hdd_context_t *hdd_ctx)
 	}
 
 	wlan_hdd_tsf_plus_deinit(hdd_ctx);
+
+	vos_status = hdd_get_front_adapter(hdd_ctx, &adapternode_ptr);
+	while (NULL != adapternode_ptr &&
+	       VOS_STATUS_SUCCESS == vos_status) {
+		adapter = adapternode_ptr->pAdapter;
+		vos_status =
+		    hdd_get_next_adapter(hdd_ctx, adapternode_ptr, &next_ptr);
+		adapternode_ptr = next_ptr;
+		if (adapter->host_capture_req_timer.state == 0)
+			continue;
+
+		capture_req_timer_status =
+		 vos_timer_getCurrentState(&adapter->host_capture_req_timer);
+		if (capture_req_timer_status != VOS_TIMER_STATE_UNUSED) {
+			vos_timer_stop(&adapter->host_capture_req_timer);
+			ret =
+			  vos_timer_destroy(&adapter->host_capture_req_timer);
+			if (ret != VOS_STATUS_SUCCESS)
+				hddLog(VOS_TRACE_LEVEL_WARN,
+				       FL("remove timer fail, ret: %d"), ret);
+		}
+	}
 	adf_os_atomic_set(&hdd_ctx->tsf_ready_flag, 0);
 	adf_os_atomic_set(&hdd_ctx->cap_tsf_flag, 0);
 }

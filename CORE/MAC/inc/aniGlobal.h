@@ -1128,6 +1128,7 @@ typedef struct sMacOpenParameters
 
     bool      tx_chain_mask_cck;
     uint16_t  self_gen_frm_pwr;
+    bool keep_dwell_time_passive;
 #ifdef WLAN_FEATURE_LPSS
     bool is_lpass_enabled;
 #endif

@@ -946,7 +946,7 @@ int htt_tx_credit_update(struct htt_pdev_t *pdev)
    int credit_delta;
    credit_delta = MIN(adf_os_atomic_read(&pdev->htt_tx_credit.target_delta),
                       adf_os_atomic_read(&pdev->htt_tx_credit.bus_delta));
-   if (credit_delta) {
+   if (credit_delta > 0) {
       adf_os_atomic_add(-credit_delta, &pdev->htt_tx_credit.target_delta);
       adf_os_atomic_add(-credit_delta, &pdev->htt_tx_credit.bus_delta);
    }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1711,6 +1711,14 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
                           targetChannel);
              return VOS_STATUS_E_FAULT;
          }
+#endif
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
+        if (VOS_FALSE == vos_is_chan_ok_for_dnbs((uint8_t)targetChannel)) {
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                       FL("Channel switch to %u is not allowed due to dnbs"),
+                          targetChannel);
+             return VOS_STATUS_E_FAULT;
+        }
 #endif
         /*
          * Post a CSA IE request to SAP state machine with
@@ -4182,4 +4190,43 @@ wlansap_set_invalid_session(v_PVOID_t pctx)
 
 	return VOS_STATUS_SUCCESS;
 }
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
+/*
+ * wlansap_channel_compare() - compare the given channel to SAP's channel
+ * @hHal: handle to the hal
+ * @channel: the given channel to be compared
+ * @equal: the output param, true if equal, false if not equal
+ *
+ * This function compare the given channel to the SAP or P2P GO's operating
+ * channel, set the param equal to true if the given channel is same as SAP or
+ * P2P GO's operating channel, set the param equal to false if the given channel
+ * is not same as SAP or P2P GO's operating channel or there's no SAP or P2P GO.
+ *
+ * Return: eHalStatus
+ */
+eHalStatus wlansap_channel_compare(tHalHandle hHal, uint8_t channel, bool *equal)
+{
+	uint8_t intf = 0;
+	ptSapContext pSapContext;
 
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+	if (!pMac)
+		return eHAL_STATUS_FAILURE;
+
+	for (intf = 0; intf < SAP_MAX_NUM_SESSION; intf++) {
+		if (((VOS_STA_SAP_MODE == pMac->sap.sapCtxList[intf].sapPersona) ||
+			(VOS_P2P_GO_MODE == pMac->sap.sapCtxList[intf].sapPersona)) &&
+			pMac->sap.sapCtxList[intf].pSapContext != NULL) {
+				pSapContext =
+					(ptSapContext)pMac->sap.sapCtxList [intf].pSapContext;
+				if (pSapContext->channel == (uint32_t)channel) {
+					*equal = true;
+					return eHAL_STATUS_SUCCESS;
+				}
+			}
+	}
+	*equal = false;
+	return eHAL_STATUS_SUCCESS;
+}
+#endif

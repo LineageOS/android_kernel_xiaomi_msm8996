@@ -375,11 +375,10 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
 #if TXRX_STATS_LEVEL != TXRX_STATS_LEVEL_OFF
     case HTT_T2H_MSG_TYPE_STATS_CONF:
         {
-            u_int64_t cookie;
+            u_int8_t cookie;
             u_int8_t *stats_info_list;
 
             cookie = *(msg_word + 1);
-            cookie |= ((u_int64_t) (*(msg_word + 2))) << 32;
 
             stats_info_list = (u_int8_t *) (msg_word + 3);
             htc_pm_runtime_put(pdev->htc_pdev);
@@ -423,6 +422,7 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
         u_int32_t htt_credit_delta_abs;
         int32_t htt_credit_delta;
         int sign, old_credit;
+        int delta2 = 0;
 
         htt_credit_delta_abs = HTT_TX_CREDIT_DELTA_ABS_GET(*msg_word);
         sign = HTT_TX_CREDIT_SIGN_BIT_GET(*msg_word) ? -1 : 1;
@@ -445,6 +445,39 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             adf_os_atomic_add(htt_credit_delta,
                               &pdev->htt_tx_credit.target_delta);
             htt_credit_delta = htt_tx_credit_update(pdev);
+
+
+            if (htt_credit_delta >= 0) {
+                if ((adf_os_atomic_read(&pdev->txrx_pdev->target_tx_credit) +
+                    htt_credit_delta) < HTT_MAX_BUS_CREDIT) {
+                    if (adf_os_atomic_read(&pdev->htt_tx_credit.target_delta) > 0) {
+                        delta2 = HTT_MAX_BUS_CREDIT -
+                                adf_os_atomic_read(&pdev->txrx_pdev->target_tx_credit)
+                                - htt_credit_delta;
+                        delta2 = (adf_os_atomic_read(&pdev->htt_tx_credit.target_delta) < delta2) ?
+                                adf_os_atomic_read(&pdev->htt_tx_credit.target_delta) : delta2;
+
+                        adf_os_atomic_add(-delta2, &pdev->htt_tx_credit.target_delta);
+                        adf_os_atomic_add(delta2, &pdev->txrx_pdev->target_tx_credit);
+                        adf_os_atomic_add(-delta2, &pdev->htt_tx_credit.bus_delta);
+                    }
+                }
+            } else {
+                if (adf_os_atomic_read(&pdev->txrx_pdev->target_tx_credit) < HTT_MAX_BUS_CREDIT) {
+                    if (adf_os_atomic_read(&pdev->htt_tx_credit.target_delta) > 0) {
+                        delta2 = HTT_MAX_BUS_CREDIT -
+                                adf_os_atomic_read(&pdev->txrx_pdev->target_tx_credit);
+                        delta2 = (adf_os_atomic_read(&pdev->htt_tx_credit.target_delta) < delta2) ?
+                                adf_os_atomic_read(&pdev->htt_tx_credit.target_delta) : delta2;
+
+                        adf_os_atomic_add(-delta2, &pdev->htt_tx_credit.target_delta);
+                        adf_os_atomic_add(delta2, &pdev->txrx_pdev->target_tx_credit);
+                        adf_os_atomic_add(-delta2, &pdev->htt_tx_credit.bus_delta);
+                    }
+                }
+            }
+
+
             HTT_TX_MUTEX_RELEASE(&pdev->credit_mutex);
         }
 

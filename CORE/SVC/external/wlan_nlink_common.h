@@ -101,6 +101,10 @@
 #define WLAN_SVC_WLAN_AUTO_SHUTDOWN_CANCEL_IND 0x10C
 #define WLAN_SVC_WLAN_RADIO_INDEX 0x10D
 #define WLAN_SVC_FW_SHUTDOWN_IND  0x10E
+/* Message for indicating SSR failure, currently, it's only supported
+ * by 3rd party tools, and is not processed in wlan-service/scm.
+ */
+#define WLAN_SVC_SSR_FAIL_IND     0x110
 
 #define WLAN_SVC_MAX_SSID_LEN    32
 #define WLAN_SVC_MAX_BSSID_LEN   6

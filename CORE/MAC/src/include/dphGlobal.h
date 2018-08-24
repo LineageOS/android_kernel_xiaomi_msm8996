@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -273,6 +273,14 @@ typedef struct sDphHashNode
     tANI_U8   burstEnableForce:1; // allow bursting regardless of qosMode
 
     tANI_U8   staAuthenticated:1;
+
+    /// Previous Sequence number of auth packet
+
+    tANI_U16    PrevAuthSeqno;
+
+    /// Previous Sequence number of assoc packet
+
+    tANI_U16    PrevAssocSeqno;
 
     tANI_U8  fAniCount:1;
 

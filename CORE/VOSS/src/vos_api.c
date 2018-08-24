@@ -675,6 +675,9 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
     macOpenParms.max_mgmt_tx_fail_count =
                      pHddCtx->cfg_ini->max_mgmt_tx_fail_count;
 
+    macOpenParms.keep_dwell_time_passive =
+                     pHddCtx->cfg_ini->keeppassivedwelltime;
+
 #ifdef WLAN_FEATURE_LPSS
     macOpenParms.is_lpass_enabled = pHddCtx->cfg_ini->enablelpasssupport;
 #endif
@@ -1262,9 +1265,10 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   {
      /* if WDA stop failed, call WDA shutdown to cleanup WDA/WDI */
      vosStatus = WDA_shutdown( vosContext, VOS_TRUE );
-     if (VOS_IS_STATUS_SUCCESS( vosStatus ) )
+     if (VOS_IS_STATUS_SUCCESS(vosStatus))
      {
-        hdd_set_ssr_required( HDD_SSR_REQUIRED );
+        if (!vos_is_logp_in_progress(VOS_MODULE_ID_VOSS, NULL))
+            hdd_set_ssr_required( HDD_SSR_REQUIRED );
      }
      else
      {
@@ -1446,6 +1450,93 @@ v_VOID_t* vos_get_context( VOS_MODULE_ID moduleId,
 
 } /* vos_get_context()*/
 
+/**---------------------------------------------------------------------------
+
+  \brief vos_set_context() - set context data area
+
+  Each module in the system has a context / data area that is allocated
+  and maanged by voss.  This API allows any user to set the context data
+  area in the VOSS global context.
+
+  \param module_id - the module ID, who's context data are is being changed.
+
+  \param mod_context - context data area of the specified module.
+
+  \return VOS_STATUS_SUCCESS - context was successfully changed.
+
+          VOS_STATUS_E_INVAL - global context is null or module id is invalid.
+
+  --------------------------------------------------------------------------*/
+VOS_STATUS vos_set_context(VOS_MODULE_ID module_id,
+                           v_PVOID_t mod_context)
+{
+	if (VOS_MODULE_ID_VOSS == module_id) {
+		gpVosContext = mod_context;
+		return VOS_STATUS_SUCCESS;
+	}
+
+	if (!gpVosContext) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			  "%s: vos context is null", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	switch (module_id) {
+	case VOS_MODULE_ID_TL:
+		gpVosContext->pTLContext = mod_context;
+		break;
+
+#ifndef WLAN_FEATURE_MBSSID
+	case VOS_MODULE_ID_SAP:
+		gpVosContext->pSAPContext = mod_context;
+		break;
+#endif
+
+	case VOS_MODULE_ID_HDD:
+		gpVosContext->pHDDContext = mod_context;
+		break;
+
+	case VOS_MODULE_ID_SME:
+	case VOS_MODULE_ID_PE:
+	case VOS_MODULE_ID_PMC:
+		/* In all these cases, we just set the MAC Context */
+		gpVosContext->pMACContext = mod_context;
+		break;
+
+	case VOS_MODULE_ID_WDA:
+		/* For WDA module */
+		gpVosContext->pWDAContext = mod_context;
+		break;
+
+	case VOS_MODULE_ID_HIF:
+		gpVosContext->pHIFContext = mod_context;
+		break;
+
+	case VOS_MODULE_ID_HTC:
+		gpVosContext->htc_ctx = mod_context;
+		break;
+
+	case VOS_MODULE_ID_ADF:
+		gpVosContext->adf_ctx = mod_context;
+		break;
+
+	case VOS_MODULE_ID_TXRX:
+		gpVosContext->pdev_txrx_ctx = mod_context;
+		break;
+
+	case VOS_MODULE_ID_CFG:
+		gpVosContext->cfg_ctx = mod_context;
+		break;
+
+	default:
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			  "%s: do not have context for module id: %i",
+			  __func__, module_id);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	return VOS_STATUS_SUCCESS;
+} /* vos_set_context()*/
 
 /**---------------------------------------------------------------------------
 
@@ -1515,6 +1606,30 @@ void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
       return;
    }
    pHddCtx->isLogpInProgress = value;
+}
+
+v_U8_t vos_is_ssr_failed(void)
+{
+	if (!gpVosContext) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			  "%s: global voss context is NULL", __func__);
+		return 1;
+	}
+
+	return gpVosContext->is_ssr_failed;
+}
+
+void vos_set_ssr_failed(v_U8_t value)
+{
+	if (!gpVosContext) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			  "%s: global voss context is NULL", __func__);
+		return;
+	}
+
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_DEBUG,
+		  "%s:%pS setting value %d", __func__, (void *)_RET_IP_, value);
+	gpVosContext->is_ssr_failed = value;
 }
 
 v_U8_t vos_is_load_unload_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
@@ -3354,3 +3469,51 @@ v_BOOL_t vos_is_ch_switch_with_csa_enabled(void)
 	return FALSE;
 }
 #endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
+/**
+ * vos_is_chan_ok_for_dnbs() - check if the channel is valid for dnbs
+ *
+ * @channel: the given channel to be compared
+ *
+ * This function check if the channel is valid for dnbs. If the disable channel
+ * switch is enabled and the channel is same as SAP's channel, return true, if
+ * the channel is not same as SAP's channel or there's no SAP, return false. If
+ * the disable channel switch is not enabled, return true.
+ *
+ * Return: bool
+ */
+bool vos_is_chan_ok_for_dnbs(uint8_t channel)
+{
+	hdd_context_t *pHddCtx;
+	bool equal = false;
+
+	if (!channel) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+				"%s: Invalid parameter", __func__);
+		return false;
+	}
+
+	pHddCtx = (hdd_context_t*)(gpVosContext->pHDDContext);
+	if(NULL == pHddCtx)
+	{
+	  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+				"%s: Hdd Context is Null", __func__);
+	  return false;
+	}
+
+	spin_lock_bh(&pHddCtx->restrict_offchan_lock);
+	if (pHddCtx->restrict_offchan_flag) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+				"%s: flag is set", __func__);
+		wlansap_channel_compare(gpVosContext->pMACContext, channel, &equal);
+		spin_unlock_bh(&pHddCtx->restrict_offchan_lock);
+		return equal;
+	}
+	else
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+				"%s: flag is not set", __func__);
+	spin_unlock_bh(&pHddCtx->restrict_offchan_lock);
+	return true;
+}
+#endif

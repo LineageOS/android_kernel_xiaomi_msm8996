@@ -398,10 +398,9 @@ typedef struct tagCsrEseCckmInfo
 #endif
 
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
-#define CSR_DOT11F_IE_RSN_MAX_LEN   (114)  /*TODO: duplicate one in dot11f.h */
 typedef struct tagCsrEseCckmIe
 {
-    tANI_U8 cckmIe[CSR_DOT11F_IE_RSN_MAX_LEN];
+    tANI_U8 cckmIe[DOT11F_IE_RSN_MAX_LEN];
     tANI_U8 cckmIeLen;
 } tCsrEseCckmIe;
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
@@ -446,6 +445,9 @@ typedef struct tagCsrScanResultFilter
      */
     uint8_t scan_filter_for_roam;
     tCsrBssid bssid_hint;
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
+    tVOS_CON_MODE csrPersona;
+#endif
 #ifdef WLAN_FEATURE_FILS_SK
     bool realm_check;
     uint8_t fils_realm[2];
