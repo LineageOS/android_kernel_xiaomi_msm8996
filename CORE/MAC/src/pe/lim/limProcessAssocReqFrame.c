@@ -873,14 +873,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
                     goto error;
                 }/* end - if(pAssocReq->wpa.length) */
-            } else {
-		    limLog(pMac, LOG1,
-			FL("Non RSNIE and WPA IE received"));
-		    limSendAssocRspMgmtFrame(pMac,
-			eSIR_MAC_INVALID_RSN_IE_CAPABILITIES_STATUS,
-			1, pHdr->sa, subType, 0,psessionEntry);
-		    goto error;
-	    }
+            }
         } /* end of if(psessionEntry->pLimStartBssReq->privacy
             && psessionEntry->pLimStartBssReq->rsnIE->length) */
 
