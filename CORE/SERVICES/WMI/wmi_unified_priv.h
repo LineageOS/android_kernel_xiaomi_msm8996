@@ -97,8 +97,6 @@ struct wmi_unified {
 	bool tgt_force_assert_enable;
 	A_BOOL tag_crash_inject;
 	void (*wma_wow_tx_complete_cbk)(ol_scn_t scn_handle);
-	/* wmi_mutex used to keep wmi sent serialized */
-	adf_os_mutex_t wmi_mutex;
 };
 
 #define ANT_DIV_SET_PERIOD(probe_period, stay_period) \
