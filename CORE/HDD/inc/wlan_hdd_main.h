@@ -2719,4 +2719,21 @@ hdd_wlan_nla_put_u64(struct sk_buff *skb, int attrtype, u64 value)
 				 QCA_WLAN_VENDOR_ATTR_LL_STATS_PAD);
 }
 #endif
+
+/**
+ * hdd_chan_change_notify() - Function to notify cfg80211 about channel change
+ * @adapter: adapter
+ * @dev: Net device structure
+ * @oper_chan: New operating channel
+ * @eCsrPhyMode: phy mode
+ *
+ * This function is used to notify cfg80211 about the channel change
+ *
+ * Return: Success on intimating userspace
+ *
+ */
+VOS_STATUS hdd_chan_change_notify(hdd_adapter_t *adapter,
+				  struct net_device *dev,
+				  uint8_t oper_chan,
+				  eCsrPhyMode phy_mode);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
