@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -523,6 +523,7 @@ struct s_ext_cap {
 	uint8_t   ChanAvailQuery: 1;
 	uint8_t    fine_time_meas_responder: 1;
 	uint8_t    fine_time_meas_initiator: 1;
+	uint8_t  fils_capability: 1;
 };
 
 tANI_U8
