@@ -57,6 +57,7 @@ ifeq ($(KERNEL_BUILD), 0)
 	ifeq ($(CONFIG_ARCH_MSM8909), y)
 		ifeq ($(CONFIG_ROME_IF), sdio)
 			CONFIG_WLAN_SYNC_TSF_PLUS := y
+			CONFIG_FEATURE_COEX_PTA_CONFIG_ENABLE := y
 		endif
 	endif
 
