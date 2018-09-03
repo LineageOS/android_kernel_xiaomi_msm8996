@@ -11197,6 +11197,15 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 				WMI_VDEV_PARAM_ROAM_FW_OFFLOAD,
 				(WMI_ROAM_FW_OFFLOAD_ENABLE_FLAG |
 				WMI_ROAM_BMISS_FINAL_SCAN_ENABLE_FLAG));
+
+		/* Pass down enable/disable bcast probe rsp to FW */
+		ret = wmi_unified_vdev_set_param_send(
+		                wma_handle->wmi_handle,
+		                self_sta_req->sessionId,
+		                WMI_VDEV_PARAM_ENABLE_BCAST_PROBE_RESPONSE,
+		                self_sta_req->enable_bcast_probe_rsp);
+		if (ret)
+		        WMA_LOGE("Failed to set WMI_VDEV_PARAM_ENABLE_BCAST_PROBE_RESPONSE");
 	}
 
 	/* Initialize BMISS parameters */

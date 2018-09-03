@@ -2154,6 +2154,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
             pParam->sta_roam_policy_params.skip_unsafe_channels;
         pMac->roam.configParam.sta_roam_policy.sap_operating_band =
             pParam->sta_roam_policy_params.sap_operating_band;
+        pMac->roam.configParam.enable_bcast_probe_rsp =
+            pParam->enable_bcast_probe_rsp;
     }
 
     return status;
@@ -2376,6 +2378,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vi;
         pParam->tx_non_aggr_sw_retry_threshhold_vo =
                pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vo;
+        pParam->enable_bcast_probe_rsp =
+               pMac->roam.configParam.enable_bcast_probe_rsp;
         status = eHAL_STATUS_SUCCESS;
     }
     return (status);
@@ -16395,6 +16399,8 @@ eHalStatus csrSendMBAddSelfStaReqMsg( tpAniSirGlobal pMac,
                 pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vi;
       pMsg->tx_non_aggr_sw_retry_threshhold_vo =
                 pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vo;
+      pMsg->enable_bcast_probe_rsp =
+                pMac->roam.configParam.enable_bcast_probe_rsp;
       smsLog( pMac, LOG1, FL("selfMac="MAC_ADDRESS_STR),
               MAC_ADDR_ARRAY(pMsg->selfMacAddr));
       status = palSendMBMessage(pMac->hHdd, pMsg);
