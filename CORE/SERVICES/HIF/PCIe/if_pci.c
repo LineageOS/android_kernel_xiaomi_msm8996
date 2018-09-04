@@ -1937,7 +1937,7 @@ err_region:
  * power up WLAN host driver when SSR happens. Most of this
  * function is duplicated from hif_pci_probe().
  */
-#ifdef HIF_PCI
+#ifdef CONFIG_CNSS
 int hif_pci_reinit(struct pci_dev *pdev, const struct pci_device_id *id)
 {
     void __iomem *mem;
@@ -2286,7 +2286,6 @@ err_region:
 
     return ret;
 }
-#endif
 
 void hif_pci_notify_handler(struct pci_dev *pdev, int state)
 {
@@ -2297,6 +2296,7 @@ void hif_pci_notify_handler(struct pci_dev *pdev, int state)
           printk(KERN_ERR "%s: Fail to send notify\n", __func__);
    }
 }
+#endif
 
 void
 hif_nointrs(struct hif_pci_softc *sc)
@@ -2621,7 +2621,7 @@ hif_pci_remove(struct pci_dev *pdev)
     printk(KERN_INFO "pci_remove\n");
 }
 
-#ifdef HIF_PCI
+#ifdef CONFIG_CNSS
 static void hif_pci_ssr_fail_ind(void)
 {
 	v_CONTEXT_t vos_ctx;
@@ -3205,10 +3205,8 @@ __hif_pci_resume(struct pci_dev *pdev, bool runtime_pm)
     pci_set_master(pdev);
 
 skip:
-#ifdef HIF_PCI
     /* Keep PCIe bus driver's shadow memory intact */
     vos_pcie_shadow_control(pdev, TRUE);
-#endif
 
 #ifdef DISABLE_L1SS_STATES
     pci_read_config_dword(pdev, 0x188, &val);
