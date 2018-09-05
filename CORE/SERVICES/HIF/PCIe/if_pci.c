@@ -2738,8 +2738,7 @@ static bool is_hif_runtime_active(struct hif_pci_softc *sc)
 {
 	int pm_state = adf_os_atomic_read(&sc->pm_state);
 
-	if (pm_state  == HIF_PM_RUNTIME_STATE_ON ||
-	    pm_state == HIF_PM_RUNTIME_STATE_NONE)
+	if (pm_state != HIF_PM_RUNTIME_STATE_SUSPENDED)
 		return true;
 
 	return false;
@@ -2783,7 +2782,7 @@ static void hif_dump_crash_debug_info(struct hif_pci_softc *sc)
 {
 	struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
 	struct ol_softc *scn = sc->ol_sc;
-	int ret;
+	int ret = 0;
 	tp_wma_handle wma_handle;
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
 
@@ -2810,7 +2809,8 @@ static void hif_dump_crash_debug_info(struct hif_pci_softc *sc)
 	 * time, TargetFailure event wont't be received after inject
 	 * crash due to the same reason
 	 */
-	ret = wma_crash_inject(wma_handle, 1, 0);
+	if (wmi_get_host_credits(wma_handle->wmi_handle))
+		ret = wma_crash_inject(wma_handle, 1, 0);
 
 	adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
 	hif_irq_record(HIF_CRASH, sc);

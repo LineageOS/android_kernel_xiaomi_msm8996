@@ -992,6 +992,8 @@ dont_tag:
 				return -EBUSY;
 			}
 			vos_trigger_recovery(true);
+		} else if (scn && scn->adf_dev) {
+			vos_device_crashed(scn->adf_dev->dev);
 		} else
 			VOS_BUG(0);
 		return -EBUSY;
