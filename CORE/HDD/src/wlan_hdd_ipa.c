@@ -217,11 +217,10 @@ struct hdd_ipa_uc_rx_hdr {
 #define HDD_IPA_DP_LOG(LVL, fmt, args...) VOS_TRACE(VOS_MODULE_ID_HDD_DATA, LVL, \
 					"%s:%d: "fmt, __func__, __LINE__, ## args)
 
-
 #define HDD_IPA_DBG_DUMP(_lvl, _prefix, _buf, _len) \
 	do {\
-		VOS_TRACE(VOS_MODULE_ID_HDD, _lvl, "%s:", _prefix); \
-		VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD, _lvl, _buf, _len); \
+		VOS_TRACE(VOS_MODULE_ID_HDD_DATA, _lvl, "%s:", _prefix); \
+		VOS_TRACE_HEX_DUMP(VOS_MODULE_ID_HDD_DATA, _lvl, _buf, _len); \
 	} while(0)
 
 #define DBG_DUMP_RX_LEN 32
@@ -3002,7 +3001,7 @@ static void hdd_ipa_destory_rm_resource(struct hdd_ipa_priv *hdd_ipa)
 static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 {
 	int result;
-#ifndef QCA_CONFIG_SMP
+#if !defined(QCA_CONFIG_SMP) || defined(HDD_IPA_RX_SOFTIRQ_THRESH)
 	struct iphdr* ip_h;
 	static atomic_t softirq_mitigation_cntr =
 		ATOMIC_INIT(IPA_WLAN_RX_SOFTIRQ_THRESH);
@@ -3032,7 +3031,7 @@ static void hdd_ipa_send_skb_to_network(adf_nbuf_t skb, hdd_adapter_t *adapter)
 	cpu_index = wlan_hdd_get_cpu();
 
 	++adapter->hdd_stats.hddTxRxStats.rxPackets[cpu_index];
-#ifdef QCA_CONFIG_SMP
+#if defined(QCA_CONFIG_SMP) && !defined(HDD_IPA_RX_SOFTIRQ_THRESH)
 	result = netif_rx_ni(skb);
 #else
 	ip_h = (struct iphdr*)((uint8_t*)skb->data);
