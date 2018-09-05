@@ -16401,6 +16401,11 @@ VOS_STATUS hdd_mt_host_ev_cb(void *pcb_cxt, tSirMtEvent *pevent)
 		return VOS_STATUS_E_INVAL;
 
 	adapter = hdd_get_adapter_by_vdev(hddctx, pevent->vdev_id);
+	if (!adapter) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			FL("get adapter failed"));
+		return VOS_STATUS_E_INVAL;
+	}
 
 	hddLog(VOS_TRACE_LEVEL_INFO,
 		FL("hdd_mt_host_ev_cb vdev_id=%u, status=%u"),

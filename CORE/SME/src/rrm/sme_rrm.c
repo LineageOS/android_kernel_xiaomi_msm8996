@@ -615,7 +615,7 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
       if (scan_type == eSIR_PASSIVE_SCAN) {
           session = CSR_GET_SESSION(pMac, sessionId);
          if (csrIsConnStateConnectedInfra(pMac, sessionId) &&
-             (NULL != session->pConnectBssDesc) &&
+	     (session) && (NULL != session->pConnectBssDesc) &&
              (csrIsDuplicateBssDescription(pMac, &pScanResult->BssDescriptor,
              session->pConnectBssDesc, NULL, FALSE))) {
              is_conn_bss_found = true;
