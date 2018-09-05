@@ -2036,6 +2036,15 @@ htt_rx_mac_header_mon_process(
 	if (num_elems <= 0)
 		return 0;
 
+	if (num_elems > ((adf_nbuf_len(rx_ind_msg)
+		- HTT_T2H_MONITOR_MAC_HEADER_IND_HDR_SIZE
+		- sizeof(struct htt_hw_rx_desc_base))
+		/ sizeof(struct ieee80211_frame_addr4))) {
+		adf_os_print("%s: num_elems %d exceed range of nbuf \n",
+				     __func__, num_elems);
+		return 0;
+	}
+
 	/* get htt_hw_rx_desc_base_rx_desc pointer */
 	hw_desc = (struct htt_hw_rx_desc_base *)
 			(rx_ind_data + HTT_T2H_MONITOR_MAC_HEADER_IND_HDR_SIZE);
