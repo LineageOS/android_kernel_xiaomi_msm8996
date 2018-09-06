@@ -2,7 +2,7 @@
 # Original Live by cybojenix <anthonydking@gmail.com>
 # New Live/Menu by Caio Oliveira aka Caio99BR <caiooliveirafarias0@gmail.com>
 # Colors by Aidas Lukošius aka aidasaidas75 <aidaslukosius75@yahoo.com>
-# Toolchains by JonasCArdoso aka JonasCardoso <jonascard60@gmail.com>
+# Toolchains and support for msm8996 by JonasCardoso aka JonasCardoso <jonascard60@gmail.com>
 # Rashed for the base of zip making
 # And the internet for filling in else where
 
