@@ -16871,10 +16871,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          goto err_vos_nv_close;
       }
 
-#if      !defined(REMOVE_PKT_LOG)
       hif_init_pdev_txrx_handle(hif_sc,
-                            vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
-#endif
+                         vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
 
       pHddCtx->hHal = (tHalHandle)vos_get_context(VOS_MODULE_ID_SME,
                                                   pVosContext );

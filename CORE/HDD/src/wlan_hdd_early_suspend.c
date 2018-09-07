@@ -2332,10 +2332,8 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       goto err_re_init;
    }
 
-#if  !defined(REMOVE_PKT_LOG)
-      hif_init_pdev_txrx_handle(hif_sc,
-      vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
-#endif
+   hif_init_pdev_txrx_handle(hif_sc,
+         vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
 
    /* Save the hal context in Adapter */
    pHddCtx->hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, pVosContext );

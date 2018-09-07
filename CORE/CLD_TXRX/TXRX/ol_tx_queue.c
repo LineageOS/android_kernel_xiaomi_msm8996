@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -163,7 +163,7 @@ ol_tx_queue_vdev_flush(struct ol_txrx_pdev_t *pdev, struct ol_txrx_vdev_t *vdev)
     } while (peer_count >= PEER_ARRAY_COUNT);
 }
 
-static inline void
+void
 ol_tx_queue_flush(struct ol_txrx_pdev_t *pdev)
 {
     struct ol_txrx_vdev_t *vdev;
@@ -634,6 +634,103 @@ ol_txrx_pdev_pause_other_vdev(ol_txrx_pdev_handle pdev, u_int32_t reason, u_int3
 		if (vdev->vdev_id != current_id) {
 			ol_txrx_vdev_pause(vdev, reason);
 		}
+	}
+}
+
+void
+ol_txrx_vdev_unpause_txq(ol_txrx_vdev_handle vdev, u_int32_t reason)
+{
+	struct ol_tx_sched_notify_ctx_t notify_ctx;
+	struct ol_tx_frms_queue_t *txq;
+	struct ol_txrx_pdev_t *pdev = vdev->pdev;
+	u_int8_t i;
+
+	adf_os_spin_lock_bh(&pdev->tx_queue_spinlock);
+	if (pdev->cfg.is_high_latency && (vdev->hl_paused_reason & reason)) {
+		vdev->hl_paused_reason &= ~reason;
+		for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
+			txq = &vdev->txqs[i];
+			/*
+			 * Don't actually unpause the tx queue until all pause
+			 * requests have been removed.
+			 */
+			TXRX_ASSERT2(txq->paused_count.total > 0);
+			/* return, if not already paused */
+			if (txq->paused_count.total == 0)
+				continue;
+			if (--txq->paused_count.total == 0) {
+				notify_ctx.event = OL_TX_UNPAUSE_QUEUE;
+				notify_ctx.txq = txq;
+				notify_ctx.info.ext_tid = OL_TX_NUM_TIDS + i;
+				ol_tx_sched_notify(pdev, &notify_ctx);
+				if (txq->frms == 0) {
+					txq->flag = ol_tx_queue_empty;
+				} else {
+					txq->flag = ol_tx_queue_active;
+					/*
+					 * Now that the are new tx frames
+					 * available to download, invoke the
+					 * scheduling function, to see if it
+					 * wants to download the new frames.
+					 * Since the queue lock is currently
+					 * held, and since scheduler function
+					 * takes the lock, temporarily release
+					 * the lock.
+					 */
+					adf_os_spin_unlock_bh(
+						&pdev->tx_queue_spinlock);
+					ol_tx_sched(pdev);
+					adf_os_spin_lock_bh(
+						&pdev->tx_queue_spinlock);
+				}
+			}
+		}
+	}
+	adf_os_spin_unlock_bh(&pdev->tx_queue_spinlock);
+}
+
+void
+ol_txrx_pdev_unpause_vdev_txq(ol_txrx_pdev_handle pdev, u_int32_t reason)
+{
+	struct ol_txrx_vdev_t *vdev = NULL, *tmp;
+
+	TAILQ_FOREACH_SAFE(vdev, &pdev->vdev_list, vdev_list_elem, tmp) {
+		ol_txrx_vdev_unpause_txq(vdev, reason);
+	}
+}
+
+void
+ol_txrx_vdev_pause_txq(ol_txrx_vdev_handle vdev, u_int32_t reason)
+{
+	struct ol_tx_sched_notify_ctx_t notify_ctx;
+	struct ol_tx_frms_queue_t *txq;
+	u_int8_t i;
+
+	adf_os_spin_lock_bh(&vdev->pdev->tx_queue_spinlock);
+	if (vdev->pdev->cfg.is_high_latency &&
+	    ((vdev->hl_paused_reason & reason) == 0)) {
+		vdev->hl_paused_reason |= reason;
+		for (i = 0; i < OL_TX_VDEV_NUM_QUEUES; i++) {
+			txq = &vdev->txqs[i];
+			if (txq->paused_count.total++ == 0) {
+				notify_ctx.event = OL_TX_PAUSE_QUEUE;
+				notify_ctx.txq = txq;
+				notify_ctx.info.ext_tid = OL_TX_NUM_TIDS + i;
+				ol_tx_sched_notify(vdev->pdev, &notify_ctx);
+				txq->flag = ol_tx_queue_paused;
+			}
+		}
+	}
+	adf_os_spin_unlock_bh(&vdev->pdev->tx_queue_spinlock);
+}
+
+void
+ol_txrx_pdev_pause_vdev_txq(ol_txrx_pdev_handle pdev, u_int32_t reason)
+{
+	struct ol_txrx_vdev_t *vdev = NULL, *tmp;
+
+	TAILQ_FOREACH_SAFE(vdev, &pdev->vdev_list, vdev_list_elem, tmp) {
+		ol_txrx_vdev_pause_txq(vdev, reason);
 	}
 }
 

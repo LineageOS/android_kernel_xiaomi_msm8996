@@ -252,6 +252,8 @@ struct ol_softc {
 #ifdef FEATURE_USB_WARM_RESET
     bool                    enable_usb_warm_reset;
 #endif
+    bool                    fastfwdump_host;
+    bool                    fastfwdump_fw;
 #ifdef HIF_USB
     /* structure to save FW RAM dump (Rome USB) */
     struct fw_ramdump       *ramdump[FW_RAM_SEG_CNT];

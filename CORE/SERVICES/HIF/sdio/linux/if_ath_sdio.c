@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -516,7 +516,7 @@ int hif_sdio_check_fw_reg(void * ol_sc)
 {
 	int ret = 1;
 	unsigned int addr = 0;
-	unsigned int fw_indication = 0;
+	unsigned int param = 0;
 	struct ol_softc *scn = (struct ol_softc *) ol_sc;
 
 	addr = host_interest_item_address(scn->target_type,
@@ -524,15 +524,18 @@ int hif_sdio_check_fw_reg(void * ol_sc)
 					hi_option_flag2));
 
 	if (HIFDiagReadMem(scn->hif_hdl, addr,
-				(unsigned char *)&fw_indication,
+				(unsigned char *)&param,
 				4) != A_OK) {
 		printk("%s Get fw indication failed\n", __func__);
 		return -ENOENT;
 	}
 
-	printk("%s: fw indication is 0x%x.\n", __func__, fw_indication);
+	printk("%s: fw indication is 0x%x.\n", __func__, param);
 
-	if (fw_indication & FW_IND_HELPER)
+	scn->fastfwdump_fw = ((param & HI_OPTION_SDIO_CRASH_DUMP_ENHANCEMENT_FW)
+			     == HI_OPTION_SDIO_CRASH_DUMP_ENHANCEMENT_FW);
+
+	if (param & FW_IND_HELPER)
 		ret = 0;
 
 	return ret;
