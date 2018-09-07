@@ -2018,9 +2018,15 @@
 		fstab {
 			vendor {
 				dev = "/dev/block/platform/soc/624000.ufshc/by-name/cust";
+				fsmgr_flags = "wait";
 			};
 			system {
+				compatible = "android,system";
 				dev = "/dev/block/platform/soc/624000.ufshc/by-name/system";
+				type = "ext4";
+				mnt_flags = "ro,barrier=1,discard";
+				fsmgr_flags = "wait";
+				status = "ok";
 			};
 		};
 	};
