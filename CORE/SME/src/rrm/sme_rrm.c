@@ -769,7 +769,12 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
    }
 
    if ((pSmeRrmContext->currentIndex) >= pSmeRrmContext->channelList.numOfChannels)
+   {
+       sme_RrmSendBeaconReportXmitInd(pMac, NULL, true, 0);
+       vos_mem_free( pSmeRrmContext->channelList.ChannelList );
+       smsLog( pMac, LOGE, "%s : done with the complete ch lt. finish and fee now", __func__);
        return status;
+   }
 
    if( eRRM_MSG_SOURCE_ESE_UPLOAD == pSmeRrmContext->msgSource ||
        eRRM_MSG_SOURCE_LEGACY_ESE == pSmeRrmContext->msgSource )
@@ -903,6 +908,7 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
                 /* If this is not done, pCurrentReq pointer will not be freed and
                    PE will not handle subsequent Beacon requests */
         sme_RrmSendBeaconReportXmitInd(pMac, NULL, true, 0);
+        vos_mem_free( pSmeRrmContext->channelList.ChannelList );
    }
 
    return status;
@@ -948,7 +954,9 @@ eHalStatus sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
       smsLog( pMac, LOGE, FL("Allocated memory for ChannelList") );
 #endif
       csrGetCfgValidChannels( pMac, pSmeRrmContext->channelList.ChannelList, &len );
-
+      /* Listing all the channels in the requested RC */
+      regdm_get_channel_from_opclass(pMac->scan.countryCodeCurrent,
+                                     pBeaconReq->channelInfo.regulatoryClass);
       for (i = 0 ; i <len; i++)
       {
           if (regdm_get_opclass_from_channel(pMac->scan.countryCodeCurrent,
