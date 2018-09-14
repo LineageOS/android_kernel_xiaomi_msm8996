@@ -17105,6 +17105,16 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
     pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
 
+    /* FIx CR2299453 that the pHostapdAdapter->sessionCtx.ap.beacon will be
+     * set NULL during ap stop at function wlan_hdd_cfg80211_stop_ap()
+     * but then received fw indicator 0x6 and trigger driver reset, and then
+     * cause this NULL pointer operation when re-init.
+     */
+    if (pBeacon == NULL) {
+        hddLog(LOGE, FL("Invalid pointer pBeacon = NULL!"));
+        return -EINVAL;
+    }
+
     genie = vos_mem_malloc(MAX_GENIE_LEN);
 
     if(genie == NULL) {
