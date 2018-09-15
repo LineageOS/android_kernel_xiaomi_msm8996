@@ -97,6 +97,9 @@ x509.genkey
 
 # Kconfig presets
 all.config
+arch/arm64/boot/dt.img
+dtbTool
+zip-creator/*.zip
 
 # fetched Android config fragments
 android/configs/android-*.cfg
