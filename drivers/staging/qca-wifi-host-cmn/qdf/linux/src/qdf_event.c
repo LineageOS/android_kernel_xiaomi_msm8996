@@ -360,7 +360,7 @@ QDF_STATUS qdf_wait_for_event_completion(qdf_event_t *event, uint32_t timeout)
 
 	if (QDF_STATUS_SUCCESS != status) {
 		QDF_TRACE(QDF_MODULE_ID_QDF, QDF_TRACE_LEVEL_ERROR,
-			"Failed to add event in the list in %s", __func__),
+			"Failed to add event in the list in %s", __func__);
 		status = QDF_STATUS_E_FAULT;
 		goto err_list_add;
 	}
