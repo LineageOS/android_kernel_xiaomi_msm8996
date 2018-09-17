@@ -963,6 +963,8 @@ void wlan_hdd_cleanup_remain_on_channel_ctx(hdd_adapter_t *pAdapter)
            }
            mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
 
+           INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
+
            if (pAdapter->device_mode == WLAN_HDD_P2P_GO)
            {
                WLANSAP_CancelRemainOnChannel(
