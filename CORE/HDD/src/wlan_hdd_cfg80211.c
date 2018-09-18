@@ -19121,6 +19121,129 @@ void hdd_update_beacon_rate(hdd_adapter_t *pAdapter, struct wiphy *wiphy,
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0)) || defined(WITH_BACKPORTS)
 
+static int hdd_config_sub20_channel(hdd_context_t *pHddCtx, uint8_t channel,
+			      uint32_t channel_width)
+{
+	bool channel_support_sub20 = true;
+	tSmeConfigParams *sme_config;
+	uint8_t sub20_config;
+	uint8_t sub20_dyn_channelwidth = 0;
+	uint8_t sub20_static_channelwidth = 0;
+	uint8_t sub20_channelwidth = 0;
+	enum phy_ch_width phy_sub20_channel_width = CH_WIDTH_INVALID;
+
+	sme_config = vos_mem_malloc(sizeof(tSmeConfigParams));
+	if (!sme_config) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("Can't alloc mem for sme config"));
+		return -EINVAL;
+	}
+	vos_mem_zero(sme_config, sizeof(tSmeConfigParams));
+
+	sme_GetConfigParam(pHddCtx->hHal, sme_config);
+	sub20_config = sme_config->sub20_config_info;
+
+	switch (sub20_config) {
+		case CFG_SUB_20_CHANNEL_WIDTH_5MHZ:
+			sub20_static_channelwidth = SUB20_MODE_5MHZ;
+			break;
+		case CFG_SUB_20_CHANNEL_WIDTH_10MHZ:
+			sub20_static_channelwidth = SUB20_MODE_10MHZ;
+			break;
+		case CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ:
+			sub20_dyn_channelwidth = SUB20_MODE_5MHZ;
+			break;
+		case CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ:
+			sub20_dyn_channelwidth = SUB20_MODE_10MHZ;
+			break;
+		case CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL:
+			sub20_dyn_channelwidth = SUB20_MODE_5MHZ | SUB20_MODE_10MHZ;
+			break;
+		default:
+			break;
+	}
+
+	if (channel == 0) {
+		hddLog(VOS_TRACE_LEVEL_WARN,
+		       FL("Can't start SAP-ACS with sub20 channel width"));
+		vos_mem_free(sme_config);
+		return -EINVAL;
+	}
+
+	if (CSR_IS_CHANNEL_DFS(channel)) {
+		hddLog(VOS_TRACE_LEVEL_WARN,
+		       FL("Can't start SAP-DFS with sub20 channel width"));
+		vos_mem_free(sme_config);
+		return -EINVAL;
+	}
+
+	if (channel_width != NL80211_CHAN_WIDTH_20 &&
+		channel_width != NL80211_CHAN_WIDTH_20_NOHT) {
+		hddLog(VOS_TRACE_LEVEL_WARN,
+		       FL("Hostapd (20+MHz) conflicts config.ini(sub20)"));
+		vos_mem_free(sme_config);
+		return -EINVAL;
+	}
+
+	switch (sub20_config) {
+	case CFG_SUB_20_CHANNEL_WIDTH_5MHZ:
+	case CFG_SUB_20_CHANNEL_WIDTH_10MHZ:
+	case CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ:
+	case CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ:
+		sub20_channelwidth = (sub20_static_channelwidth != 0) ?
+		sub20_static_channelwidth : sub20_dyn_channelwidth;
+		phy_sub20_channel_width =
+			(sub20_channelwidth == SUB20_MODE_5MHZ) ?
+				      CH_WIDTH_5MHZ : CH_WIDTH_10MHZ;
+		channel_support_sub20 =
+			vos_is_channel_support_sub20(channel,
+						     phy_sub20_channel_width,
+						     0);
+		if (!channel_support_sub20) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       FL("ch%dwidth%d unsupport by reg domain"),
+			       channel, phy_sub20_channel_width);
+			vos_mem_free(sme_config);
+			return -EINVAL;
+		}
+		break;
+		case CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL:
+			channel_support_sub20 =
+				vos_is_channel_support_sub20(channel,
+							     CH_WIDTH_5MHZ, 0);
+			if (!channel_support_sub20) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+				       FL("ch%dwidth5M unsupport by reg domain"),
+				       channel);
+				sub20_dyn_channelwidth &= ~SUB20_MODE_5MHZ;
+			}
+
+			channel_support_sub20 =
+				vos_is_channel_support_sub20(channel,
+							     CH_WIDTH_10MHZ, 0);
+			if (!channel_support_sub20) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+				       FL("ch%dwidth10M unsupport by reg domain"),
+				       channel);
+				sub20_dyn_channelwidth &= ~SUB20_MODE_10MHZ;
+			}
+
+			if (sub20_dyn_channelwidth == 0) {
+				vos_mem_free(sme_config);
+				return -EINVAL;
+			} else {
+				sme_config->sub20_dynamic_channelwidth =
+							sub20_dyn_channelwidth;
+				sme_UpdateConfig(pHddCtx->hHal, sme_config);
+			}
+			break;
+		default:
+			break;
+	}
+	vos_mem_free(sme_config);
+	return 0;
+}
+
 static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
                                       struct net_device *dev,
                                       struct cfg80211_ap_settings *params)
@@ -19130,6 +19253,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
     uint32_t channel_width;
     hdd_context_t *pHddCtx;
     int            status;
+    int ret = 0;
     ENTER();
 
     clear_bit(SOFTAP_INIT_DONE, &pAdapter->event_flags);
@@ -19171,108 +19295,9 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 
     /* Avoid ACS/DFS, and overwrite channel width to 20 */
     if (hdd_cfg_is_sub20_channel_width_enabled(pHddCtx)) {
-            bool channel_support_sub20 = true;
-            tSmeConfigParams sme_config;
-            uint8_t sub20_config;
-            uint8_t sub20_dyn_channelwidth = 0;
-            uint8_t sub20_static_channelwidth = 0;
-            uint8_t sub20_channelwidth = 0;
-            enum phy_ch_width phy_sub20_channel_width = CH_WIDTH_INVALID;
-
-            vos_mem_zero(&sme_config, sizeof(sme_config));
-            sme_GetConfigParam(pHddCtx->hHal, &sme_config);
-            sub20_config = sme_config.sub20_config_info;
-
-            switch (sub20_config) {
-            case CFG_SUB_20_CHANNEL_WIDTH_5MHZ:
-                sub20_static_channelwidth = SUB20_MODE_5MHZ;
-                break;
-            case CFG_SUB_20_CHANNEL_WIDTH_10MHZ:
-                sub20_static_channelwidth = SUB20_MODE_10MHZ;
-                break;
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ:
-                sub20_dyn_channelwidth = SUB20_MODE_5MHZ;
-                break;
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ:
-                sub20_dyn_channelwidth = SUB20_MODE_10MHZ;
-                break;
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL:
-                sub20_dyn_channelwidth = SUB20_MODE_5MHZ | SUB20_MODE_10MHZ;
-                break;
-            default:
-                break;
-            }
-
-            if (channel == 0) {
-                    hddLog(VOS_TRACE_LEVEL_WARN,
-                           FL("Can't start SAP-ACS with sub20 channel width"));
-                    return -EINVAL;
-            }
-
-            if (CSR_IS_CHANNEL_DFS(channel)) {
-                    hddLog(VOS_TRACE_LEVEL_WARN,
-                           FL("Can't start SAP-DFS with sub20 channel width"));
-                    return -EINVAL;
-            }
-
-            if (channel_width != NL80211_CHAN_WIDTH_20 &&
-                channel_width != NL80211_CHAN_WIDTH_20_NOHT) {
-                    hddLog(VOS_TRACE_LEVEL_WARN,
-                           FL("Hostapd (20+MHz) conflicts config.ini(sub20)"));
-                    return -EINVAL;
-            }
-
-            switch (sub20_config) {
-            case CFG_SUB_20_CHANNEL_WIDTH_5MHZ:
-            case CFG_SUB_20_CHANNEL_WIDTH_10MHZ:
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ:
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ:
-                sub20_channelwidth = (sub20_static_channelwidth != 0) ?
-                        sub20_static_channelwidth : sub20_dyn_channelwidth;
-                phy_sub20_channel_width =
-                        (sub20_channelwidth == SUB20_MODE_5MHZ) ?
-                            CH_WIDTH_5MHZ : CH_WIDTH_10MHZ;
-                channel_support_sub20 =
-                        vos_is_channel_support_sub20(channel,
-                                                     phy_sub20_channel_width,
-                                                     0);
-                if (!channel_support_sub20) {
-                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                               FL("ch%dwidth%d unsupport by reg domain"),
-                               channel, phy_sub20_channel_width);
-                        return -EINVAL;
-                }
-                break;
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL:
-                channel_support_sub20 =
-                    vos_is_channel_support_sub20(channel, CH_WIDTH_5MHZ, 0);
-                if (!channel_support_sub20) {
-                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                               FL("ch%dwidth5M unsupport by reg domain"),
-                               channel);
-                        sub20_dyn_channelwidth &= ~SUB20_MODE_5MHZ;
-                }
-
-                channel_support_sub20 =
-                    vos_is_channel_support_sub20(channel, CH_WIDTH_10MHZ, 0);
-                if (!channel_support_sub20) {
-                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                               FL("ch%dwidth10M unsupport by reg domain"),
-                               channel);
-                        sub20_dyn_channelwidth &= ~SUB20_MODE_10MHZ;
-                }
-
-                if (sub20_dyn_channelwidth == 0) {
-                        return -EINVAL;
-                } else {
-                        sme_config.sub20_dynamic_channelwidth =
-                                 sub20_dyn_channelwidth;
-                        sme_UpdateConfig(pHddCtx->hHal, &sme_config);
-                }
-                break;
-            default:
-                break;
-            }
+        ret = hdd_config_sub20_channel(pHddCtx, channel, channel_width);
+        if (ret)
+            return ret;
     }
 
     if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
