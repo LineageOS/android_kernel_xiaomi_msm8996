@@ -13055,7 +13055,7 @@ eIniChanBondState sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
                             uint16_t *vht_channel_width,
                             uint16_t ch_width_orig)
 {
-   tSmeConfigParams  smeConfig;
+   tSmeConfigParams  *smeConfig;
    tANI_U32 ht40plus2gendch = 0;
    tpAniSirGlobal    pMac = PMAC_STRUCT(hHal);
    eIniChanBondState cb_mode = eCSR_INI_SINGLE_CHANNEL_CENTERED;
@@ -13066,53 +13066,60 @@ eIniChanBondState sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
                 "%s: HW: %d CH: %d ORIG_BW: %d\n", __func__, eCsrPhyMode,
                 channel, ch_width_orig);
 
+	smeConfig = vos_mem_malloc(sizeof(tSmeConfigParams));
+	if (!smeConfig) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+		       FL("Can't alloc mem for sme config"));
+		return -EINVAL;
+	}
+
    *vht_channel_width = ch_width_orig;
-   vos_mem_zero(&smeConfig, sizeof (tSmeConfigParams));
-   sme_GetConfigParam(pMac, &smeConfig);
+   vos_mem_zero(smeConfig, sizeof (tSmeConfigParams));
+   sme_GetConfigParam(pMac, smeConfig);
 
    if ((eCSR_DOT11_MODE_11ac == eCsrPhyMode ||
         eCSR_DOT11_MODE_11ac_ONLY == eCsrPhyMode) &&
         (eHT_CHANNEL_WIDTH_80MHZ == ch_width_orig)) {
       if (channel== 36 || channel == 52 || channel == 100 ||
                 channel == 116 || channel == 149 || channel == 132) {
-          smeConfig.csrConfig.channelBondingMode5GHz =
+          smeConfig->csrConfig.channelBondingMode5GHz =
                 eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW;
       } else if (channel == 40 || channel == 56 || channel == 104 ||
                      channel == 120 || channel == 153 || channel == 136) {
-          smeConfig.csrConfig.channelBondingMode5GHz =
+          smeConfig->csrConfig.channelBondingMode5GHz =
                 eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW;
       } else if (channel == 44 || channel == 60 || channel == 108 ||
                      channel == 124 || channel == 157 || channel == 140) {
-          smeConfig.csrConfig.channelBondingMode5GHz =
+          smeConfig->csrConfig.channelBondingMode5GHz =
                 eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH;
       } else if (channel == 48 || channel == 64 || channel == 112 ||
                      channel == 128 || channel == 144 || channel == 161) {
-          smeConfig.csrConfig.channelBondingMode5GHz =
+          smeConfig->csrConfig.channelBondingMode5GHz =
                 eCSR_INI_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH;
       } else if (channel == 165) {
-          smeConfig.csrConfig.channelBondingMode5GHz =
+          smeConfig->csrConfig.channelBondingMode5GHz =
                                      eCSR_INI_SINGLE_CHANNEL_CENTERED;
           *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
       } else if (channel >= 1 && channel < 5) {
-          smeConfig.csrConfig.channelBondingMode24GHz =
+          smeConfig->csrConfig.channelBondingMode24GHz =
                 eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
           *vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
       } else if (channel >= 5 && channel <= 9) {
           if (0 != ht_sec_ch) {
               if (ht_sec_ch > channel)
-                  smeConfig.csrConfig.channelBondingMode24GHz =
+                  smeConfig->csrConfig.channelBondingMode24GHz =
                         eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
               else
-                  smeConfig.csrConfig.channelBondingMode24GHz =
+                  smeConfig->csrConfig.channelBondingMode24GHz =
                         eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
 	  }
           *vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
       } else if (channel > 9 && channel <= 13) {
-          smeConfig.csrConfig.channelBondingMode24GHz =
+          smeConfig->csrConfig.channelBondingMode24GHz =
                 eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
           *vht_channel_width = eHT_CHANNEL_WIDTH_40MHZ;
       } else if (channel ==14) {
-          smeConfig.csrConfig.channelBondingMode24GHz =
+          smeConfig->csrConfig.channelBondingMode24GHz =
                 eCSR_INI_SINGLE_CHANNEL_CENTERED;
           *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
       }
@@ -13129,55 +13136,56 @@ eIniChanBondState sme_SelectCBMode(tHalHandle hHal, eCsrPhyMode eCsrPhyMode,
                 channel == 64 || channel == 104 || channel == 112 ||
                 channel == 120 || channel == 128 || channel == 136 ||
                 channel == 153 || channel == 161 || channel == 144) {
-           smeConfig.csrConfig.channelBondingMode5GHz =
+           smeConfig->csrConfig.channelBondingMode5GHz =
                                     eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
        } else if (channel== 36 || channel == 44 || channel == 52 ||
                 channel == 60 || channel == 100 || channel == 108 ||
                 channel == 116 || channel == 124 || channel == 132 ||
                 channel == 149 || channel == 157 || channel == 140) {
-           smeConfig.csrConfig.channelBondingMode5GHz =
+           smeConfig->csrConfig.channelBondingMode5GHz =
                                         eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
        } else if (channel == 165) {
-           smeConfig.csrConfig.channelBondingMode5GHz =
+           smeConfig->csrConfig.channelBondingMode5GHz =
                                             eCSR_INI_SINGLE_CHANNEL_CENTERED;
            *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
        } else if (channel >= 1 && channel < 5) {
-           smeConfig.csrConfig.channelBondingMode24GHz =
+           smeConfig->csrConfig.channelBondingMode24GHz =
                                            eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
        } else if (channel >= 5 && channel <= ht40plus2gendch) {
           if (ht_sec_ch > channel)
-              smeConfig.csrConfig.channelBondingMode24GHz =
+              smeConfig->csrConfig.channelBondingMode24GHz =
                     eCSR_INI_DOUBLE_CHANNEL_LOW_PRIMARY;
           else
-              smeConfig.csrConfig.channelBondingMode24GHz =
+              smeConfig->csrConfig.channelBondingMode24GHz =
                     eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
        } else if (channel > ht40plus2gendch && channel <= 13) {
-           smeConfig.csrConfig.channelBondingMode24GHz =
+           smeConfig->csrConfig.channelBondingMode24GHz =
                                            eCSR_INI_DOUBLE_CHANNEL_HIGH_PRIMARY;
        } else if (channel ==14) {
-           smeConfig.csrConfig.channelBondingMode24GHz =
+           smeConfig->csrConfig.channelBondingMode24GHz =
               eCSR_INI_SINGLE_CHANNEL_CENTERED;
            *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
        }
    } else {
        *vht_channel_width = eHT_CHANNEL_WIDTH_20MHZ;
        if (channel <= 14) {
-           smeConfig.csrConfig.channelBondingMode24GHz =
+           smeConfig->csrConfig.channelBondingMode24GHz =
                             eCSR_INI_SINGLE_CHANNEL_CENTERED;
        } else {
-           smeConfig.csrConfig.channelBondingMode5GHz =
+           smeConfig->csrConfig.channelBondingMode5GHz =
                             eCSR_INI_SINGLE_CHANNEL_CENTERED;
        }
    }
 
-   sme_AdjustCBMode(pMac, &smeConfig, channel, vht_channel_width);
-   sme_UpdateConfig (pMac, &smeConfig);
-   cb_mode = (channel <= 14) ? smeConfig.csrConfig.channelBondingMode24GHz :
-                        smeConfig.csrConfig.channelBondingMode5GHz;
+   sme_AdjustCBMode(pMac, smeConfig, channel, vht_channel_width);
+   sme_UpdateConfig (pMac, smeConfig);
+   cb_mode = (channel <= 14) ? smeConfig->csrConfig.channelBondingMode24GHz :
+                        smeConfig->csrConfig.channelBondingMode5GHz;
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_WARN,
          "%s: CH: %d NEW_BW: %d %s-CB_Mode:%d", __func__, channel,
          *vht_channel_width, (channel <=14) ? "2G" : "5G", cb_mode);
 
+   vos_mem_free(smeConfig);
    return cb_mode;
 }
 
