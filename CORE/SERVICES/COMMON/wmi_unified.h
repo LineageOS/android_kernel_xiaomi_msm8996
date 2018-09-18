@@ -6361,6 +6361,9 @@ typedef struct {
     A_UINT32 pdev_id; /** pdev_id for identifying the MAC.  See macros starting with WMI_PDEV_ID_ for values. In non-DBDC case host should set it to 0. */
     /** number of beacon stats event structures (wmi_bcn_stats) */
     A_UINT32 num_bcn_stats;
+    /** number of extended peer stats event structures (wmi_peer_extd_stats) */
+    A_UINT32 num_peer_extd_stats;
+
     /* This TLV is followed by another TLV of array of bytes
          *   A_UINT8 data[];
          *  This data array contains
@@ -6372,6 +6375,10 @@ typedef struct {
          *   num_mib_stats * size of(struct wmi_mib_stats)
          *   num_bcn_stats * size of(struct wmi_bcn_stats)
          *
+         */
+    /* If WMI_REQUEST_PEER_EXTD_STAT is set in stats_id,
+         * the data[] array also contains num_peer_stats * size of wmi_peer_extd_stats
+         * following the information elements listed above.
          */
 } wmi_stats_event_fixed_param;
 
@@ -7027,6 +7034,28 @@ typedef struct {
     /** last rx data rate used for peer */
     A_UINT32  peer_rx_rate;
 } wmi_peer_stats;
+
+/**
+ *  Peer extension statistics
+ */
+typedef struct {
+    /** peer MAC address */
+    wmi_mac_addr peer_macaddr;
+    /* rx duration in microseconds*/
+    A_UINT32 rx_duration;
+    /** Total TX bytes (including dot11 header) sent to peer */
+    A_UINT32 peer_tx_bytes;
+    /** Total RX bytes (including dot11 header) received from peer */
+    A_UINT32 peer_rx_bytes;
+    /** last TX ratecode */
+    A_UINT32 last_tx_rate_code;
+    /** TX power used by peer - units are 0.5 dBm */
+    A_INT32 last_tx_power;
+
+    /* Total number of received multicast & broadcast data frames corresponding to this peer */
+    A_UINT32 rx_mc_bc_cnt; /* 1 in the MSB of rx_mc_bc_cnt represents a valid data */
+    A_UINT32 reserved[3]; /** for future use - add new peer stats here */
+} wmi_peer_extd_stats;
 
 typedef struct {
     /** Primary channel freq of the channel for which stats are sent */
