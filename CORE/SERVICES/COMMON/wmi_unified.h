@@ -11389,6 +11389,8 @@ typedef struct {
     A_UINT32 handoff_delay_for_rx; /* In msec. Delay Hand-Off by this duration
                                     * to receive pending Rx frames from
                                     * current BSS */
+    A_UINT32 max_mlme_sw_retries; /* maximum number of software retries for preauth and reassoc req */
+    A_UINT32 no_ack_timeout; /* In msec. duration to wait before another SW retry made if no ack seen for previous frame */
 } wmi_roam_offload_tlv_param;
 
 /* flags for 11i offload */
