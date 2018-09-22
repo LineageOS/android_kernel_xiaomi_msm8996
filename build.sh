@@ -331,6 +331,8 @@ clear
 # Menu - Start
 buildsh() {
 #clear
+echo ""
+echo "-${bldcya}Basic Info${txtrst}-"
 echo "Custom Linux Kernel ${kernelversion}.${kernelpatchlevel}.${kernelsublevel} for ${manufacturer} ${soc} devices"
 echo "${customkernel}-${androidversion}-${romversion} Release $(date +%d"/"%m"/"%Y) Build #${build}"
 echo "-${bldred}Clean Menu${txtrst}-"
