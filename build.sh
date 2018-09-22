@@ -331,7 +331,7 @@ clear
 # Menu - Start
 buildsh() {
 #clear
-echo "Simple Linux Kernel ${kernelversion}.${kernelpatchlevel}.${kernelsublevel} Build Script ($(date +%d"/"%m"/"%Y))"
+echo "Custom Linux Kernel ${kernelversion}.${kernelpatchlevel}.${kernelsublevel} for ${manufacturer} ${soc} devices"
 echo "${customkernel}-${androidversion}-${romversion} Release $(date +%d"/"%m"/"%Y) Build #${build}"
 echo "-${bldred}Clean Menu${txtrst}-"
 echo "1) Zip Packages      | ${bldred}${cleanzipcheck}${txtrst}"
@@ -457,6 +457,8 @@ elif [ -e build.sh ]; then
 	_d="Already Done!"
 	_r="Ready to do!"
 	# Main Variables
+    manufacturer=Xiaomi
+    soc=MSM8996/PRO
 	maintainer=JonasCardoso
 	customkernel=FloppyKernel
 	romversion=MIUI
