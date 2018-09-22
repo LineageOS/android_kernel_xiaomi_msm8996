@@ -135,7 +135,6 @@ setperm() {
 	find "$3" -type f -exec chmod "$2" {} \;
 }
 
-
 ui_print " ";
 ui_print " ";
 ui_print "============================================";

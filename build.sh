@@ -97,12 +97,6 @@ if [ -f .config ]
 then
 	echo "${x} - Building ${customkernel}"
 
-	if [ -f arch/${ARCH}/boot/dt.img ]
-	then
-		rm -rf arch/${ARCH}/boot/dt.img;
-		rm -rf dtbTool;
-	fi
-
 	if [ -f arch/${ARCH}/boot/Image.gz ]
 	then
 		rm -rf arch/${ARCH}/boot/Image.gz;
@@ -154,15 +148,11 @@ then
 	else
 		make -j${NR_CPUS}
 	fi
-	
-	gcc dtbtool/dtbtool.c -o dtbTool
-
-	./dtbTool -s 2048 -o arch/arm64/boot/dt.img -p scripts/dtc/ arch/arm/boot/dts/qcom/
 
 	END=$(date +"%s")
 	BUILDTIME=$((${END} - ${START}))
 
-	if [ -f arch/${ARCH}/boot/Image.gz ] || [ -f arch/${ARCH}/boot/Image.lzma ] || [ -f arch/${ARCH}/boot/Image.bz2 ] || [ -f arch/${ARCH}/boot/Image.xz ] || [ -f arch/${ARCH}/boot/Image.lzo ] || [ -f arch/${ARCH}/boot/Image.lz4 ] && [ -f arch/${ARCH}/boot/dt.img ] && [ -f dtbTool ]
+	if [ -f arch/${ARCH}/boot/Image.gz ] || [ -f arch/${ARCH}/boot/Image.lzma ] || [ -f arch/${ARCH}/boot/Image.bz2 ] || [ -f arch/${ARCH}/boot/Image.xz ] || [ -f arch/${ARCH}/boot/Image.lzo ] || [ -f arch/${ARCH}/boot/Image.lz4 ]
 	then
 		buildprocesscheck="${_d}"
 	else
@@ -259,7 +249,6 @@ if [ -f arch/${ARCH}/boot/Image.gz ] || [ -f arch/${ARCH}/boot/Image.lzma ] || [
 	
 		fi
 
-		#cp arch/${ARCH}/boot/dt.img ${zipdirout}/dtb
 		echo "maintainer=${maintainer}" >> ${zipdirout}/device.prop
 		echo "customkernel=${customkernel}" >> ${zipdirout}/device.prop
 		echo "name=${name}" >> ${zipdirout}/device.prop
@@ -375,12 +364,6 @@ read -n 1 -p "${txtbld}Choice: ${txtrst}" -s x
 case ${x} in
 	1) echo "${x} - Cleaning Zips"; rm -rf zip-creator/*.zip; unset zippackagecheck;clear;;
 	2) echo "${x} - Cleaning Kernel"; make clean mrproper &> /dev/null;
-
-	if [ -f arch/${ARCH}/boot/dt.img ]
-	then
-		rm -rf arch/${ARCH}/boot/dt.img;
-		rm -rf dtbTool;
-	fi
 
 	if [ -f arch/${ARCH}/boot/Image.gz ]
 	then
