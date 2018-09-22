@@ -135,6 +135,7 @@ setperm() {
 	find "$3" -type f -exec chmod "$2" {} \;
 }
 
+
 ui_print " ";
 ui_print " ";
 ui_print "============================================";
@@ -143,7 +144,8 @@ ui_print "============================================";
 ui_print " ";
 ui_print " ";
 ui_print " ";
-ui_print "by JonasCardoso";
+maintainer="$(file_getprop /tmp/anykernel/device.prop maintainer)"
+ui_print "by $maintainer";
 ui_print " ";
 
 for i in $($bb --list); do
