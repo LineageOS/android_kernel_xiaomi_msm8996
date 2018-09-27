@@ -3591,6 +3591,7 @@ eHalStatus PmcOffloadEnableStaModePowerSave(tHalHandle hHal,
                    FL("Successful Queued Enabling Sta Mode Ps Request"));
 
             pmc->configStaPsEnabled = TRUE;
+            pmc->configDefStaPsEnabled = TRUE;
             return eHAL_STATUS_SUCCESS;
         }
         else
