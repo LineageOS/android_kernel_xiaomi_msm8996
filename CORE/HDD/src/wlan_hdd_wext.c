@@ -1081,7 +1081,6 @@ eHalStatus hdd_wlan_get_ibss_peer_info_all(hdd_adapter_t *pAdapter)
 
 int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
 {
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     v_U32_t threshold = 0;
     hdd_context_t *hdd_ctx;
     int ret;
@@ -1100,8 +1099,9 @@ int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
         return ret;
 
 
-    if ( eHAL_STATUS_SUCCESS !=
-                     ccmCfgGetInt(hHal, WNI_CFG_RTS_THRESHOLD, &threshold) )
+    if (eHAL_STATUS_SUCCESS !=
+                        ccmCfgGetInt(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                     WNI_CFG_RTS_THRESHOLD, &threshold))
     {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                       FL("failed to get ini parameter, WNI_CFG_RTS_THRESHOLD"));
