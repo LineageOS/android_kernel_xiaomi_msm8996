@@ -29582,8 +29582,16 @@ static bool need_thermal_temperature_ind(tp_thermal_mgmt info, int32_t degree_c)
 
 #ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
 static void
-wma_thermal_shutdown_evt_handler(tp_thermal_mgmt info, int32_t degree_c)
+wma_thermal_shutdown_evt_handler(tp_wma_handle wma, int32_t degree_c)
 {
+    tp_thermal_mgmt info = &wma->thermal_mgmt_info;
+
+    if ((!wma->thermal_mgmt_info.thermalMgmtEnabled)
+        && (wma->fw_therm_throt_enabled)) {
+        wma_thermal_temperature_ind(degree_c);
+        return;
+    }
+
     if (!info->thermal_shutdown_enabled)
         return;
 
@@ -29618,7 +29626,7 @@ static inline void wma_fetch_set_thermal_params(tp_wma_handle wma,
 }
 
 static inline void
-wma_thermal_shutdown_evt_handler(tp_thermal_mgmt info, int32_t degree_c)
+wma_thermal_shutdown_evt_handler(tp_wma_handle wma, int32_t degree_c)
 {
 	return;
 }
@@ -36556,7 +36564,7 @@ static int wma_thermal_mgmt_evt_handler(void *handle, u_int8_t *event,
 	ret = wma_thermal_throttle_handler(handle,
 		tm_event->temperature_degreeC);
 
-	wma_thermal_shutdown_evt_handler(&wma->thermal_mgmt_info,
+	wma_thermal_shutdown_evt_handler(wma,
 		tm_event->temperature_degreeC);
 
 	return ret;
