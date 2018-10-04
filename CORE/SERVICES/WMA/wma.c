@@ -5433,18 +5433,26 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 		return -EINVAL;
 	}
 
-	link_stats_results_size = sizeof(*link_stats_results) +
+	if (NULL == wma_handle->link_stats_results) {
+		link_stats_results_size = sizeof(*link_stats_results) +
 			radio_stats_size +
 			(radio_stats->num_channels * chan_stats_size);
 
-	wma_handle->link_stats_results = vos_mem_malloc(link_stats_results_size);
-	if (NULL == wma_handle->link_stats_results) {
-		WMA_LOGD("%s: could not allocate mem for stats results-len %zu",
-		__func__, link_stats_results_size);
-		return -ENOMEM;
+		wma_handle->link_stats_results =
+			vos_mem_malloc(link_stats_results_size);
+		if (NULL == wma_handle->link_stats_results) {
+			WMA_LOGD("%s: could not allocate mem for stats results-len %zu",
+			__func__, link_stats_results_size);
+			return -ENOMEM;
+		}
+		vos_mem_zero(wma_handle->link_stats_results,
+				link_stats_results_size);
 	}
 
 	link_stats_results = wma_handle->link_stats_results;
+
+	results = (u_int8_t *)link_stats_results->results;
+	rs_results = (tSirWifiRadioStat *) &results[0];
 	if (link_stats_results->num_radio == 0) {
 		link_stats_results->num_radio = fixed_param->num_radio;
 	} else if (link_stats_results->num_radio < fixed_param->num_radio) {
@@ -5454,19 +5462,16 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 		 * events may be spoofed. Drop all of them and report error.
 		 */
 		WMA_LOGE("Invalid following WMI_RADIO_LINK_STATS_EVENTID. Discarding this set");
-		rs_results->tx_time_per_power_level = NULL;
 		vos_mem_free(wma_handle->link_stats_results);
 		wma_handle->link_stats_results = NULL;
 		vos_mem_free(rs_results->tx_time_per_power_level);
+		rs_results->tx_time_per_power_level = NULL;
 		return -EINVAL;
 	}
-
-	vos_mem_zero(link_stats_results, link_stats_results_size);
 
 	link_stats_results->paramId            = WMI_LINK_STATS_RADIO;
 	link_stats_results->rspId              = fixed_param->request_id;
 	link_stats_results->ifaceId            = 0;
-	link_stats_results->num_radio          = fixed_param->num_radio;
 	link_stats_results->peer_event_number  = 0;
 
 	/*
@@ -5479,11 +5484,9 @@ static int wma_unified_link_radio_stats_event_handler(void *handle,
 	 */
 	link_stats_results->moreResultToFollow = fixed_param->more_radio_events;
 
-	results          = (u_int8_t *)link_stats_results->results;
 	t_radio_stats    = (u_int8_t *)radio_stats;
 	t_channel_stats  = (u_int8_t *)channel_stats;
 
-	rs_results = (tSirWifiRadioStat *) &results[0];
 	rs_results->radio = radio_stats->radio_id;
 	rs_results->onTime = radio_stats->on_time;
 	rs_results->txTime = radio_stats->tx_time;
