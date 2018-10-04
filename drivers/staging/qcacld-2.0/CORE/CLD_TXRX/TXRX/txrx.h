@@ -113,18 +113,6 @@ VOS_STATUS wlan_register_mgmt_client(void *pdev_txrx,
 				     VOS_STATUS (*rx_mgmt)(void *g_vosctx,
 							   void *buf));
 
-typedef void (*ol_txrx_vdev_delete_cb)(void *context);
-
-/**
- * @typedef ol_txrx_tx_fp
- * @brief top-level transmit function
- */
-typedef adf_nbuf_t
-(*ol_txrx_tx_fp)(struct ol_txrx_vdev_t *vdev, adf_nbuf_t msdu_list);
-
-typedef void
-(*ol_txrx_mgmt_tx_cb)(void *ctxt, adf_nbuf_t tx_mgmt_frm, int had_error);
-
 /* If RSSI realm is changed, send notification to Clients, SME, HDD */
 typedef VOS_STATUS (*wlan_txrx_rssi_cross_thresh) (void *adapter, u8 rssi,
 					    void *usr_ctx, v_S7_t avg_rssi);
