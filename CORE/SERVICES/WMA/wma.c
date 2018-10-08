@@ -34632,6 +34632,61 @@ VOS_STATUS wma_mnt_filter_type_cmd(tp_wma_handle wma_handle,
     return VOS_STATUS_SUCCESS;
 }
 
+/**
+ * wma_set_hpcs_pulse_params() - Send High Precision Clock Synchronization
+ * pulse configuration params to firmware
+ * @wma_handle: pointer to wma handle
+ * @hpcs_pulse_params_req: pointer to hpcs pulse params request
+ *
+ * This is called to send hpc pulse parameters to fw via WMI cmd
+ *
+ * Return: VOS_STATUS Success/Failure
+ */
+VOS_STATUS wma_set_hpcs_pulse_params(tp_wma_handle wma_handle,
+                         struct hal_hpcs_pulse_params *hpcs_pulse_params_req)
+{
+    wmi_hpcs_pulse_start_cmd_fixed_param *cmd;
+    int status = 0;
+    wmi_buf_t buf;
+    u_int8_t *buf_ptr;
+    int32_t len = sizeof(wmi_hpcs_pulse_start_cmd_fixed_param);
+
+    if (!wma_handle || !wma_handle->wmi_handle) {
+        WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+        return VOS_STATUS_E_INVAL;
+    }
+
+    buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+    if (!buf) {
+        WMA_LOGP(FL("wmi_buf_alloc failed"));
+        return -ENOMEM;
+    }
+    buf_ptr = (u_int8_t *) wmi_buf_data(buf);
+    cmd = (wmi_hpcs_pulse_start_cmd_fixed_param *) buf_ptr;
+    WMITLV_SET_HDR(&cmd->tlv_header,
+                   WMITLV_TAG_STRUC_wmi_hpcs_pulse_start_cmd_fixed_param,
+                   WMITLV_GET_STRUCT_TLVLEN(
+                   wmi_hpcs_pulse_start_cmd_fixed_param));
+
+    cmd->vdev_id             = hpcs_pulse_params_req->vdev_id;
+    cmd->start               = hpcs_pulse_params_req->start;
+    cmd->sync_time           = hpcs_pulse_params_req->sync_time;
+    cmd->pulse_interval      = hpcs_pulse_params_req->pulse_interval;
+    cmd->active_sync_period  = hpcs_pulse_params_req->active_sync_period;
+    cmd->gpio_pin            = hpcs_pulse_params_req->gpio_pin;
+    cmd->pulse_width         = hpcs_pulse_params_req->pulse_width;
+
+    status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+                                  WMI_HPCS_PULSE_START_CMDID);
+    if (status != EOK) {
+        WMA_LOGE("%s: wmi_unified_cmd_send WMI_HPCS_PULSE_START_CMDID"
+                 " returned Error %d", __func__, status);
+        wmi_buf_free(buf);
+        return VOS_STATUS_E_FAILURE;
+    }
+    return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -35626,6 +35681,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			break;
 		case WDA_PERIODIC_CFR_ENABLE_CMD:
 			wmi_peer_periodic_cfr_enable(wma_handle, *((u8 *)msg->bodyptr));
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_HPCS_PULSE_PARAMS:
+			wma_set_hpcs_pulse_params(wma_handle,
+						  (struct hal_hpcs_pulse_params*) msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 		default:

@@ -173,6 +173,8 @@ typedef struct
 #define WE_MEM_TRACE_DUMP                       11
 #endif
 #define WE_SET_THERMAL_THROTTLE_CONFIG          14
+#define WE_SET_HPCS_PULSE_PARAMS_CONFIG         15
+
 
 #define QCSAP_IOCTL_SET_CHANNEL_RANGE           (SIOCIWFIRSTPRIV+17)
 #define QCSAP_IOCTL_MODIFY_ACL                  (SIOCIWFIRSTPRIV+18)

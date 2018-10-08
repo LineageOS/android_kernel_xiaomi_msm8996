@@ -416,6 +416,7 @@ typedef enum eMonFilterType{
 #define WE_MOTION_DET_BASE_LINE_CONFIG_PARAM      13
 #endif
 #define WE_SET_THERMAL_THROTTLE_CONFIG            14
+#define WE_SET_HPCS_PULSE_PARAMS_CONFIG           15
 
 /* Private ioctls (with no sub-ioctls) */
 /* note that they must be odd so that they have "get" semantics */
@@ -9119,6 +9120,42 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
             }
             break;
 
+        case WE_SET_HPCS_PULSE_PARAMS_CONFIG:
+            {
+                tSirHpcsPulseParmasConfig config;
+                if (num_args != 6) {
+                    hddLog(LOGE, FL("setHpcsParams: 6 args are required\n"
+                           "Ex: iwpriv wlan0 setHpcsParams start sync_time "
+                           "pulse_interval active_sync_period gpio_pin pulse_width"));
+                    return -EINVAL;
+                }
+
+                if (apps_args[0] < 0 || apps_args[0] > 1 || apps_args[1] < 0
+                    || apps_args[2] <= 10000 || apps_args[3] < 0 || apps_args[4] < 0
+                    || apps_args[5] < 10000) {
+                    hddLog(LOGE, FL("setHpcsParams: Invalid values"));
+                    return -EINVAL;
+                }
+
+                hddLog(LOG1, "setHpcsParams vdev_id:%d args %x %x %x %x %x %x\n",
+                              pAdapter->sessionId, apps_args[0], apps_args[1],
+                              apps_args[2], apps_args[3], apps_args[4], apps_args[5]);
+
+                config.vdev_id            = pAdapter->sessionId;
+                config.start              = apps_args[0];
+                config.sync_time          = apps_args[1];
+                config.pulse_interval     = apps_args[2];
+                config.active_sync_period = apps_args[3];
+                config.gpio_pin           = apps_args[4];
+                config.pulse_width        = apps_args[5];
+
+                ret = sme_hpcs_pulse_params_conf_cmd(pAdapter, &config);
+
+                if (ret != eHAL_STATUS_SUCCESS)
+                    return -EINVAL;
+            }
+            break;
+
         default:
             {
                 hddLog(LOGE, FL("Invalid IOCTL command %d"), sub_cmd );
@@ -12758,6 +12795,9 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_THERMAL_THROTTLE_CONFIG,
         IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
         0, "setThermalConfig" },
+    {   WE_SET_HPCS_PULSE_PARAMS_CONFIG,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, "setHpcsParams" },
 };
 
 

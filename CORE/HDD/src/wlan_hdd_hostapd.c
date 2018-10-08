@@ -7645,6 +7645,10 @@ static const struct iw_priv_args hostapd_private_args[] = {
     {   WE_SET_THERMAL_THROTTLE_CONFIG,
         IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
         0, "setThermalConfig" },
+
+    {   WE_SET_HPCS_PULSE_PARAMS_CONFIG,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, "setHpcsParams" },
 };
 
 static const iw_handler hostapd_private[] = {
