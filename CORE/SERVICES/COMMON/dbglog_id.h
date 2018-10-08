@@ -50,11 +50,7 @@ extern "C" {
 */
 #define DBGLOG_DBGID_SM_FRAMEWORK_PROXY_DBGLOG_MSG 1000
 
-#if defined(WLAN_ML_LOG)
-
-
-
-/* RESMGR messageIDs for ML logging*/
+/* RESMGR messageIDs for ML logging */
 typedef enum {
 	RESMGR_MSGID_DEFINITION_START = 0x0000,
 	RESMGR_CHMMGR_CHAINMASK_CHANGE_REQ_MSGID,
@@ -97,8 +93,7 @@ typedef enum {
 	RESMGR_MSGID_DEFINITION_END = 0x7fff,
 } RESMGR_MSGID;
 
-
-/* VDEVMGR messageIDs for ML logging*/
+/* VDEVMGR messageIDs for ML logging */
 typedef enum {
 	VDEV_MGR_MSGID_DEFINITION_START = 0x0000,
 	VDEV_MGR_RESMGR_CHMMGR_NOTIF_VDEV_UP_MSGID,
@@ -124,7 +119,6 @@ typedef enum {
 	VDEV_MGR_THREAD_COMM_VDEV_STATE_CHANGE_CONF_MSGID,
 	VDEV_MGR_MSGID_DEFINITION_END = 0x7fff,
 } VDEV_MGR_MSGID;
-
 
 /* SCAN messageIDs for ML logging */
 typedef enum {
@@ -182,7 +176,6 @@ typedef enum {
 	SCAN_MSGID_DEFINITION_END = 0x7fff,
 } SCAN_MSGID;
 
-
 /* MGMT_TXRX messageIDs for ML logging */
 typedef enum {
 	MGMT_TXRX_MSGID_DEFINITION_START = 0x0000,
@@ -192,7 +185,6 @@ typedef enum {
 	DATA_TXRX_WAL_LOCAL_FRAME_SEND_MSGID,
 	MGMT_TXRX_MSGID_DEFINITION_END = 0x7fff,
 } MGMT_TXRX_MSGID;
-
 
 /* OFFLOAD messageIDs for ML logging */
 typedef enum {
@@ -225,16 +217,14 @@ typedef enum {
 	OFFLOAD_MSGID_DEFINITION_END = 0x7fff,
 } OFFLOAD_MSGID;
 
-
-/* STA_PWRSAVE messageIDs for ML logging*/
+/* STA_PWRSAVE messageIDs for ML logging */
 typedef enum {
 	STA_PWRSAVE_MSGID_DEFINITION_START = 0x0000,
 	STA_PWRSAVE_ARBITER_REQUEST_MSGID,
 	STA_PWRSAVE_MSGID_DEFINITION_END = 0x7fff,
-}STA_PWRSAVE_MSGID;
+} STA_PWRSAVE_MSGID;
 
-
-/* COEX messageIDs for ML logging*/
+/* COEX messageIDs for ML logging */
 typedef enum {
 	COEX_MSGID_DEFINITION_START = 0x0000,
 	COEX_ASM_ANTENNA_REQUEST_MSGID,
@@ -243,18 +233,17 @@ typedef enum {
 	COEX_EVENT_HANDLER_SCAN_ANT_MSGID,
 	COEX_EVENT_HANDLER_VDEV_ANT_OP_MSGID,
 	COEX_MSGID_DEFINITION_END = 0x7fff,
-}COEX_MSGID;
+} COEX_MSGID;
 
-
-/* STA_SMPS messageIDs for ML logging*/
+/* STA_SMPS messageIDs for ML logging */
 typedef enum {
 	STA_SMPS_MSGID_DEFINITION_START = 0x0000,
 	STA_SMPS_VC_CFG_NOTIFY_MSGID,
 	STA_SMPS_MSGID_EDFINITION_END = 0x7fff,
-}STA_SMPS_MSGID;
+} STA_SMPS_MSGID;
 
 
-/* WAL messageIDs for ML logging*/
+/* WAL messageIDs for ML logging */
 typedef enum {
 	WAL_MSGID_DEFINITION_START = 0x0000,
 	WAL_PDEV_CHANNEL_CHANGE_MSGID,
@@ -349,7 +338,6 @@ typedef enum {
 	WAL_MSGID_DEFINITION_END = 0x7fff,
 } WAL_MSGID;
 
-
 /* WPM messageIDs for ML logging */
 typedef enum {
 	WPM_MSGID_DEFINITION_START = 0x0000,
@@ -366,7 +354,6 @@ typedef enum {
 	MLME_THREAD_COMM_UPDATE_STATUS_MSGID,
 	MLME_THREAD_COMM_CMD_PROXY_MSGID,
 	MLME_MSGID_DEFINITION_END = 0x7fff,
-
 } MLME_MSGID;
 
 typedef enum {
@@ -381,9 +368,6 @@ typedef enum {
 	AP_PWRSAVE_EVENT_HANDLER_SLEEP_STA_UPDATE_MSGID,
 	AP_PWRSAVE_MSGID_DEFINITION_END = 0x7fff,
 } AP_PWRSAVE_MSGID;
-
-#endif
-
 
 
 /* INF debug identifier definitions */
