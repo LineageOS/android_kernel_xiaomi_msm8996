@@ -386,7 +386,8 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
              LIM_ACCESS_POLICY_RESPOND_IF_IE_IS_PRESENT)) {
         if (!cfg_get_vendor_ie_ptr_from_oui(pMac,
                     &psessionEntry->access_policy_vendor_ie[2],
-                    3, pBody + LIM_ASSOC_REQ_IE_OFFSET, framelen)) {
+                    3, pBody + LIM_ASSOC_REQ_IE_OFFSET,
+                    framelen - LIM_ASSOC_REQ_IE_OFFSET)) {
             limLog(pMac, LOGE,
                     FL("Vendor ie not present and access policy is %x, Rejected association"),
                     psessionEntry->access_policy);
