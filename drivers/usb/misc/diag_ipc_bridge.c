@@ -107,7 +107,7 @@ int diag_bridge_open(int id, struct diag_bridge_ops *ops)
 	dev->ops = ops;
 	dev->err = 0;
 
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM
 	dev->default_autosusp_delay =
 		dev->udev->dev.power.autosuspend_delay;
 #endif
