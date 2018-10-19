@@ -1693,37 +1693,36 @@ eHalStatus sme_SetPlmRequest(tHalHandle hHal, tpSirPlmReq pPlmReq)
         }
 
         if (pPlmReq->enable) {
-
            /* validating channel numbers */
-           for (count = 0; count < pPlmReq->plmNumCh; count++) {
-
-              ret = csrIsSupportedChannel(pMac, pPlmReq->plmChList[count]);
-              if (ret && pPlmReq->plmChList[count] > 14)
-              {
-                  if (NV_CHANNEL_DFS ==
-                       vos_nv_getChannelEnabledState(pPlmReq->plmChList[count]))
+           if(pPlmReq->plmNumCh < WNI_CFG_VALID_CHANNEL_LIST_LEN) {
+               for (count = 0; count < pPlmReq->plmNumCh; count++) {
+                  ret = csrIsSupportedChannel(pMac, pPlmReq->plmChList[count]);
+                  if (ret && pPlmReq->plmChList[count] > 14)
                   {
-                      /* DFS channel is provided, no PLM bursts can be
-                      * transmitted. Ignoring these channels.
-                      */
-                      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                                "%s DFS channel %d ignored for PLM", __func__,
-                                pPlmReq->plmChList[count]);
-                      continue;
+                      if (NV_CHANNEL_DFS ==
+                           vos_nv_getChannelEnabledState(pPlmReq->plmChList[count]))
+                      {
+                          /* DFS channel is provided, no PLM bursts can be
+                          * transmitted. Ignoring these channels.
+                          */
+                          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                                    "%s DFS channel %d ignored for PLM", __func__,
+                                    pPlmReq->plmChList[count]);
+                          continue;
+                      }
                   }
-              }
-              else if (!ret)
-              {
-                   /* Not supported, ignore the channel */
-                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-                             "%s Unsupported channel %d ignored for PLM",
-                             __func__, pPlmReq->plmChList[count]);
-                   continue;
-              }
-              ch_list[valid_count] = pPlmReq->plmChList[count];
-              valid_count++;
-           } /* End of for () */
-
+                  else if (!ret)
+                  {
+                       /* Not supported, ignore the channel */
+                       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+                                 "%s Unsupported channel %d ignored for PLM",
+                                 __func__, pPlmReq->plmChList[count]);
+                       continue;
+                  }
+                  ch_list[valid_count] = pPlmReq->plmChList[count];
+                  valid_count++;
+               } /* End of for () */
+           }
            /* Copying back the valid channel list to plm struct */
            vos_mem_set((void *)pPlmReq->plmChList, pPlmReq->plmNumCh, 0);
            if (valid_count)
