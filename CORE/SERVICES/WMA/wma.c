@@ -10354,6 +10354,7 @@ int wmi_peer_set_cfr_capture_conf(tp_wma_handle wma, struct wmi_peer_cfr_capture
         peer->cfr_capture.cfr_period    = arg->periodicity;
         peer->cfr_capture.cfr_bandwidth = arg->bandwidth;
         peer->cfr_capture.cfr_method    = arg->capture_method;
+        adf_os_atomic_dec(&peer->ref_cnt);
     }
     return VOS_STATUS_SUCCESS;
 }
