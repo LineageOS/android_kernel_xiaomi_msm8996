@@ -77,6 +77,8 @@
 #include "sme_nan_datapath.h"
 #include "csrApi.h"
 #include "utilsApi.h"
+#include "cfgApi.h"
+#include "limUtils.h"
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
@@ -2335,6 +2337,37 @@ eHalStatus sme_handle_cc_change_ind(tHalHandle hal_ptr, void *msg_buf)
 	return (status);
 }
 
+eHalStatus sme_handle_update_pwr_ind(tHalHandle hal_ptr, uint32_t pesession_id)
+{
+	tpAniSirGlobal mac_ptr = PMAC_STRUCT(hal_ptr);
+	tpPESession pesession_ptr =
+		peFindSessionBySessionId(mac_ptr, pesession_id);
+	tPowerdBm regMax = 0,maxTxPower = 0;
+
+	regMax =
+	  cfgGetRegulatoryMaxTransmitPower(mac_ptr,
+					   pesession_ptr->currentOperChannel);
+	maxTxPower = VOS_MIN(regMax, mac_ptr->roam.configParam.nTxPowerCap);
+	if (maxTxPower != pesession_ptr->maxTxPower) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+			  "updating new maxTx power %d to HAL from old pwr %d",
+			  maxTxPower, pesession_ptr->maxTxPower);
+		if(limSendSetMaxTxPowerReq(mac_ptr,
+					   maxTxPower,
+					   pesession_ptr) == eSIR_SUCCESS)
+			pesession_ptr->maxTxPower = maxTxPower;
+		else {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				  "Set max txpwr req fail");
+		}
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "no change on current max txpwr %d", maxTxPower);
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
 /*--------------------------------------------------------------------------
 
   \brief sme_Start() - Put all SME modules at ready state.
@@ -3002,6 +3035,9 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    smsLog(pMac, LOGE, "Empty rsp message for meas "
                           "(eWNI_SME_CC_CHANGE_IND), nothing to process");
                 }
+                break;
+          case eWNI_SME_UPDATE_PWR_IND:
+                status = sme_handle_update_pwr_ind(pMac,pMsg->bodyval);
                 break;
           case eWNI_SME_POST_SWITCH_CHL_IND:
              {
