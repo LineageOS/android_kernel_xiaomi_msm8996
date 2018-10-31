@@ -8774,8 +8774,9 @@ __wlan_hdd_cfr_capture_cfg_handler(struct wiphy *wiphy,
 
     if (tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY]) {
         arg.periodicity = nla_get_u32(tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY]);
-        if (arg.periodicity < WMI_PEER_CFR_PERIODICITY_MIN ||
-            arg.periodicity > WMI_PEER_CFR_PERIODICITY_MAX) {
+        if (arg.periodicity &&
+            (arg.periodicity < WMI_PEER_CFR_PERIODICITY_MIN ||
+            arg.periodicity > WMI_PEER_CFR_PERIODICITY_MAX)) {
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid CFR capture periodicity\n"));
             return -EINVAL;
         }
