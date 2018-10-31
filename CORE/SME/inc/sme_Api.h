@@ -4973,4 +4973,31 @@ eHalStatus sme_thermal_throttle_mgmt_cmd(tHalHandle hHal, tANI_U16 lower_thresh_
  */
 uint32_t sme_unpack_rsn_ie(tHalHandle hal, uint8_t *buf,
                         uint8_t buf_len, tDot11fIERSN *rsn_ie);
+
+struct sme_peer_cfr_capture_conf {
+    u32 vdev_id;
+    tSirMacAddr peer_macaddr;
+    u32 request;
+    u32 periodicity;
+    u32 bandwidth;
+    u32 capture_method;
+};
+eHalStatus sme_periodic_cfr_enable(u8 cfr_enable);
+eHalStatus sme_cfr_capture_configure(struct sme_peer_cfr_capture_conf arg);
+
+typedef struct {
+	uint32_t vdev_id;              /* Vdev ID */
+	uint32_t start;                /* Start/Stop */
+	uint32_t sync_time;            /* Lower 32-bit of the TSF at which the
+                                        * pulse should be synced */
+	uint32_t pulse_interval;       /* Periodicity of pulses in micro secs */
+	uint32_t active_sync_period;   /* Number of beacons to sync before generating
+                                        * pulse in units of beacon interval.
+                                        * Valid for clock slaves only */
+	uint32_t gpio_pin;             /* GPIO Pin number to be used */
+	uint32_t pulse_width;          /* Duration of pulse in micro secs */
+} tSirHpcsPulseParmasConfig;
+
+eHalStatus sme_hpcs_pulse_params_conf_cmd(tHalHandle hHal, tSirHpcsPulseParmasConfig *pHpcsPulseParams);
+
 #endif //#if !defined( __SME_API_H )

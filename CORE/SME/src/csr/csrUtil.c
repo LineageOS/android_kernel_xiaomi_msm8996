@@ -2754,8 +2754,8 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
 #endif
                             {
                                 smsLog(pMac, LOGE,
-                                        FL("***MCC is not enabled for SAP + CLIENT****"));
-                                return eHAL_STATUS_FAILURE;
+                                        FL("**** MCC for SAP + CLIENT sessions ****"));
+                                return eHAL_STATUS_SUCCESS;
                             }
                         }
                     }

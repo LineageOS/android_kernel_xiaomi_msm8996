@@ -846,7 +846,12 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 					 IEEE80211_IS_MULTICAST(wh->i_addr1))
 				{
 					efrm = adf_nbuf_data(wbuf) + adf_nbuf_len(wbuf);
-
+					/* Check if frame is invalid length */
+					if (efrm - (uint8_t *)wh <
+					    sizeof(*wh) + vos_get_mmie_size()) {
+						TLSHIM_LOGE("Invalid frame length");
+						return 0;
+					}
 					key_id = (u_int16_t)*(efrm - vos_get_mmie_size() + 2);
 					if (!((key_id == WMA_IGTK_KEY_INDEX_4) ||
 						(key_id == WMA_IGTK_KEY_INDEX_5))) {

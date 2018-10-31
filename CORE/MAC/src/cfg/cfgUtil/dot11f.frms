@@ -1355,7 +1355,7 @@ IE TPCReport (EID_TPC_REPORT)             // 7.3.2.18
 
 IE SuppChannels (EID_SUPPORTED_CHANNELS)  // 7.2.3.19
 {
-    bands[2][1..48];
+    bands[2][0..48];
 }
 
 IE SuppOperatingClasses (EID_SUPPORTED_OPER_CLASSES)
@@ -1418,7 +1418,7 @@ IE RSN (EID_RSN)                          // 7.3.2.25
 
 IE RSNOpaque (EID_RSN)                    // 7.3.2.25
 {
-    data[ 6..253 ];
+    data[ 0..253 ];
 }
 
 IE WAPI (EID_WAPI)                          // 7.3.2.25
@@ -2478,7 +2478,7 @@ IE ChannelSwitchWrapper (EID_CHANNEL_SWITCH_WRAPPER)
 }
 IE ExtCap (EID_EXT_CAP)
 {
-    bytes[1..9];
+    bytes[1..15];
 }
 
 IE HTCaps (EID_HT_CAPABILITIES)

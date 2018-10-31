@@ -2555,6 +2555,7 @@ tANI_BOOLEAN pmcShouldBmpsTimerRun( tpAniSirGlobal pMac )
         pmcLog(pMac, LOG1, FL("No Infra Session. BMPS can't be started"));
         return eANI_BOOLEAN_FALSE;
     }
+
     return eANI_BOOLEAN_TRUE;
 }
 
@@ -3163,6 +3164,7 @@ eHalStatus pmcOffloadDisableStaPsHandler(tpAniSirGlobal pMac,
      * honored
      */
     pmc->configStaPsEnabled = FALSE;
+    pmc->configDefStaPsEnabled = FALSE;
 
     /*
      * Check whether the give session is Infra and in Connected State
@@ -3217,13 +3219,18 @@ void pmcOffloadAutoPsEntryTimerExpired(void *pmcInfo)
 {
     tpPsOffloadPerSessionInfo pmc = (tpPsOffloadPerSessionInfo)pmcInfo;
     tpAniSirGlobal pMac = pmc->pMac;
+    eHalStatus status;
 
     smsLog(pMac, LOG2, FL("Auto PS timer expired"));
 
-    if(eHAL_STATUS_FAILURE == pmcOffloadEnableStaPsHandler(pMac,
-                                                pmc->sessionId))
-    {
+    status = pmcOffloadEnableStaPsHandler(pMac, pmc->sessionId);
+
+    if (eHAL_STATUS_FAILURE == status) {
         smsLog(pMac, LOGE, FL("Auto PS timer expired in wrong state"));
+    }
+    else if ((eHAL_STATUS_SUCCESS == status) ||
+            (eHAL_STATUS_PMC_NOT_NOW == status)) {
+        pmc->configStaPsEnabled = TRUE;
     }
 }
 

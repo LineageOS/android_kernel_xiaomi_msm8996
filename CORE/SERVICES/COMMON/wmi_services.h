@@ -348,7 +348,18 @@ typedef enum {
     WMI_SERVICE_DUAL_BEACON_ON_SINGLE_MAC_SCC_SUPPORT=158, /* Support dual beacon on same channel on single MAC */
     WMI_SERVICE_DUAL_BEACON_ON_SINGLE_MAC_MCC_SUPPORT=159, /* Support dual beacon on different channel on single MAC */
     WMI_SERVICE_MOTION_DET=160, /* support for motion detection config */
-
+    WMI_SERVICE_INFRA_MBSSID=161, /* support infra multi-BSSID feature */
+    WMI_SERVICE_OBSS_SPATIAL_REUSE=162, /* support spatial reuse feature */
+    WMI_SERVICE_VDEV_DIFFERENT_BEACON_INTERVAL_SUPPORT=163, /* Support different beacon intervals on different VDEVs */
+    WMI_SERVICE_NAN_DBS_SUPPORT=164, /* Support DBS for NAN discovery interface */
+    WMI_SERVICE_NDI_DBS_SUPPORT=165, /* Support DBS for NAN data interface */
+    WMI_SERVICE_NAN_SAP_SUPPORT=166, /* Support SAP Concurrency for NAN Discovery interface */
+    WMI_SERVICE_NDI_SAP_SUPPORT=167, /* Support SAP Concurrency for NAN Data interface */
+    WMI_SERVICE_CFR_CAPTURE_SUPPORT=168, /* Support to capture uncompressed Channel Frequency Response (CFR) */
+    WMI_SERVICE_CFR_CAPTURE_IND_MSG_TYPE_1=169, /* Message type HTT_PEER_CFR_CAPTURE_MSG_TYPE_1 in HTT_T2H_MSG_TYPE_CFR_DUMP_COMPL_IND */
+    WMI_SERVICE_ESP_SUPPORT=170, /* Support for Estimated Service Params IE */
+    WMI_SERVICE_PEER_CHWIDTH_CHANGE = 171, /* Support for host to update/re-intersect the node capability */
+    WMI_SERVICE_WLAN_HPCS_PULSE=172, /* Support for High Precision Clock Synchronization feature */
 
     /******* ADD NEW SERVICES HERE *******/
 

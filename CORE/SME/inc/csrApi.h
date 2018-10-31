@@ -564,6 +564,7 @@ typedef enum
     // Channel sw update notification
     eCSR_ROAM_DFS_CHAN_SW_NOTIFY,
     eCSR_ROAM_EXT_CHG_CHNL_IND,
+    eCSR_ROAM_STA_CHANNEL_SWITCH,
 
     eCSR_ROAM_NDP_STATUS_UPDATE,
     eCSR_ROAM_UPDATE_SCAN_RESULT,
@@ -1419,6 +1420,7 @@ typedef struct tagCsrConfigParam
 #ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
     tANI_U32    sap_ch_switch_with_csa;
 #endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+    bool enable_bcast_probe_rsp;
 }tCsrConfigParam;
 
 //Tush

@@ -6205,6 +6205,7 @@ void limHandleDeferMsgError(tpAniSirGlobal pMac, tpSirMsgQ pLimMsg)
 {
     if(SIR_BB_XPORT_MGMT_MSG == pLimMsg->type)
     {
+        lim_decrement_pending_mgmt_count(pMac);
         vos_pkt_return_packet((vos_pkt_t*)pLimMsg->bodyptr);
         pLimMsg->bodyptr = NULL;
     }
@@ -8236,4 +8237,17 @@ bool lim_check_if_vendor_oui_match(tpAniSirGlobal mac_ctx,
         return true;
     else
         return false;
+}
+
+void lim_decrement_pending_mgmt_count(tpAniSirGlobal mac_ctx)
+{
+       adf_os_spin_lock(&mac_ctx->sys.bbt_mgmt_lock);
+       if (!mac_ctx->sys.sys_bbt_pending_mgmt_count) {
+               adf_os_spin_unlock(&mac_ctx->sys.bbt_mgmt_lock);
+               limLog(mac_ctx, LOGW,
+                       FL("sys_bbt_pending_mgmt_count value is 0"));
+               return;
+       }
+       mac_ctx->sys.sys_bbt_pending_mgmt_count--;
+       adf_os_spin_unlock(&mac_ctx->sys.bbt_mgmt_lock);
 }

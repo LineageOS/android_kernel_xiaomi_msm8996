@@ -1322,6 +1322,7 @@ typedef struct sAddStaSelfParams
    uint32_t tx_non_aggr_sw_retry_threshhold_bk;
    uint32_t tx_non_aggr_sw_retry_threshhold_vi;
    uint32_t tx_non_aggr_sw_retry_threshhold_vo;
+   bool            enable_bcast_probe_rsp;
 }tAddStaSelfParams, *tpAddStaSelfParams;
 
 /**
@@ -1569,6 +1570,17 @@ struct hal_thermal_mitigation_params
     tANI_U32 dc;
     tANI_U32 dc_per_event;
     hal_tt_level_config level_conf[WLAN_WMA_MAX_THERMAL_LEVELS];
+};
+
+struct hal_hpcs_pulse_params
+{
+    tANI_U32 vdev_id;
+    tANI_U32 start;
+    tANI_U32 sync_time;
+    tANI_U32 pulse_interval;
+    tANI_U32 active_sync_period;
+    tANI_U32 gpio_pin;
+    tANI_U32 pulse_width;
 };
 
 #endif /* _HALMSGAPI_H_ */

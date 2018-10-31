@@ -1937,7 +1937,7 @@ err_region:
  * power up WLAN host driver when SSR happens. Most of this
  * function is duplicated from hif_pci_probe().
  */
-#ifdef HIF_PCI
+#ifdef CONFIG_CNSS
 int hif_pci_reinit(struct pci_dev *pdev, const struct pci_device_id *id)
 {
     void __iomem *mem;
@@ -2286,7 +2286,6 @@ err_region:
 
     return ret;
 }
-#endif
 
 void hif_pci_notify_handler(struct pci_dev *pdev, int state)
 {
@@ -2297,6 +2296,7 @@ void hif_pci_notify_handler(struct pci_dev *pdev, int state)
           printk(KERN_ERR "%s: Fail to send notify\n", __func__);
    }
 }
+#endif
 
 void
 hif_nointrs(struct hif_pci_softc *sc)
@@ -2621,7 +2621,7 @@ hif_pci_remove(struct pci_dev *pdev)
     printk(KERN_INFO "pci_remove\n");
 }
 
-#ifdef HIF_PCI
+#ifdef CONFIG_CNSS
 static void hif_pci_ssr_fail_ind(void)
 {
 	v_CONTEXT_t vos_ctx;
@@ -2738,8 +2738,7 @@ static bool is_hif_runtime_active(struct hif_pci_softc *sc)
 {
 	int pm_state = adf_os_atomic_read(&sc->pm_state);
 
-	if (pm_state  == HIF_PM_RUNTIME_STATE_ON ||
-	    pm_state == HIF_PM_RUNTIME_STATE_NONE)
+	if (pm_state != HIF_PM_RUNTIME_STATE_SUSPENDED)
 		return true;
 
 	return false;
@@ -2783,7 +2782,7 @@ static void hif_dump_crash_debug_info(struct hif_pci_softc *sc)
 {
 	struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
 	struct ol_softc *scn = sc->ol_sc;
-	int ret;
+	int ret = 0;
 	tp_wma_handle wma_handle;
 	void *vos_context = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
 
@@ -2810,7 +2809,8 @@ static void hif_dump_crash_debug_info(struct hif_pci_softc *sc)
 	 * time, TargetFailure event wont't be received after inject
 	 * crash due to the same reason
 	 */
-	ret = wma_crash_inject(wma_handle, 1, 0);
+	if (wmi_get_host_credits(wma_handle->wmi_handle))
+		ret = wma_crash_inject(wma_handle, 1, 0);
 
 	adf_os_spin_lock_irqsave(&hif_state->suspend_lock);
 	hif_irq_record(HIF_CRASH, sc);
@@ -3205,10 +3205,8 @@ __hif_pci_resume(struct pci_dev *pdev, bool runtime_pm)
     pci_set_master(pdev);
 
 skip:
-#ifdef HIF_PCI
     /* Keep PCIe bus driver's shadow memory intact */
     vos_pcie_shadow_control(pdev, TRUE);
-#endif
 
 #ifdef DISABLE_L1SS_STATES
     pci_read_config_dword(pdev, 0x188, &val);

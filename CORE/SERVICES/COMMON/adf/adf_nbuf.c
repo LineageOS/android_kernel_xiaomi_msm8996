@@ -198,11 +198,15 @@ __adf_nbuf_alloc(adf_os_device_t osdev, size_t size, int reserve, int align, int
 {
     struct sk_buff *skb;
     unsigned long offset;
+    int flags = GFP_KERNEL;
 
     if(align)
         size += (align - 1);
 
-    skb = dev_alloc_skb(size);
+    if (in_interrupt() || irqs_disabled() || in_atomic())
+        flags = GFP_ATOMIC;
+
+    skb = __netdev_alloc_skb(NULL, size, flags);
 
     if (skb)
        goto skb_cb;

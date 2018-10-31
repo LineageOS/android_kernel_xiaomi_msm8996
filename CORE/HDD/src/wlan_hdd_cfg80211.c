@@ -8703,6 +8703,175 @@ wlan_hdd_cfg80211_thermal_cmd(struct wiphy *wiphy,
 	return ret;
 }
 
+static const struct nla_policy
+qca_vendor_peer_cfr_capture_cfg_policy[QCA_WLAN_VENDOR_ATTR_PEER_CFR_MAX + 1] = {
+    [QCA_WLAN_VENDOR_ATTR_CFR_PEER_MAC_ADDR] = { .type = NLA_UNSPEC, .len = ETH_ALEN },
+    [QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE] = { .type = NLA_FLAG },
+    [QCA_WLAN_VENDOR_ATTR_PEER_CFR_BANDWIDTH] = { .type = NLA_U8 },
+    [QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY] = { .type = NLA_U32 },
+    [QCA_WLAN_VENDOR_ATTR_PEER_CFR_METHOD] = { .type = NLA_U8 },
+    [QCA_WLAN_VENDOR_ATTR_PERIODIC_CFR_CAPTURE_ENABLE] = { .type = NLA_FLAG },
+};
+
+/**
+ * __wlan_hdd_cfr_capture_cfg_handler() - Handler to configure the CFR Parameters
+ * from user space
+ *
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the CFR Parameters
+ * @data_len:Length of the data passed
+ *
+ * Return:   Return Success or Failure
+ */
+static int
+__wlan_hdd_cfr_capture_cfg_handler(struct wiphy *wiphy,
+                                   struct wireless_dev *wdev,
+                                   const void *data, int data_len)
+{
+    struct net_device *dev = wdev->netdev;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+    struct nlattr *tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_MAX + 1];
+    struct sme_peer_cfr_capture_conf arg = {0};
+    u8 periodic_cfr_enable = 0;
+    eHalStatus status = eHAL_STATUS_FAILURE;
+
+    if (VOS_FTM_MODE == hdd_get_conparam()) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Command not allowed in FTM mode"));
+        return -EINVAL;
+    }
+
+    if (wlan_hdd_validate_context(hdd_ctx))
+        return -EINVAL;
+
+    if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_PEER_CFR_MAX,
+                  data, data_len,
+                  qca_vendor_peer_cfr_capture_cfg_policy)) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid CFR capture policy attribute"));
+        return -EINVAL;
+    }
+
+    if (!tb[QCA_WLAN_VENDOR_ATTR_CFR_PEER_MAC_ADDR]) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, FL("CFR MAC ADDR attribute needed"));
+        return -EINVAL;
+    }
+
+    ether_addr_copy(arg.peer_macaddr, nla_data(tb[QCA_WLAN_VENDOR_ATTR_CFR_PEER_MAC_ADDR]));
+
+    if (tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE])
+        arg.request = WMI_PEER_CFR_CAPTURE_ENABLE;
+    else arg.request = WMI_PEER_CFR_CAPTURE_DISABLE;
+
+    if (arg.request == WMI_PEER_CFR_CAPTURE_ENABLE &&
+        (!tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_BANDWIDTH] ||
+        !tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY] ||
+        !tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_METHOD])) {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               FL("Request for CFR enable, missing attributes\n"));
+        return -EINVAL;
+    }
+
+    if (tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY]) {
+        arg.periodicity = nla_get_u32(tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY]);
+        if (arg.periodicity < WMI_PEER_CFR_PERIODICITY_MIN ||
+            arg.periodicity > WMI_PEER_CFR_PERIODICITY_MAX) {
+            hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid CFR capture periodicity\n"));
+            return -EINVAL;
+        }
+        if (arg.periodicity % 10) {
+            hddLog(VOS_TRACE_LEVEL_ERROR,
+                   FL("CFR Periodicity should be multiple of 10\n"));
+            return -EINVAL;
+        }
+    }
+
+    if (tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_BANDWIDTH]) {
+        arg.bandwidth = nla_get_u8(tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_BANDWIDTH]);
+        if (arg.bandwidth == NL80211_CHAN_WIDTH_20) {
+            arg.bandwidth = WMI_PEER_CFR_CAPTURE_BW_20MHZ;
+        }
+        else if (arg.bandwidth == NL80211_CHAN_WIDTH_40) {
+            arg.bandwidth = WMI_PEER_CFR_CAPTURE_BW_40MHZ;
+        }
+        else if (arg.bandwidth == NL80211_CHAN_WIDTH_80) {
+            arg.bandwidth = WMI_PEER_CFR_CAPTURE_BW_80MHZ;
+        }
+        else if (arg.bandwidth == NL80211_CHAN_WIDTH_80P80) {
+            arg.bandwidth = WMI_PEER_CFR_CAPTURE_BW_80_80MHZ;
+        }
+        else if (arg.bandwidth == NL80211_CHAN_WIDTH_160) {
+            arg.bandwidth = WMI_PEER_CFR_CAPTURE_BW_160MHZ;
+        }
+        else {
+            hddLog(LOGE, FL("Invalid CFR capture BW\n"));
+            return -EINVAL;
+        }
+        /*TODO Check if requested bandwidth is supported by Peer */
+    }
+
+    if (tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_METHOD]) {
+        arg.capture_method = nla_get_u8(tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_METHOD]);
+        if (arg.capture_method == QCA_WLAN_VENDOR_CFR_METHOD_QOS_NULL) {
+            arg.capture_method = WMI_PEER_CFR_CAPTURE_METHOD_NULL_FRAME;
+        }
+        else {
+            hddLog(VOS_TRACE_LEVEL_ERROR, FL("CFR method not supported\n"));
+            return -EINVAL;
+        }
+    }
+
+    if (tb[QCA_WLAN_VENDOR_ATTR_PERIODIC_CFR_CAPTURE_ENABLE])
+        periodic_cfr_enable = 1;
+
+    arg.vdev_id = pAdapter->sessionId;
+
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("Peer VdevId = %d"), arg.vdev_id);
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("MAC ADDR = %02x:%02x:%02x:%02x:%02x:%02x"),
+           arg.peer_macaddr[0], arg.peer_macaddr[1], arg.peer_macaddr[2],
+           arg.peer_macaddr[3], arg.peer_macaddr[4], arg.peer_macaddr[5]);
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("CFR Enable = %d"), arg.request);
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("CFR Periodicity = %d"), arg.periodicity);
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("CFR Bandwidth = %d"), arg.bandwidth);
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("CFR Capture Method = %d"), arg.capture_method);
+    hddLog(VOS_TRACE_LEVEL_INFO, FL("CFR Periodic Enable = %d"), periodic_cfr_enable);
+
+    status = sme_cfr_capture_configure(arg);
+    if (eHAL_STATUS_SUCCESS != status)
+        return -EINVAL;
+
+    status = sme_periodic_cfr_enable(periodic_cfr_enable);
+    if (eHAL_STATUS_SUCCESS != status)
+        return -EINVAL;
+
+    return 0;
+}
+
+/**
+ * wlan_hdd_cfr_capture_cfg_handler() - Handler to configure the CFR Parameters
+ * from user space
+ *
+ * @wiphy:   pointer to wireless wiphy structure.
+ * @wdev:    pointer to wireless_dev structure.
+ * @data:    Pointer to the CFR Parameters
+ * @data_len:Length of the data passed
+ *
+ * This is called when QCA_NL80211_VENDOR_SUBCMD_PEER_CFR_CAPTURE_CFG is invoked
+ *
+ * Return:   Return Success or Failure
+ */
+static int
+wlan_hdd_cfr_capture_cfg_handler(struct wiphy *wiphy,
+                                 struct wireless_dev *wdev,
+                                 const void *data, int data_len)
+{
+    int ret;
+    vos_ssr_protect(__func__);
+    ret = __wlan_hdd_cfr_capture_cfg_handler(wiphy, wdev, data, data_len);
+    vos_ssr_unprotect(__func__);
+    return ret;
+}
+
 #endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
 
 #ifdef FEATURE_WLAN_TDLS
@@ -15970,6 +16139,14 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 		.doit = wlan_hdd_cfg80211_thermal_cmd
 	},
 #endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
+        {
+                .info.vendor_id = QCA_NL80211_VENDOR_ID,
+                .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_PEER_CFR_CAPTURE_CFG,
+                .flags = WIPHY_VENDOR_CMD_NEED_WDEV |
+                         WIPHY_VENDOR_CMD_NEED_NETDEV |
+                         WIPHY_VENDOR_CMD_NEED_RUNNING,
+                .doit = wlan_hdd_cfr_capture_cfg_handler,
+        },
 };
 
 /*
@@ -17104,6 +17281,16 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
 
     pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
     pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
+
+    /* FIx CR2299453 that the pHostapdAdapter->sessionCtx.ap.beacon will be
+     * set NULL during ap stop at function wlan_hdd_cfg80211_stop_ap()
+     * but then received fw indicator 0x6 and trigger driver reset, and then
+     * cause this NULL pointer operation when re-init.
+     */
+    if (pBeacon == NULL) {
+        hddLog(LOGE, FL("Invalid pointer pBeacon = NULL!"));
+        return -EINVAL;
+    }
 
     genie = vos_mem_malloc(MAX_GENIE_LEN);
 
@@ -19133,6 +19320,129 @@ void hdd_update_beacon_rate(hdd_adapter_t *pAdapter, struct wiphy *wiphy,
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,3,0)) || defined(WITH_BACKPORTS)
 
+static int hdd_config_sub20_channel(hdd_context_t *pHddCtx, uint8_t channel,
+			      uint32_t channel_width)
+{
+	bool channel_support_sub20 = true;
+	tSmeConfigParams *sme_config;
+	uint8_t sub20_config;
+	uint8_t sub20_dyn_channelwidth = 0;
+	uint8_t sub20_static_channelwidth = 0;
+	uint8_t sub20_channelwidth = 0;
+	enum phy_ch_width phy_sub20_channel_width = CH_WIDTH_INVALID;
+
+	sme_config = vos_mem_malloc(sizeof(tSmeConfigParams));
+	if (!sme_config) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("Can't alloc mem for sme config"));
+		return -EINVAL;
+	}
+	vos_mem_zero(sme_config, sizeof(tSmeConfigParams));
+
+	sme_GetConfigParam(pHddCtx->hHal, sme_config);
+	sub20_config = sme_config->sub20_config_info;
+
+	switch (sub20_config) {
+		case CFG_SUB_20_CHANNEL_WIDTH_5MHZ:
+			sub20_static_channelwidth = SUB20_MODE_5MHZ;
+			break;
+		case CFG_SUB_20_CHANNEL_WIDTH_10MHZ:
+			sub20_static_channelwidth = SUB20_MODE_10MHZ;
+			break;
+		case CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ:
+			sub20_dyn_channelwidth = SUB20_MODE_5MHZ;
+			break;
+		case CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ:
+			sub20_dyn_channelwidth = SUB20_MODE_10MHZ;
+			break;
+		case CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL:
+			sub20_dyn_channelwidth = SUB20_MODE_5MHZ | SUB20_MODE_10MHZ;
+			break;
+		default:
+			break;
+	}
+
+	if (channel == 0) {
+		hddLog(VOS_TRACE_LEVEL_WARN,
+		       FL("Can't start SAP-ACS with sub20 channel width"));
+		vos_mem_free(sme_config);
+		return -EINVAL;
+	}
+
+	if (CSR_IS_CHANNEL_DFS(channel)) {
+		hddLog(VOS_TRACE_LEVEL_WARN,
+		       FL("Can't start SAP-DFS with sub20 channel width"));
+		vos_mem_free(sme_config);
+		return -EINVAL;
+	}
+
+	if (channel_width != NL80211_CHAN_WIDTH_20 &&
+		channel_width != NL80211_CHAN_WIDTH_20_NOHT) {
+		hddLog(VOS_TRACE_LEVEL_WARN,
+		       FL("Hostapd (20+MHz) conflicts config.ini(sub20)"));
+		vos_mem_free(sme_config);
+		return -EINVAL;
+	}
+
+	switch (sub20_config) {
+	case CFG_SUB_20_CHANNEL_WIDTH_5MHZ:
+	case CFG_SUB_20_CHANNEL_WIDTH_10MHZ:
+	case CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ:
+	case CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ:
+		sub20_channelwidth = (sub20_static_channelwidth != 0) ?
+		sub20_static_channelwidth : sub20_dyn_channelwidth;
+		phy_sub20_channel_width =
+			(sub20_channelwidth == SUB20_MODE_5MHZ) ?
+				      CH_WIDTH_5MHZ : CH_WIDTH_10MHZ;
+		channel_support_sub20 =
+			vos_is_channel_support_sub20(channel,
+						     phy_sub20_channel_width,
+						     0);
+		if (!channel_support_sub20) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       FL("ch%dwidth%d unsupport by reg domain"),
+			       channel, phy_sub20_channel_width);
+			vos_mem_free(sme_config);
+			return -EINVAL;
+		}
+		break;
+		case CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL:
+			channel_support_sub20 =
+				vos_is_channel_support_sub20(channel,
+							     CH_WIDTH_5MHZ, 0);
+			if (!channel_support_sub20) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+				       FL("ch%dwidth5M unsupport by reg domain"),
+				       channel);
+				sub20_dyn_channelwidth &= ~SUB20_MODE_5MHZ;
+			}
+
+			channel_support_sub20 =
+				vos_is_channel_support_sub20(channel,
+							     CH_WIDTH_10MHZ, 0);
+			if (!channel_support_sub20) {
+				hddLog(VOS_TRACE_LEVEL_ERROR,
+				       FL("ch%dwidth10M unsupport by reg domain"),
+				       channel);
+				sub20_dyn_channelwidth &= ~SUB20_MODE_10MHZ;
+			}
+
+			if (sub20_dyn_channelwidth == 0) {
+				vos_mem_free(sme_config);
+				return -EINVAL;
+			} else {
+				sme_config->sub20_dynamic_channelwidth =
+							sub20_dyn_channelwidth;
+				sme_UpdateConfig(pHddCtx->hHal, sme_config);
+			}
+			break;
+		default:
+			break;
+	}
+	vos_mem_free(sme_config);
+	return 0;
+}
+
 static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
                                       struct net_device *dev,
                                       struct cfg80211_ap_settings *params)
@@ -19142,6 +19452,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
     uint32_t channel_width;
     hdd_context_t *pHddCtx;
     int            status;
+    int ret = 0;
     ENTER();
 
     clear_bit(SOFTAP_INIT_DONE, &pAdapter->event_flags);
@@ -19183,108 +19494,9 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 
     /* Avoid ACS/DFS, and overwrite channel width to 20 */
     if (hdd_cfg_is_sub20_channel_width_enabled(pHddCtx)) {
-            bool channel_support_sub20 = true;
-            tSmeConfigParams sme_config;
-            uint8_t sub20_config;
-            uint8_t sub20_dyn_channelwidth = 0;
-            uint8_t sub20_static_channelwidth = 0;
-            uint8_t sub20_channelwidth = 0;
-            enum phy_ch_width phy_sub20_channel_width = CH_WIDTH_INVALID;
-
-            vos_mem_zero(&sme_config, sizeof(sme_config));
-            sme_GetConfigParam(pHddCtx->hHal, &sme_config);
-            sub20_config = sme_config.sub20_config_info;
-
-            switch (sub20_config) {
-            case CFG_SUB_20_CHANNEL_WIDTH_5MHZ:
-                sub20_static_channelwidth = SUB20_MODE_5MHZ;
-                break;
-            case CFG_SUB_20_CHANNEL_WIDTH_10MHZ:
-                sub20_static_channelwidth = SUB20_MODE_10MHZ;
-                break;
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ:
-                sub20_dyn_channelwidth = SUB20_MODE_5MHZ;
-                break;
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ:
-                sub20_dyn_channelwidth = SUB20_MODE_10MHZ;
-                break;
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL:
-                sub20_dyn_channelwidth = SUB20_MODE_5MHZ | SUB20_MODE_10MHZ;
-                break;
-            default:
-                break;
-            }
-
-            if (channel == 0) {
-                    hddLog(VOS_TRACE_LEVEL_WARN,
-                           FL("Can't start SAP-ACS with sub20 channel width"));
-                    return -EINVAL;
-            }
-
-            if (CSR_IS_CHANNEL_DFS(channel)) {
-                    hddLog(VOS_TRACE_LEVEL_WARN,
-                           FL("Can't start SAP-DFS with sub20 channel width"));
-                    return -EINVAL;
-            }
-
-            if (channel_width != NL80211_CHAN_WIDTH_20 &&
-                channel_width != NL80211_CHAN_WIDTH_20_NOHT) {
-                    hddLog(VOS_TRACE_LEVEL_WARN,
-                           FL("Hostapd (20+MHz) conflicts config.ini(sub20)"));
-                    return -EINVAL;
-            }
-
-            switch (sub20_config) {
-            case CFG_SUB_20_CHANNEL_WIDTH_5MHZ:
-            case CFG_SUB_20_CHANNEL_WIDTH_10MHZ:
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_5MHZ:
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_10MHZ:
-                sub20_channelwidth = (sub20_static_channelwidth != 0) ?
-                        sub20_static_channelwidth : sub20_dyn_channelwidth;
-                phy_sub20_channel_width =
-                        (sub20_channelwidth == SUB20_MODE_5MHZ) ?
-                            CH_WIDTH_5MHZ : CH_WIDTH_10MHZ;
-                channel_support_sub20 =
-                        vos_is_channel_support_sub20(channel,
-                                                     phy_sub20_channel_width,
-                                                     0);
-                if (!channel_support_sub20) {
-                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                               FL("ch%dwidth%d unsupport by reg domain"),
-                               channel, phy_sub20_channel_width);
-                        return -EINVAL;
-                }
-                break;
-            case CFG_SUB_20_CHANNEL_WIDTH_DYN_ALL:
-                channel_support_sub20 =
-                    vos_is_channel_support_sub20(channel, CH_WIDTH_5MHZ, 0);
-                if (!channel_support_sub20) {
-                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                               FL("ch%dwidth5M unsupport by reg domain"),
-                               channel);
-                        sub20_dyn_channelwidth &= ~SUB20_MODE_5MHZ;
-                }
-
-                channel_support_sub20 =
-                    vos_is_channel_support_sub20(channel, CH_WIDTH_10MHZ, 0);
-                if (!channel_support_sub20) {
-                        hddLog(VOS_TRACE_LEVEL_ERROR,
-                               FL("ch%dwidth10M unsupport by reg domain"),
-                               channel);
-                        sub20_dyn_channelwidth &= ~SUB20_MODE_10MHZ;
-                }
-
-                if (sub20_dyn_channelwidth == 0) {
-                        return -EINVAL;
-                } else {
-                        sme_config.sub20_dynamic_channelwidth =
-                                 sub20_dyn_channelwidth;
-                        sme_UpdateConfig(pHddCtx->hHal, &sme_config);
-                }
-                break;
-            default:
-                break;
-            }
+        ret = hdd_config_sub20_channel(pHddCtx, channel, channel_width);
+        if (ret)
+            return ret;
     }
 
     if (pAdapter->device_mode == WLAN_HDD_P2P_GO) {
@@ -22519,17 +22731,20 @@ int __wlan_hdd_cfg80211_scan( struct wiphy *wiphy,
             !pHddCtx->last_scan_reject_timestamp) {
             pHddCtx->last_scan_reject_session_id = curr_session_id;
             pHddCtx->last_scan_reject_reason = curr_reason;
-            pHddCtx->last_scan_reject_timestamp =
-              jiffies_to_msecs(jiffies) + SCAN_REJECT_THRESHOLD_TIME;
+            pHddCtx->last_scan_reject_timestamp = jiffies +
+                  msecs_to_jiffies(SCAN_REJECT_THRESHOLD_TIME);
             pHddCtx->scan_reject_cnt = 0;
         } else {
             pHddCtx->scan_reject_cnt++;
             if ((pHddCtx->scan_reject_cnt >=
                SCAN_REJECT_THRESHOLD) &&
-               vos_system_time_after(jiffies_to_msecs(jiffies),
+               vos_system_time_after(jiffies,
                pHddCtx->last_scan_reject_timestamp)) {
-		hddLog(LOGE, FL("scan reject threshold reached Session %d reason %d reject cnt %d"),
-			curr_session_id, curr_reason, pHddCtx->scan_reject_cnt);
+        hddLog(LOGE, FL("scan reject threshold reached Session %d reason %d reject cnt %d reject times tamp %lu jiffies %lu"),
+            curr_session_id, curr_reason,
+            pHddCtx->scan_reject_cnt,
+            pHddCtx->last_scan_reject_timestamp,
+            jiffies);
                 pHddCtx->last_scan_reject_timestamp = 0;
                 pHddCtx->scan_reject_cnt = 0;
                 if (pHddCtx->cfg_ini->enable_fatal_event) {
@@ -26708,6 +26923,92 @@ static int wlan_hdd_get_station_remote(struct wiphy *wiphy,
 	return status;
 }
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0))
+/*
+ * wlan_hdd_fill_summary_stats() - populate station_info summary stats
+ * @stats: summary stats to use as a source
+ * @info: kernel station_info struct to use as a destination
+ *
+ * Return: None
+ */
+static void wlan_hdd_fill_summary_stats(tCsrSummaryStatsInfo *stats,
+					struct station_info *info)
+{
+	int i;
+
+	info->rx_packets = stats->rx_frm_cnt;
+	info->tx_packets = 0;
+	info->tx_retries = 0;
+	info->tx_failed = 0;
+
+	for (i = 0; i < 4; ++i) {
+		info->tx_packets += stats->tx_frm_cnt[i];
+		info->tx_retries += stats->multiple_retry_cnt[i];
+		info->tx_failed += stats->fail_cnt[i];
+	}
+
+	info->filled |= STATION_INFO_TX_PACKETS |
+			STATION_INFO_TX_RETRIES |
+			STATION_INFO_TX_FAILED |
+			STATION_INFO_RX_PACKETS;
+}
+#else
+/*
+ * wlan_hdd_fill_summary_stats() - populate station_info summary stats
+ * @stats: summary stats to use as a source
+ * @info: kernel station_info struct to use as a destination
+ *
+ * Return: None
+ */
+static void wlan_hdd_fill_summary_stats(tCsrSummaryStatsInfo *stats,
+					struct station_info *info)
+{
+	int i;
+
+	info->rx_packets = stats->rx_frm_cnt;
+	info->tx_packets = 0;
+	info->tx_retries = 0;
+	info->tx_failed = 0;
+
+	for (i = 0; i < 4; ++i) {
+		info->tx_packets += stats->tx_frm_cnt[i];
+		info->tx_retries += stats->multiple_retry_cnt[i];
+		info->tx_failed += stats->fail_cnt[i];
+	}
+
+	info->filled |= BIT(NL80211_STA_INFO_TX_PACKETS) |
+			BIT(NL80211_STA_INFO_TX_RETRIES) |
+			BIT(NL80211_STA_INFO_TX_FAILED) |
+			BIT(NL80211_STA_INFO_RX_PACKETS);
+}
+#endif
+/**
+ * wlan_hdd_get_sap_stats() - get aggregate SAP stats
+ * @adapter: sap adapter to get stats for
+ * @info: kernel station_info struct to populate
+ *
+ * Fetch the vdev-level aggregate stats for the given SAP adapter. This is to
+ * support "station dump" and "station get" for SAP vdevs, even though they
+ * aren't technically stations.
+ *
+ * Return: errno
+ */
+static int
+wlan_hdd_get_sap_stats(hdd_adapter_t *adapter, struct station_info *info)
+{
+	VOS_STATUS status;
+
+	status = wlan_hdd_get_station_stats(adapter);
+	if (!VOS_IS_STATUS_SUCCESS(status)) {
+		hddLog(LOGE, FL("Failed to get SAP stats; status:%d"), status);
+		return 0;
+	}
+
+	wlan_hdd_fill_summary_stats(&adapter->hdd_stats.summary_stat, info);
+
+	return 0;
+}
+
 static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
                                            struct net_device *dev,
                                            const u8* mac,
@@ -26750,13 +27051,20 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
 
     ENTER();
 
+    status = wlan_hdd_validate_context(pHddCtx);
+    if (0 != status)
+        return status;
+
     if (VOS_FTM_MODE == hdd_get_conparam()) {
         hddLog(LOGE, FL("Command not allowed in FTM mode"));
         return -EINVAL;
     }
-    if (pAdapter->device_mode == WLAN_HDD_SOFTAP &&
-		    pCfg->sap_get_peer_info)
-        return wlan_hdd_get_station_remote(wiphy, dev, mac, sinfo);
+    if (pAdapter->device_mode == WLAN_HDD_SOFTAP) {
+        if (pCfg->sap_get_peer_info)
+            return wlan_hdd_get_station_remote(wiphy, dev, mac, sinfo);
+        else
+            return wlan_hdd_get_sap_stats(pAdapter, sinfo);
+    }
 
     if ((eConnectionState_Associated != pHddStaCtx->conn_info.connState) ||
             (0 == ssidlen))
@@ -26778,10 +27086,6 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
         sinfo->signal = pAdapter->rssi;
         return 0;
     }
-
-    status = wlan_hdd_validate_context(pHddCtx);
-    if (0 != status)
-        return status;
 
     wlan_hdd_get_rssi(pAdapter, &sinfo->signal);
     wlan_hdd_get_snr(pAdapter, &snr);
@@ -30708,7 +31012,8 @@ static int wlan_hdd_thermal_resume(hdd_context_t *pHddCtx, bool thermal)
 	}
 
 	/* send auto shutdown timer val 1 to fw as resume */
-	sme_set_auto_shutdown_timer(pHddCtx->hHal, 1);
+	if (thermal)
+		sme_set_auto_shutdown_timer(pHddCtx->hHal, 1);
 
 	return 0;
 }

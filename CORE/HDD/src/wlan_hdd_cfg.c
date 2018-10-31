@@ -5378,6 +5378,13 @@ REG_TABLE_ENTRY g_registry_table[] =
 		     CFG_ENABLE_MONITOR_ON_STA_DEFAULT,
 		     CFG_ENABLE_MONITOR_ON_STA_MIN,
 		     CFG_ENABLE_MONITOR_ON_STA_MAX),
+
+	REG_VARIABLE(CFG_ENABLE_BCAST_PROBE_RESP_NAME, WLAN_PARAM_Integer,
+		struct hdd_config, enable_bcast_probe_rsp,
+		VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		CFG_ENABLE_BCAST_PROBE_RESP_DEFAULT,
+		CFG_ENABLE_BCAST_PROBE_RESP_MIN,
+		CFG_ENABLE_BCAST_PROBE_RESP_MAX),
 };
 
 
@@ -8457,6 +8464,10 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
    smeConfig->csrConfig.sap_ch_switch_with_csa = pHddCtx->cfg_ini->sap_ch_switch_with_csa;
 #endif//#ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+
+   smeConfig->csrConfig.enable_bcast_probe_rsp =
+                        pHddCtx->cfg_ini->enable_bcast_probe_rsp;
+
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {
