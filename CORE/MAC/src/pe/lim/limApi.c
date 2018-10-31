@@ -1292,10 +1292,11 @@ static VOS_STATUS pe_drop_pending_rx_mgmt_frames(tpAniSirGlobal mac_ctx,
        if (mac_ctx->sys.sys_bbt_pending_mgmt_count >=
             MGMT_RX_PACKETS_THRESHOLD) {
                adf_os_spin_unlock(&mac_ctx->sys.bbt_mgmt_lock);
-               limLog(mac_ctx, LOGW,
+               limLog(mac_ctx, LOG1,
                        FL("No.of pending RX management frames reaches to threshold, dropping management frames"));
                vos_pkt_return_packet(vos_pkt);
                vos_pkt = NULL;
+               mac_ctx->rx_packet_drop_counter++;
                return VOS_STATUS_E_FAILURE;
        } else if (mac_ctx->sys.sys_bbt_pending_mgmt_count >
                   (MGMT_RX_PACKETS_THRESHOLD / 2)) {
@@ -1304,8 +1305,12 @@ static VOS_STATUS pe_drop_pending_rx_mgmt_frames(tpAniSirGlobal mac_ctx,
                    hdr->fc.subType == SIR_MAC_MGMT_PROBE_REQ ||
                    hdr->fc.subType == SIR_MAC_MGMT_PROBE_RSP) {
                        adf_os_spin_unlock(&mac_ctx->sys.bbt_mgmt_lock);
-                       limLog(mac_ctx, LOGW,
-                               FL("No.of pending RX management frames reaches to half of threshold, dropping probe req, probe resp or beacon frames"));
+                       if (!(mac_ctx->rx_packet_drop_counter % 100))
+                               limLog(mac_ctx, LOG1,
+                                       FL("No.of pending RX mgmt frames reaches 1/2 thresh, dropping frame subtype: %d rx_packet_drop_counter: %d"),
+                                       hdr->fc.subType,
+                                       mac_ctx->rx_packet_drop_counter);
+                       mac_ctx->rx_packet_drop_counter++;
                        vos_pkt_return_packet(vos_pkt);
                        vos_pkt = NULL;
                        return VOS_STATUS_E_FAILURE;
@@ -1314,9 +1319,13 @@ static VOS_STATUS pe_drop_pending_rx_mgmt_frames(tpAniSirGlobal mac_ctx,
        mac_ctx->sys.sys_bbt_pending_mgmt_count++;
        adf_os_spin_unlock(&mac_ctx->sys.bbt_mgmt_lock);
        if (mac_ctx->sys.sys_bbt_pending_mgmt_count ==
-           (MGMT_RX_PACKETS_THRESHOLD / 4))
-               limLog(mac_ctx, LOGW,
-                       FL("No.of pending RX management frames reaches to 1/4th of threshold"));
+           (MGMT_RX_PACKETS_THRESHOLD / 4)) {
+               if (!(mac_ctx->rx_packet_drop_counter % 100))
+                      limLog(mac_ctx, LOG1,
+                              FL("No.of pending RX management frames reaches to 1/4th of threshold, rx_packet_drop_counter: %d"),
+                              mac_ctx->rx_packet_drop_counter);
+               mac_ctx->rx_packet_drop_counter++;
+       }
        return VOS_STATUS_SUCCESS;
 }
 
