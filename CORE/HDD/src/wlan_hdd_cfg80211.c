@@ -24957,10 +24957,6 @@ int wlan_hdd_disconnect( hdd_adapter_t *pAdapter, u16 reason )
 
     ENTER();
 
-    status = wlan_hdd_validate_context(pHddCtx);
-    if (0 != status)
-        return status;
-
     prev_conn_state = pHddStaCtx->conn_info.connState;
 
     /*stop tx queues*/

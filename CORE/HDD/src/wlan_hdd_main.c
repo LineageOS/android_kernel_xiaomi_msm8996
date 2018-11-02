@@ -12615,39 +12615,43 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
              * For NDI do not use pWextState from sta_ctx, if needed
              * extract from ndi_ctx.
              */
-            if (WLAN_HDD_NDI == pAdapter->device_mode)
-                halStatus = sme_RoamDisconnect(pHddCtx->hHal,
+            if ((WLAN_HDD_NDI == pAdapter->device_mode) ||
+                (pWextState->roamProfile.BSSType == eCSR_BSS_TYPE_START_IBSS))
+            {
+               if (WLAN_HDD_NDI == pAdapter->device_mode)
+                  halStatus = sme_RoamDisconnect(pHddCtx->hHal,
                                            pAdapter->sessionId,
                                            eCSR_DISCONNECT_REASON_NDI_DELETE);
-            else if (pWextState->roamProfile.BSSType == eCSR_BSS_TYPE_START_IBSS)
-                halStatus = sme_RoamDisconnect(pHddCtx->hHal,
+               else
+                  halStatus = sme_RoamDisconnect(pHddCtx->hHal,
                                              pAdapter->sessionId,
                                              eCSR_DISCONNECT_REASON_IBSS_LEAVE);
-            else
-                halStatus = sme_RoamDisconnect(pHddCtx->hHal,
-                                            pAdapter->sessionId,
-                                            eCSR_DISCONNECT_REASON_UNSPECIFIED);
-            //success implies disconnect command got queued up successfully
-            if(halStatus == eHAL_STATUS_SUCCESS)
-            {
-               rc = wait_for_completion_timeout(
+               /* success implies disconnect command got queued up */
+               if (halStatus == eHAL_STATUS_SUCCESS)
+               {
+                  rc = wait_for_completion_timeout(
                           &pAdapter->disconnect_comp_var,
                           msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-               if (!rc) {
-                  hddLog(VOS_TRACE_LEVEL_ERROR,
-                         "%s: wait on disconnect_comp_var failed",
+                  if (!rc) {
+                     hddLog(VOS_TRACE_LEVEL_ERROR,
+                            "%s: wait on disconnect_comp_var failed",
+                            __func__);
+                  }
+               }
+               else
+               {
+                  hddLog(LOGE, "%s: failed to post disconnect event to SME",
                          __func__);
                }
-           }
-           else
-           {
-               hddLog(LOGE, "%s: failed to post disconnect event to SME",
-                      __func__);
-           }
-           memset(&wrqu, '\0', sizeof(wrqu));
-           wrqu.ap_addr.sa_family = ARPHRD_ETHER;
-           memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
-           wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
+            }
+            else
+            {
+               wlan_hdd_disconnect(pAdapter, eCSR_DISCONNECT_REASON_DEAUTH);
+            }
+            memset(&wrqu, '\0', sizeof(wrqu));
+            wrqu.ap_addr.sa_family = ARPHRD_ETHER;
+            memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
+            wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
          }
 
          if (pScanInfo != NULL && pScanInfo->mScanPending)
