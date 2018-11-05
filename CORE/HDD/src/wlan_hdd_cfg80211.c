@@ -27456,15 +27456,13 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
                 sinfo->txrate.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
 #endif
             }
-            else if (rate_flags & eHAL_TX_RATE_VHT20)
+            else
             {
                 sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
                 sinfo->txrate.bw = RATE_INFO_BW_20;
 #endif
             }
-            else
-                sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
 #endif /* WLAN_FEATURE_11AC */
             if (rate_flags & (eHAL_TX_RATE_HT20 | eHAL_TX_RATE_HT40))
             {
@@ -27517,6 +27515,9 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
 #ifdef WLAN_FEATURE_11AC
             sinfo->txrate.nss = nss;
             sinfo->txrate.flags |= RATE_INFO_FLAGS_VHT_MCS;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+            sinfo->txrate.bw = RATE_INFO_BW_20;
+#endif
             if (rate_flags & eHAL_TX_RATE_VHT80)
             {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
