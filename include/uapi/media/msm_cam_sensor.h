@@ -90,8 +90,8 @@ enum sensor_sub_module_t {
 	SUB_MODULE_EXT,
 	SUB_MODULE_IR_LED,
 	SUB_MODULE_IR_CUT,
-	SUB_MODULE_LASER_LED,
 	SUB_MODULE_MAX,
+	SUB_MODULE_LASER_LED,
 };
 
 enum {
