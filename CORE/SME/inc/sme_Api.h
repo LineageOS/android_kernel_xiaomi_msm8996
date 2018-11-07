@@ -4974,17 +4974,6 @@ eHalStatus sme_thermal_throttle_mgmt_cmd(tHalHandle hHal, tANI_U16 lower_thresh_
 uint32_t sme_unpack_rsn_ie(tHalHandle hal, uint8_t *buf,
                         uint8_t buf_len, tDot11fIERSN *rsn_ie);
 
-struct sme_peer_cfr_capture_conf {
-    u32 vdev_id;
-    tSirMacAddr peer_macaddr;
-    u32 request;
-    u32 periodicity;
-    u32 bandwidth;
-    u32 capture_method;
-};
-eHalStatus sme_periodic_cfr_enable(u8 cfr_enable);
-eHalStatus sme_cfr_capture_configure(struct sme_peer_cfr_capture_conf arg);
-
 typedef struct {
 	uint32_t vdev_id;              /* Vdev ID */
 	uint32_t start;                /* Start/Stop */

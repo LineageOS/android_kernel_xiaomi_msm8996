@@ -243,11 +243,6 @@ void dbglog_reg_modprint(A_UINT32 mod_id, module_dbg_print printfn);
 /** Register the cnss_diag activate with the wlan driver */
 int cnss_diag_activate_service(void);
 
-#ifdef WLAN_OPEN_SOURCE
-int cfr_capture_init(wmi_unified_t  wmi_handle);
-void cfr_capture_deinit(void);
-#endif /* WLAN_OPEN_SOURCE */
-
 #ifdef __cplusplus
 }
 #endif

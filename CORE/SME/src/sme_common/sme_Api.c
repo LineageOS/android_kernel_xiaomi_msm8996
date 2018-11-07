@@ -18217,61 +18217,6 @@ eHalStatus sme_thermal_throttle_set_conf_cmd(tHalHandle hHal, bool enable,
     return eHAL_STATUS_SUCCESS;
 }
 
-eHalStatus sme_cfr_capture_configure(struct sme_peer_cfr_capture_conf arg)
-{
-    vos_msg_t msg;
-    struct sme_peer_cfr_capture_conf *cfr_cfg_data;
-    cfr_cfg_data = vos_mem_malloc(sizeof(*cfr_cfg_data));
-    if (!cfr_cfg_data) {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  FL("Unable to allocate memory"));
-        return eHAL_STATUS_FAILED_ALLOC;
-    }
-
-    vos_mem_zero(cfr_cfg_data, sizeof(*cfr_cfg_data));
-
-    memcpy(cfr_cfg_data, &arg, sizeof(*cfr_cfg_data));
-
-    msg.type = WDA_PEER_CFR_CAPTURE_CONF_CMD;
-    msg.reserved = 0;
-    msg.bodyptr = cfr_cfg_data;
-
-    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  FL("Unable to post WDA_PEER_CFR_CAPTURE_CONF_CMD message"));
-        vos_mem_free(cfr_cfg_data);
-        return eHAL_STATUS_FAILURE;
-    }
-    return eHAL_STATUS_SUCCESS;
-}
-
-eHalStatus sme_periodic_cfr_enable(u8 cfr_enable)
-{
-    vos_msg_t msg;
-    u8 *cfr_data;
-
-    cfr_data = vos_mem_malloc(sizeof(*cfr_data));
-    if (!cfr_data) {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  FL("Unable to allocate memory"));
-        return eHAL_STATUS_FAILED_ALLOC;
-    }
-
-    *cfr_data = cfr_enable;
-
-    msg.type = WDA_PERIODIC_CFR_ENABLE_CMD;
-    msg.reserved = 0;
-    msg.bodyptr = cfr_data;
-
-    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  FL("Unable to post WDA_PEER_CFR_CAPTURE_CONF_CMD message"));
-        vos_mem_free(cfr_data);
-        return eHAL_STATUS_FAILURE;
-    }
-    return eHAL_STATUS_SUCCESS;
-}
-
 /**
  * sme_set_tsfcb() - set callback which to handle WMI_VDEV_TSF_REPORT_EVENTID
  *

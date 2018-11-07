@@ -84,7 +84,6 @@ struct wmi_unified {
 #ifdef WLAN_OPEN_SOURCE
        struct fwdebug dbglog;
        struct dentry *debugfs_phy;
-       struct dentry *cfr_stations;
 #endif /* WLAN_OPEN_SOURCE */
 
 #ifdef WMI_INTERFACE_EVENT_LOGGING
@@ -98,7 +97,6 @@ struct wmi_unified {
 	bool tgt_force_assert_enable;
 	A_BOOL tag_crash_inject;
 	void (*wma_wow_tx_complete_cbk)(ol_scn_t scn_handle);
-	u8 cfr_enable;
 };
 
 #define ANT_DIV_SET_PERIOD(probe_period, stay_period) \

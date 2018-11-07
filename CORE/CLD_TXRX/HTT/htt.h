@@ -4068,14 +4068,7 @@ enum htt_t2h_msg_type {
     HTT_T2H_MSG_TYPE_FLOW_POOL_MAP            = 0x18,
     HTT_T2H_MSG_TYPE_FLOW_POOL_UNMAP          = 0x19,
     HTT_T2H_MSG_TYPE_SRING_SETUP_DONE         = 0x1a,
-    HTT_T2H_MSG_TYPE_MAP_FLOW_INFO            = 0x1b,
-    HTT_T2H_MSG_TYPE_EXT_STATS_CONF           = 0x1c,
-    HTT_T2H_MSG_TYPE_PPDU_STATS_IND           = 0x1d,
-    HTT_T2H_MSG_TYPE_PEER_MAP_V2              = 0x1e,
-    HTT_T2H_MSG_TYPE_PEER_UNMAP_V2            = 0x1f,
     HTT_T2H_MSG_TYPE_MONITOR_MAC_HEADER_IND   = 0x20,
-    HTT_T2H_MSG_TYPE_FLOW_POOL_RESIZE         = 0x21,
-    HTT_T2H_MSG_TYPE_CFR_DUMP_COMPL_IND       = 0x22,
 
     HTT_T2H_MSG_TYPE_TEST,
     /* keep this last */
@@ -4089,9 +4082,6 @@ enum htt_t2h_msg_type {
 #define HTT_T2H_MSG_TYPE_M      0xff
 #define HTT_T2H_MSG_TYPE_S      0
 
-#define HTT_T2H_PAYLOAD_PRESENT_M 0x100
-#define HTT_T2H_PAYLOAD_PRESENT_S 0x8
-
 #define HTT_T2H_MSG_TYPE_SET(word, msg_type)           \
     do {                                               \
         HTT_CHECK_SET_VAL(HTT_T2H_MSG_TYPE, msg_type); \
@@ -4099,9 +4089,6 @@ enum htt_t2h_msg_type {
     } while (0)
 #define HTT_T2H_MSG_TYPE_GET(word) \
     (((word) & HTT_T2H_MSG_TYPE_M) >> HTT_T2H_MSG_TYPE_S)
-
-#define HTT_T2H_PAYLOAD_PRESENT_GET(word) \
-    (((word) & HTT_T2H_PAYLOAD_PRESENT_M) >> HTT_T2H_PAYLOAD_PRESENT_S)
 
 /**
  * @brief target -> host version number confirmation message definition
@@ -8273,83 +8260,5 @@ enum htt_ring_setup_status {
 #define HTT_T2H_MONITOR_MAC_HEADER_NUM_MPDU_GET(word) \
     (((word) & HTT_T2H_MONITOR_MAC_HEADER_NUM_MPDU_M) >> \
     HTT_T2H_MONITOR_MAC_HEADER_NUM_MPDU_S)
-
-typedef struct {
-    /** upper 4 bytes of  MAC address */
-    A_UINT32 mac_addr31to0;
-    /** lower 2 bytes of  MAC address */
-    A_UINT32 mac_addr47to32;
-} htt_mac_addr;
-
-
-struct htt_rfs_cfr_hdr {
-    u32 head_magic_num;
-    u8 mac_addr[6];
-    u8 status;
-    u8 capture_bw;
-    u8 channel_bw;
-    u8 phy_mode;
-    u16 prim20_chan;
-    u16 center_freq1;
-    u16 center_freq2;
-    u8 capture_mode;
-    u8 capture_type;
-    u8 sts_count;
-    u8 num_rx_chain;
-    u32 timestamp;
-    u32 length;
-} __packed;
-
-struct htt_rfs_cfr_dump {
-    struct htt_rfs_cfr_hdr cfr_hdr;
-    u16 cfr_dump[256];
-    u32 tail_magic_num;
-} __packed;
-
-PREPACK struct htt_chan_change_msg {
-    A_UINT32 chan_mhz;          /* frequency in mhz */
-    A_UINT32 band_center_freq1; /* Center frequency 1 in MHz*/
-    A_UINT32 band_center_freq2; /* Center frequency 2 in MHz - valid only for 11acvht 80plus80 mode*/
-    A_UINT32 chan_mode;         /* WLAN_PHY_MODE of the channel defined in wlan_defs.h */
-} POSTPACK;
-
-PREPACK struct htt_cfr_dump_ind_type_1 {
-    A_UINT32 mem_req_id:7,
-             status:1,
-             capture_bw:3,
-             mode:3,
-             sts_count:3,
-             channel_bw:3,
-             cap_type:4,
-             vdev_id:8;
-    htt_mac_addr mac_addr;
-    A_UINT32 index;
-    A_UINT32 length;
-    A_UINT32 timestamp;
-    A_UINT32 counter;
-    struct htt_chan_change_msg chan;
-} POSTPACK;
-
-enum htt_cfr_capture_msg_type {
-    HTT_PEER_CFR_CAPTURE_MSG_TYPE_LEGACY  = 0x1,
-    HTT_PEER_CFR_CAPTURE_MSG_TYPE_MAX,
-};
-
-PREPACK struct htt_cfr_dump_compl_ind {
-    A_UINT32 msg_type; /* HTT_PEER_CFR_CAPTURE_MSG_TYPE */
-    union {
-        /* Message format when msg_type = HTT_PEER_CFR_CAPTURE_MSG_TYPE_1 */
-        struct htt_cfr_dump_ind_type_1 cfr_dump_legacy;
-        /* If there is a need to change the memory layout and its associated
-         * HTT indication format, a new CFR capture message type can be
-         * introduced and added into this union.
-        */
-    };
-} POSTPACK;
-
-#ifdef WLAN_OPEN_SOURCE
-void cfr_dump_to_rfs(const void *buf, const int length);
-void cfr_finalalize_relay(void);
-#endif /* WLAN_OPEN_SOURCE */
 
 #endif
