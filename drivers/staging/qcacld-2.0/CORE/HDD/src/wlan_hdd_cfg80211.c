@@ -16157,7 +16157,6 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
 			WIPHY_VENDOR_CMD_NEED_NETDEV,
 		.doit = wlan_hdd_cfg80211_thermal_cmd
 	},
-#endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
         {
                 .info.vendor_id = QCA_NL80211_VENDOR_ID,
                 .info.subcmd = QCA_NL80211_VENDOR_SUBCMD_PEER_CFR_CAPTURE_CFG,
@@ -16166,6 +16165,7 @@ const struct wiphy_vendor_command hdd_wiphy_vendor_commands[] =
                          WIPHY_VENDOR_CMD_NEED_RUNNING,
                 .doit = wlan_hdd_cfr_capture_cfg_handler,
         },
+#endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
 };
 
 /*
