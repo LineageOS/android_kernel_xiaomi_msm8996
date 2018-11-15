@@ -3091,7 +3091,6 @@ static struct branch_clk gcc_mss_q6_bimc_axi_clk = {
 	.base = &virt_base,
 	.c = {
 		.dbg_name = "gcc_mss_q6_bimc_axi_clk",
-		.always_on = true,
 		.ops = &clk_ops_branch,
 		CLK_INIT(gcc_mss_q6_bimc_axi_clk.c),
 	},
