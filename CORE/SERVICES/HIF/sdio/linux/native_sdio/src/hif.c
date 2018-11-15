@@ -82,6 +82,11 @@ struct bus_request_record bus_request_record_buf[BUS_REQ_RECORD_SIZE];
 #ifdef HIF_MBOX_SLEEP_WAR
 #define HIF_MIN_SLEEP_INACTIVITY_TIME_MS     50
 #define HIF_SLEEP_DISABLE_UPDATE_DELAY 1
+#define HIF_CIS_RTC_STATE_ADDR 0x1138
+#define HIF_CIS_RTC_STATE_ON 0x01
+#define HIF_CIS_READ_WAIT_4_RTC_CYCLE_IN_US 125
+#define HIF_CIS_XTAL_SETTLE_DURATION_IN_US 1500
+#define HIF_CIS_READ_RETRY 10
 #define HIF_IS_WRITE_REQUEST_MBOX1_TO_3(request) \
                 ((request->request & HIF_WRITE)&& \
                 (request->address >= 0x1000 && request->address < 0x1FFFF))
@@ -1504,9 +1509,25 @@ HIF_sleep_entry(void *arg)
     }
 }
 
+static int HIFReadRTCState(HIF_DEVICE *device, unsigned char *state)
+{
+	unsigned char rtc_state = 0;
+	int ret = 0;
+
+	rtc_state = sdio_f0_readb(device->func, HIF_CIS_RTC_STATE_ADDR, &ret);
+	if (ret)
+		return ret;
+	*state = rtc_state & 0x3;
+
+	return ret;
+}
+
 void
 HIFSetMboxSleep(HIF_DEVICE *device, bool sleep, bool wait, bool cache)
 {
+    unsigned char rtc_state = 0;
+    int ret = 0, retry = 0;
+
     if (!device || !device->func|| !device->func->card) {
         printk("HIFSetMboxSleep incorrect input arguments\n");
         return;
@@ -1528,11 +1549,27 @@ HIFSetMboxSleep(HIF_DEVICE *device, bool sleep, bool wait, bool cache)
     __HIFReadWrite(device, FIFO_TIMEOUT_AND_CHIP_CONTROL,
                    (A_UCHAR*)&device->init_sleep, 4,
                    HIF_WR_SYNC_BYTE_INC, NULL);
-    sdio_release_host(device->func);
-     /*Wait for 1ms for the written value to take effect */
-    if (wait) {
-       adf_os_mdelay(HIF_SLEEP_DISABLE_UPDATE_DELAY);
+    /* Check RTC state_on before sending data, only do this for wakeup */
+    if (!sleep && wait) {
+        while(1) {
+            AR_DEBUG_ASSERT(retry < HIF_CIS_READ_RETRY);
+
+            /* Wait 4 RTC cycle before read CIS */
+            adf_os_udelay(HIF_CIS_READ_WAIT_4_RTC_CYCLE_IN_US);
+
+            ret = HIFReadRTCState(device, &rtc_state);
+            if(ret) {
+                printk("Read CIS failure\n");
+                break;
+            }
+            if (rtc_state == HIF_CIS_RTC_STATE_ON)
+                break;
+            /* Wait XTAL_SETTLE before read CIS next time */
+            adf_os_udelay(HIF_CIS_XTAL_SETTLE_DURATION_IN_US);
+            retry++;
+        }
     }
+    sdio_release_host(device->func);
     return;
 }
 #endif
