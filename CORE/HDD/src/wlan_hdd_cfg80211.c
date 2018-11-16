@@ -8774,8 +8774,9 @@ __wlan_hdd_cfr_capture_cfg_handler(struct wiphy *wiphy,
 
     if (tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY]) {
         arg.periodicity = nla_get_u32(tb[QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY]);
-        if (arg.periodicity < WMI_PEER_CFR_PERIODICITY_MIN ||
-            arg.periodicity > WMI_PEER_CFR_PERIODICITY_MAX) {
+        if (arg.periodicity &&
+            (arg.periodicity < WMI_PEER_CFR_PERIODICITY_MIN ||
+            arg.periodicity > WMI_PEER_CFR_PERIODICITY_MAX)) {
             hddLog(VOS_TRACE_LEVEL_ERROR, FL("Invalid CFR capture periodicity\n"));
             return -EINVAL;
         }
@@ -13895,6 +13896,7 @@ __wlan_hdd_cfg80211_avoid_freq(struct wiphy *wiphy,
 	int unsafe_channel_index;
 	tHddAvoidFreqList *channel_list;
 	tVOS_CON_MODE curr_mode;
+	uint8_t num_args = 0;
 
 	ENTER();
         curr_mode = hdd_get_conparam();
@@ -13908,9 +13910,26 @@ __wlan_hdd_cfg80211_avoid_freq(struct wiphy *wiphy,
 	if (0 != ret)
 		return -EINVAL;
 
-	channel_list = (tHddAvoidFreqList *)data;
-	if (!channel_list) {
+	if (!data || data_len < (sizeof(channel_list->avoidFreqRangeCount) +
+				 sizeof(tHddAvoidFreqRange))) {
 		hddLog(LOGE, FL("Avoid frequency channel list empty"));
+		return -EINVAL;
+	}
+	num_args = (data_len - sizeof(channel_list->avoidFreqRangeCount)) /
+		   sizeof(channel_list->avoidFreqRange[0].startFreq);
+
+	if (num_args < 2 || num_args > HDD_MAX_AVOID_FREQ_RANGES * 2 ||
+	    num_args % 2 != 0) {
+		hddLog(LOGE,FL("Invalid avoid frequency channel list"));
+		return -EINVAL;
+	}
+
+	channel_list = (tHddAvoidFreqList *)data;
+	if (channel_list->avoidFreqRangeCount == 0 ||
+	    channel_list->avoidFreqRangeCount > HDD_MAX_AVOID_FREQ_RANGES ||
+	    2 * channel_list->avoidFreqRangeCount != num_args) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "Invalid freq range count %d",
+		       channel_list->avoidFreqRangeCount);
 		return -EINVAL;
 	}
 
