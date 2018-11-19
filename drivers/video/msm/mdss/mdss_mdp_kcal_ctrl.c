@@ -28,6 +28,8 @@
 #define DEF_PA 0xff
 #define PCC_ADJ 0x80
 
+extern int lgd_panel;
+
 struct kcal_lut_data {
 	int red;
 	int green;
@@ -193,6 +195,12 @@ static void mdss_mdp_kcal_update_pcc(struct kcal_lut_data *lut_data)
 	struct mdp_pcc_cfg_data pcc_config;
 
 	struct mdp_pcc_data_v1_7 *payload;
+
+	if(lgd_panel) {
+		lut_data->red += (-26); //230
+		lut_data->green += (-26); //230
+		lut_data->blue += (-12); //244
+	}
 
 	lut_data->red = lut_data->red < lut_data->minimum ?
 		lut_data->minimum : lut_data->red;

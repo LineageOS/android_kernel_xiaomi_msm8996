@@ -2886,6 +2886,8 @@ error:
 	return -EINVAL;
 }
 
+int lgd_panel = 0;
+
 int mdss_dsi_panel_init(struct device_node *node,
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 	int ndx)
@@ -2904,6 +2906,11 @@ int mdss_dsi_panel_init(struct device_node *node,
 	pr_debug("%s:%d\n", __func__, __LINE__);
 	pinfo->panel_name[0] = '\0';
 	panel_name = of_get_property(node, "qcom,mdss-dsi-panel-name", NULL);
+
+	if (!strcmp(panel_name, "lgd fhd cmd incell dsi panel")) {
+		lgd_panel = 1;
+	}
+
 	if (!panel_name) {
 		pr_info("%s:%d, Panel name not specified\n",
 						__func__, __LINE__);
