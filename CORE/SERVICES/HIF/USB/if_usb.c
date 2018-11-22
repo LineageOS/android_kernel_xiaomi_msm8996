@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -247,6 +247,44 @@ err_alloc:
 	return ret;
 }
 
+#ifdef FEATURE_USB_WARM_RESET
+static inline void hif_diag_write_reset_type(struct hif_usb_softc *sc)
+{
+	struct ol_softc *scn = sc->ol_sc;
+
+	if (scn->enable_usb_warm_reset)
+		HIFDiagWriteWARMRESET(sc->interface, 0, 0);
+	else /* do cold reset */
+		HIFDiagWriteCOLDRESET(sc->hif_device);
+}
+
+/*
+ * When unregister USB driver, ol_sc context freed,
+ * and here to save/obtain the warm_reset flag.
+ */
+static inline int hif_usb_warm_reset_flag(struct ol_softc *scn, int set)
+{
+	static int g_warm_reset_flag;
+
+	if (set && scn)
+		g_warm_reset_flag = scn->enable_usb_warm_reset;
+	else
+		return g_warm_reset_flag;
+
+	return 0;
+}
+#else
+static inline void hif_diag_write_reset_type(struct hif_usb_softc *sc)
+{
+	HIFDiagWriteCOLDRESET(sc->hif_device);
+}
+
+static inline int hif_usb_warm_reset_flag(struct ol_softc *scn, int set)
+{
+	return 0;
+}
+#endif
+
 static void hif_usb_remove(struct usb_interface *interface)
 {
 	HIF_DEVICE_USB *device = usb_get_intfdata(interface);
@@ -258,6 +296,10 @@ static void hif_usb_remove(struct usb_interface *interface)
 	 * freed in error handler
 	 */
 	if (!sc)
+		return;
+
+	scn = sc->ol_sc;
+	if (!scn)
 		return;
 
 	pr_info("Try to remove hif_usb!\n");
@@ -283,8 +325,9 @@ static void hif_usb_remove(struct usb_interface *interface)
 	schedule_timeout(msecs_to_jiffies(DELAY_FOR_TARGET_READY));
 	set_current_state(TASK_RUNNING);
 
-	/* do cold reset */
-	HIFDiagWriteCOLDRESET(sc->hif_device);
+	/* Save to global for later unregister phase */
+	hif_usb_warm_reset_flag(scn, true);
+	hif_diag_write_reset_type(sc);
 
 	unregister_reboot_notifier(&sc->reboot_notifier);
 	usb_put_dev(interface_to_usbdev(interface));
@@ -292,7 +335,6 @@ static void hif_usb_remove(struct usb_interface *interface)
 			HIF_USB_UNLOAD_STATE_DRV_DEREG)
 		atomic_set(&hif_usb_unload_state,
 			   HIF_USB_UNLOAD_STATE_TARGET_RESET);
-	scn = sc->ol_sc;
 
         /* The logp is set by target failure's ol_ramdump_handler.
          * Coldreset occurs and do this disconnect cb, try to issue
@@ -325,11 +367,6 @@ static void hif_usb_remove(struct usb_interface *interface)
 	pr_info("hif_usb_remove!!!!!!\n");
 }
 
-#ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
-void hdd_suspend_wlan(void (*callback) (void *callbackContext),
-		      void *callbackContext);
-#endif
-
 static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 {
 	HIF_DEVICE_USB *device = usb_get_intfdata(interface);
@@ -356,10 +393,6 @@ static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 	printk("Exit:%s,Line:%d\n", __func__,__LINE__);
 	return 0;
 }
-
-#ifdef WLAN_LINK_UMAC_SUSPEND_WITH_BUS_SUSPEND
-void hdd_resume_wlan(void);
-#endif
 
 static int hif_usb_resume(struct usb_interface *interface)
 {
@@ -557,15 +590,16 @@ deregister:
 		if (atomic_read(&hif_usb_unload_state) !=
 				HIF_USB_UNLOAD_STATE_TARGET_RESET)
 			goto finish;
-		timeleft = wait_event_interruptible_timeout(
-				hif_usb_unload_event_wq,
-				atomic_read(&hif_usb_unload_state) ==
-				HIF_USB_UNLOAD_STATE_DEV_DISCONNECTED,
-				HIF_USB_UNLOAD_TIMEOUT);
-		if (timeleft <= 0)
-			pr_err("Fail to wait from DRV_DEREG to DISCONNECT,"
-				"timeleft = %ld \n\r",
-				timeleft);
+		if (!hif_usb_warm_reset_flag(NULL, false)) {
+			timeleft = wait_event_interruptible_timeout(
+					hif_usb_unload_event_wq,
+					atomic_read(&hif_usb_unload_state) ==
+					HIF_USB_UNLOAD_STATE_DEV_DISCONNECTED,
+					HIF_USB_UNLOAD_TIMEOUT);
+			if (timeleft <= 0)
+				pr_err("Fail to wait from DRV_DEREG to DISCONNECT, timeleft = %ld \n\r",
+					timeleft);
+		}
 finish:
 		usb_unregister_notify(&hif_usb_dev_nb);
 		pr_info("hif_unregister_driver!!!!!!\n");

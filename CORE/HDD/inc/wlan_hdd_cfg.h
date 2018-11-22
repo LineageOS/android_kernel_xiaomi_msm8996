@@ -2973,6 +2973,32 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_FW_SELF_RECOVERY_ENABLE       ( 1 )
 #define CFG_ENABLE_FW_SELF_RECOVERY_DEFAULT      ( CFG_ENABLE_FW_SELF_RECOVERY_DISABLE )
 
+/*
+ * Enable/Disable warm reset for USB
+ */
+/*
+ * <ini>
+ * enable_usb_warm_reset - Enable/Disable warm reset for USB
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to control warm reset feature for USB solution.
+ * When enabled, dedicated binary will be downloaded to target during
+ * initialization, as well as target be notified when USB disconnected.
+ *
+ * Usage: Internal
+ *
+ * 1: Enable
+ * 0: Disable
+ *
+ * </ini>
+ */
+#define CFG_ENABLE_USB_WARM_RESET_NAME           "enable_usb_warm_reset"
+#define CFG_ENABLE_USB_WARM_RESET_DISABLE        ( 0 )
+#define CFG_ENABLE_USB_WARM_RESET_ENABLE         ( 1 )
+#define CFG_ENABLE_USB_WARM_RESET_DEFAULT        ( CFG_ENABLE_USB_WARM_RESET_DISABLE )
+
 #ifdef WLAN_FEATURE_11AC
 //Macro to handle maximum receive AMPDU size configuration
 #define CFG_VHT_AMPDU_LEN_EXPONENT_NAME                "gVhtAmpduLenExponent"
@@ -5846,6 +5872,9 @@ struct hdd_config {
    v_BOOL_t                    enablefwprint;
    v_BOOL_t                    enablefwlog;
    v_BOOL_t                    enableFwSelfRecovery;
+#ifdef FEATURE_USB_WARM_RESET
+   v_BOOL_t                    enable_usb_warm_reset;
+#endif
    v_BOOL_t                    fP2pListenOffload;
 #ifdef WLAN_FEATURE_11AC
    v_U8_t                      fVhtAmpduLenExponent;

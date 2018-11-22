@@ -740,6 +740,9 @@ defined(CONFIG_NON_QC_PLATFORM_PCI)
 			return -1;
 		}
 		break;
+	case ATH_USB_WARM_RESET_FILE:
+		filename = QCA_USB_WARM_RESET_FILE;
+		break;
 	}
 
        status = request_firmware(&fw_entry, filename, scn->sc_osdev->device);
@@ -2178,6 +2181,41 @@ void ol_transfer_codeswap_struct(struct ol_softc *scn) {
 #endif
 #endif
 
+#ifdef FEATURE_USB_WARM_RESET
+static inline int ol_download_usb_warm_reset_firmeware(struct ol_softc *scn)
+{
+	uint32_t warm_reset_load_status = 0;
+	uint32_t address = BMI_SEGMENTED_WRITE_ADDR;
+
+	if (scn->enable_usb_warm_reset) {
+		BMIReadMemory(scn->hif_hdl,
+			      host_interest_item_address(scn->target_type,
+				offsetof(struct host_interest_s, hi_minidump)),
+			      (uint8_t *)&warm_reset_load_status,
+			      sizeof(warm_reset_load_status), scn);
+
+		if (!warm_reset_load_status) {
+			/* first load, download warm_reset.bin */
+			if (ol_transfer_bin_file(scn, ATH_USB_WARM_RESET_FILE,
+						 address, TRUE) != EOK)
+				return -1;
+			/*
+			 * FW will update the hi_minidump
+			 * after recv HIFDiagWriteWARMRESET
+			 */
+			/* fall-thru */
+		}
+	}
+
+	return EOK;
+}
+#else
+static inline int ol_download_usb_warm_reset_firmeware(struct ol_softc *scn)
+{
+	return EOK;
+}
+#endif
+
 int ol_download_firmware(struct ol_softc *scn)
 {
 	uint32_t param, address = 0;
@@ -2324,6 +2362,9 @@ int ol_download_firmware(struct ol_softc *scn)
 			BMIExecute(scn->hif_hdl, address, &param, scn);
 		}
 	}
+
+	if (ol_download_usb_warm_reset_firmeware(scn) != EOK)
+		return -1;
 
 	/* Download Target firmware - TODO point to target specific files in runtime */
 	if (ol_transfer_bin_file(scn, ATH_FIRMWARE_FILE, address, TRUE) != EOK) {

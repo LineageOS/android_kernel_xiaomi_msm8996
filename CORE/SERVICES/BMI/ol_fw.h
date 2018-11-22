@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -54,6 +54,7 @@
 #define QCA_BOARD_DATA_FILE          "fakeboar.bin"
 #define QCA_OTP_FILE                 "otp.bin"
 #define QCA_SETUP_FILE               "athsetup.bin"
+#define QCA_USB_WARM_RESET_FILE      "warm_reset.bin"
 #define AR61X4_SINGLE_FILE           "qca61x4.bin"
 #define QCA_FIRMWARE_EPPING_FILE     "epping.bin"
 

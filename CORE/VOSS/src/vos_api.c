@@ -238,6 +238,17 @@ static inline void vos_runtime_pm_config(struct ol_softc *scn,
 		hdd_context_t *pHddCtx) { }
 #endif
 
+#ifdef FEATURE_USB_WARM_RESET
+static inline void vos_usb_warm_reset_config(struct ol_softc *scn,
+		hdd_context_t *pHddCtx)
+{
+	scn->enable_usb_warm_reset = pHddCtx->cfg_ini->enable_usb_warm_reset;
+}
+#else
+static inline void vos_usb_warm_reset_config(struct ol_softc *scn,
+		hdd_context_t *pHddCtx) { }
+#endif
+
 #if defined (FEATURE_SECURE_FIRMWARE) && defined (FEATURE_FW_HASH_CHECK)
 static inline void vos_fw_hash_check_config(struct ol_softc *scn,
 					hdd_context_t *pHddCtx)
@@ -541,6 +552,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    scn->enableRamdumpCollection = pHddCtx->cfg_ini->is_ramdump_enabled;
    scn->enable_self_recovery = pHddCtx->cfg_ini->enableSelfRecovery;
 
+   vos_usb_warm_reset_config(scn, pHddCtx);
    vos_fw_hash_check_config(scn, pHddCtx);
    vos_runtime_pm_config(scn, pHddCtx);
 
