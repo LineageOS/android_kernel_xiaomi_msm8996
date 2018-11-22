@@ -463,7 +463,6 @@ minimal impact on kernel size.  However, customers can disable the testing
 component for size optimization.
 
     CONFIG_MSM_SMP2P - enables SMP2P
-    CONFIG_MSM_SMP2P_TEST - enables unit test support
 
 Dependencies
 ===========
