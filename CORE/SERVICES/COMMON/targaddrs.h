@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -370,6 +370,14 @@ PREPACK64 struct host_interest_s {
 #define HI_OPTION_USE_EXT_LDO       0x40 /* use LDO27 for 1.1V instead of PMU */
 #define HI_OPTION_DBUART_SUPPORT    0x80 /* Enable uart debug support */
 #define HT_OPTION_GPIO_WAKEUP_SUPPORT    0x200 /* GPIO wake up support */
+
+/*
+ * If both SDIO_CRASH_DUMP_ENHANCEMENT_HOST and SDIO_CRASH_DUMP_ENHANCEMENT_FW
+ * flags are set, then crashdump upload will be done using the BMI host/target
+ * communication channel.
+ */
+#define HI_OPTION_SDIO_CRASH_DUMP_ENHANCEMENT_HOST 0x400 /* HOST to support using BMI dump FW memory when hit assert */
+#define HI_OPTION_SDIO_CRASH_DUMP_ENHANCEMENT_FW   0x800 /* FW to support using BMI dump FW memory when hit assert */
 
 #define GPIO_WAKEUP_ENABLED() \
     (HOST_INTEREST->hi_option_flag2 & HT_OPTION_GPIO_WAKEUP_SUPPORT)
