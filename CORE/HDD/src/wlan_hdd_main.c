@@ -14700,6 +14700,10 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hdd_abort_mac_scan_all_adapters(pHddCtx);
    hdd_deinit_bus_bw_timer(pHddCtx);
 
+#ifdef CONFIG_IXC_TIMER
+      vos_timer_stop(&pHddCtx->set_ixc_prio_timer);
+      vos_timer_destroy(&pHddCtx->set_ixc_prio_timer);
+#endif
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
    vosStatus = vos_timer_deinit(&pHddCtx->skip_acs_scan_timer);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -15427,6 +15431,178 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 
    return status;
 }
+
+#ifdef CONFIG_IXC_TIMER
+#ifdef CONFIG_PERF_MODE
+#define wmem_max "/proc/sys/net/core/wmem_max"
+#define wmem_default "/proc/sys/net/core/wmem_default"
+#define rmem_max "/proc/sys/net/core/rmem_max"
+#define rmem_default "/proc/sys/net/core/rmem_default"
+#define tcp_mem "/proc/sys/net/ipv4/tcp_mem"
+#define tcp_rmem "/proc/sys/net/ipv4/tcp_rmem"
+#define tcp_wmem "/proc/sys/net/ipv4/wcp_rmem"
+#define tcp_limit_output_bytes "/proc/sys/net/ipv4/tcp_limit_output_bytes"
+#define flush "/proc/sys/net/ipv4/route/flush"
+#define tcp_sack "/proc/sys/net/ipv4/tcp_sack"
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20)
+#define GET_INODE_FROM_FILEP(filp) \
+    (filp)->f_path.dentry->d_inode
+#else
+#define GET_INODE_FROM_FILEP(filp) \
+    (filp)->f_dentry->d_inode
+#endif
+
+int _readwrite_file(const char *filename, char *rbuf,
+	const char *wbuf, size_t length, int mode)
+{
+	int ret = 0;
+	struct file *filp = (struct file *)-ENOENT;
+	mm_segment_t oldfs;
+	oldfs = get_fs();
+	set_fs(KERNEL_DS);
+
+	do {
+		filp = filp_open(filename, mode, S_IRUSR);
+
+		if (IS_ERR(filp) || !filp->f_op) {
+			ret = -ENOENT;
+			break;
+		}
+
+		if (length == 0) {
+			/* Read the length of the file only */
+			struct inode    *inode;
+
+			inode = GET_INODE_FROM_FILEP(filp);
+			if (!inode) {
+				printk(KERN_ERR
+					"_readwrite_file: Error 2\n");
+				ret = -ENOENT;
+				break;
+			}
+			ret = i_size_read(inode->i_mapping->host);
+			break;
+		}
+
+		if (wbuf) {
+			ret = vfs_write(
+				filp, wbuf, length, &filp->f_pos);
+			if (ret < 0) {
+				printk(KERN_ERR
+					"_readwrite_file: Error 3\n");
+				break;
+			}
+		} else {
+			ret = vfs_read(
+				filp, rbuf, length, &filp->f_pos);
+			if (ret < 0) {
+				printk(KERN_ERR
+					"_readwrite_file: Error 4\n");
+				break;
+			}
+		}
+	} while (0);
+
+	if (!IS_ERR(filp)) {
+		filp_close(filp, NULL);
+	}
+
+	set_fs(oldfs);
+	return ret;
+}
+
+void write_sys_file(const char* filename, char* buf, unsigned int len)
+{
+	int ret;
+	ret = _readwrite_file(filename, NULL,
+	                      buf,
+	                      len,
+	                      (O_WRONLY | O_APPEND));
+	if (ret < 0) {
+		printk("%s:%d: fail to write %s\n", __func__, __LINE__, filename);
+	}
+}
+
+void enable_wlan_perf_mode(void)
+{
+	int i,cpu_num;
+	char file_name[128];
+
+	write_sys_file(wmem_max, "8000000", 7);
+	write_sys_file(wmem_default, "8000000", 7);
+	write_sys_file(rmem_max, "8000000", 7);
+	write_sys_file(rmem_default, "8000000", 7);
+
+	write_sys_file(tcp_mem, "8000000 8000000 8000000", 23);
+
+	write_sys_file(tcp_rmem, "10240 87380 8000000", 19);
+	write_sys_file(tcp_wmem, "10240 87380 8000000", 19);
+	write_sys_file(tcp_limit_output_bytes, "1048576", 7);
+	write_sys_file(flush, "1", 1);
+	write_sys_file(tcp_sack, "0", 1);
+	write_sys_file("/proc/sys/nbet/ipv4/tcp_use_rconfig", "1", 1);
+	write_sys_file("/proc/sys/nbet/ipv4/tcp_delack_seg", "60", 2);
+
+	cpu_num = num_possible_cpus();
+	for(i=0; i < cpu_num; i++) {
+		snprintf(file_name, sizeof(file_name), "/sys/bus/cpu/devices/cpu%d/online", i);
+		write_sys_file(file_name, "1", 1);
+		snprintf(file_name, sizeof(file_name),
+			"/sys/bus/cpu/devices/cpu%d/cpufreq/scaling_governor", i);
+		write_sys_file(file_name, "performance", 11);
+	}
+}
+#endif
+static void hdd_set_ixc_prio(void *priv)
+{
+    int i;
+    struct pid* pid;
+    struct task_struct* task;
+    char comm[128];
+    struct sched_param param = {.sched_priority = 99};
+    hdd_context_t *pHddCtx = (hdd_context_t *)priv;
+
+    if(pHddCtx->ixc_pid != 0) {
+        pid = find_get_pid(pHddCtx->ixc_pid);
+        if(pid) {
+            task = get_pid_task(pid, 0);
+            if(task){
+                memset(comm, 0, sizeof(comm));
+                strlcpy(comm, task->comm, sizeof(comm));
+                if(strstr(comm, "ixchariot") || strstr(comm, "iperf")) {
+                    vos_timer_start(&pHddCtx->set_ixc_prio_timer, 10);
+                    //we already set this task priority
+                    return;
+                }
+            }
+            task = NULL;
+        }
+    }
+    for(i = 2; i < 32767; i++) {
+        pid = find_get_pid(i);
+        if(pid) {
+            task = get_pid_task(pid, 0);
+            if(task){
+                memset(comm, 0, sizeof(comm));
+                strlcpy(comm, task->comm, sizeof(comm));
+                if(strstr(comm, "ixchariot") || strstr(comm, "iperf")) {
+                    sched_setscheduler(task, SCHED_FIFO, &param);
+#ifdef CONFIG_PERF_MODE
+                    enable_wlan_perf_mode();
+#endif
+                    pHddCtx->ixc_pid = i;
+                    printk("set ixc prio, pid is %d\n", pHddCtx->ixc_pid);
+                    vos_timer_start(&pHddCtx->set_ixc_prio_timer, 10);
+                    return;
+                }
+            }
+            task = NULL;
+        }
+    }
+    vos_timer_start(&pHddCtx->set_ixc_prio_timer, 10);
+}
+#endif
 
 #ifdef FEATURE_BUS_BANDWIDTH
 #ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
@@ -17569,6 +17745,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    vos_timer_init(&pHddCtx->tdls_source_timer, VOS_TIMER_TYPE_SW,
                   wlan_hdd_change_tdls_mode, (void *)pHddCtx);
 
+#ifdef CONFIG_IXC_TIMER
+   pHddCtx->ixc_pid = 0;
+   vos_timer_init(&pHddCtx->set_ixc_prio_timer,
+                     VOS_TIMER_TYPE_SW,
+                     hdd_set_ixc_prio,
+                     (void *)pHddCtx);
+   vos_timer_start(&pHddCtx->set_ixc_prio_timer, 10);
+#endif
 #ifdef FEATURE_BUS_BANDWIDTH
    adf_os_spinlock_init(&pHddCtx->bus_bw_lock);
    vos_timer_init(&pHddCtx->bus_bw_timer,

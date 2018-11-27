@@ -55,9 +55,11 @@ struct bus_request_record {
 	u_int32_t len;
 	u_int64_t time;
 };
-
+#ifdef QCA_TXRX_PERF
+#define BUS_REQUEST_MAX_NUM                163
+#else
 #define BUS_REQUEST_MAX_NUM                105
-
+#endif
 #define SDIO_CLOCK_FREQUENCY_DEFAULT       25000000
 #define SDWLAN_ENABLE_DISABLE_TIMEOUT      20
 #define FLAGS_CARD_ENAB                    0x02
