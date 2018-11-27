@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016, 2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -106,8 +106,23 @@ static void hif_nointrs(struct hif_usb_softc *sc)
 static int hif_usb_reboot(struct notifier_block *nb, unsigned long val,
 			     void *v)
 {
+	v_CONTEXT_t pVosContext;
+	hdd_context_t *pHddCtx;
 	struct hif_usb_softc *sc;
+
 	sc = container_of(nb, struct hif_usb_softc, reboot_notifier);
+	pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+	if (pVosContext) {
+		pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD,
+							   pVosContext);
+		if (pHddCtx) {
+			if (pHddCtx->is_nonos_suspend) {
+				pr_err("%s: nonos suspend, ignore reset\n",
+				       __func__);
+				return NOTIFY_DONE;
+			}
+		}
+	}
 	/* do cold reset */
 	HIFDiagWriteCOLDRESET(sc->hif_device);
 	return NOTIFY_DONE;
@@ -685,5 +700,22 @@ void hif_set_fw_info(void *ol_sc, u32 target_fw_version)
 {
 	((struct ol_softc *)ol_sc)->target_fw_version = target_fw_version;
 }
+
+#ifdef FEATURE_PBM_MAGIC_WOW
+void hif_bus_suspend_nonos()
+{
+	pm_message_t pmm = { .event = PM_EVENT_SUSPEND };
+	pr_err("Enter:%s,Line:%d \n\r", __func__,__LINE__);
+	hif_usb_suspend(usb_sc->interface, pmm);
+	pr_err("Exit:%s,Line:%d \n\r", __func__,__LINE__);
+}
+
+void hif_bus_resume_nonos()
+{
+	pr_err("Enter:%s,Line:%d \n\r", __func__,__LINE__);
+	hif_usb_resume(usb_sc->interface);
+	pr_err("Exit:%s,Line:%d \n\r", __func__,__LINE__);
+}
+#endif
 
 MODULE_LICENSE("Dual BSD/GPL");

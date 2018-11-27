@@ -48,7 +48,7 @@
  * Type Declarations
  * -------------------------------------------------------------------------*/
 
-static char *g_hdd_wowl_ptrns[WOWL_MAX_PTRNS_ALLOWED]; //Patterns 0-15
+static char *g_hdd_wowl_ptrns[WOWL_MAX_PTRNS_ALLOWED];
 static v_BOOL_t g_hdd_wowl_ptrns_debugfs[WOWL_MAX_PTRNS_ALLOWED] = {0};
 static v_U8_t g_hdd_wowl_ptrns_count = 0;
 
@@ -128,7 +128,6 @@ v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
   const char *temp;
   tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
   v_U8_t sessionId = pAdapter->sessionId;
-  hdd_context_t *pHddCtx = pAdapter->pHddCtx;
   unsigned char invalid_ptrn = 0;
 
   len = find_ptrn_len(ptrn);
@@ -138,7 +137,7 @@ v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
   while ( len >= 11 )
   {
     // Detect duplicate pattern
-    for (i=0; i<pHddCtx->cfg_ini->maxWoWFilters; i++) {
+    for (i=0; i<WOWL_MAX_PTRNS_ALLOWED; i++) {
       if (g_hdd_wowl_ptrns[i] == NULL) continue;
 
       if (strlen(g_hdd_wowl_ptrns[i]) == len) {
@@ -155,7 +154,7 @@ v_BOOL_t hdd_add_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
     first_empty_slot = -1;
 
     // Find an empty slot to store the pattern
-    for (i=0; i<pHddCtx->cfg_ini->maxWoWFilters; i++) {
+    for (i=0; i<WOWL_MAX_PTRNS_ALLOWED; i++) {
       if (g_hdd_wowl_ptrns[i] == NULL) {
         first_empty_slot = i;
         break;
@@ -297,10 +296,9 @@ v_BOOL_t hdd_del_wowl_ptrn (hdd_adapter_t *pAdapter, const char * ptrn)
   v_BOOL_t patternFound = VOS_FALSE;
   eHalStatus halStatus;
   v_U8_t sessionId = pAdapter->sessionId;
-  hdd_context_t *pHddCtx = pAdapter->pHddCtx;
 
   // Detect pattern
-  for (id=0; id<pHddCtx->cfg_ini->maxWoWFilters && g_hdd_wowl_ptrns[id] != NULL; id++)
+  for (id=0; id<WOWL_MAX_PTRNS_ALLOWED && g_hdd_wowl_ptrns[id] != NULL; id++)
   {
     if(!strcmp(ptrn, g_hdd_wowl_ptrns[id]))
     {
@@ -612,3 +610,436 @@ v_BOOL_t hdd_init_wowl (hdd_adapter_t*pAdapter)
 
   return VOS_TRUE;
 }
+
+#ifdef FEATURE_PBM_MAGIC_WOW
+/**
+ * struct easy_wow_wake_source - a record of wakeup source
+ * @valid: wakeup source valid/invalid
+ * @flags: status of this record
+ * @ip_ver: ip version of this record
+ * @proto: proto type of this record
+ * @offset: optional data len between ip head and proto head
+ * @src_port: source port to wakeup, 0 means not compare
+ * @dst_port: destination port to wakeup, 0 means not compare
+ */
+struct easy_wow_wake_source
+{
+	uint8_t valid;
+	uint8_t flags;
+	uint8_t ip_ver;
+	uint8_t proto;
+	uint8_t offset;
+	uint16_t src_port;
+	uint16_t dst_port;
+};
+
+/**
+ * struct easy_wow_context - save easy wow context
+ * @easy_wow_cache: wakeup source records saved in context
+ * @pattern_data: pattern data to be set
+ * @data_len: pattern data len to be set
+ * @pattern_mask: pattern mask to be set
+ * @mask_len: pattern mask len to be set
+ */
+struct easy_wow_context
+{
+	struct easy_wow_wake_source easy_wow_cache[MAX_PATTERN_NUMBER];
+	uint8_t pattern_data[MAX_PATTERN_DATA_LEN];
+	uint8_t data_len;
+	uint8_t pattern_mask[MAX_PATTERN_MASK_LEN];
+	uint8_t mask_len;
+};
+
+VOS_STATUS hdd_easy_wow_init(hdd_context_t *hdd_ctx)
+{
+	if (MAX_PATTERN_NUMBER + WOWL_MAX_PTRNS_ALLOWED >
+			hdd_ctx->cfg_ini->maxWoWFilters) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			  "wow filter number config err %d+%d>%d",
+			  MAX_PATTERN_NUMBER, WOWL_MAX_PTRNS_ALLOWED,
+			  hdd_ctx->cfg_ini->maxWoWFilters);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	hdd_ctx->easy_wow_ctx = vos_mem_malloc(sizeof(struct easy_wow_context));
+	if (!hdd_ctx->easy_wow_ctx) {
+		return VOS_STATUS_E_NOMEM;
+	}
+	vos_mem_set(hdd_ctx->easy_wow_ctx, sizeof(struct easy_wow_context), 0);
+	return VOS_STATUS_SUCCESS;
+}
+
+void hdd_easy_wow_deinit(hdd_context_t *hdd_ctx)
+{
+	if (hdd_ctx->easy_wow_ctx) {
+		vos_mem_free(hdd_ctx->easy_wow_ctx);
+		hdd_ctx->easy_wow_ctx = NULL;
+	}
+}
+
+static VOS_STATUS
+easy_wow_save_unique(hdd_context_t *hdd_ctx, uint8_t ipv, uint8_t proto,
+		     uint8_t offset, uint16_t src_port, uint16_t dst_port,
+		     uint8_t *ptrn_id)
+{
+	uint32_t i;
+	int32_t first_empty_slot = -1;
+	struct easy_wow_context *ewc = hdd_ctx->easy_wow_ctx;
+
+	for (i = 0; i < ARRAY_LENGTH(ewc->easy_wow_cache); i++) {
+		if (!ewc->easy_wow_cache[i].valid) {
+			if (first_empty_slot == -1)
+				first_empty_slot = i;
+			continue;
+		}
+		if (ipv != ewc->easy_wow_cache[i].ip_ver)
+			continue;
+		if (proto != ewc->easy_wow_cache[i].proto)
+			continue;
+		if (offset != ewc->easy_wow_cache[i].offset)
+			continue;
+		if (src_port != ewc->easy_wow_cache[i].src_port)
+			continue;
+		if (dst_port != ewc->easy_wow_cache[i].dst_port)
+			continue;
+		return VOS_STATUS_E_EXISTS;
+	}
+	if (first_empty_slot == -1)
+		return VOS_STATUS_E_RESOURCES;
+
+	ewc->easy_wow_cache[first_empty_slot].ip_ver = ipv;
+	ewc->easy_wow_cache[first_empty_slot].proto = proto;
+	ewc->easy_wow_cache[first_empty_slot].offset = offset;
+	ewc->easy_wow_cache[first_empty_slot].src_port = src_port;
+	ewc->easy_wow_cache[first_empty_slot].dst_port = dst_port;
+	ewc->easy_wow_cache[first_empty_slot].flags = 0;
+	ewc->easy_wow_cache[first_empty_slot].valid = 1;
+	if (ptrn_id)
+		*ptrn_id = (uint8_t)first_empty_slot;
+	return VOS_STATUS_SUCCESS;
+}
+
+static int32_t
+easy_wow_find(hdd_context_t *hdd_ctx, uint8_t ipv, uint8_t proto,
+	      uint8_t offset, uint16_t src_port, uint16_t dst_port)
+{
+	int32_t i;
+	struct easy_wow_context *ewc = hdd_ctx->easy_wow_ctx;
+
+	for (i = 0; i < ARRAY_LENGTH(ewc->easy_wow_cache); i++) {
+		if (!ewc->easy_wow_cache[i].valid)
+			continue;
+		if (ipv == ewc->easy_wow_cache[i].ip_ver &&
+		    proto == ewc->easy_wow_cache[i].proto &&
+		    offset == ewc->easy_wow_cache[i].offset &&
+		    src_port == ewc->easy_wow_cache[i].src_port &&
+		    dst_port == ewc->easy_wow_cache[i].dst_port) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+static VOS_STATUS
+easy_wow_remove_unique(hdd_context_t *hdd_ctx, uint8_t ipv, uint8_t proto,
+		       uint8_t offset, uint16_t src_port, uint16_t dst_port)
+{
+	int32_t i;
+	struct easy_wow_context *ewc = hdd_ctx->easy_wow_ctx;
+
+	i = easy_wow_find(hdd_ctx, ipv, proto, offset, src_port, dst_port);
+	if (i > 0) {
+		vos_mem_set(&ewc->easy_wow_cache[i],
+			    sizeof(ewc->easy_wow_cache[i]), 0);
+		return VOS_STATUS_SUCCESS;
+	}
+	return VOS_STATUS_E_FAILURE;
+}
+
+static void easy_wow_reset_pattern_match(struct easy_wow_context *ewc)
+{
+	vos_mem_set(ewc->pattern_data, sizeof(ewc->pattern_data), 0);
+	ewc->data_len = 0;
+	vos_mem_set(ewc->pattern_mask, sizeof(ewc->pattern_mask), 0);
+	ewc->mask_len = 0;
+}
+
+static bool
+easy_wow_set_pattern_match(struct easy_wow_context *ewc, uint32_t offset,
+			   uint8_t *match_data, uint32_t match_len)
+{
+	uint32_t i, byte_order, bit_order;
+
+	if (offset + match_len > MAX_PATTERN_DATA_LEN) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			  "Offset %d match %d check fail", offset, match_len);
+		return false;
+	}
+
+	for (i = 0; i < match_len; i++) {
+		ewc->pattern_data[offset + i] = match_data[i];
+		byte_order = (offset + i) >> 3;
+		bit_order = (offset + i) & 7;
+		ewc->pattern_mask[byte_order] |= (1 << (7 - bit_order));
+	}
+	return true;
+}
+
+static bool
+easy_wow_port_convert(hdd_context_t *hdd_ctx, bool ipv4, bool tcp_or_udp,
+		      uint8_t offset, uint16_t src_port, uint16_t dst_port)
+{
+	uint8_t ipv4_eth_type[2] = {0x08, 0x00};
+	uint8_t ipv6_eth_type[2] = {0x86, 0xdd};
+	uint8_t proto_tcp[1] = {0x06};
+	uint8_t proto_udp[1] = {0x11};
+	uint16_t port;
+	uint32_t byte_offset = 12; //Offset of EthII head ether type
+	struct easy_wow_context *ewc = hdd_ctx->easy_wow_ctx;
+	bool ret1 = true, ret2 = true, ret3 = true;
+
+	easy_wow_reset_pattern_match(ewc);
+
+	if (ipv4) {
+		//ipv4 match
+		easy_wow_set_pattern_match(ewc, byte_offset, ipv4_eth_type, 2);
+		byte_offset += 2; //Offset of IPv4 head
+		byte_offset += 9; //Offset of IPv4 proto type
+
+		if (tcp_or_udp)
+			ret1 = easy_wow_set_pattern_match(ewc, byte_offset,
+							  proto_tcp, 1);
+		else
+			ret1 = easy_wow_set_pattern_match(ewc, byte_offset,
+							  proto_udp, 1);
+
+		byte_offset += 11; //Offset to IPv4 end
+		/* Skip optional data, Offset to TCP/UDP head src port */
+		byte_offset += offset;
+		if (src_port) {
+			port = vos_cpu_to_be16(src_port);
+			ret2 = easy_wow_set_pattern_match(ewc, byte_offset,
+							  (uint8_t *)&port, 2);
+		}
+		byte_offset += 2; //Offset to TCP/UDP head dst port
+		if (dst_port) {
+			port = vos_cpu_to_be16(dst_port);
+			ret3 = easy_wow_set_pattern_match(ewc, byte_offset,
+							  (uint8_t *)&port, 2);
+		}
+		byte_offset += 2; //Offset to TCP/UDP head dst port end
+	} else {
+		//ipv6 match
+		easy_wow_set_pattern_match(ewc, byte_offset, ipv6_eth_type, 2);
+		byte_offset += 2; //Offset of IPv6 head
+		if (!offset) { //No offset means TCP/UDP head is next to IPv6 head
+			byte_offset += 6; //Offset to next_hdr
+			if (tcp_or_udp)
+				ret1 = easy_wow_set_pattern_match(ewc,
+								  byte_offset,
+								  proto_tcp, 1);
+			else
+				ret1 = easy_wow_set_pattern_match(ewc,
+								  byte_offset,
+								  proto_udp, 1);
+
+			byte_offset += 34; //Offset to TCP/UDP head src port
+			if (src_port) {
+				port = vos_cpu_to_be16(src_port);
+				ret2 = easy_wow_set_pattern_match(
+						ewc,
+						byte_offset,
+						(uint8_t *)&port,
+						2);
+			}
+			byte_offset += 2; //Offset to TCP/UDP head dst port
+			if (dst_port) {
+				port = vos_cpu_to_be16(dst_port);
+				ret3 = easy_wow_set_pattern_match(
+						ewc,
+						byte_offset,
+						(uint8_t *)&port,
+						2);
+			}
+		} else {
+			byte_offset += 40; // Offset to IPv6 head end
+			/* Skip extened head len, Offset to TCP/UDP head */
+			byte_offset += offset;
+			/*
+			 * Limitation:can't tell where next_hdr of last
+			 * extended header which is tcp/udp proto
+			 */
+			if (src_port) {
+				port = vos_cpu_to_be16(src_port);
+				ret1 = easy_wow_set_pattern_match(
+						ewc,
+						byte_offset,
+						(uint8_t *)&port,
+						2);
+			}
+			byte_offset += 2; //Offset to TCP/UDP head dst port
+			if (dst_port) {
+				port = vos_cpu_to_be16(dst_port);
+				ret2 = easy_wow_set_pattern_match(
+						ewc,
+						byte_offset,
+						(uint8_t *)&port,
+						2);
+			}
+		}
+		byte_offset += 2; //Offset to TCP/UDP head dst port end
+	}
+
+	ewc->data_len = byte_offset;
+	ewc->mask_len = ((byte_offset)>>3) + 1;
+
+	return ret1 && ret2 && ret3;
+}
+
+static bool hdd_post_easy_wow_to_wma(hdd_adapter_t *adapter, uint8_t ptrn_id)
+{
+	tHalHandle hal = WLAN_HDD_GET_HAL_CTX(adapter);
+	eHalStatus hal_status;
+	hdd_context_t *hdd_ctx = adapter->pHddCtx;
+	struct easy_wow_context *ewc = hdd_ctx->easy_wow_ctx;
+	tSirWowlAddBcastPtrn local_pattern;
+	uint8_t session_id = adapter->sessionId;
+
+	VOS_ASSERT(ewc->data_len <= sizeof(local_pattern.ucPattern));
+	VOS_ASSERT(ewc->mask_len <= sizeof(local_pattern.ucPatternMask));
+
+	local_pattern.ucPatternSize = ewc->data_len;
+	local_pattern.ucPatternMaskSize = ewc->mask_len;
+	vos_mem_copy(local_pattern.ucPattern, ewc->pattern_data, ewc->data_len);
+	vos_mem_copy(local_pattern.ucPatternMask,
+		     ewc->pattern_mask, ewc->mask_len);
+
+	local_pattern.ucPatternByteOffset = 0;
+	local_pattern.sessionId = session_id;
+	local_pattern.ucPatternId = ptrn_id + EASY_WOW_PTRN_ID_BASE;
+
+	dump_hdd_wowl_ptrn(&local_pattern);
+
+	hal_status = sme_WowlAddBcastPattern(hal, &local_pattern, session_id);
+	if (!HAL_STATUS_SUCCESS(hal_status)) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			  "%s: failed with error code (%d)",
+			  __func__, hal_status);
+		return false;
+	}
+	return true;
+}
+
+bool
+hdd_del_easy_wow_ptrn(hdd_adapter_t *adapter, uint32_t ipv, uint32_t proto,
+		      uint32_t offset,uint32_t src_port, uint32_t dst_port)
+{
+	tSirWowlDelBcastPtrn del_pattern;
+	hdd_context_t *hdd_ctx = adapter->pHddCtx;
+	eHalStatus hal_status;
+	tHalHandle hal = WLAN_HDD_GET_HAL_CTX(adapter);
+	int32_t i;
+
+	i = easy_wow_find(hdd_ctx, ipv, proto, offset, src_port, dst_port);
+
+	if (i < 0) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Not found!", __func__);
+		return false;
+	}
+
+	del_pattern.ucPatternId = i + EASY_WOW_PTRN_ID_BASE;
+	hal_status = sme_WowlDelBcastPattern(hal,
+					     &del_pattern,
+					     adapter->sessionId);
+	if (HAL_STATUS_SUCCESS(hal_status)) {
+		easy_wow_remove_unique(hdd_ctx, ipv, proto, offset,
+				       src_port, dst_port);
+		return true;
+	}
+	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+		  "%s: failed with error code (%d)",
+		  __func__, hal_status);
+	return false;
+}
+
+bool
+hdd_add_easy_wow_ptrn(hdd_adapter_t *adapter, uint32_t ipv, uint32_t proto,
+		      uint32_t offset, uint32_t src_port, uint32_t dst_port)
+{
+	hdd_context_t *hdd_ctx = adapter->pHddCtx;
+	bool is_ipv4, tcp_or_udp, remove_at_last = false;
+	VOS_STATUS status;
+	uint8_t ptrn_id;
+
+	if (ipv == 4)
+		is_ipv4 = true;
+	else if (ipv == 6)
+		is_ipv4 = false;
+	else
+		goto invalid_param;
+
+	if (proto == 6)
+		tcp_or_udp = true;
+	else if (proto == 17)
+		tcp_or_udp = false;
+	else
+		goto invalid_param;
+
+	if (offset)
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+			  "offset non zero %d", offset);
+
+	if (offset + 34 > MAX_PATTERN_DATA_LEN)
+		goto invalid_param;
+
+	if (src_port > 65535 || dst_port > 65535 || (!src_port && !dst_port))
+		goto invalid_param;
+
+	//save it to context
+	status = easy_wow_save_unique(hdd_ctx, (uint8_t)ipv, (uint8_t)proto,
+				      (uint8_t)offset, (uint16_t)src_port,
+				      (uint16_t)dst_port, &ptrn_id);
+	if (status == VOS_STATUS_E_EXISTS) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+			  "Port already exist");
+		return true;
+	} else if (status == VOS_STATUS_E_RESOURCES) {
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+			  "Port list full");
+		return false;
+	}
+
+	if (!easy_wow_port_convert(hdd_ctx, is_ipv4, tcp_or_udp,
+				   (uint8_t)offset, (uint16_t)src_port,
+				   (uint16_t)dst_port)) {
+		remove_at_last = true;
+		goto invalid_param;
+	}
+
+	if (!hdd_post_easy_wow_to_wma(adapter, ptrn_id)) {
+		remove_at_last = true;
+		goto internal_err;
+	}
+
+	return true;
+
+invalid_param:
+	VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+		  "Check input parameters");
+internal_err:
+	if (remove_at_last)
+		easy_wow_remove_unique(hdd_ctx, (uint8_t)ipv, (uint8_t)proto,
+				       (uint8_t)offset, (uint16_t)src_port,
+				       (uint16_t)dst_port);
+	return false;
+}
+#else
+VOS_STATUS hdd_easy_wow_init(hdd_context_t *hdd_ctx)
+{
+	return VOS_STATUS_SUCCESS;
+}
+void hdd_easy_wow_deinit(hdd_context_t *hdd_ctx)
+{
+}
+#endif
