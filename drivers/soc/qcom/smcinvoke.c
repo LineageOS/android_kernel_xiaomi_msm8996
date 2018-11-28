@@ -140,13 +140,19 @@ static void disable_clocks(void)
 {
 	int i;
 
+	if (g_clk.clk_access_cnt == 0 || --g_clk.clk_access_cnt > 0)
+		return;
+
 	for (i = CE_MAX_CLK; i > 0; i--)
 		SMCINVOKE_DISABLE_CLK(g_clk.clks[i-1]);
 }
 
 static int enable_clocks(void)
 {
-	int rc = 0, i;
+	int rc = 0, i, j;
+
+	if (g_clk.clk_access_cnt > 0)
+		goto out;
 
 	for (i = 0; i < CE_MAX_CLK; i++) {
 		if (g_clk.clks[i]) {
@@ -158,9 +164,12 @@ static int enable_clocks(void)
 		}
 	}
 	if (rc) {
-		for ( ; i >= 0; i--)
-			SMCINVOKE_DISABLE_CLK(g_clk.clks[i]);
+		for (j = i-1; j >= 0; j--)
+			SMCINVOKE_DISABLE_CLK(g_clk.clks[j]);
+		return rc;
 	}
+out:
+	g_clk.clk_access_cnt++;
 	return rc;
 }
 
@@ -176,16 +185,6 @@ static int set_msm_bus_request_locked(enum bandwidth_request_mode mode)
 		return ret;
 	}
 
-	if (current_mode == mode) {
-		if (mode == BW_INACTIVE) {
-			if (g_clk.clk_access_cnt)
-				g_clk.clk_access_cnt--;
-		} else {
-			g_clk.clk_access_cnt++;
-		}
-		return ret;
-	}
-
 	if (mode == BW_INACTIVE) {
 		disable_clocks();
 	} else {
@@ -194,21 +193,18 @@ static int set_msm_bus_request_locked(enum bandwidth_request_mode mode)
 			goto out;
 	}
 
-	ret = msm_bus_scale_client_update_request(qsee_perf_client, mode);
-	if (ret) {
-		pr_err("BW req failed(%d) MODE (%d)\n", ret, mode);
-		if (mode == BW_INACTIVE)
-			enable_clocks();
-		else
-			disable_clocks();
-		goto out;
-	}
-	current_mode = mode;
-	if (mode == BW_INACTIVE) {
-		if (g_clk.clk_access_cnt)
-			g_clk.clk_access_cnt--;
-	} else {
-		g_clk.clk_access_cnt++;
+	if (current_mode != mode) {
+		ret = msm_bus_scale_client_update_request(
+					qsee_perf_client, mode);
+		if (ret) {
+			pr_err("BW req failed(%d) MODE (%d)\n", ret, mode);
+			if (mode == BW_INACTIVE)
+				enable_clocks();
+			else
+				disable_clocks();
+			goto out;
+		}
+		current_mode = mode;
 	}
 out:
 	return ret;
@@ -220,6 +216,8 @@ static void deinit_clocks(void)
 
 	for (i = CE_MAX_CLK; i > 0; i--)
 		SMCINVOKE_DEINIT_CLK(g_clk.clks[i-1])
+
+	g_clk.clk_access_cnt = 0;
 }
 
 static struct clk *get_clk(const char *clk_name)
@@ -362,14 +360,15 @@ static int prepare_send_scm_msg(const uint8_t *in_buf, size_t in_buf_len,
 	set_msm_bus_request_locked(BW_HIGH);
 	mutex_unlock(&smcinvoke_lock);
 	ret = scm_call2(SMCINVOKE_TZ_CMD, &desc);
-	mutex_lock(&smcinvoke_lock);
-	set_msm_bus_request_locked(BW_INACTIVE);
-	mutex_unlock(&smcinvoke_lock);
 
 	/* process listener request */
 	if (!ret && (desc.ret[0] == QSEOS_RESULT_INCOMPLETE ||
 		desc.ret[0] == QSEOS_RESULT_BLOCKED_ON_LISTENER))
 		ret = qseecom_process_listener_from_smcinvoke(&desc);
+
+	mutex_lock(&smcinvoke_lock);
+	set_msm_bus_request_locked(BW_INACTIVE);
+	mutex_unlock(&smcinvoke_lock);
 
 	*smcinvoke_result = (int32_t)desc.ret[1];
 	if (ret || desc.ret[1] || desc.ret[2] || desc.ret[0])
