@@ -4572,8 +4572,8 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     hdd_context_t *pHddCtx = NULL;
     struct cfg80211_bss *bss_status;
-    tHalHandle hal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-    tpAniSirGlobal mac = PMAC_STRUCT(hal);
+    tHalHandle hal;
+    tpAniSirGlobal mac;
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "CSR Callback: status= %d result= %d roamID=%d",
                     roamStatus, roamResult, roamId );
@@ -4958,9 +4958,16 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                 roamResult );
             break;
         case  eCSR_ROAM_STA_CHANNEL_SWITCH:
-            hdd_chan_change_notify(pAdapter, pAdapter->dev,
-                                   pRoamInfo->chan_info.chan_id,
-                                   mac->roam.configParam.phyMode);
+	  {
+		pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+		if((pHddCtx) && (pHddCtx->hHal) && (pRoamInfo)) {
+			hal = pHddCtx->hHal;
+			mac = PMAC_STRUCT(hal);
+			hdd_chan_change_notify(pAdapter, pAdapter->dev,
+				               pRoamInfo->chan_info.chan_id,
+					       mac->roam.configParam.phyMode);
+		  }
+	  }
         default:
             break;
     }
