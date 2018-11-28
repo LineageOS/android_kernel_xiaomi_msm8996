@@ -294,6 +294,16 @@ static const struct wiphy_wowlan_support wowlan_support_reg_init = {
     .pattern_min_len = WOW_MIN_PATTERN_SIZE,
     .pattern_max_len = WOW_MAX_PATTERN_SIZE,
 };
+
+static const struct cfg80211_wowlan wowlan_config = {
+	.any = true,
+	.disconnect = true,
+	.magic_pkt = true,
+	.gtk_rekey_failure = true,
+	.eap_identity_req = true,
+	.four_way_handshake = true,
+	.rfkill_release = true,
+};
 #endif
 
 /* Internal function declarations */
@@ -4065,6 +4075,8 @@ void hdd_indicate_mgmt_frame(tSirSmeMgmtFrameInd *frame_ind)
 	hdd_adapter_t *adapter;
 	v_CONTEXT_t vos_context;
 	int i;
+	struct ieee80211_mgmt *mgmt =
+		(struct ieee80211_mgmt *)frame_ind->frameBuf;
 
 	/* Get the global VOSS context.*/
 	vos_context = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
@@ -4078,6 +4090,11 @@ void hdd_indicate_mgmt_frame(tSirSmeMgmtFrameInd *frame_ind)
 
 	if (0 != wlan_hdd_validate_context(hdd_ctx))
 		return;
+
+	if (frame_ind->frame_len < ieee80211_hdrlen(mgmt->frame_control)) {
+		hddLog(LOGE, FL("Invalid frame length"));
+		return;
+	}
 
 	if (HDD_SESSION_ID_ANY == frame_ind->sessionId) {
 		for (i = 0; i < HDD_SESSION_MAX; i++) {
@@ -14751,6 +14768,13 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    TRACK_UNLOAD_STATUS(unload_stop_all_adapter);
    hdd_stop_all_adapters( pHddCtx );
 
+   /*
+    * Set conparam to VOS_STA_MODE by default since it won't clear
+    * this flag if switch from sap to sta with static driver mode.
+    */
+   if (VOS_STA_SAP_MODE == hdd_get_conparam())
+       hdd_set_conparam(0);
+
 #ifdef QCA_PKT_PROTO_TRACE
    if (VOS_FTM_MODE != hdd_get_conparam())
        vos_pkt_proto_trace_close();
@@ -15348,6 +15372,7 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)) || defined(WITH_BACKPORTS)
     wiphy->wowlan = &wowlan_support_reg_init;
+    wiphy->wowlan_config = kmemdup(&wowlan_config, sizeof(wowlan_config), GFP_KERNEL);
 #else
     wiphy->wowlan.flags = WIPHY_WOWLAN_ANY |
                           WIPHY_WOWLAN_MAGIC_PKT |
@@ -16390,6 +16415,11 @@ VOS_STATUS hdd_mt_host_ev_cb(void *pcb_cxt, tSirMtEvent *pevent)
 		return VOS_STATUS_E_INVAL;
 
 	adapter = hdd_get_adapter_by_vdev(hddctx, pevent->vdev_id);
+	if (!adapter) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+			FL("get adapter failed"));
+		return VOS_STATUS_E_INVAL;
+	}
 
 	hddLog(VOS_TRACE_LEVEL_INFO,
 		FL("hdd_mt_host_ev_cb vdev_id=%u, status=%u"),
@@ -17278,12 +17308,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if(ptt_sock_activate_svc(pHddCtx) != 0)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: ptt_sock_activate_svc failed",__func__);
-      goto err_reg_netdev;
+      goto err_oem_activate_service;
    }
 #endif
 
-   if (hdd_open_cesium_nl_sock() < 0)
+   if (hdd_open_cesium_nl_sock() < 0) {
       hddLog(VOS_TRACE_LEVEL_WARN, FL("hdd_open_cesium_nl_sock failed"));
+      goto err_ptt_sock_activate_svc;
+   }
 
    //Initialize the CNSS-DIAG service
    if (cnss_diag_activate_service() < 0)
@@ -17294,13 +17326,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
    hdd_register_mcast_bcast_filter(pHddCtx);
-   if (VOS_STA_SAP_MODE != hdd_get_conparam())
-   {
-      /* Action frame registered in one adapter which will
-       * applicable to all interfaces
-       */
-      wlan_hdd_cfg80211_register_frames(pAdapter);
-   }
+   wlan_hdd_cfg80211_register_frames(pAdapter);
 
    mutex_init(&pHddCtx->sap_lock);
 
@@ -17607,6 +17633,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 err_close_cesium:
    hdd_close_cesium_nl_sock();
 
+err_ptt_sock_activate_svc:
+#ifdef PTT_SOCK_SVC_ENABLE
+   ptt_sock_deactivate_svc();
+#endif
+err_oem_activate_service:
+#ifdef FEATURE_OEM_DATA_SUPPORT
+   oem_deactivate_service();
+#endif
 err_reg_netdev:
    if (rtnl_lock_enable == TRUE) {
       rtnl_lock_enable = FALSE;

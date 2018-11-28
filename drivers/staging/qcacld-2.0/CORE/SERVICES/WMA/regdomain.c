@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011,2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011,2013-2014, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -704,6 +704,44 @@ u_int16_t regdm_get_opclass_from_channel(u_int8_t *country, u_int8_t channel,
 		class++;
 	}
 	return 0;
+}
+
+/*
+ * Get channel list for a given regulatory class
+ */
+void regdm_get_channel_from_opclass(u_int8_t *country,
+	u_int8_t op_class)
+{
+	regdm_op_class_map_t *class = NULL;
+	u_int16_t i = 0;
+
+	if (0 == adf_os_mem_cmp(country,"US", 2)) {
+		class = us_op_class;
+	} else if (0 == adf_os_mem_cmp(country,"EU", 2)) {
+		class = euro_op_class;
+	} else if (0 == adf_os_mem_cmp(country,"JP", 2)) {
+		class = japan_op_class;
+	} else {
+		class = global_op_class;
+	}
+
+	while (class->op_class) {
+		if (class->op_class == op_class) {
+			for (i = 0;
+			     (i < MAX_CHANNELS_PER_OPERATING_CLASS &&
+			      class->channels[i]);
+			     i++) {
+				adf_os_print(KERN_ERR
+				"%s: Valid channel(%d) in requested RC(%d)\n",
+				__func__, class->channels[i], op_class);
+			}
+			break;
+		}
+		class++;
+	}
+	if (!class->op_class)
+		adf_os_print(KERN_ERR "%s: Invalid requested RC (%d)\n",
+			     __func__, op_class);
 }
 
 /*

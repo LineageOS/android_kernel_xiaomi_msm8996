@@ -4572,6 +4572,8 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     hdd_context_t *pHddCtx = NULL;
     struct cfg80211_bss *bss_status;
+    tHalHandle hal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    tpAniSirGlobal mac = PMAC_STRUCT(hal);
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "CSR Callback: status= %d result= %d roamID=%d",
                     roamStatus, roamResult, roamId );
@@ -4955,6 +4957,10 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             hdd_ndp_event_handler(pAdapter, pRoamInfo, roamId, roamStatus,
                 roamResult );
             break;
+        case  eCSR_ROAM_STA_CHANNEL_SWITCH:
+            hdd_chan_change_notify(pAdapter, pAdapter->dev,
+                                   pRoamInfo->chan_info.chan_id,
+                                   mac->roam.configParam.phyMode);
         default:
             break;
     }
@@ -5430,6 +5436,7 @@ int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
     switch( pHddStaCtx->conn_info.authType)
     {
        case eCSR_AUTH_TYPE_OPEN_SYSTEM:
+       case eCSR_AUTH_TYPE_AUTOSWITCH:
 #ifdef FEATURE_WLAN_ESE
        case eCSR_AUTH_TYPE_CCKM_WPA:
        case eCSR_AUTH_TYPE_CCKM_RSN:

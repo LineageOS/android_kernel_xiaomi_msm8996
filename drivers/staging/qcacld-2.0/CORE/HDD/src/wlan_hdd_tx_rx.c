@@ -513,13 +513,11 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 * The TX packets might be dropped for UDP case in the iperf testing.
 * So need to be protected by follow control.
 */
-#ifdef QCA_LL_TX_FLOW_CT
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,19,0))
        //remove if condition for improving SCC TCP TX KPI
       //if (pAdapter->tx_flow_low_watermark > 0) {
           skb_orphan(skb);
      // }
-#endif
 #else
 #ifdef WLAN_FEATURE_TSF_PLUS
       /*
@@ -528,10 +526,6 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        */
       if (hdd_cfg_is_ptp_opt_enable(hddCtxt))
           skb_orphan(skb);
-#else
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,19,0))
-          skb_orphan(skb);
-#endif
 #endif
 #endif
 

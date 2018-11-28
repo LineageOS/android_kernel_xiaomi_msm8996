@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2015, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -133,6 +133,7 @@ extern "C" {
 /* Debug Log levels*/
 
 typedef enum {
+    DBGLOG_ML = 0,
     DBGLOG_VERBOSE = 0,
     DBGLOG_INFO,
     DBGLOG_INFO_LVL_1,

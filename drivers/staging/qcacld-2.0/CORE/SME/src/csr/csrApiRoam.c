@@ -2154,6 +2154,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
             pParam->sta_roam_policy_params.skip_unsafe_channels;
         pMac->roam.configParam.sta_roam_policy.sap_operating_band =
             pParam->sta_roam_policy_params.sap_operating_band;
+        pMac->roam.configParam.enable_bcast_probe_rsp =
+            pParam->enable_bcast_probe_rsp;
     }
 
     return status;
@@ -2376,6 +2378,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
                pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vi;
         pParam->tx_non_aggr_sw_retry_threshhold_vo =
                pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vo;
+        pParam->enable_bcast_probe_rsp =
+               pMac->roam.configParam.enable_bcast_probe_rsp;
         status = eHAL_STATUS_SUCCESS;
     }
     return (status);
@@ -10748,6 +10752,54 @@ eHalStatus csrSendResetApCapsChanged(tpAniSirGlobal pMac, tSirMacAddr *bssId)
     return status;
 }
 
+/**
+ * csr_roam_chk_swt_ch_ind() - Send roam info to SME layer callback
+ * @mac: Poitner to MAC layer context
+ * @msg: Message from MAC layer
+ *
+ * Return: None
+ */
+static void csr_roam_chk_swt_ch_ind(tpAniSirGlobal mac, tSirSmeRsp *msg)
+{
+	tCsrRoamInfo roam_info;
+	tCsrRoamSession *session = NULL;
+	tpSirSmeSwitchChannelInd switch_chn;
+	tANI_U32 session_id;
+	eHalStatus status  = eHAL_STATUS_SUCCESS;
+
+	smsLog(mac, LOGW, FL("eWNI_SME_SWITCH_CHL_REQ from SME"));
+	switch_chn = (tpSirSmeSwitchChannelInd)msg;
+
+	/*
+	 * Update with the new channel id.
+	 * The channel id is hidden in the statusCode.
+	 */
+	status = csrRoamGetSessionIdFromBSSID(mac,
+					      (tCsrBssid *)switch_chn->bssId,
+					      &session_id);
+	if (HAL_STATUS_SUCCESS(status)) {
+		session = CSR_GET_SESSION(mac, session_id);
+		if (!session) {
+			smsLog(mac, LOGE, FL("  session %d not found "),
+			       session_id);
+			return;
+		}
+		session->connectedProfile.operationChannel =
+					(tANI_U8)switch_chn->newChannelId;
+		if (session->pConnectBssDesc) {
+			session->pConnectBssDesc->channelId =
+					(tANI_U8)switch_chn->newChannelId;
+		}
+
+		vos_mem_set(&roam_info, sizeof(tCsrRoamInfo), 0);
+		roam_info.chan_info.chan_id = switch_chn->newChannelId;
+
+		status = csrRoamCallCallback(mac, session_id, &roam_info, 0,
+					     eCSR_ROAM_STA_CHANNEL_SWITCH,
+					     eCSR_ROAM_RESULT_NONE);
+	}
+}
+
 void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 {
 
@@ -10766,7 +10818,6 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
     eHalStatus status;
     tANI_U32 sessionId = CSR_SESSION_ID_INVALID;
     tCsrRoamSession *pSession = NULL;
-    tpSirSmeSwitchChannelInd pSwitchChnInd;
     tSmeMaxAssocInd *pSmeMaxAssocInd;
     tSmeCmd *pCommand = NULL;
 
@@ -11041,27 +11092,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
            break;
 
         case eWNI_SME_SWITCH_CHL_REQ:        // in case of STA, the SWITCH_CHANNEL originates from its AP
-            smsLog( pMac, LOGW, FL("eWNI_SME_SWITCH_CHL_REQ from SME"));
-            pSwitchChnInd = (tpSirSmeSwitchChannelInd)pSirMsg;
-            //Update with the new channel id.
-            //The channel id is hidden in the statusCode.
-            status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pSwitchChnInd->bssId, &sessionId );
-            if( HAL_STATUS_SUCCESS( status ) )
-            {
-                pSession = CSR_GET_SESSION( pMac, sessionId );
-                if(!pSession)
-                {
-                    smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
-                    if (pRoamInfo)
-                        vos_mem_free(pRoamInfo);
-                    return;
-                }
-                pSession->connectedProfile.operationChannel = (tANI_U8)pSwitchChnInd->newChannelId;
-                if(pSession->pConnectBssDesc)
-                {
-                    pSession->pConnectBssDesc->channelId = (tANI_U8)pSwitchChnInd->newChannelId;
-                }
-            }
+            csr_roam_chk_swt_ch_ind(pMac, pSirMsg);
             break;
 
         case eWNI_SME_DEAUTH_RSP:
@@ -16395,6 +16426,8 @@ eHalStatus csrSendMBAddSelfStaReqMsg( tpAniSirGlobal pMac,
                 pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vi;
       pMsg->tx_non_aggr_sw_retry_threshhold_vo =
                 pMac->roam.configParam.tx_non_aggr_sw_retry_threshhold_vo;
+      pMsg->enable_bcast_probe_rsp =
+                pMac->roam.configParam.enable_bcast_probe_rsp;
       smsLog( pMac, LOG1, FL("selfMac="MAC_ADDRESS_STR),
               MAC_ADDR_ARRAY(pMsg->selfMacAddr));
       status = palSendMBMessage(pMac->hHdd, pMsg);

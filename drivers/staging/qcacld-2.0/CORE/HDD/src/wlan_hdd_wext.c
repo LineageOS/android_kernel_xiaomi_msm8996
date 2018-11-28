@@ -416,6 +416,7 @@ typedef enum eMonFilterType{
 #define WE_MOTION_DET_BASE_LINE_CONFIG_PARAM      13
 #endif
 #define WE_SET_THERMAL_THROTTLE_CONFIG            14
+#define WE_SET_HPCS_PULSE_PARAMS_CONFIG           15
 
 /* Private ioctls (with no sub-ioctls) */
 /* note that they must be odd so that they have "get" semantics */
@@ -1081,7 +1082,6 @@ eHalStatus hdd_wlan_get_ibss_peer_info_all(hdd_adapter_t *pAdapter)
 
 int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
 {
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     v_U32_t threshold = 0;
     hdd_context_t *hdd_ctx;
     int ret;
@@ -1100,8 +1100,9 @@ int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
         return ret;
 
 
-    if ( eHAL_STATUS_SUCCESS !=
-                     ccmCfgGetInt(hHal, WNI_CFG_RTS_THRESHOLD, &threshold) )
+    if (eHAL_STATUS_SUCCESS !=
+                        ccmCfgGetInt(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                     WNI_CFG_RTS_THRESHOLD, &threshold))
     {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                       FL("failed to get ini parameter, WNI_CFG_RTS_THRESHOLD"));
@@ -3484,6 +3485,32 @@ static void iw_power_offload_callback_fn(void *context, tANI_U32 session_id,
 	hdd_request_put(request);
 }
 
+/**
+ * iw_offload_disable_pwr_cb() - Callback function registered with PMC to
+ * know status of PMC request
+ *
+ * @context: pointer to calling context
+ * @session_id: session_id
+ * @status: eHAL_STATUS_SUCCESS if success else eHalStatus error code
+ *
+ * Return:
+ */
+static void iw_offload_disable_pwr_cb(void *context, tANI_U32 session_id,
+				      eHalStatus status)
+{
+	struct hdd_request *request;
+
+	request = hdd_request_get(context);
+	if (!request) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Obsolete request",
+		       __func__);
+		return;
+	}
+
+	hdd_request_complete(request);
+	hdd_request_put(request);
+}
+
 /* Callback function for tx per hit */
 void hdd_tx_per_hit_cb (void *pCallbackContext)
 {
@@ -3682,8 +3709,10 @@ static void hdd_get_station_statistics_cb(void *stats, void *context)
  */
 VOS_STATUS wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
 {
-	hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+	hdd_station_ctx_t *pHddStaCtx;
+	hdd_ap_ctx_t *sap_ctx;
 	eHalStatus hstatus;
+	tANI_U8 sta_id;
 	int ret;
 	void *cookie;
 	struct hdd_request *request;
@@ -3696,6 +3725,14 @@ VOS_STATUS wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
 	if (NULL == pAdapter) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, "%s: pAdapter is NULL", __func__);
 		return VOS_STATUS_SUCCESS;
+	}
+
+	if (pAdapter->device_mode == WLAN_HDD_SOFTAP) {
+		sap_ctx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
+		sta_id = sap_ctx->uBCStaId;
+	} else {
+		pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+		sta_id = pHddStaCtx->conn_info.staId[0];
 	}
 
 	request = hdd_request_alloc(&params);
@@ -3715,7 +3752,7 @@ VOS_STATUS wlan_hdd_get_station_stats(hdd_adapter_t *pAdapter)
 				     hdd_get_station_statistics_cb,
 				     0, /* not periodic */
 				     FALSE, /* non-cached results */
-				     pHddStaCtx->conn_info.staId[0],
+				     sta_id,
 				     cookie, pAdapter->sessionId);
 	if (eHAL_STATUS_SUCCESS != hstatus) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
@@ -5941,6 +5978,85 @@ static int __iw_setint_getnone(struct net_device *dev,
 #endif
               case  14://reset wlan (power down/power up)
                  break;
+              case  15:
+                  if (NULL == hHal) {
+                      hddLog(VOS_TRACE_LEVEL_ERROR,
+                             "%s: mac ptr NULL when setpwr param 15",
+                             __func__);
+                      return -EINVAL;
+                  }
+
+                  if (!(pHddCtx->cfg_ini->enablePowersaveOffload &&
+                      (false == pHddCtx->is_mon_enable) &&
+                      ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+                      (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)))) {
+                      hddLog(LOGE, "device mode not support enable bmps dyn");
+                      return -EIO;
+                  }
+
+                  sme_EnablePowerSave(hHal, ePMC_BEACON_MODE_POWER_SAVE);
+                  sme_ConfigEnablePowerSave(pHddCtx->hHal,
+                                            ePMC_BEACON_MODE_POWER_SAVE);
+
+                  if (hdd_connIsConnected(pHddStaCtx))
+                      sme_PsOffloadEnablePowerSave(hHal, pAdapter->sessionId);
+                  break;
+              case  16:
+              {
+                  struct hdd_request *request;
+                  void *cookie;
+                  static const struct hdd_request_params params = {
+                      .priv_size = 0,
+                      .timeout_ms = WLAN_WAIT_TIME_POWER,
+                  };
+                  eHalStatus status = eHAL_STATUS_FAILURE;
+
+                  if (NULL == hHal) {
+                      hddLog(VOS_TRACE_LEVEL_ERROR,
+                             "%s: mac ptr NULL when setpwr param 16",
+                             __func__);
+                      return -EINVAL;
+                  }
+
+                  if (!(pHddCtx->cfg_ini->enablePowersaveOffload &&
+                      ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
+                      (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)))) {
+                     hddLog(LOGE, "device mode not support disable bmps dyn");
+                     return -EIO;
+                  }
+
+                  request = hdd_request_alloc(&params);
+                  if (!request) {
+                      hddLog(VOS_TRACE_LEVEL_ERROR,
+                             "%s: Request alloc fail for disable bmps dyn",
+                             __func__);
+                      return VOS_STATUS_E_NOMEM;
+                  }
+
+                  cookie = hdd_request_cookie(request);
+                  status =
+                      sme_PsOffloadDisablePowerSave(hHal,
+                                                    iw_offload_disable_pwr_cb,
+                                                    cookie, pAdapter->sessionId);
+                  if (eHAL_STATUS_PMC_PENDING == status) {
+                      if (hdd_request_wait_for_response(request)) {
+                          hddLog(VOS_TRACE_LEVEL_ERROR,
+                                 FL("SME timed out when req full power"));
+                      }
+                  }
+
+                  /*
+                   * either we never sent a request, we sent a request and
+                   * received a response or we sent a request and timed out.
+                   * regardless we are done with the request.
+                   */
+                  hdd_request_put(request);
+                  sme_DisablePowerSave(hHal, ePMC_BEACON_MODE_POWER_SAVE);
+                  sme_ConfigDisablePowerSave(pHddCtx->hHal,
+                                             ePMC_BEACON_MODE_POWER_SAVE);
+                  hddLog(LOGE, "iwpriv req Full Power completed");
+                  break;
+              }
               default:
                  hddLog(LOGE, "Invalid arg  %d in WE_SET_POWER IOCTL", set_value);
                  ret = -EINVAL;
@@ -7195,11 +7311,13 @@ static int __iw_setchar_getnone(struct net_device *dev,
     {
        case WE_WOWL_ADD_PTRN:
           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "ADD_PTRN");
-          hdd_add_wowl_ptrn(pAdapter, pBuffer);
+          if (!hdd_add_wowl_ptrn(pAdapter, pBuffer))
+             ret = -EINVAL;
           break;
        case WE_WOWL_DEL_PTRN:
           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "DEL_PTRN");
-          hdd_del_wowl_ptrn(pAdapter, pBuffer);
+          if (!hdd_del_wowl_ptrn(pAdapter, pBuffer))
+             ret = -EINVAL;
           break;
 #if defined WLAN_FEATURE_VOWIFI
        case WE_NEIGHBOR_REPORT_REQUEST:
@@ -8997,6 +9115,42 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
 
                 ret = sme_thermal_throttle_mgmt_cmd(pAdapter, apps_args[4],
                                                     apps_args[5]);
+                if (ret != eHAL_STATUS_SUCCESS)
+                    return -EINVAL;
+            }
+            break;
+
+        case WE_SET_HPCS_PULSE_PARAMS_CONFIG:
+            {
+                tSirHpcsPulseParmasConfig config;
+                if (num_args != 6) {
+                    hddLog(LOGE, FL("setHpcsParams: 6 args are required\n"
+                           "Ex: iwpriv wlan0 setHpcsParams start sync_time "
+                           "pulse_interval active_sync_period gpio_pin pulse_width"));
+                    return -EINVAL;
+                }
+
+                if (apps_args[0] < 0 || apps_args[0] > 1 || apps_args[1] < 0
+                    || apps_args[2] <= 10000 || apps_args[3] < 0 || apps_args[4] < 0
+                    || apps_args[5] < 10000) {
+                    hddLog(LOGE, FL("setHpcsParams: Invalid values"));
+                    return -EINVAL;
+                }
+
+                hddLog(LOG1, "setHpcsParams vdev_id:%d args %x %x %x %x %x %x\n",
+                              pAdapter->sessionId, apps_args[0], apps_args[1],
+                              apps_args[2], apps_args[3], apps_args[4], apps_args[5]);
+
+                config.vdev_id            = pAdapter->sessionId;
+                config.start              = apps_args[0];
+                config.sync_time          = apps_args[1];
+                config.pulse_interval     = apps_args[2];
+                config.active_sync_period = apps_args[3];
+                config.gpio_pin           = apps_args[4];
+                config.pulse_width        = apps_args[5];
+
+                ret = sme_hpcs_pulse_params_conf_cmd(pAdapter, &config);
+
                 if (ret != eHAL_STATUS_SUCCESS)
                     return -EINVAL;
             }
@@ -12641,6 +12795,9 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_THERMAL_THROTTLE_CONFIG,
         IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
         0, "setThermalConfig" },
+    {   WE_SET_HPCS_PULSE_PARAMS_CONFIG,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, "setHpcsParams" },
 };
 
 

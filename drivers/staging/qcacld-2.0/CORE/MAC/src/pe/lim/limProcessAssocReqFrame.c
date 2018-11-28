@@ -384,9 +384,15 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     if ((psessionEntry->access_policy_vendor_ie) &&
             (psessionEntry->access_policy ==
              LIM_ACCESS_POLICY_RESPOND_IF_IE_IS_PRESENT)) {
+        if (framelen <= LIM_ASSOC_REQ_IE_OFFSET) {
+            limLog(pMac, LOGE, FL("Receive action frame of invalid len %d"),
+                   framelen);
+            return;
+        }
         if (!cfg_get_vendor_ie_ptr_from_oui(pMac,
                     &psessionEntry->access_policy_vendor_ie[2],
-                    3, pBody + LIM_ASSOC_REQ_IE_OFFSET, framelen)) {
+                    3, pBody + LIM_ASSOC_REQ_IE_OFFSET,
+                    framelen - LIM_ASSOC_REQ_IE_OFFSET)) {
             limLog(pMac, LOGE,
                     FL("Vendor ie not present and access policy is %x, Rejected association"),
                     psessionEntry->access_policy);
@@ -873,14 +879,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
                     goto error;
                 }/* end - if(pAssocReq->wpa.length) */
-            } else {
-		    limLog(pMac, LOG1,
-			FL("Non RSNIE and WPA IE received"));
-		    limSendAssocRspMgmtFrame(pMac,
-			eSIR_MAC_INVALID_RSN_IE_CAPABILITIES_STATUS,
-			1, pHdr->sa, subType, 0,psessionEntry);
-		    goto error;
-	    }
+            }
         } /* end of if(psessionEntry->pLimStartBssReq->privacy
             && psessionEntry->pLimStartBssReq->rsnIE->length) */
 
