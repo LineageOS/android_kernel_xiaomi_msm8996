@@ -1144,13 +1144,6 @@ struct ol_rx_reorder_history {
 	struct ol_rx_reorder_record record[OL_MAX_RX_REORDER_HISTORY];
 };
 
-struct peer_cfr_capture {
-    u32 cfr_enable;
-    u32 cfr_period;
-    u32 cfr_bandwidth;
-    u32 cfr_method;
-    void *priv;
-};
 
 struct ol_txrx_peer_t {
 	struct ol_txrx_vdev_t *vdev;
@@ -1259,8 +1252,6 @@ struct ol_txrx_peer_t {
 	adf_os_time_t last_assoc_rcvd;
 	adf_os_time_t last_disassoc_deauth_rcvd;
 	struct ol_rx_reorder_history * reorder_history;
-	struct peer_cfr_capture cfr_capture;
-	struct dentry *cfr_peer_mac;
 };
 
 struct ol_fw_data {

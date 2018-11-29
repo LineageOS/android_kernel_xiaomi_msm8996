@@ -971,7 +971,6 @@ typedef struct wma_handle {
 	bool sub_20_support;
 	bool get_one_peer_info;
 	t_dpd_recal_mgmt dpd_recal_info;
-	struct mutex cfr_conf_mutex;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
@@ -1958,14 +1957,5 @@ struct wma_beacon_interval_reset_req {
 	vos_timer_t event_timeout;
 	uint8_t vdev_id;
 	uint16_t interval;
-};
-
-struct wmi_peer_cfr_capture_conf {
-    u32 vdev_id;
-    wmi_mac_addr peer_macaddr;
-    u32 request;
-    u32 periodicity;
-    u32 bandwidth;
-    u32 capture_method;
 };
 #endif

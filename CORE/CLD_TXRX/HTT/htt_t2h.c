@@ -143,113 +143,6 @@ static void HTT_RX_FRAG_SET_LAST_MSDU(
 
 #define MAX_TARGET_TX_CREDIT    204800
 
-#define CFR_MAGIC_NUM_HEAD      0xDEADBEAF
-#define CFR_MAGIC_NUM_TAIL      0xBEAFDEAD
-
-static void
-htt_populate_n_relay_cfr_data(struct htt_cfr_dump_ind_type_1 *cfr_ind,
-                           struct htt_rfs_cfr_dump *rfs_cfr_dump)
-{
-    int i,j;
-    u32 *cfr_data;
-    u32 msg_len = __le32_to_cpu(cfr_ind->length);
-
-    cfr_data= (u32*)((void *)cfr_ind + sizeof(struct htt_cfr_dump_ind_type_1));
-
-    if (msg_len >  sizeof(rfs_cfr_dump->cfr_dump))
-        msg_len = sizeof(rfs_cfr_dump->cfr_dump);
-
-    for (i=0,j=0;i < msg_len/4; i++,j+=2) {
-        rfs_cfr_dump->cfr_dump[j] = (u16)(cfr_data[i] & 0xFFFF);
-        rfs_cfr_dump->cfr_dump[j+1] = (u16)((cfr_data[i] >> 16) & 0xFFFF);
-#ifdef CFR_DATA_DBG
-        adf_os_print("%d 0x%4x %d 0x%4x\n",j, rfs_cfr_dump->cfr_dump[j], j+1,
-                     rfs_cfr_dump->cfr_dump[j+1]);
-#endif
-    }
-#ifdef WLAN_OPEN_SOURCE
-    if (msg_len)
-        cfr_dump_to_rfs(rfs_cfr_dump->cfr_dump, msg_len);
-#endif /* WLAN_OPEN_SOURCE */
-}
-
-static void
-htt_populate_rfs_cfr_header(struct htt_rfs_cfr_hdr *cfr_hdr,
-                            struct htt_cfr_dump_ind_type_1 *cfr_ind)
-{
-    cfr_hdr->head_magic_num = CFR_MAGIC_NUM_HEAD;
-    memcpy(&cfr_hdr->mac_addr, &cfr_ind->mac_addr, HTT_MAC_ADDR_LEN);
-    cfr_hdr->status = cfr_ind->status;
-    cfr_hdr->capture_bw = cfr_ind->capture_bw;
-    cfr_hdr->channel_bw = cfr_ind->channel_bw;
-    cfr_hdr->capture_mode = cfr_ind->mode;
-    cfr_hdr->capture_type = cfr_ind->cap_type;
-    cfr_hdr->sts_count = cfr_ind->sts_count;
-
-    cfr_hdr->prim20_chan = __le32_to_cpu(cfr_ind->chan.chan_mhz);
-    cfr_hdr->center_freq1 =  __le32_to_cpu(cfr_ind->chan.band_center_freq1);
-    cfr_hdr->center_freq2 =  __le32_to_cpu(cfr_ind->chan.band_center_freq2);
-    cfr_hdr->phy_mode = __le32_to_cpu(cfr_ind->chan.chan_mode);
-
-    cfr_hdr->num_rx_chain = 0; /* TODO */
-
-    cfr_hdr->length = __le32_to_cpu(cfr_ind->length);
-
-    cfr_hdr->timestamp = __le32_to_cpu(cfr_ind->timestamp);
-
-#ifdef WLAN_OPEN_SOURCE
-    cfr_dump_to_rfs(cfr_hdr, sizeof(struct htt_rfs_cfr_hdr));
-#endif /* WLAN_OPEN_SOURCE */
-}
-
-static void htt_peer_cfr_compl_ind(u_int32_t *data)
-{
-    struct htt_rfs_cfr_dump rfs_cfr_dump = { };
-    enum htt_cfr_capture_msg_type cfr_msg_type;
-    struct htt_cfr_dump_compl_ind *cfr_dump_ind;
-    u32 msg_len = 0;
-
-    cfr_dump_ind = (struct htt_cfr_dump_compl_ind *)data;
-
-    cfr_msg_type = __le32_to_cpu(cfr_dump_ind->msg_type);
-
-    switch (cfr_msg_type) {
-    case HTT_PEER_CFR_CAPTURE_MSG_TYPE_LEGACY:
-        {
-            msg_len = __le32_to_cpu(cfr_dump_ind->cfr_dump_legacy.length);
-            /* Skip if msg_len is 0 */
-            if (!msg_len)
-                break;
-
-#ifdef CFR_DATA_DBG
-            /* Discard if no of tones doesnt belong to 20MHz BW */
-            if (msg_len != (54*4)) {
-                if(msg_len)
-                    adf_os_print("WARN: Currently supported 53 tones "
-                                 "in 20MHz got %d\n", msg_len/4);
-            }
-#endif
-            htt_populate_rfs_cfr_header(&rfs_cfr_dump.cfr_hdr,
-                                        &cfr_dump_ind->cfr_dump_legacy);
-
-            htt_populate_n_relay_cfr_data(&cfr_dump_ind->cfr_dump_legacy,
-                                          &rfs_cfr_dump);
-
-            rfs_cfr_dump.tail_magic_num = CFR_MAGIC_NUM_TAIL;
-
-#ifdef WLAN_OPEN_SOURCE
-            cfr_dump_to_rfs(&rfs_cfr_dump.tail_magic_num, sizeof(u32));
-
-            cfr_finalalize_relay();
-#endif /* WLAN_OPEN_SOURCE */
-            break;
-        }
-    default:
-        adf_os_print("Unsupported CFR capture method %d\n",cfr_msg_type);
-        break;
-    }
-}
-
 /* Target to host Msg/event  handler  for low priority messages*/
 void
 htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
@@ -257,12 +150,9 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
     struct htt_pdev_t *pdev = (struct htt_pdev_t *) context;
     u_int32_t *msg_word;
     enum htt_t2h_msg_type msg_type;
-    u_int32_t payload_present;
 
     msg_word = (u_int32_t *) adf_nbuf_data(htt_t2h_msg);
     msg_type = HTT_T2H_MSG_TYPE_GET(*msg_word);
-    payload_present = HTT_T2H_PAYLOAD_PRESENT_GET(*msg_word);
-
     switch (msg_type) {
     case HTT_T2H_MSG_TYPE_VERSION_CONF:
         {
@@ -722,30 +612,6 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
 
             adf_os_mem_free(report);
             break;
-        }
-    case HTT_T2H_MSG_TYPE_CFR_DUMP_COMPL_IND:
-        {
-#ifdef CFR_DATA_DBG
-            int i;
-            struct htt_cfr_dump_ind_type_1 *cfr_dump;
-#endif
-            if (!payload_present)
-                return;
-            msg_word++;
-            htt_peer_cfr_compl_ind(msg_word);
-#ifdef CFR_DATA_DBG
-            msg_word++;
-            cfr_dump = (struct htt_cfr_dump_ind_type_1 *) msg_word;
-            adf_os_print("CFR Dump: Length=%d Counter=%d  Mode=%d BW=%d\n",
-                          cfr_dump->length, cfr_dump->counter, cfr_dump->mode,
-                          cfr_dump->capture_bw);
-            msg_word += sizeof(struct htt_cfr_dump_ind_type_1)/4;
-            for (i=0; i<cfr_dump->length/4; i++) {
-                 adf_os_print("\n%d 0x%04x ",i, (u16)(*(msg_word+i) & 0xFFFF));
-                 adf_os_print("0x%04x ", (u16)((*(msg_word+i) >>16) & 0xFFFF));
-            }
-            adf_os_print("\n");
-#endif
         }
     default:
         break;
