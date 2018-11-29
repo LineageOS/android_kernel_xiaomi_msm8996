@@ -2998,6 +2998,13 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ENABLE_USB_WARM_RESET_DISABLE        ( 0 )
 #define CFG_ENABLE_USB_WARM_RESET_ENABLE         ( 1 )
 #define CFG_ENABLE_USB_WARM_RESET_DEFAULT        ( CFG_ENABLE_USB_WARM_RESET_DISABLE )
+/*
+ * Enable/Disable fast FW dump
+ */
+#define CFG_ENABLE_FAST_FW_DUMP_NAME         "gEnableFastFwDump"
+#define CFG_ENABLE_FAST_FW_DUMP_DISABLE      ( 0 )
+#define CFG_ENABLE_FAST_FW_DUMP_ENABLE       ( 1 )
+#define CFG_ENABLE_FAST_FW_DUMP_DEFAULT      ( CFG_ENABLE_FAST_FW_DUMP_DISABLE )
 
 #ifdef WLAN_FEATURE_11AC
 //Macro to handle maximum receive AMPDU size configuration
@@ -5949,6 +5956,7 @@ struct hdd_config {
    v_BOOL_t                    enablePowersaveOffload;
    v_BOOL_t                    enablefwprint;
    v_BOOL_t                    enablefwlog;
+   v_BOOL_t                    fastfwdump;
    v_BOOL_t                    enableFwSelfRecovery;
 #ifdef FEATURE_USB_WARM_RESET
    v_BOOL_t                    enable_usb_warm_reset;

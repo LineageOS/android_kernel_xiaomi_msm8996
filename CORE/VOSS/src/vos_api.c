@@ -545,6 +545,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    scn->enableuartprint = pHddCtx->cfg_ini->enablefwprint;
    scn->enablefwlog     = pHddCtx->cfg_ini->enablefwlog;
    scn->enableFwSelfRecovery = pHddCtx->cfg_ini->enableFwSelfRecovery;
+   scn->fastfwdump_host = pHddCtx->cfg_ini->fastfwdump;
    scn->max_no_of_peers = pHddCtx->max_peers;
 #ifdef WLAN_FEATURE_LPSS
    scn->enablelpasssupport = pHddCtx->cfg_ini->enablelpasssupport;
