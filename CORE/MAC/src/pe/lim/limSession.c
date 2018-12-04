@@ -753,6 +753,14 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
        vos_timer_destroy(&psessionEntry->protection_fields_reset_timer);
     }
 
+    if (psessionEntry->reg_update_pwr_timer.state != 0) {
+        vos_timer_stop(&psessionEntry->reg_update_pwr_timer);
+        vos_timer_destroy(&psessionEntry->reg_update_pwr_timer);
+        if (psessionEntry->reg_update_pwr_timer.userData != NULL)
+            vos_mem_free(psessionEntry->reg_update_pwr_timer.userData);
+        psessionEntry->reg_update_pwr_timer.userData = NULL;
+    }
+
 #if defined (WLAN_FEATURE_VOWIFI_11R)
     /* Delete FT related information */
     limFTCleanup(pMac, psessionEntry);
