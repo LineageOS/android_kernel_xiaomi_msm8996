@@ -1628,6 +1628,68 @@ char * DBG_MSG_ARR[WLAN_MODULE_ID_MAX][MAX_DBG_MSGS] =
         DBG_STRING(WLAN_MODULE_QBOOST_DBGID_WLAN_PEER_NOT_FOUND),
         DBG_STRING(WLAN_MODULE_QBOOST_DEFINITION_END),
     },
+    {
+        /* WLAN_MODULE_P2P_LISTEN_OFFLOAD */
+        ""
+    },
+    {
+        /* WLAN_MODULE_HALPHY */
+        ""
+    },
+    {
+        /* WAL_MODULE_ENQ */
+        ""
+    },
+    {
+        /* WLAN_MODULE_GNSS */
+        ""
+    },
+    {
+        /* WLAN_MODULE_WAL_MEM */
+        ""
+    },
+    {
+        /* WLAN_MODULE_SCHED_ALGO */
+        ""
+    },
+    {
+        /* WLAN_MODULE_TX */
+        ""
+    },
+    {
+        /* WLAN_MODULE_RX */
+        ""
+    },
+    {
+        /* WLAN_MODULE_WLM */
+        ""
+    },
+    {
+         /* WLAN_MODULE_RU_ALLOCATOR */
+        ""
+    },
+    {
+        /* WLAN_MODULE_11K_OFFLOAD */
+        ""
+    },
+    {
+        /* WLAN_MODULE_STA_TWT */
+        ""
+    },
+    {
+        /* WLAN_MODULE_AP_TWT */
+        ""
+    },
+    {
+         /* WLAN_MODULE_UL_OFDMA */
+        ""
+    },
+    {
+        DBG_STRING(HPCS_PULSE_START),
+        DBG_STRING(HPCS_PULSE_LF_TIMER),
+        DBG_STRING(HPCS_PULSE_HF_TIMER),
+        DBG_STRING(HPCS_PULSE_POWER_SAVE),
+    },
 
 };
 
