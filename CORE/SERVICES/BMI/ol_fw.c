@@ -2881,7 +2881,9 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 			ol_txrx_pdev_pause_vdev_txq(scn->pdev_txrx_handle,
 						OL_TXQ_PAUSE_REASON_CRASH_DUMP);
 		}
+#ifdef HIF_SDIO
 		HIFMaskInterrupt(scn->hif_hdl);
+#endif
 		BMIInit(scn);
 	}
 
@@ -2974,7 +2976,9 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 end:
 	if (scn->fastfwdump_host && scn->fastfwdump_fw) {
 		BMICleanup(scn);
+#ifdef HIF_SDIO
 		HIFUnMaskInterrupt(scn->hif_hdl);
+#endif
 		if (scn->pdev_txrx_handle) {
 			ol_txrx_pdev_unpause(scn->pdev_txrx_handle,
 				     OL_TXQ_PAUSE_REASON_FW);
