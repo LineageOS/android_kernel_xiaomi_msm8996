@@ -387,6 +387,78 @@ adf_nbuf_dmamap_set_cb(adf_os_dma_map_t dmap, adf_os_dma_map_cb_t cb,
     __adf_nbuf_dmamap_set_cb(dmap, cb, arg);
 }
 
+#ifdef NBUF_MAP_UNMAP_DEBUG
+#define ADF_MEM_FILE_NAME_SIZE 48
+enum adf_nbuf_event_type {
+	ADF_NBUF_ALLOC,
+	ADF_NBUF_ALLOC_FAILURE,
+	ADF_NBUF_FREE,
+	ADF_NBUF_MAP,
+	ADF_NBUF_UNMAP,
+};
+
+struct adf_nbuf_event {
+	adf_nbuf_t nbuf;
+	char file[ADF_MEM_FILE_NAME_SIZE];
+	uint32_t line;
+	enum adf_nbuf_event_type type;
+	uint64_t timestamp;
+};
+
+struct adf_nbuf_map_metadata {
+	struct hlist_node node;
+	adf_nbuf_t nbuf;
+	char file[ADF_MEM_FILE_NAME_SIZE];
+	uint32_t line;
+};
+
+#define ADF_FM_BITMAP uint32_t
+#define ADF_FM_BITMAP_BITS (sizeof(ADF_FM_BITMAP) * 8)
+
+#define adf_ffz(mask) (~(mask) == 0 ? -1 : ffz(mask))
+void
+adf_nbuf_history_add(adf_nbuf_t nbuf, const char *file, uint32_t line,
+		     enum adf_nbuf_event_type type);
+
+void adf_nbuf_map_check_for_leaks(void);
+
+a_status_t adf_nbuf_map_debug(adf_os_device_t osdev,
+			      adf_nbuf_t buf,
+			      adf_os_dma_dir_t dir,
+			      const char *file,
+			      uint32_t line);
+
+#define adf_nbuf_map(osdev, buf, dir) \
+	adf_nbuf_map_debug(osdev, buf, dir, __FILE__, __LINE__)
+void adf_nbuf_unmap_debug(adf_os_device_t osdev,
+			  adf_nbuf_t buf,
+			  adf_os_dma_dir_t dir,
+			  const char *file,
+			  uint32_t line);
+
+#define adf_nbuf_unmap(osdev, buf, dir) \
+	adf_nbuf_unmap_debug(osdev, buf, dir, __FILE__, __LINE__)
+
+a_status_t adf_nbuf_map_single_debug(adf_os_device_t osdev,
+				     adf_nbuf_t buf,
+				     adf_os_dma_dir_t dir,
+				     const char *file,
+				     uint32_t line);
+
+#define adf_nbuf_map_single(osdev, buf, dir) \
+	adf_nbuf_map_single_debug(osdev, buf, dir, __FILE__, __LINE__)
+
+void adf_nbuf_unmap_single_debug(adf_os_device_t osdev,
+				 adf_nbuf_t buf,
+				 adf_os_dma_dir_t dir,
+				 const char *file,
+				 uint32_t line);
+
+#define adf_nbuf_unmap_single(osdev, buf, dir) \
+	adf_nbuf_unmap_single_debug(osdev, buf, dir, __FILE__, __LINE__)
+
+#else
+static inline void adf_nbuf_map_check_for_leaks(void) {}
 /**
  * @brief Map a buffer to local bus address space
  *
@@ -447,6 +519,7 @@ adf_nbuf_unmap_single(
     __adf_nbuf_unmap_single(osdev, buf, dir);
 #endif
 }
+#endif
 
 static inline int
 adf_nbuf_get_num_frags(adf_nbuf_t buf)
@@ -530,21 +603,19 @@ adf_nbuf_alloc_debug(adf_os_device_t osdev, adf_os_size_t size, int reserve,
 	net_buf = __adf_nbuf_alloc(osdev, size, reserve, align, prio);
 
 	/* Store SKB in internal ADF tracking table */
-	if (adf_os_likely(net_buf))
+	if (adf_os_likely(net_buf)) {
 		adf_net_buf_debug_add_node(net_buf, size, file_name, line_num);
-
+		adf_nbuf_history_add(net_buf, file_name, line_num, ADF_NBUF_ALLOC);
+	} else {
+		adf_nbuf_history_add(net_buf, file_name, line_num, ADF_NBUF_ALLOC_FAILURE);
+	}
 	return net_buf;
 }
 
-static inline void adf_nbuf_free(adf_nbuf_t net_buf)
-{
-	/* Remove SKB from internal ADF tracking table */
-	if (adf_os_likely(net_buf))
-		adf_net_buf_debug_delete_node(net_buf);
+void adf_nbuf_free_debug(adf_nbuf_t nbuf, uint8_t *file, uint32_t line);
 
-	__adf_nbuf_free(net_buf);
-}
-
+#define adf_nbuf_free(d) \
+	adf_nbuf_free_debug(d, __FILE__, __LINE__)
 #else
 
 static inline void adf_net_buf_debug_release_skb(adf_nbuf_t net_buf)

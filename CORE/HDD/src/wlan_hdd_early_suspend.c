@@ -2540,6 +2540,7 @@ err_vosclose:
 
 #ifdef MEMORY_DEBUG
    adf_net_buf_debug_exit();
+   adf_nbuf_map_check_for_leaks();
    vos_mem_exit();
 #endif
 

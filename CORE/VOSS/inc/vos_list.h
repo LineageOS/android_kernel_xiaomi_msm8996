@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -580,5 +580,8 @@ VOS_STATUS vos_list_insert_after( vos_list_t *pList, vos_list_node_t *pNodeToIns
 VOS_STATUS vos_list_remove_node( vos_list_t *pList, vos_list_node_t *pNodeToRemove );
 
 
+#define VOS_LIST_NODE_INIT_SINGLE(node) __VOS_LIST_NODE_INIT_SINGLE(node)
+
+#define VOS_LIST_ANCHOR(list) __VOS_LIST_ANCHOR(list)
 
 #endif // __VOS_LIST_H
