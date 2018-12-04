@@ -635,6 +635,9 @@ ifdef CONFIG_CC_OPTIMIZE_FAST
 KBUILD_CFLAGS  += -Ofast
 endif
 
+# Disable all Wmisleading-indentation warnings
+KBUILD_CFLAGS	+= $(call cc-disable-warning,misleading-indentation,)
+
 # Disable all maybe-uninitialized warnings
 KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
 
