@@ -2074,6 +2074,12 @@ typedef enum {
 #define WLAN_MODULE_QBOOST_DBGID_WLAN_PEER_NOT_FOUND      1
 #define WLAN_MODULE_QBOOST_DEFINITION_END                 2
 
+/* HPCS DBGID */
+#define HPCS_PULSE_START                                  0
+#define HPCS_PULSE_LF_TIMER                               1
+#define HPCS_PULSE_HF_TIMER                               2
+#define HPCS_PULSE_POWER_SAVE                             3
+
 #ifdef __cplusplus
 }
 #endif
