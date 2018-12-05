@@ -18,6 +18,11 @@
 
 #include "efistub.h"
 
+bool efi__get___nokaslr(void)
+{
+	return nokaslr();
+}
+
 static int efi_secureboot_enabled(efi_system_table_t *sys_table_arg)
 {
 	static efi_guid_t const var_guid = EFI_GLOBAL_VARIABLE_GUID;
