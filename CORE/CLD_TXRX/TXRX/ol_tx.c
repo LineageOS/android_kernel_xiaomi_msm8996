@@ -436,6 +436,7 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
     while (msdu) {
         adf_nbuf_t next;
         struct ol_tx_desc_t *tx_desc;
+        struct ol_txrx_pdev_t *pdev = vdev->pdev;
         a_status_t ret;
 
         msdu_info.htt.info.ext_tid = adf_nbuf_get_tid(msdu);
@@ -452,7 +453,14 @@ ol_tx_ll(ol_txrx_vdev_handle vdev, adf_nbuf_t msdu_list)
             }
         }
 
-        ol_tx_prepare_ll(tx_desc, vdev, msdu, &msdu_info);
+        msdu_info.htt.info.frame_type = pdev->htt_pkt_type;
+        tx_desc = ol_tx_desc_ll(pdev, vdev, msdu, &msdu_info);
+        if (adf_os_unlikely(! tx_desc)) {
+            TXRX_STATS_MSDU_LIST_INCR(
+                pdev, tx.dropped.host_reject, msdu);
+            adf_nbuf_unmap_single(pdev->osdev, msdu, ADF_OS_DMA_TO_DEVICE);
+            return msdu;
+        }
 
         /*
          * If debug display is enabled, show the meta-data being
