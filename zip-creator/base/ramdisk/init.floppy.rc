@@ -5,6 +5,10 @@ import /init.spectrum.rc
 
 on property:sys.boot_completed=1
 
+#Animation script
+exec u:r:init:s0 root root -- /init.animation.sh
+exec u:r:su:s0 root root -- /init.animation.sh
+
 #Fingerprint unlock with screen off by default
 	write /sys/devices/soc/soc:fpc_fpc1020/enable_wakeup 1
 
