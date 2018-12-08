@@ -126,13 +126,6 @@ on property:persist.spectrum.profile=0
 	#Scheduler I/O 
 		write /sys/block/sda/queue/read_ahead_kb 512
 		write /sys/block/sde/queue/read_ahead_kb 512
-		write /sys/block/dm-0/queue/read_ahead_kb 512
-		write /sys/block/dm-1/queue/read_ahead_kb 512
-		write /sys/devices/virtual/block/dm-0/queue/iosched/async_read_expire 300
-		write /sys/devices/virtual/block/dm-0/queue/iosched/async_write_expire 3000
-		write /sys/devices/virtual/block/dm-0/queue/iosched/fifo_batch 14
-		write /sys/devices/virtual/block/dm-0/queue/iosched/sync_read_expire 644
-		write /sys/devices/virtual/block/dm-0/queue/iosched/syn_writec_expire 300
 
 	#VM tweaks
 		write /proc/sys/vm/swappiness 30 
@@ -287,13 +280,6 @@ on property:persist.spectrum.profile=1
 	#Scheduler I/O 
 		write /sys/block/sda/queue/read_ahead_kb 1024
 		write /sys/block/sde/queue/read_ahead_kb 1024
-		write /sys/block/dm-0/queue/read_ahead_kb 1024
-		write /sys/block/dm-1/queue/read_ahead_kb 1024
-		write /sys/devices/virtual/block/dm-0/queue/iosched/async_read_expire 300
-		write /sys/devices/virtual/block/dm-0/queue/iosched/async_write_expire 2800
-		write /sys/devices/virtual/block/dm-0/queue/iosched/fifo_batch 14
-		write /sys/devices/virtual/block/dm-0/queue/iosched/sync_read_expire 644
-		write /sys/devices/virtual/block/dm-0/queue/iosched/syn_writec_expire 300
 
 	#VM tweaks
 		write /proc/sys/vm/swappiness 40
@@ -434,13 +420,6 @@ on property:persist.spectrum.profile=2
 	#Scheduler I/O 
 		write /sys/block/sda/queue/read_ahead_kb 512
 		write /sys/block/sde/queue/read_ahead_kb 512
-		write /sys/block/dm-0/queue/read_ahead_kb 512
-		write /sys/block/dm-1/queue/read_ahead_kb 512
-		write /sys/devices/virtual/block/dm-0/queue/iosched/async_read_expire 300
-		write /sys/devices/virtual/block/dm-0/queue/iosched/async_write_expire 2800
-		write /sys/devices/virtual/block/dm-0/queue/iosched/fifo_batch 14
-		write /sys/devices/virtual/block/dm-0/queue/iosched/sync_read_expire 644
-		write /sys/devices/virtual/block/dm-0/queue/iosched/syn_writec_expire 300
 
 	#VM tweaks
 		write /proc/sys/vm/swappiness 20
@@ -599,13 +578,6 @@ on property:persist.spectrum.profile=3
 	#Scheduler I/O 
 		write /sys/block/sda/queue/read_ahead_kb 1024
 		write /sys/block/sde/queue/read_ahead_kb 1024
-		write /sys/block/dm-0/queue/read_ahead_kb 1024
-		write /sys/block/dm-1/queue/read_ahead_kb 1024
-		write /sys/devices/virtual/block/dm-0/queue/iosched/async_read_expire 300
-		write /sys/devices/virtual/block/dm-0/queue/iosched/async_write_expire 2800
-		write /sys/devices/virtual/block/dm-0/queue/iosched/fifo_batch 14
-		write /sys/devices/virtual/block/dm-0/queue/iosched/sync_read_expire 644
-		write /sys/devices/virtual/block/dm-0/queue/iosched/syn_writec_expire 300
 
 	#VM tweaks
 		write /proc/sys/vm/swappiness 50
