@@ -152,8 +152,8 @@ on property:persist.spectrum.profile=0
 		write /proc/sys/net/ipv4/tcp_congestion_control westwood
 
 	#Tweaking GPU
-		write /sys/devices/soc/b00000.qcom,kgsl-3d0/devfreq/b00000.qcom,kgsl-3d0/governor msm-adreno-tz
-		write /sys/class/kgsl/kgsl-3d0/max_gpuclk 624000000
+		write /sys/class/kgsl/kgsl-3d0/devfreq/governor msm-adreno-tz
+		write /sys/class/kgsl/kgsl-3d0/max_gpuclk 560000000
 
 # Performance
 on property:persist.spectrum.profile=1
@@ -317,7 +317,7 @@ on property:persist.spectrum.profile=1
 		write /proc/sys/net/ipv4/tcp_congestion_control westwood
 
 	#Tweaking GPU
-		write /sys/devices/soc/b00000.qcom,kgsl-3d0/devfreq/b00000.qcom,kgsl-3d0/governor msm-adreno-tz
+		write /sys/class/kgsl/kgsl-3d0/devfreq/governor performance
 		write /sys/class/kgsl/kgsl-3d0/max_gpuclk 624000000
 
 # Battery
@@ -464,7 +464,7 @@ on property:persist.spectrum.profile=2
 		write /proc/sys/net/ipv4/tcp_congestion_control westwood
 
 	#Tweaking GPU
-		write /sys/devices/soc/b00000.qcom,kgsl-3d0/devfreq/b00000.qcom,kgsl-3d0/governor msm-adreno-tz
+		write /sys/class/kgsl/kgsl-3d0/devfreq/governor powersave
 		write /sys/class/kgsl/kgsl-3d0/max_gpuclk 510000000
 
 # Gaming
@@ -630,5 +630,5 @@ on property:persist.spectrum.profile=3
 		write /proc/sys/net/ipv4/tcp_congestion_control westwood
 
 	#Tweaking GPU
-		write /sys/devices/soc/b00000.qcom,kgsl-3d0/devfreq/b00000.qcom,kgsl-3d0/governor msm-adreno-tz
+		write /sys/class/kgsl/kgsl-3d0/devfreq/governor performance
 		write /sys/class/kgsl/kgsl-3d0/max_gpuclk 624000000
