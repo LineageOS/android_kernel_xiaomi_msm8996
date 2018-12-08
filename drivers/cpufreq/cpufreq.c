@@ -2354,6 +2354,66 @@ int cpufreq_get_policy(struct cpufreq_policy *policy, unsigned int cpu)
 }
 EXPORT_SYMBOL(cpufreq_get_policy);
 
+/* ########## Xiaomi Mi5 ########## */
+#ifdef CONFIG_MACH_XIAOMI_A1 
+
+#define UNDERCLK_MAX_BIGCL_BALANCED 1824000
+#define UNDERCLK_MAX_LITTLECL_BALANCED 1324800
+
+#define UNDERCLK_MAX_BIGCL_BATTERY 1708000
+#define UNDERCLK_MAX_LITTLECL_BATTERY 1228000
+
+static bool enable_underclock_balanced;
+module_param_named(enable_underclock_balanced,
+    enable_underclock_balanced, bool, S_IRUGO | S_IWUSR | S_IWGRP);
+
+static bool enable_underclock_battery;
+module_param_named(enable_underclock_battery,
+    enable_underclock_battery, bool, S_IRUGO | S_IWUSR | S_IWGRP);
+
+#endif
+/* ########## Xiaomi Mi5 ########## */
+
+/* ########## Xiaomi Mi5s ########## */
+#ifdef CONFIG_MACH_XIAOMI_A7 
+
+#define UNDERCLK_MAX_BIGCL_BALANCED 1824000
+#define UNDERCLK_MAX_LITTLECL_BALANCED 1593600
+
+#define UNDERCLK_MAX_BIGCL_BATTERY 1670000
+#define UNDERCLK_MAX_LITTLECL_BATTERY 1440000
+
+static bool enable_underclock_balanced;
+module_param_named(enable_underclock_balanced,
+    enable_underclock_balanced, bool, S_IRUGO | S_IWUSR | S_IWGRP);
+
+static bool enable_underclock_battery;
+module_param_named(enable_underclock_battery,
+    enable_underclock_battery, bool, S_IRUGO | S_IWUSR | S_IWGRP);
+
+#endif
+/* ########## Xiaomi Mi5s ########## */
+
+/* ########## Xiaomi Mi Note 2 - Xiaomi Mi Mix Xiaomi - Mi5s Plus ########## */
+#if defined(CONFIG_MACH_XIAOMI_A4) || defined(CONFIG_MACH_XIAOMI_A8) || defined(CONFIG_MACH_XIAOMI_B7)
+
+#define UNDERCLK_MAX_BIGCL_BALANCED 2054400
+#define UNDERCLK_MAX_LITTLECL_BALANCED 1728000
+
+#define UNDERCLK_MAX_BIGCL_BATTERY 1824000
+#define UNDERCLK_MAX_LITTLECL_BATTERY 1593600
+
+static bool enable_underclock_balanced;
+module_param_named(enable_underclock_balanced,
+    enable_underclock_balanced, bool, S_IRUGO | S_IWUSR | S_IWGRP);
+
+static bool enable_underclock_battery;
+module_param_named(enable_underclock_battery,
+    enable_underclock_battery, bool, S_IRUGO | S_IWUSR | S_IWGRP);
+
+#endif
+/* ########## Xiaomi Mi Note 2 - Xiaomi Mi Mix Xiaomi - Mi5s Plus ########## */
+
 /*
  * policy : current policy.
  * new_policy: policy to be set.
@@ -2363,6 +2423,38 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 {
 	struct cpufreq_governor *old_gov;
 	int ret;
+
+#ifdef CONFIG_ARCH_MSM8996
+    if (enable_underclock_balanced)
+    {
+        if (new_policy->cpu > 1)
+        {
+            if (new_policy->max > UNDERCLK_MAX_BIGCL_BALANCED)
+                new_policy->max = UNDERCLK_MAX_BIGCL_BALANCED;
+        }
+
+        if (new_policy->cpu < 2)
+        {
+            if (new_policy->max > UNDERCLK_MAX_LITTLECL_BALANCED)
+                new_policy->max = UNDERCLK_MAX_LITTLECL_BALANCED;
+        }
+    }
+
+    else if (enable_underclock_battery)
+    {
+        if (new_policy->cpu > 1)
+        {
+            if (new_policy->max > UNDERCLK_MAX_BIGCL_BATTERY)
+                new_policy->max = UNDERCLK_MAX_BIGCL_BATTERY;
+        }
+
+        if (new_policy->cpu < 2)
+        {
+            if (new_policy->max > UNDERCLK_MAX_LITTLECL_BATTERY)
+                new_policy->max = UNDERCLK_MAX_LITTLECL_BATTERY;
+        }
+    }
+#endif
 
 	pr_debug("setting new policy for CPU %u: %u - %u kHz\n",
 		 new_policy->cpu, new_policy->min, new_policy->max);

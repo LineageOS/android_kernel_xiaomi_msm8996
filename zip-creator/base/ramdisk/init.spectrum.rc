@@ -148,6 +148,10 @@ on property:persist.spectrum.profile=0
 		write /sys/class/kgsl/kgsl-3d0/devfreq/governor msm-adreno-tz
 		write /sys/class/kgsl/kgsl-3d0/max_gpuclk 560000000
 
+    #Underclock
+        write /sys/module/cpufreq/parameters/enable_underclock_balanced Y
+        write /sys/module/cpufreq/parameters/enable_underclock_battery N
+
 # Performance
 on property:persist.spectrum.profile=1
     #Based on GhostPepper v2.0 (15/12/2016)
@@ -306,6 +310,10 @@ on property:persist.spectrum.profile=1
 		write /sys/class/kgsl/kgsl-3d0/devfreq/governor performance
 		write /sys/class/kgsl/kgsl-3d0/max_gpuclk 624000000
 
+    #Underclock
+        write /sys/module/cpufreq/parameters/enable_underclock_balanced N
+        write /sys/module/cpufreq/parameters/enable_underclock_battery N
+
 # Battery
 on property:persist.spectrum.profile=2
 	#Based on Floppy Battery
@@ -445,6 +453,10 @@ on property:persist.spectrum.profile=2
 	#Tweaking GPU
 		write /sys/class/kgsl/kgsl-3d0/devfreq/governor powersave
 		write /sys/class/kgsl/kgsl-3d0/max_gpuclk 510000000
+
+    #Underclock
+        write /sys/module/cpufreq/parameters/enable_underclock_balanced N
+        write /sys/module/cpufreq/parameters/enable_underclock_battery Y
 
 # Gaming
 on property:persist.spectrum.profile=3
@@ -604,3 +616,7 @@ on property:persist.spectrum.profile=3
 	#Tweaking GPU
 		write /sys/class/kgsl/kgsl-3d0/devfreq/governor performance
 		write /sys/class/kgsl/kgsl-3d0/max_gpuclk 624000000
+
+    #Underclock
+        write /sys/module/cpufreq/parameters/enable_underclock_balanced N
+        write /sys/module/cpufreq/parameters/enable_underclock_battery N

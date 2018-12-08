@@ -25,3 +25,7 @@ exec u:r:su:s0 root root -- /init.animation.sh
 #Low memory killer
 	write /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk 0
 	write /sys/module/lowmemorykiller/parameters/minfree "1536,3072,4096,21000,23000,25000"
+
+#Underclock
+    write /sys/module/cpufreq/parameters/enable_underclock_balanced N
+    write /sys/module/cpufreq/parameters/enable_underclock_battery N
