@@ -78,13 +78,8 @@ on property:persist.spectrum.profile=0
 		write /sys/devices/system/cpu/cpu1/cpufreq/interactive/max_freq_hysteresis 0
 		write /sys/devices/system/cpu/cpu1/cpufreq/interactive/boostpulse_duration 0
 
-	#Enable CPU Input Boost at 729MHz for the LITTLE cluster and at 940MHz for the BIG Cluster
-		write /sys/kernel/cpu_input_boost/enabled 1
-		write /sys/kernel/cpu_input_boost/ib_duration_ms 35
-		write /sys/kernel/cpu_input_boost/ib_freqs "729600 940800"
-
-	#Enable CPU Boost at 729MHz for the LITTLE cluster and at 940MHz for the BIG Cluster
-		write /sys/module/cpu_boost/parameters/input_boost_freq "0:729600 1:0 2:940800 3:0"
+	#Enable CPU Boost
+		write /sys/module/cpu_boost/parameters/input_boost_freq "0:960000 1:0 2:883200 3:0"
 		write /sys/module/cpu_boost/parameters/input_boost_ms 35
 
 	#Enable CPU power saving
@@ -236,14 +231,9 @@ on property:persist.spectrum.profile=1
 		write /sys/devices/system/cpu/cpu1/cpufreq/interactive/io_is_busy 0
 		write /sys/devices/system/cpu/cpu1/cpufreq/interactive/enable_prediction 1
 
-	#Enable CPU Input Boost at 729MHz for the LITTLE cluster and at 940MHz for the BIG Cluster
-		write /sys/kernel/cpu_input_boost/enabled 1
-		write /sys/kernel/cpu_input_boost/ib_duration_ms 35
-		write /sys/kernel/cpu_input_boost/ib_freqs "729600 940800"
-
-	#Enable CPU Boost at 556MHz for the LITTLE cluster and at 729MHz for the BIG cluster for 66ms
-		write /sys/module/cpu_boost/parameters/input_boost_freq "0:556800 1:556800 2:729600 3:0"
-		write /sys/module/cpu_boost/parameters/input_boost_ms 66
+	#Enable CPU Boost
+		write /sys/module/cpu_boost/parameters/input_boost_freq "0:729600 1:0 2:940800 3:0"
+		write /sys/module/cpu_boost/parameters/input_boost_ms 35
 
 	#Disable CPU power saving
 		write /sys/module/workqueue/parameters/power_efficient N
@@ -380,14 +370,9 @@ on property:persist.spectrum.profile=2
 		write /sys/devices/system/cpu/cpu1/cpufreq/interactive/max_freq_hysteresis 0
 		write /sys/devices/system/cpu/cpu1/cpufreq/interactive/boostpulse_duration 0
 
-	#Enable CPU Input Boost at 729MHz for the LITTLE cluster and at 940MMhz for the BIG Cluster 
-		write /sys/kernel/cpu_input_boost/enabled 1
-		write /sys/kernel/cpu_input_boost/ib_duration_ms 35
-		write /sys/kernel/cpu_input_boost/ib_freqs "729600 940800"
-
-	#Enable CPU Boost at 729MHz for the LITTLE cluster and at 940MMhz for the BIG Cluster
-		write /sys/module/cpu_boost/parameters/input_boost_freq "0:729600 1:0 2:940800 3:0"
-		write /sys/module/cpu_boost/parameters/input_boost_ms 35
+	#Enable CPU Boost
+		write /sys/module/cpu_boost/parameters/input_boost_freq "0:0 1:0 2:0 3:0"
+		write /sys/module/cpu_boost/parameters/input_boost_ms 0
 
 	#Enable CPU power saving
 		write /sys/module/workqueue/parameters/power_efficient Y
@@ -541,14 +526,9 @@ on property:persist.spectrum.profile=3
 		write /sys/devices/system/cpu/cpu1/cpufreq/interactive/io_is_busy 0
 		write /sys/devices/system/cpu/cpu1/cpufreq/interactive/enable_prediction 0
 
-	#Enable CPU Input Boost at 729MHz for the LITTLE cluster and at 940MHz for the BIG Cluster
-		write /sys/kernel/cpu_input_boost/enabled 1
-		write /sys/kernel/cpu_input_boost/ib_duration_ms 35
-		write /sys/kernel/cpu_input_boost/ib_freqs "729600 940800"
-
-	#Enable CPU Boost at 960MHz for the LITTLE cluster and at 806MHz for the BIG cluster for 66ms
+	#Enable CPU Boost
 		write /sys/module/cpu_boost/parameters/input_boost_freq "0:960000 1:0 2:806400 3:0"
-		write /sys/module/cpu_boost/parameters/input_boost_ms 300
+		write /sys/module/cpu_boost/parameters/input_boost_ms 70
 
 	#Disable CPU power saving
 		write /sys/module/workqueue/parameters/power_efficient N
