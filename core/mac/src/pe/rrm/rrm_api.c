@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -42,8 +42,6 @@
 #include "lim_send_messages.h"
 #include "rrm_global.h"
 #include "rrm_api.h"
-
-#define MAX_RRM_TX_PWR_CAP 22
 
 uint8_t
 rrm_get_min_of_max_tx_power(tpAniSirGlobal pMac,
