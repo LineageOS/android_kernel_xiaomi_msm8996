@@ -7699,6 +7699,7 @@ struct udp_resp_offload {
  * @wow_pulse_interval_low: Pulse interval low
  * @wow_pulse_interval_high: Pulse interval high
  * @wow_pulse_repeat_count: Pulse repeat count
+ * @wow_pulse_init_state: Pulse init level
  *
  * SME uses this structure to configure wow pulse info
  * and send it to WMA
@@ -7708,7 +7709,8 @@ struct wow_pulse_mode {
 	uint8_t                    wow_pulse_pin;
 	uint16_t                   wow_pulse_interval_high;
 	uint16_t                   wow_pulse_interval_low;
-	uint16_t                   wow_pulse_repeat_count;
+	uint32_t                   wow_pulse_repeat_count;
+	uint8_t                    wow_pulse_init_state;
 };
 
 /*
@@ -8625,6 +8627,11 @@ struct sme_change_country_code_ind {
 	uint16_t  msg_len;
 	uint8_t   session_id;
 	uint8_t   country_code[WNI_CFG_COUNTRY_CODE_LEN];
+};
+
+struct update_pwr_timer_data {
+	void* mac_ptr;
+	void* session_ptr;
 };
 
 /**

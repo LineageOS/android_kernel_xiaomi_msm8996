@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -49,6 +49,9 @@ A_STATUS bmi_download_firmware(struct ol_softc *scn);
 void bmi_target_ready(struct ol_softc *scn, void *cfg_ctx);
 void
 BMICleanup(struct ol_softc *scn);
+
+void
+BMIInit(struct ol_softc *scn);
 
 A_STATUS
 bmi_done(struct ol_softc *scn);

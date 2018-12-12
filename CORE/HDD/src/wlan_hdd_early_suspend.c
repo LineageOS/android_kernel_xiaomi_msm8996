@@ -1593,6 +1593,7 @@ void hdd_suspend_wlan(void (*callback)(void *callbackContext, boolean suspended)
    hdd_adapter_t *pAdapter = NULL;
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    bool hdd_enter_bmps = FALSE;
+   enum netif_action_type action;
 
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: WLAN being suspended by Android OS",__func__);
 
@@ -1670,11 +1671,9 @@ send_suspend_ind:
         if (thermal) {
             hdd_thermal_off_carrier(pAdapter);
         }
-
-       wlan_hdd_netif_queue_control(pAdapter, WLAN_NETIF_TX_DISABLE,
-                      WLAN_CONTROL_PATH);
-
-
+       action = pHddCtx->is_nonos_suspend ? WLAN_NETIF_TX_DISABLE_N_CARRIER :
+                                            WLAN_NETIF_TX_DISABLE;
+       wlan_hdd_netif_queue_control(pAdapter, action, WLAN_CONTROL_PATH);
        WLANTL_PauseUnPauseQs(pVosContext, true);
 
       /* Keep this suspend indication at the end (before processing next adaptor)
@@ -1834,6 +1833,7 @@ void hdd_resume_wlan(bool thermal)
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
    v_CONTEXT_t pVosContext = NULL;
+   enum netif_action_type action;
 
    hddLog(VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed by Android OS",__func__);
 
@@ -1924,9 +1924,9 @@ send_resume_ind:
 
       WLANTL_PauseUnPauseQs(pVosContext, false);
 
-      wlan_hdd_netif_queue_control(pAdapter,
-                WLAN_WAKE_ALL_NETIF_QUEUE,
-                WLAN_CONTROL_PATH);
+      action = pHddCtx->is_nonos_suspend ? WLAN_START_ALL_NETIF_QUEUE_N_CARRIER :
+                                           WLAN_WAKE_ALL_NETIF_QUEUE;
+      wlan_hdd_netif_queue_control(pAdapter, action, WLAN_CONTROL_PATH);
 
       if (thermal) {
         hdd_thermal_on_carrier(pAdapter);
@@ -2332,10 +2332,8 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
       goto err_re_init;
    }
 
-#if  !defined(REMOVE_PKT_LOG)
-      hif_init_pdev_txrx_handle(hif_sc,
-      vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
-#endif
+   hif_init_pdev_txrx_handle(hif_sc,
+         vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
 
    /* Save the hal context in Adapter */
    pHddCtx->hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, pVosContext );

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -64,6 +64,7 @@ typedef enum _ATH_BIN_FILE {
     ATH_BOARD_DATA_FILE,
     ATH_FLASH_FILE,
     ATH_SETUP_FILE,
+    ATH_USB_WARM_RESET_FILE,
 } ATH_BIN_FILE;
 
 typedef enum _ol_target_status  {
@@ -248,6 +249,11 @@ struct ol_softc {
     bool                    enablefwlog;        /* enable fwlog */
     /* enable FW self-recovery for Rome USB */
     bool                    enableFwSelfRecovery;
+#ifdef FEATURE_USB_WARM_RESET
+    bool                    enable_usb_warm_reset;
+#endif
+    bool                    fastfwdump_host;
+    bool                    fastfwdump_fw;
 #ifdef HIF_USB
     /* structure to save FW RAM dump (Rome USB) */
     struct fw_ramdump       *ramdump[FW_RAM_SEG_CNT];

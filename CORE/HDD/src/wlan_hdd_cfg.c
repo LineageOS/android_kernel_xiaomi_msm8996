@@ -2968,12 +2968,28 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_FW_LOG_DISABLE,
                  CFG_ENABLE_FW_LOG_ENABLE),
 
+   REG_VARIABLE( CFG_ENABLE_FAST_FW_DUMP_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, fastfwdump,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_FAST_FW_DUMP_DEFAULT,
+                 CFG_ENABLE_FAST_FW_DUMP_DISABLE,
+                 CFG_ENABLE_FAST_FW_DUMP_ENABLE),
+
    REG_VARIABLE( CFG_ENABLE_FW_SELF_RECOVERY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFwSelfRecovery,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                  CFG_ENABLE_FW_SELF_RECOVERY_DEFAULT,
                  CFG_ENABLE_FW_SELF_RECOVERY_DISABLE,
                  CFG_ENABLE_FW_SELF_RECOVERY_ENABLE),
+
+#ifdef FEATURE_USB_WARM_RESET
+   REG_VARIABLE( CFG_ENABLE_USB_WARM_RESET_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, enable_usb_warm_reset,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_USB_WARM_RESET_DEFAULT,
+                 CFG_ENABLE_USB_WARM_RESET_DISABLE,
+                 CFG_ENABLE_USB_WARM_RESET_ENABLE),
+#endif
 
 #ifdef IPA_OFFLOAD
    REG_VARIABLE( CFG_IPA_OFFLOAD_CONFIG_NAME, WLAN_PARAM_HexInteger,
@@ -4722,6 +4738,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_WOW_PULSE_REPEAT_COUNT_DEFAULT,
                 CFG_WOW_PULSE_REPEAT_COUNT_MIN,
                 CFG_WOW_PULSE_REPEAT_COUNT_MAX),
+
+   REG_VARIABLE(CFG_WOW_PULSE_INIT_STATE_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, wow_pulse_init_state,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_WOW_PULSE_INIT_STATE_DEFAULT,
+                CFG_WOW_PULSE_INIT_STATE_MIN,
+                CFG_WOW_PULSE_INIT_STATE_MAX),
 #endif
 
    REG_VARIABLE(CFG_MIB_STATS_ENABLED_NAME, WLAN_PARAM_Integer,

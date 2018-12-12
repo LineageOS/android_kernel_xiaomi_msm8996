@@ -483,6 +483,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8  isKeyInstalled;
     /* timer for reseting protection fileds at regular intervals */
     vos_timer_t protection_fields_reset_timer;
+    vos_timer_t reg_update_pwr_timer;
     void *mac_ctx;
     /*
      * variable to store state of various protection struct like

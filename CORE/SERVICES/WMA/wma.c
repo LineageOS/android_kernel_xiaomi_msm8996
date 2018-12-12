@@ -4459,7 +4459,7 @@ static int wma_extscan_find_unique_scan_ids(const u_int8_t *cmd_param_info)
 	/* Find the unique number of scan_id's for grouping */
 	prev_scan_id = src_rssi->scan_cycle_id;
 	scan_ids_cnt = 1;
-	for (i = 1; i < event->num_entries_in_page; i++) {
+	for (i = 1; i < param_buf->num_rssi_list; i++) {
 		src_rssi++;
 
 		if (prev_scan_id != src_rssi->scan_cycle_id) {
@@ -4503,7 +4503,7 @@ static int wma_fill_num_results_per_scan_id(const u_int8_t *cmd_param_info,
 	t_scan_id_grp->flags = src_rssi->flags;
 	t_scan_id_grp->buckets_scanned = src_rssi->buckets_scanned;
 	t_scan_id_grp->num_results = 1;
-	for (i = 1; i < event->num_entries_in_page; i++) {
+	for (i = 1; i < param_buf->num_rssi_list; i++) {
 		src_rssi++;
 		if (prev_scan_id == src_rssi->scan_cycle_id) {
 			t_scan_id_grp->num_results++;
@@ -4576,7 +4576,8 @@ static int wma_group_num_bss_to_scan_id(const u_int8_t *cmd_param_info,
 		}
 
 		ap = &t_scan_id_grp->ap[0];
-		for (j = 0; j < t_scan_id_grp->num_results; j++) {
+		for (j = 0; j < MIN(t_scan_id_grp->num_results,
+				    param_buf->num_bssid_list); j++) {
 			ap->channel = src_hotlist->channel;
 			ap->ts = WMA_MSEC_TO_USEC(src_rssi->tstamp);
 			ap->rtt = src_hotlist->rtt;
@@ -25699,6 +25700,7 @@ static VOS_STATUS wma_wow_usr(tp_wma_handle wma, u_int8_t vdev_id,
 	return ret;
 }
 
+#ifndef FEATURE_PBM_MAGIC_WOW
 /* Configures default WOW pattern for the given vdev_id which is in AP mode. */
 static VOS_STATUS wma_wow_ap(tp_wma_handle wma, u_int8_t vdev_id,
 			     u_int8_t *enable_ptrn_match)
@@ -25994,6 +25996,7 @@ static VOS_STATUS wma_wow_sta(tp_wma_handle wma, u_int8_t vdev_id,
 	*enable_ptrn_match = 1 << vdev_id;
 	return ret;
 }
+#endif
 
 /* Finds out list of unused slots in wow pattern cache. Those free slots number
  * can be used as pattern ID while configuring default wow pattern. */
@@ -26212,11 +26215,13 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	VOS_STATUS ret = VOS_STATUS_SUCCESS;
 	u_int8_t vdev_id;
 	u_int8_t enable_ptrn_match = 0;
+#ifndef FEATURE_PBM_MAGIC_WOW
 	v_BOOL_t ap_vdev_available = FALSE;
 #ifdef QCA_IBSS_SUPPORT
 	v_BOOL_t ibss_vdev_available = FALSE;
 #endif
 	bool wps_enable = false;
+#endif
 
 	if (wma->wow.wow_enable) {
 		WMA_LOGD("Already%s Fatal Error!",
@@ -26241,7 +26246,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 #endif
 		    ) && !iface->conn_state))
 			continue;
-
+#ifndef FEATURE_PBM_MAGIC_WOW
 		if (wma_is_vdev_in_ap_mode(wma, vdev_id)
 #ifdef QCA_IBSS_SUPPORT
 			|| wma_is_vdev_in_ibss_mode(wma, vdev_id)
@@ -26256,11 +26261,13 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 		if (wma_is_vdev_in_ibss_mode(wma, vdev_id))
 			ibss_vdev_available = TRUE;
 #endif
-
+#endif //end of FEATURE_PBM_MAGIC_WOW
 		if (wma_is_wow_prtn_cached(wma, vdev_id)) {
 			/* Configure wow patterns provided by the user */
 			ret = wma_wow_usr(wma, vdev_id, &enable_ptrn_match);
-		} else if (wma_is_vdev_in_ap_mode(wma, vdev_id)
+		}
+#ifndef FEATURE_PBM_MAGIC_WOW
+		else if (wma_is_vdev_in_ap_mode(wma, vdev_id)
 #ifdef QCA_IBSS_SUPPORT
 		||wma_is_vdev_in_ibss_mode(wma, vdev_id)
 #endif
@@ -26284,16 +26291,10 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 		}
 
 #endif
+#endif //end of FEATURE_PBM_MAGIC_WOW
 		if (ret != VOS_STATUS_SUCCESS)
 			goto end;
 	}
-
-	/*
-	* Configure csa ie wakeup event.
-	*/
-	wma_add_wow_wakeup_event(wma, WOW_CSA_IE_EVENT, TRUE);
-
-	wma_add_wow_wakeup_event(wma, WOW_CLIENT_KICKOUT_EVENT, TRUE);
 
 	/*
 	 * Configure pattern match wakeup event. FW does pattern match
@@ -26305,6 +26306,13 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 	/* Configure magic pattern wakeup event */
 	wma_add_wow_wakeup_event(wma, WOW_MAGIC_PKT_RECVD_EVENT,
 				       wma->wow.magic_ptrn_enable);
+#ifndef FEATURE_PBM_MAGIC_WOW
+        /*
+        * Configure csa ie wakeup event.
+        */
+        wma_add_wow_wakeup_event(wma, WOW_CSA_IE_EVENT, TRUE);
+
+        wma_add_wow_wakeup_event(wma, WOW_CLIENT_KICKOUT_EVENT, TRUE);
 
 	/* Configure deauth based wakeup */
 	wma_add_wow_wakeup_event(wma, WOW_DEAUTH_RECVD_EVENT,
@@ -26389,6 +26397,7 @@ static VOS_STATUS wma_feed_wow_config_to_fw(tp_wma_handle wma,
 		wma_add_wow_wakeup_event(wma,
 					 WOW_CHIP_POWER_FAILURE_DETECT_EVENT,
 					 TRUE);
+#endif // end of FEATURE_PBM_MAGIC_WOW
 
 	/* Enable wow wakeup events in FW */
 	ret = wma_send_wakeup_mask(wma, TRUE);
@@ -30430,7 +30439,7 @@ VOS_STATUS wma_stats_ext_req(void *wda_handle,
 	tp_wma_handle wma = (tp_wma_handle)wda_handle;
 	wmi_req_stats_ext_cmd_fixed_param *cmd;
 	wmi_buf_t buf;
-	u_int16_t len;
+	size_t len;
 	u_int8_t *buf_ptr;
 
 	len = sizeof(*cmd) + WMI_TLV_HDR_SIZE +
@@ -33177,6 +33186,7 @@ static VOS_STATUS wma_send_wow_pulse_cmd(tp_wma_handle wma_handle,
 	cmd->interval_low = wow_pulse_cmd->wow_pulse_interval_low;
 	cmd->interval_high = wow_pulse_cmd->wow_pulse_interval_high;
 	cmd->repeat_cnt = wow_pulse_cmd->wow_pulse_repeat_count;
+	cmd->init_state = wow_pulse_cmd->wow_pulse_init_state;
 
 	if (wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 		WMI_WOW_HOSTWAKEUP_GPIO_PIN_PATTERN_CONFIG_CMDID)) {

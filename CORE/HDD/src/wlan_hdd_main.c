@@ -14827,6 +14827,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    TRACK_UNLOAD_STATUS(unload_deinit_greep_ap);
    hdd_wlan_green_ap_deinit(pHddCtx);
 
+   hdd_easy_wow_deinit(pHddCtx);
+
    hdd_request_manager_deinit();
 
    //Close Watchdog
@@ -16050,19 +16052,24 @@ static int wlan_hdd_set_wow_pulse(hdd_context_t *phddctx, bool enable)
 				pcfg_ini->wow_pulse_interval_high;
 		wow_pulse_set_info.wow_pulse_repeat_count=
 				pcfg_ini->wow_pulse_repeat_count;
+		wow_pulse_set_info.wow_pulse_init_state =
+				pcfg_ini->wow_pulse_init_state;
 	} else {
 		wow_pulse_set_info.wow_pulse_enable = false;
 		wow_pulse_set_info.wow_pulse_pin = 0;
 		wow_pulse_set_info.wow_pulse_interval_low = 0;
 		wow_pulse_set_info.wow_pulse_interval_high= 0;
 		wow_pulse_set_info.wow_pulse_repeat_count= 0;
+		wow_pulse_set_info.wow_pulse_init_state = 0;
 	}
-	hddLog(LOG1,"%s: enable %d pin %d low %d high %d count = %d",
+
+	hddLog(LOG1,"%s: enable %d pin %d low %d high %d count %d init %d",
 		__func__, wow_pulse_set_info.wow_pulse_enable,
 		wow_pulse_set_info.wow_pulse_pin,
 		wow_pulse_set_info.wow_pulse_interval_low,
 		wow_pulse_set_info.wow_pulse_interval_high,
-		wow_pulse_set_info.wow_pulse_repeat_count);
+		wow_pulse_set_info.wow_pulse_repeat_count,
+		wow_pulse_set_info.wow_pulse_init_state);
 
 	status = sme_set_wow_pulse(&wow_pulse_set_info);
 	if (VOS_STATUS_E_FAILURE == status) {
@@ -16114,6 +16121,41 @@ static int wlan_hdd_set_wakeup_gpio(hdd_context_t *hddctx)
 		"%s: sme_set_wakeup_gpio success!", __func__);
 	return 0;
 }
+
+#ifdef FEATURE_PBM_MAGIC_WOW
+void hdd_start_wow_nonos(hdd_adapter_t *pAdapter)
+{
+	hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+	if (pHddCtx->isWiphySuspended) {
+		hddLog(LOGE, "%s: Already suspended!", __func__);
+		return;
+	}
+
+	pHddCtx->is_nonos_suspend = true;
+	wlan_hdd_cfg80211_suspend_wlan(pHddCtx->wiphy, NULL);
+	hif_bus_suspend_nonos();
+}
+
+void hdd_stop_wow_nonos(hdd_adapter_t *pAdapter)
+{
+	hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+
+	if (!pHddCtx->isWiphySuspended) {
+		hddLog(LOGE, "%s: Already awake!", __func__);
+		return;
+	}
+
+	if (!pHddCtx->is_nonos_suspend) {
+		hddLog(LOGE, "%s: wow stop without start", __func__);
+		return;
+	}
+
+	hif_bus_resume_nonos();
+	wlan_hdd_cfg80211_resume_wlan(pHddCtx->wiphy);
+	pHddCtx->is_nonos_suspend = false;
+}
+#endif
 
 /**
  * hdd_state_info_dump() - prints state information of hdd layer
@@ -16614,6 +16656,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_config;
    }
 
+   status = hdd_easy_wow_init(pHddCtx);
+   if (VOS_STATUS_SUCCESS != status)
+      goto err_config;
+
    /* If IPA HW is not existing, disable offload from INI */
    if (!hdd_ipa_is_present(pHddCtx))
       hdd_ipa_reset_ipaconfig(pHddCtx, 0);
@@ -16696,7 +16742,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (0 < wlan_hdd_cfg80211_init(dev, wiphy, pHddCtx->cfg_ini)) {
           hddLog(LOGE,
                  "%s: wlan_hdd_cfg80211_init return failure", __func__);
-          goto err_config;
+          goto err_easy_wow;
    }
 
    /* Initialize struct for saving f/w log setting will be used
@@ -16825,10 +16871,8 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          goto err_vos_nv_close;
       }
 
-#if      !defined(REMOVE_PKT_LOG)
       hif_init_pdev_txrx_handle(hif_sc,
-                            vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
-#endif
+                         vos_get_context(VOS_MODULE_ID_TXRX, pVosContext));
 
       pHddCtx->hHal = (tHalHandle)vos_get_context(VOS_MODULE_ID_SME,
                                                   pVosContext );
@@ -17724,6 +17768,9 @@ err_logging_sock:
 
 err_sock_activate:
    wlan_hdd_cfg80211_deinit(wiphy);
+
+err_easy_wow:
+   hdd_easy_wow_deinit(pHddCtx);
 
 err_config:
    vos_mem_free(pHddCtx->cfg_ini);
