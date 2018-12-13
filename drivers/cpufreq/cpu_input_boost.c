@@ -1,14 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2018, Sultan Alsawaf <sultanxda@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 and
- * only version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Copyright (C) 2018 Sultan Alsawaf <sultan@kerneltoast.com>.
  */
 
 #define pr_fmt(fmt) "cpu_input_boost: " fmt
@@ -38,7 +30,7 @@ struct boost_drv {
 	atomic_t state;
 };
 
-static struct boost_drv *boost_drv_g;
+static struct boost_drv *boost_drv_g __read_mostly;
 
 static u32 get_boost_freq(struct boost_drv *b, u32 cpu)
 {
@@ -95,7 +87,7 @@ void cpu_input_boost_kick(void)
 }
 
 static void __cpu_input_boost_kick_max(struct boost_drv *b,
-	unsigned int duration_ms)
+				       unsigned int duration_ms)
 {
 	unsigned long curr_expires, new_expires;
 
@@ -168,7 +160,7 @@ static void max_unboost_worker(struct work_struct *work)
 }
 
 static int cpu_notifier_cb(struct notifier_block *nb,
-	unsigned long action, void *data)
+			   unsigned long action, void *data)
 {
 	struct boost_drv *b = container_of(nb, typeof(*b), cpu_notif);
 	struct cpufreq_policy *policy = data;
@@ -200,7 +192,7 @@ static int cpu_notifier_cb(struct notifier_block *nb,
 }
 
 static int fb_notifier_cb(struct notifier_block *nb,
-	unsigned long action, void *data)
+			  unsigned long action, void *data)
 {
 	struct boost_drv *b = container_of(nb, typeof(*b), fb_notif);
 	struct fb_event *evdata = data;
@@ -223,7 +215,8 @@ static int fb_notifier_cb(struct notifier_block *nb,
 }
 
 static void cpu_input_boost_input_event(struct input_handle *handle,
-	unsigned int type, unsigned int code, int value)
+					unsigned int type, unsigned int code,
+					int value)
 {
 	struct boost_drv *b = handle->handler->private;
 	u32 state;
@@ -237,7 +230,8 @@ static void cpu_input_boost_input_event(struct input_handle *handle,
 }
 
 static int cpu_input_boost_input_connect(struct input_handler *handler,
-	struct input_dev *dev, const struct input_device_id *id)
+					 struct input_dev *dev,
+					 const struct input_device_id *id)
 {
 	struct input_handle *handle;
 	int ret;
@@ -282,7 +276,7 @@ static const struct input_device_id cpu_input_boost_ids[] = {
 		.evbit = { BIT_MASK(EV_ABS) },
 		.absbit = { [BIT_WORD(ABS_MT_POSITION_X)] =
 			BIT_MASK(ABS_MT_POSITION_X) |
-			BIT_MASK(ABS_MT_POSITION_Y) },
+			BIT_MASK(ABS_MT_POSITION_Y) }
 	},
 	/* Touchpad */
 	{
@@ -290,12 +284,12 @@ static const struct input_device_id cpu_input_boost_ids[] = {
 			INPUT_DEVICE_ID_MATCH_ABSBIT,
 		.keybit = { [BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH) },
 		.absbit = { [BIT_WORD(ABS_X)] =
-			BIT_MASK(ABS_X) | BIT_MASK(ABS_Y) },
+			BIT_MASK(ABS_X) | BIT_MASK(ABS_Y) }
 	},
 	/* Keypad */
 	{
 		.flags = INPUT_DEVICE_ID_MATCH_EVBIT,
-		.evbit = { BIT_MASK(EV_KEY) },
+		.evbit = { BIT_MASK(EV_KEY) }
 	},
 	{ }
 };
