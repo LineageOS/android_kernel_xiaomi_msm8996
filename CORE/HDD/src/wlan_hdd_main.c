@@ -10576,7 +10576,7 @@ VOS_STATUS hdd_get_cfg_file_size(v_VOID_t *pCtx, char *pFileName, v_SIZE_t *pBuf
 
    ENTER();
 
-   status = request_firmware(&pHddCtx->fw, pFileName, pHddCtx->parent_dev);
+   status = qca_request_firmware(&pHddCtx->fw, pFileName, pHddCtx->parent_dev);
 
    if(status || !pHddCtx->fw || !pHddCtx->fw->data) {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: CFG download failed",__func__);
@@ -10617,7 +10617,7 @@ VOS_STATUS hdd_read_cfg_file(v_VOID_t *pCtx, char *pFileName,
 
    ENTER();
 
-   status = request_firmware(&pHddCtx->fw, pFileName, pHddCtx->parent_dev);
+   status = qca_request_firmware(&pHddCtx->fw, pFileName, pHddCtx->parent_dev);
 
    if(status || !pHddCtx->fw || !pHddCtx->fw->data) {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: CFG download failed",__func__);
@@ -20861,3 +20861,4 @@ module_param(enable_11d, int,
 
 module_param(country_code, charp,
              S_IRUSR | S_IRGRP | S_IROTH);
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -72,6 +72,7 @@
 #include <vos_threads.h>
 #include <vos_timer.h>
 #include <vos_pack_align.h>
+#include <linux/firmware.h>
 
 #define VOS_WDA_TIMEOUT 15000
 
@@ -463,4 +464,9 @@ v_BOOL_t vos_is_ch_switch_with_csa_enabled(void);
 #ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
 bool vos_is_chan_ok_for_dnbs(uint8_t channel);
 #endif
+
+int qca_request_firmware(const struct firmware **firmware_p,
+                const char *name,
+                struct device *device);
+
 #endif // if !defined __VOS_API_H

@@ -257,7 +257,7 @@ static int ol_transfer_single_bin_file(struct ol_softc *scn,
 				__func__));
 	}
 
-	if (request_firmware(&fw_entry, filename, scn->sc_osdev->device) != 0)
+	if (qca_request_firmware(&fw_entry, filename, scn->sc_osdev->device) != 0)
 	{
 		AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
 				("%s: Failed to get %s\n",
@@ -751,7 +751,7 @@ defined(CONFIG_NON_QC_PLATFORM_PCI)
 		break;
 	}
 
-       status = request_firmware(&fw_entry, filename, scn->sc_osdev->device);
+       status = qca_request_firmware(&fw_entry, filename, scn->sc_osdev->device);
 	if (status)
 	{
 		pr_err("%s: Failed to get %s:%d\n", __func__, filename, status);
@@ -772,7 +772,7 @@ defined(CONFIG_NON_QC_PLATFORM_PCI)
 			pr_info("%s: Trying to load default %s\n",
 							__func__, filename);
 
-			status = request_firmware(&fw_entry, filename,
+			status = qca_request_firmware(&fw_entry, filename,
 					scn->sc_osdev->device);
 			if (status) {
 				pr_err("%s: Failed to get %s:%d\n",
