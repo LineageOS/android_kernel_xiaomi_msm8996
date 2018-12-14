@@ -2617,69 +2617,6 @@ int f2fs_pin_file_control(struct inode *inode, bool inc)
 	return 0;
 }
 
-static int f2fs_ioc_set_pin_file(struct file *filp, unsigned long arg)
-{
-	struct inode *inode = file_inode(filp);
-	__u32 pin;
-	int ret = 0;
-
-	if (!inode_owner_or_capable(inode))
-		return -EACCES;
-
-	if (get_user(pin, (__u32 __user *)arg))
-		return -EFAULT;
-
-	if (!S_ISREG(inode->i_mode))
-		return -EINVAL;
-
-	if (f2fs_readonly(F2FS_I_SB(inode)->sb))
-		return -EROFS;
-
-	ret = mnt_want_write_file(filp);
-	if (ret)
-		return ret;
-
-	inode_lock(inode);
-
-	if (f2fs_should_update_outplace(inode, NULL)) {
-		ret = -EINVAL;
-		goto out;
-	}
-
-	if (!pin) {
-		clear_inode_flag(inode, FI_PIN_FILE);
-		f2fs_i_gc_failures_write(inode, 0);
-		goto done;
-	}
-
-	if (f2fs_pin_file_control(inode, false)) {
-		ret = -EAGAIN;
-		goto out;
-	}
-	ret = f2fs_convert_inline_inode(inode);
-	if (ret)
-		goto out;
-
-	set_inode_flag(inode, FI_PIN_FILE);
-	ret = F2FS_I(inode)->i_gc_failures[GC_FAILURE_PIN];
-done:
-	f2fs_update_time(F2FS_I_SB(inode), REQ_TIME);
-out:
-	inode_unlock(inode);
-	mnt_drop_write_file(filp);
-	return ret;
-}
-
-static int f2fs_ioc_get_pin_file(struct file *filp, unsigned long arg)
-{
-	struct inode *inode = file_inode(filp);
-	__u32 pin = 0;
-
-	if (is_inode_flag_set(inode, FI_PIN_FILE))
-		pin = F2FS_I(inode)->i_gc_failures[GC_FAILURE_PIN];
-	return put_user(pin, (u32 __user *)arg);
-}
-
 int f2fs_precache_extents(struct inode *inode)
 {
 	struct f2fs_inode_info *fi = F2FS_I(inode);
@@ -2763,10 +2700,6 @@ long f2fs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return f2fs_ioc_flush_device(filp, arg);
 	case F2FS_IOC_GET_FEATURES:
 		return f2fs_ioc_get_features(filp, arg);
-	case F2FS_IOC_GET_PIN_FILE:
-		return f2fs_ioc_get_pin_file(filp, arg);
-	case F2FS_IOC_SET_PIN_FILE:
-		return f2fs_ioc_set_pin_file(filp, arg);
 	case F2FS_IOC_PRECACHE_EXTENTS:
 		return f2fs_ioc_precache_extents(filp, arg);
 	default:
@@ -2856,8 +2789,6 @@ long f2fs_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case F2FS_IOC_MOVE_RANGE:
 	case F2FS_IOC_FLUSH_DEVICE:
 	case F2FS_IOC_GET_FEATURES:
-	case F2FS_IOC_GET_PIN_FILE:
-	case F2FS_IOC_SET_PIN_FILE:
 	case F2FS_IOC_PRECACHE_EXTENTS:
 		break;
 	default:
