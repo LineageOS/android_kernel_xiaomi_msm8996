@@ -102,31 +102,14 @@ __adf_os_spinlock_init(__adf_os_spinlock_t *lock)
     return A_STATUS_OK;
 }
 
+#define __adf_os_raw_spin_lock(_lock) spin_lock(_lock)
+#define __adf_os_raw_spin_unlock(_lock) spin_unlock(_lock)
+#define __adf_os_raw_spin_lock_bh(_lock) spin_lock_bh(_lock)
+#define __adf_os_raw_spin_unlock_bh(_lock) spin_unlock_bh(_lock)
+#define  __adf_os_raw_spin_lock_irqsave(_lock, flag) spin_lock_irqsave(_lock, flag)
+#define __adf_os_raw_spin_unlock_irqrestore(_lock, flag) spin_unlock_irqrestore(_lock, flag)
+
 #define __adf_os_spinlock_destroy(lock)
-/**
- * @brief Acquire a Spinlock (SMP) & disable Preemption (Preemptive)
- *
- * @param lock      (Lock object)
- * @param flags     (Current IRQ mask)
- */
-static inline void
-__adf_os_spin_lock(__adf_os_spinlock_t *lock)
-{
-    spin_lock(&lock->spinlock);
-}
-
-/**
- * @brief Unlock the spinlock and enables the Preemption
- *
- * @param lock
- * @param flags
- */
-static inline void
-__adf_os_spin_unlock(__adf_os_spinlock_t *lock)
-{
-    spin_unlock(&lock->spinlock);
-}
-
 /**
  * @brief Acquire a Spinlock (SMP) & disable Preemption (Preemptive)
  *        Disable IRQs
@@ -181,6 +164,45 @@ __adf_os_spin_unlock_bh(__adf_os_spinlock_t *lock)
 	} else
 		spin_unlock(&lock->spinlock);
 }
+
+/**
+ * @brief Acquire a Spinlock (SMP) & disable Preemption (Preemptive)
+ *
+ * @param lock      (Lock object)
+ * @param flags     (Current IRQ mask)
+ */
+#ifdef CONFIG_SMP
+static inline void
+__adf_os_spin_lock(__adf_os_spinlock_t *lock)
+{
+	__adf_os_spin_lock_bh(lock);
+}
+
+static inline void
+__adf_os_spin_unlock(__adf_os_spinlock_t *lock)
+{
+	__adf_os_spin_unlock_bh(lock);
+}
+
+#else
+static inline void
+__adf_os_spin_lock(__adf_os_spinlock_t *lock)
+{
+    spin_lock(&lock->spinlock);
+}
+
+/**
+ * @brief Unlock the spinlock and enables the Preemption
+ *
+ * @param lock
+ * @param flags
+ */
+static inline void
+__adf_os_spin_unlock(__adf_os_spinlock_t *lock)
+{
+    spin_unlock(&lock->spinlock);
+}
+#endif
 
 static inline a_bool_t
 __adf_os_spinlock_irq_exec(adf_os_handle_t  hdl,

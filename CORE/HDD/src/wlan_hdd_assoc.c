@@ -1298,13 +1298,13 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
 #ifdef FEATURE_BUS_BANDWIDTH
         /* start timer in sta/p2p_cli */
-        spin_lock_bh(&pHddCtx->bus_bw_lock);
+        adf_os_spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
         tlshim_get_intra_bss_fwd_pkts_count(pAdapter->sessionId,
              &pAdapter->prev_fwd_tx_packets, &pAdapter->prev_fwd_rx_packets);
         pAdapter->prev_tx_bytes = pAdapter->stats.tx_bytes;
-        spin_unlock_bh(&pHddCtx->bus_bw_lock);
+        adf_os_spin_unlock_bh(&pHddCtx->bus_bw_lock);
         hdd_start_bus_bw_compute_timer(pAdapter);
 #endif
         if (pHddCtx->cfg_ini->mon_on_sta_enable &&
@@ -1363,13 +1363,13 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
 #ifdef FEATURE_BUS_BANDWIDTH
         /* stop timer in sta/p2p_cli */
-        spin_lock_bh(&pHddCtx->bus_bw_lock);
+        adf_os_spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = 0;
         pAdapter->prev_rx_packets = 0;
         pAdapter->prev_fwd_tx_packets = 0;
         pAdapter->prev_fwd_rx_packets = 0;
         pAdapter->prev_tx_bytes = 0;
-        spin_unlock_bh(&pHddCtx->bus_bw_lock);
+        adf_os_spin_unlock_bh(&pHddCtx->bus_bw_lock);
         hdd_stop_bus_bw_compute_timer(pAdapter);
 #endif
         if (pHddCtx->cfg_ini->mon_on_sta_enable &&

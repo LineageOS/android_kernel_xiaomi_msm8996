@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2016, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -86,7 +86,7 @@ __inline VOS_STATUS vos_mq_init(pVosMqType pMq)
   /*
   ** Now initialize the lock
   */
-  spin_lock_init(&pMq->mqLock);
+  adf_os_spinlock_init(&pMq->mqLock);
 
   /*
   ** Now initialize the List data structure
@@ -143,8 +143,6 @@ __inline void vos_mq_deinit(pVosMqType pMq)
 ---------------------------------------------------------------------------*/
 __inline void vos_mq_put(pVosMqType pMq, pVosMsgWrapper pMsgWrapper)
 {
-  unsigned long flags;
-
   /*
   ** Some quick sanity check
   */
@@ -154,11 +152,11 @@ __inline void vos_mq_put(pVosMqType pMq, pVosMsgWrapper pMsgWrapper)
      return ;
   }
 
-  spin_lock_irqsave(&pMq->mqLock, flags);
+  adf_os_spin_lock_irqsave(&pMq->mqLock);
 
   list_add_tail(&pMsgWrapper->msgNode, &pMq->mqList);
 
-  spin_unlock_irqrestore(&pMq->mqLock, flags);
+  adf_os_spin_unlock_irqrestore(&pMq->mqLock);
 
 } /* vos_mq_put() */
 
@@ -173,17 +171,15 @@ __inline void vos_mq_put(pVosMqType pMq, pVosMsgWrapper pMsgWrapper)
  */
 void vos_mq_put_front(pVosMqType mq, pVosMsgWrapper msg_wrapper)
 {
-	unsigned long flags;
-
 	if ((mq == NULL) || (msg_wrapper == NULL)) {
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
 			"%s: NULL pointer passed", __func__);
 		return;
 	}
 
-	spin_lock_irqsave(&mq->mqLock, flags);
+	adf_os_spin_lock_irqsave(&mq->mqLock);
 	list_add(&msg_wrapper->msgNode, &mq->mqList);
-	spin_unlock_irqrestore(&mq->mqLock, flags);
+	adf_os_spin_unlock_irqrestore(&mq->mqLock);
 }
 
 /*---------------------------------------------------------------------------
@@ -208,7 +204,6 @@ __inline pVosMsgWrapper vos_mq_get(pVosMqType pMq)
   ** Some quick sanity check
   */
   struct list_head * listptr;
-  unsigned long flags;
 
   if (pMq == NULL) {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -216,7 +211,7 @@ __inline pVosMsgWrapper vos_mq_get(pVosMqType pMq)
      return NULL;
   }
 
-  spin_lock_irqsave(&pMq->mqLock, flags);
+  adf_os_spin_lock_irqsave(&pMq->mqLock);
 
   if( list_empty(&pMq->mqList) )
   {
@@ -230,7 +225,7 @@ __inline pVosMsgWrapper vos_mq_get(pVosMqType pMq)
     list_del(pMq->mqList.next);
   }
 
-  spin_unlock_irqrestore(&pMq->mqLock, flags);
+  adf_os_spin_unlock_irqrestore(&pMq->mqLock);
 
   return pMsgWrapper;
 
@@ -253,7 +248,6 @@ __inline pVosMsgWrapper vos_mq_get(pVosMqType pMq)
 __inline v_BOOL_t vos_is_mq_empty(pVosMqType pMq)
 {
   v_BOOL_t  state = VOS_FALSE;
-  unsigned long flags;
 
   /*
   ** Some quick sanity check
@@ -265,9 +259,9 @@ __inline v_BOOL_t vos_is_mq_empty(pVosMqType pMq)
      return VOS_STATUS_E_FAILURE;
   }
 
-  spin_lock_irqsave(&pMq->mqLock, flags);
+  adf_os_spin_lock_irqsave(&pMq->mqLock);
   state = list_empty(&pMq->mqList)?VOS_TRUE:VOS_FALSE;
-  spin_unlock_irqrestore(&pMq->mqLock, flags);
+  adf_os_spin_unlock_irqrestore(&pMq->mqLock);
 
   return state;
 

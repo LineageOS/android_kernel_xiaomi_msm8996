@@ -345,12 +345,12 @@ enum hdd_tsf_op_result __hdd_stop_tsf_sync(hdd_adapter_t *adapter)
 
 static inline void hdd_reset_timestamps(hdd_adapter_t *adapter)
 {
-	spin_lock_bh(&adapter->host_target_sync_lock);
+	adf_os_spin_lock_bh(&adapter->host_target_sync_lock);
 	adapter->cur_host_time = 0;
 	adapter->cur_target_time = 0;
 	adapter->last_host_time = 0;
 	adapter->last_target_time = 0;
-	spin_unlock_bh(&adapter->host_target_sync_lock);
+	adf_os_spin_unlock_bh(&adapter->host_target_sync_lock);
 }
 
 /**
@@ -441,7 +441,7 @@ static void hdd_update_timestamp(hdd_adapter_t *adapter,
 		return;
 	}
 
-	spin_lock_bh(&adapter->host_target_sync_lock);
+	adf_os_spin_lock_bh(&adapter->host_target_sync_lock);
 	if (target_time > 0)
 		adapter->cur_target_time = target_time;
 
@@ -494,7 +494,7 @@ static void hdd_update_timestamp(hdd_adapter_t *adapter,
 		interval = 0;
 		break;
 	}
-	spin_unlock_bh(&adapter->host_target_sync_lock);
+	adf_os_spin_unlock_bh(&adapter->host_target_sync_lock);
 
 	if (interval > 0)
 		vos_timer_start(&adapter->host_target_sync_timer, interval);
@@ -570,7 +570,7 @@ static inline int32_t hdd_get_hosttime_from_targettime(
 	 * (the tstamp-pair won't be changed)
 	 */
 	if (in_cap_state)
-		spin_lock_bh(&adapter->host_target_sync_lock);
+		adf_os_spin_lock_bh(&adapter->host_target_sync_lock);
 
 	/* at present, target_time is only 32bit in fact */
 	delta32_target = (int64_t)((target_time & MASK_UINT32) -
@@ -593,7 +593,7 @@ static inline int32_t hdd_get_hosttime_from_targettime(
 			     host_time);
 
 	if (in_cap_state)
-		spin_unlock_bh(&adapter->host_target_sync_lock);
+		adf_os_spin_unlock_bh(&adapter->host_target_sync_lock);
 
 	return ret;
 }
@@ -610,7 +610,7 @@ static inline int32_t hdd_get_targettime_from_hosttime(
 
 	in_cap_state = hdd_tsf_is_in_cap(adapter);
 	if (in_cap_state)
-		spin_lock_bh(&adapter->host_target_sync_lock);
+		adf_os_spin_lock_bh(&adapter->host_target_sync_lock);
 
 	if (host_time < adapter->last_host_time)
 		ret = hdd_uint64_minus(adapter->last_target_time,
@@ -626,7 +626,7 @@ static inline int32_t hdd_get_targettime_from_hosttime(
 				      target_time);
 
 	if (in_cap_state)
-		spin_unlock_bh(&adapter->host_target_sync_lock);
+		adf_os_spin_unlock_bh(&adapter->host_target_sync_lock);
 
 	return ret;
 }
@@ -760,10 +760,10 @@ static void hdd_capture_req_timer_expired_handler(void *arg)
 		return;
 	}
 
-	spin_lock_bh(&adapter->host_target_sync_lock);
+	adf_os_spin_lock_bh(&adapter->host_target_sync_lock);
 	adapter->cur_host_time = 0;
 	adapter->cur_target_time = 0;
-	spin_unlock_bh(&adapter->host_target_sync_lock);
+	adf_os_spin_unlock_bh(&adapter->host_target_sync_lock);
 
 	ret = hdd_reset_tsf_gpio(adapter);
 	if (0 != ret)
@@ -812,7 +812,7 @@ static enum hdd_tsf_op_result hdd_tsf_sync_init(hdd_adapter_t *adapter)
 		return HDD_TSF_OP_SUCC;
 	}
 
-	spin_lock_init(&adapter->host_target_sync_lock);
+	adf_os_spinlock_init(&adapter->host_target_sync_lock);
 
 	hdd_reset_timestamps(adapter);
 

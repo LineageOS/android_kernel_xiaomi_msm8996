@@ -3515,18 +3515,18 @@ bool vos_is_chan_ok_for_dnbs(uint8_t channel)
 	  return false;
 	}
 
-	spin_lock_bh(&pHddCtx->restrict_offchan_lock);
+	adf_os_spin_lock_bh(&pHddCtx->restrict_offchan_lock);
 	if (pHddCtx->restrict_offchan_flag) {
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
 				"%s: flag is set", __func__);
 		wlansap_channel_compare(gpVosContext->pMACContext, channel, &equal);
-		spin_unlock_bh(&pHddCtx->restrict_offchan_lock);
+		adf_os_spin_unlock_bh(&pHddCtx->restrict_offchan_lock);
 		return equal;
 	}
 	else
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
 				"%s: flag is not set", __func__);
-	spin_unlock_bh(&pHddCtx->restrict_offchan_lock);
+	adf_os_spin_unlock_bh(&pHddCtx->restrict_offchan_lock);
 	return true;
 }
 #endif

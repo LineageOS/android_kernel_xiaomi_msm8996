@@ -2325,10 +2325,10 @@ static void wlan_hdd_dsrc_update_radio_chan_stats(
 			 * entry in driver. If possible, driver can post
 			 * the recorders to application.
 			 */
-			spin_lock(&ctx->chan_stats_lock);
+			adf_os_spin_lock(&ctx->chan_stats_lock);
 			ctx->chan_stats_num = 0;
 			vos_mem_zero(dest, 2 * sizeof(*dest));
-			spin_unlock(&ctx->chan_stats_lock);
+			adf_os_spin_unlock(&ctx->chan_stats_lock);
 			hddLog(LOGE, FL("Old Chan Stats Data"));
 			return;
 		}
@@ -2337,15 +2337,15 @@ static void wlan_hdd_dsrc_update_radio_chan_stats(
 	/* Save the first channels statistics event in adapter. */
 	src = resp->chan_stats;
 	if (!ctx->chan_stats_num) {
-		spin_lock(&ctx->chan_stats_lock);
+		adf_os_spin_lock(&ctx->chan_stats_lock);
 		vos_mem_copy(dest, src, resp->num_chans * sizeof(*src));
 		ctx->chan_stats_num = resp->num_chans;
-		spin_unlock(&ctx->chan_stats_lock);
+		adf_os_spin_unlock(&ctx->chan_stats_lock);
 		return;
 	}
 
 	/* Merge new received channel statistics data to previous entry. */
-	spin_lock(&ctx->chan_stats_lock);
+	adf_os_spin_lock(&ctx->chan_stats_lock);
 	for (i = 0; i < resp->num_chans; i++, src++) {
 		struct radio_chan_stats_info *dest_entry = NULL;
 		struct radio_chan_stats_info *empty_entry = NULL;
@@ -2372,7 +2372,7 @@ static void wlan_hdd_dsrc_update_radio_chan_stats(
 			vos_mem_copy(empty_entry, src, sizeof(*src));
 			continue;
 		} else {
-			spin_unlock(&ctx->chan_stats_lock);
+			adf_os_spin_unlock(&ctx->chan_stats_lock);
 			hddLog(LOGE, FL("No entry found."));
 			return;
 		}
@@ -2404,7 +2404,7 @@ static void wlan_hdd_dsrc_update_radio_chan_stats(
 		dest->rx_succ_pkts += src->rx_succ_pkts;
 		dest->rx_fail_pkts += src->rx_fail_pkts;
 	}
-	spin_unlock(&ctx->chan_stats_lock);
+	adf_os_spin_unlock(&ctx->chan_stats_lock);
 
 	return;
 }
@@ -2446,9 +2446,9 @@ static void wlan_hdd_dsrc_radio_chan_stats_event_callback(void *context_ptr,
 	 * 2. Firmware response to the request from Host APP.
 	 * Need check whether current event is response for request.
 	 */
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	if ((ctx->magic != HDD_OCB_MAGIC) || (!ctx->cur_req)) {
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 		return;
 	}
 	req = ctx->cur_req;
@@ -2457,27 +2457,27 @@ static void wlan_hdd_dsrc_radio_chan_stats_event_callback(void *context_ptr,
 		if ((resp->num_chans == 1) &&
 		    (req->chan_freq == chan_stats->chan_freq)) {
 			complete(&ctx->completion_evt);
-			spin_unlock(&hdd_context_lock);
+			adf_os_spin_unlock(&hdd_context_lock);
 			return;
 		}
 		break;
 	case WLAN_DSRC_REQUEST_ALL_RADIO_CHAN_STATS:
 		if (resp->num_chans != ctx->config_chans_num) {
-			spin_unlock(&hdd_context_lock);
+			adf_os_spin_unlock(&hdd_context_lock);
 			return;
 		}
 		/* Check response channel is configured. */
 		for (i = 0; i < resp->num_chans; i++) {
 			if (chan_stats[i].chan_freq !=
 			    ctx->config_chans_freq[i]) {
-				spin_unlock(&hdd_context_lock);
+				adf_os_spin_unlock(&hdd_context_lock);
 				return;
 			}
 		}
 		complete(&ctx->completion_evt);
 		break;
 	}
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	return;
 }
@@ -2510,7 +2510,7 @@ int wlan_hdd_dsrc_config_radio_chan_stats(hdd_adapter_t *adapter,
 	vos_mem_zero(chan_stats, DSRC_MAX_CHAN_STATS_CNT * sizeof(*chan_stats));
 
 	if (enable_chan_stats) {
-		spin_lock_init(&ctx->chan_stats_lock);
+		adf_os_spinlock_init(&ctx->chan_stats_lock);
 		ret = sme_register_radio_chan_stats_cb(
 			((hdd_context_t *)adapter->pHddCtx)->hHal, (void *)ctx,
 			wlan_hdd_dsrc_radio_chan_stats_event_callback);
@@ -2545,18 +2545,18 @@ int wlan_hdd_dsrc_request_radio_chan_stats(hdd_adapter_t *adapter,
 
 	ctx = &adapter->dsrc_chan_stats;
 	init_completion(&ctx->completion_evt);
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	ctx->magic = HDD_OCB_MAGIC;
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 	if (!wait_for_completion_timeout(&ctx->completion_evt,
 		msecs_to_jiffies(WLAN_WAIT_TIME_OCB_CMD))) {
 		hddLog(LOGE, FL("Wait for request completion timedout."));
 		ret = -ETIMEDOUT;
 	}
 
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	ctx->magic = 0;
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 	return ret;
 }
 
