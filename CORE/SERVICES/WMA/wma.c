@@ -21325,8 +21325,8 @@ static void wma_set_max_tx_power(WMA_HANDLE handle,
 	}
 
 	if (wma_handle->interfaces[vdev_id].max_tx_power == tx_pwr_params->power) {
-		ret = 0;
-		goto end;
+		WMA_LOGI("Set MAX TX pwr limit equal to current used %d",
+			wma_handle->interfaces[vdev_id].max_tx_power);
 	}
 	prev_max_power = wma_handle->interfaces[vdev_id].max_tx_power;
 	wma_handle->interfaces[vdev_id].max_tx_power = tx_pwr_params->power;

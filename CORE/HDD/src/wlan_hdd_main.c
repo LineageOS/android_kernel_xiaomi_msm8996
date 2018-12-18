@@ -14713,6 +14713,16 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    adf_os_spin_unlock(&pHddCtx->acs_skip_lock);
 #endif
 
+   if (pHddCtx->cfg_ini->sta_change_cc_via_beacon) {
+       if (pHddCtx->reg.reg_set_timer.state != 0) {
+           vosStatus = vos_timer_deinit(&(pHddCtx->reg.reg_set_timer));
+           if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+               hddLog(VOS_TRACE_LEVEL_FATAL,
+                      "%s: deinit reg set timer failed reason %d",
+                      __func__, vosStatus);
+           pHddCtx->reg.reg_set_timer.userData = NULL;
+       }
+   }
 
    if (pConfig && !pConfig->enablePowersaveOffload)
    {

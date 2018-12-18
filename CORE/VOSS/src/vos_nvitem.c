@@ -53,6 +53,8 @@
 #include "regdomain.h"
 #include "regdomain_common.h"
 #include "vos_cnss.h"
+#include "limSession.h"
+#include "limScanResultUtils.h"
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)) && !defined(WITH_BACKPORTS)
 #define IEEE80211_CHAN_NO_80MHZ		1<<7
@@ -2285,15 +2287,39 @@ static void restore_custom_reg_settings(struct wiphy *wiphy)
 
 static void hdd_debug_cc_timer_expired_handler(void *arg)
 {
-	hdd_context_t *pHddCtx;
+	hdd_context_t *hdd_ctx_ptr = NULL;
+	tpAniSirGlobal mac_ptr = NULL;
+	tpPESession pesession = NULL;
+	uint32_t roam_session_id = 0;
+	uint8_t pe_session_id = 0;
 	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
 		  ("%s ENTER "), __func__);
 
 	if (!arg)
 		return;
-	pHddCtx = (hdd_context_t *)arg;
-	vos_timer_destroy(&(pHddCtx->reg.reg_set_timer));
-	regdmn_set_regval(&pHddCtx->reg);
+	hdd_ctx_ptr = (hdd_context_t *)arg;
+	mac_ptr =  PMAC_STRUCT(hdd_ctx_ptr->hHal);
+	vos_timer_destroy(&(hdd_ctx_ptr->reg.reg_set_timer));
+	regdmn_set_regval(&hdd_ctx_ptr->reg);
+
+	if (vos_get_concurrency_mode() == VOS_STA ||
+	    vos_get_concurrency_mode() == VOS_STA_SAP)
+		for (roam_session_id = 0;
+		     roam_session_id < CSR_ROAM_SESSION_MAX;
+		     roam_session_id++) {
+		if (!CSR_IS_SESSION_VALID(mac_ptr, roam_session_id)) {
+			continue;
+		}
+		if (mac_ptr->roam.roamSession[roam_session_id].connectState ==
+		    eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED) {
+			pesession =
+			    peFindSessionByBssid(mac_ptr,
+						 mac_ptr->roam.roamSession[roam_session_id].connectedProfile.bssid,
+						 &pe_session_id);
+			lim_update_max_txpower_ind(mac_ptr, pesession);
+			return;
+		}
+	}
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -64,6 +64,8 @@ void    limCheckAndAddBssDescription(tpAniSirGlobal, tpSirProbeRespBeacon, tANI_
 void lim_check_and_change_cc(tpAniSirGlobal mac_ptr,
 			     tpSirProbeRespBeacon beacon_ptr,
 			     tpPESession session_ptr);
+void
+lim_update_max_txpower_ind(tpAniSirGlobal mac_ptr, tpPESession session_ptr);
 
 #if defined WLAN_FEATURE_VOWIFI
 void    limCollectBssDescription(tpAniSirGlobal,

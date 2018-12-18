@@ -2351,21 +2351,16 @@ eHalStatus sme_handle_update_pwr_ind(tHalHandle hal_ptr, uint32_t pesession_id)
 	  cfgGetRegulatoryMaxTransmitPower(mac_ptr,
 					   pesession_ptr->currentOperChannel);
 	maxTxPower = VOS_MIN(regMax, mac_ptr->roam.configParam.nTxPowerCap);
-	if (maxTxPower != pesession_ptr->maxTxPower) {
-		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
-			  "updating new maxTx power %d to HAL from old pwr %d",
-			  maxTxPower, pesession_ptr->maxTxPower);
-		if(limSendSetMaxTxPowerReq(mac_ptr,
-					   maxTxPower,
-					   pesession_ptr) == eSIR_SUCCESS)
-			pesession_ptr->maxTxPower = maxTxPower;
-		else {
-			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-				  "Set max txpwr req fail");
-		}
-	} else {
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+		  "updating new maxTx power %d to HAL from old pwr %d",
+		  maxTxPower, pesession_ptr->maxTxPower);
+	if(limSendSetMaxTxPowerReq(mac_ptr,
+				   maxTxPower,
+				   pesession_ptr) == eSIR_SUCCESS)
+		pesession_ptr->maxTxPower = maxTxPower;
+	else {
 		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-			  "no change on current max txpwr %d", maxTxPower);
+			  "Set max txpwr req fail");
 	}
 
 	return eHAL_STATUS_SUCCESS;

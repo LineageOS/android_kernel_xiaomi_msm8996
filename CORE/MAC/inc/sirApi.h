@@ -8633,11 +8633,6 @@ struct sme_change_country_code_ind {
 	uint8_t   country_code[WNI_CFG_COUNTRY_CODE_LEN];
 };
 
-struct update_pwr_timer_data {
-	void* mac_ptr;
-	void* session_ptr;
-};
-
 /**
  * struct sir_set_rx_reorder_timeout_val - rx reorder timeout
  * @rx_timeout_pri: reorder timeout for AC
