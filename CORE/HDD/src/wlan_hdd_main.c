@@ -93,6 +93,7 @@
 #include <linux/ctype.h>
 #include <linux/compat.h>
 #include <linux/pm_qos.h>
+#include <linux/ethtool.h>
 #ifdef MSM_PLATFORM
 #ifdef CONFIG_CNSS
 #include <soc/qcom/subsystem_restart.h>
@@ -10851,6 +10852,10 @@ static v_U16_t hdd_select_queue(struct net_device *dev,
    return hdd_wmm_select_queue(dev, skb);
 }
 
+static const struct ethtool_ops wlan_ethtool_ops = {
+	.get_ts_info = wlan_get_ts_info,
+};
+
 static struct net_device_ops wlan_drv_ops = {
       .ndo_open = hdd_open,
       .ndo_stop = hdd_stop,
@@ -10889,6 +10894,7 @@ void hdd_set_station_ops( struct net_device *pWlanDev )
 		pWlanDev->netdev_ops = &wlan_mon_drv_ops;
 	else
 		pWlanDev->netdev_ops = &wlan_drv_ops;
+	pWlanDev->ethtool_ops = &wlan_ethtool_ops;
 }
 
 void hdd_set_monitor_ops(struct net_device *pwlan_dev)
@@ -13308,7 +13314,6 @@ void hdd_connect_result(struct net_device *dev,
 {
 	hdd_adapter_t *padapter = (hdd_adapter_t *) netdev_priv(dev);
 	struct cfg80211_bss *bss = NULL;
-
 	if (WLAN_STATUS_SUCCESS == status) {
 		struct ieee80211_channel *chan;
 		int freq;
