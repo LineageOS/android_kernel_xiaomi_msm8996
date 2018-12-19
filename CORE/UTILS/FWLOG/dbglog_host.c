@@ -190,6 +190,8 @@ const char *dbglog_get_module_str(A_UINT32 module_id)
         return "NAN20";
     case WLAN_MODULE_QBOOST:
         return "QBOOST";
+    case WLAN_MODULE_HPCS_PULSE:
+        return "HPCS";
     default:
         return "UNKNOWN";
     }
