@@ -2928,11 +2928,11 @@ static int __wlan_hdd_cfg80211_extscan_get_capabilities(struct wiphy *wiphy,
     pReqMsg->sessionId = pAdapter->sessionId;
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Session Id %d"), pReqMsg->sessionId);
 
-    spin_lock(&hdd_context_lock);
+    adf_os_spin_lock(&hdd_context_lock);
     context = &pHddCtx->ext_scan_context;
     context->request_id = pReqMsg->requestId;
     INIT_COMPLETION(context->response_event);
-    spin_unlock(&hdd_context_lock);
+    adf_os_spin_unlock(&hdd_context_lock);
 
 
     status = sme_ExtScanGetCapabilities(pHddCtx->hHal, pReqMsg);
@@ -3075,12 +3075,12 @@ static int __wlan_hdd_cfg80211_extscan_get_cached_results(struct wiphy *wiphy,
 	hddLog(LOG1, FL("Req Id: %u Session Id: %d Flush: %d"),
 		pReqMsg->requestId, pReqMsg->sessionId, pReqMsg->flush);
 
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	context = &pHddCtx->ext_scan_context;
 	context->request_id = pReqMsg->requestId;
 	context->ignore_cached_results = false;
 	INIT_COMPLETION(context->response_event);
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	status = sme_getCachedResults(pHddCtx->hHal, pReqMsg);
 	if (!HAL_STATUS_SUCCESS(status)) {
@@ -3094,13 +3094,13 @@ static int __wlan_hdd_cfg80211_extscan_get_cached_results(struct wiphy *wiphy,
 	if (!rc) {
 		hddLog(LOGE, FL("Target response timed out"));
 		retval = -ETIMEDOUT;
-		spin_lock(&hdd_context_lock);
+		adf_os_spin_lock(&hdd_context_lock);
 		context->ignore_cached_results = true;
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 	} else {
-		spin_lock(&hdd_context_lock);
+		adf_os_spin_lock(&hdd_context_lock);
 		retval = context->response_status;
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 	}
 	return retval;
 
@@ -3287,10 +3287,10 @@ static int __wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
     }
 
     context = &pHddCtx->ext_scan_context;
-    spin_lock(&hdd_context_lock);
+    adf_os_spin_lock(&hdd_context_lock);
     INIT_COMPLETION(context->response_event);
     context->request_id = request_id = pReqMsg->requestId;
-    spin_unlock(&hdd_context_lock);
+    adf_os_spin_unlock(&hdd_context_lock);
 
     status = sme_SetBssHotlist(pHddCtx->hHal, pReqMsg);
     if (!HAL_STATUS_SUCCESS(status)) {
@@ -3306,12 +3306,12 @@ static int __wlan_hdd_cfg80211_extscan_set_bssid_hotlist(struct wiphy *wiphy,
        hddLog(LOGE, FL("sme_SetBssHotlist timed out"));
        retval = -ETIMEDOUT;
     } else {
-       spin_lock(&hdd_context_lock);
+       adf_os_spin_lock(&hdd_context_lock);
        if (context->request_id == request_id)
           retval = context->response_status;
        else
           retval = -EINVAL;
-       spin_unlock(&hdd_context_lock);
+       adf_os_spin_unlock(&hdd_context_lock);
     }
     EXIT();
     return retval;
@@ -3505,10 +3505,10 @@ static int __wlan_hdd_cfg80211_extscan_set_significant_change(
     }
 
     context = &pHddCtx->ext_scan_context;
-    spin_lock(&hdd_context_lock);
+    adf_os_spin_lock(&hdd_context_lock);
     INIT_COMPLETION(context->response_event);
     context->request_id = request_id = pReqMsg->requestId;
-    spin_unlock(&hdd_context_lock);
+    adf_os_spin_unlock(&hdd_context_lock);
 
     status = sme_SetSignificantChange(pHddCtx->hHal, pReqMsg);
     if (!HAL_STATUS_SUCCESS(status)) {
@@ -3524,12 +3524,12 @@ static int __wlan_hdd_cfg80211_extscan_set_significant_change(
        hddLog(LOGE, FL("sme_SetSignificantChange timed out"));
        retval = -ETIMEDOUT;
     } else {
-       spin_lock(&hdd_context_lock);
+       adf_os_spin_lock(&hdd_context_lock);
        if (context->request_id == request_id)
           retval = context->response_status;
        else
           retval = -EINVAL;
-       spin_unlock(&hdd_context_lock);
+       adf_os_spin_unlock(&hdd_context_lock);
     }
     EXIT();
     return retval;
@@ -4372,11 +4372,11 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
 		goto fail;
 
 	context = &pHddCtx->ext_scan_context;
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	INIT_COMPLETION(context->response_event);
 	context->request_id = request_id = pReqMsg->requestId;
 	context->buckets_scanned = 0;
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	status = sme_ExtScanStart(pHddCtx->hHal, pReqMsg);
 	if (!HAL_STATUS_SUCCESS(status)) {
@@ -4397,12 +4397,12 @@ static int __wlan_hdd_cfg80211_extscan_start(struct wiphy *wiphy,
 		hddLog(LOGE, FL("sme_ExtScanStart timed out"));
 		retval = -ETIMEDOUT;
 	} else {
-		spin_lock(&hdd_context_lock);
+		adf_os_spin_lock(&hdd_context_lock);
 		if (context->request_id == request_id)
 			retval = context->response_status;
 		else
 			retval = -EINVAL;
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 	}
 	EXIT();
 	return retval;
@@ -4519,10 +4519,10 @@ static int __wlan_hdd_cfg80211_extscan_stop(struct wiphy *wiphy,
 		pReqMsg->requestId, pReqMsg->sessionId);
 
 	context = &pHddCtx->ext_scan_context;
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	INIT_COMPLETION(context->response_event);
 	context->request_id = request_id = pReqMsg->requestId;
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	status = sme_ExtScanStop(pHddCtx->hHal, pReqMsg);
 	if (!HAL_STATUS_SUCCESS(status)) {
@@ -4539,12 +4539,12 @@ static int __wlan_hdd_cfg80211_extscan_stop(struct wiphy *wiphy,
 		hddLog(LOGE, FL("sme_ExtScanStop timed out"));
 		retval = -ETIMEDOUT;
 	} else {
-		spin_lock(&hdd_context_lock);
+		adf_os_spin_lock(&hdd_context_lock);
 		if (context->request_id == request_id)
 			retval = context->response_status;
 		else
 			retval = -EINVAL;
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 	}
 	EXIT();
 	return retval;
@@ -4641,10 +4641,10 @@ static int __wlan_hdd_cfg80211_extscan_reset_bssid_hotlist(struct wiphy *wiphy,
                  pReqMsg->requestId, pReqMsg->sessionId);
 
     context = &pHddCtx->ext_scan_context;
-    spin_lock(&hdd_context_lock);
+    adf_os_spin_lock(&hdd_context_lock);
     INIT_COMPLETION(context->response_event);
     context->request_id = request_id = pReqMsg->requestId;
-    spin_unlock(&hdd_context_lock);
+    adf_os_spin_unlock(&hdd_context_lock);
 
     status = sme_ResetBssHotlist(pHddCtx->hHal, pReqMsg);
     if (!HAL_STATUS_SUCCESS(status)) {
@@ -4659,12 +4659,12 @@ static int __wlan_hdd_cfg80211_extscan_reset_bssid_hotlist(struct wiphy *wiphy,
        hddLog(LOGE, FL("sme_ResetBssHotlist timed out"));
        retval = -ETIMEDOUT;
     } else {
-       spin_lock(&hdd_context_lock);
+       adf_os_spin_lock(&hdd_context_lock);
        if (context->request_id == request_id)
           retval = context->response_status;
        else
           retval = -EINVAL;
-       spin_unlock(&hdd_context_lock);
+       adf_os_spin_unlock(&hdd_context_lock);
     }
     EXIT();
     return retval;
@@ -4756,10 +4756,10 @@ static int __wlan_hdd_cfg80211_extscan_reset_significant_change(
            pReqMsg->requestId, pReqMsg->sessionId);
 
     context = &pHddCtx->ext_scan_context;
-    spin_lock(&hdd_context_lock);
+    adf_os_spin_lock(&hdd_context_lock);
     INIT_COMPLETION(context->response_event);
     context->request_id = request_id = pReqMsg->requestId;
-    spin_unlock(&hdd_context_lock);
+    adf_os_spin_unlock(&hdd_context_lock);
 
     status = sme_ResetSignificantChange(pHddCtx->hHal, pReqMsg);
     if (!HAL_STATUS_SUCCESS(status)) {
@@ -4775,12 +4775,12 @@ static int __wlan_hdd_cfg80211_extscan_reset_significant_change(
        hddLog(LOGE, FL("sme_ResetSignificantChange timed out"));
        retval = -ETIMEDOUT;
     } else {
-       spin_lock(&hdd_context_lock);
+       adf_os_spin_lock(&hdd_context_lock);
        if (context->request_id == request_id)
           retval = context->response_status;
        else
           retval = -EINVAL;
-       spin_unlock(&hdd_context_lock);
+       adf_os_spin_unlock(&hdd_context_lock);
     }
     EXIT();
     return retval;
@@ -6354,19 +6354,19 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx, int indType,
                  linkLayerStatsResults->num_radio,
                  linkLayerStatsResults->results);
 
-            spin_lock(&hdd_context_lock);
+            adf_os_spin_lock(&hdd_context_lock);
             context = &pHddCtx->ll_stats_context;
             /* validate response received from target */
             if ((context->request_id != linkLayerStatsResults->rspId) ||
                 !(context->request_bitmap & linkLayerStatsResults->paramId)) {
-                 spin_unlock(&hdd_context_lock);
+                 adf_os_spin_unlock(&hdd_context_lock);
                  hddLog(LOGE,
                      FL("Error : Request id %d response id %d request bitmap 0x%x response bitmap 0x%x"),
                      context->request_id, linkLayerStatsResults->rspId,
                      context->request_bitmap, linkLayerStatsResults->paramId);
                  return;
             }
-            spin_unlock(&hdd_context_lock);
+            adf_os_spin_unlock(&hdd_context_lock);
 
             if (linkLayerStatsResults->paramId & WMI_LINK_STATS_RADIO )
             {
@@ -6376,10 +6376,10 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx, int indType,
                                    linkLayerStatsResults->results,
                                    linkLayerStatsResults->num_radio);
 
-                spin_lock(&hdd_context_lock);
+                adf_os_spin_lock(&hdd_context_lock);
                 if (!linkLayerStatsResults->moreResultToFollow)
                      context->request_bitmap &= ~(WMI_LINK_STATS_RADIO);
-                spin_unlock(&hdd_context_lock);
+                adf_os_spin_unlock(&hdd_context_lock);
 
             }
             else if (linkLayerStatsResults->paramId & WMI_LINK_STATS_IFACE )
@@ -6389,7 +6389,7 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx, int indType,
                                    linkLayerStatsResults->results,
                                    linkLayerStatsResults->num_peers);
 
-                spin_lock(&hdd_context_lock);
+                adf_os_spin_lock(&hdd_context_lock);
                 /* Firmware doesn't send peerstats event if no peers are
                  * connected. HDD should not wait for any peerstats in this case
                  * and return the status to middlewre after receiving iface
@@ -6398,7 +6398,7 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx, int indType,
                 if (!linkLayerStatsResults->num_peers)
                      context->request_bitmap &= ~(WMI_LINK_STATS_ALL_PEER);
                 context->request_bitmap &= ~(WMI_LINK_STATS_IFACE);
-                spin_unlock(&hdd_context_lock);
+                adf_os_spin_unlock(&hdd_context_lock);
 
             }
             else if (linkLayerStatsResults->paramId & WMI_LINK_STATS_ALL_PEER )
@@ -6408,10 +6408,10 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx, int indType,
                                    (tpSirWifiPeerStat)
                                    linkLayerStatsResults->results);
 
-                spin_lock(&hdd_context_lock);
+                adf_os_spin_lock(&hdd_context_lock);
                 if (!linkLayerStatsResults->moreResultToFollow)
                      context->request_bitmap &= ~(WMI_LINK_STATS_ALL_PEER);
-                spin_unlock(&hdd_context_lock);
+                adf_os_spin_unlock(&hdd_context_lock);
 
             }
             else
@@ -6420,11 +6420,11 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx, int indType,
                         FL("INVALID LL_STATS_NOTIFY RESPONSE ***********"));
             }
 
-            spin_lock(&hdd_context_lock);
+            adf_os_spin_lock(&hdd_context_lock);
             /* complete response event if all requests bitmaps are cleared */
             if (0 == context->request_bitmap)
                 complete(&context->response_event);
-            spin_unlock(&hdd_context_lock);
+            adf_os_spin_unlock(&hdd_context_lock);
 
             break;
         }
@@ -7763,12 +7763,12 @@ static int __wlan_hdd_cfg80211_ll_stats_get(struct wiphy *wiphy,
 
     LinkLayerStatsGetReq.staId = pAdapter->sessionId;
 
-    spin_lock(&hdd_context_lock);
+    adf_os_spin_lock(&hdd_context_lock);
     context = &pHddCtx->ll_stats_context;
     context->request_id = LinkLayerStatsGetReq.reqId;
     context->request_bitmap = LinkLayerStatsGetReq.paramIdMask;
     INIT_COMPLETION(context->response_event);
-    spin_unlock(&hdd_context_lock);
+    adf_os_spin_unlock(&hdd_context_lock);
 
     if (eHAL_STATUS_SUCCESS != sme_LLStatsGetReq(pHddCtx->hHal,
                                                 &LinkLayerStatsGetReq))
@@ -9854,13 +9854,13 @@ static int __wlan_hdd_cfg80211_do_acs(struct wiphy *wiphy,
 	}
 
 #ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
-	spin_lock_bh(&hdd_ctx->restrict_offchan_lock);
+	adf_os_spin_lock_bh(&hdd_ctx->restrict_offchan_lock);
 	if(hdd_ctx->restrict_offchan_flag) {
 		hddLog(LOGE, FL("Channel switch is disabled, reject ACS"));
-		spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
+		adf_os_spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
 		return -EPERM;
 	}
-	spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
+	adf_os_spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
 #endif
 	/* ***Note*** Donot set SME config related to ACS operation here because
 	 * ACS operation is not synchronouse and ACS for Second AP may come when
@@ -10514,9 +10514,9 @@ static int wlan_hdd_handle_restrict_offchan_config(hdd_adapter_t *adapter,
 		int chan;
 		adapter->restrict_offchannel_cnt++;
 		if (adapter->restrict_offchannel_cnt == 1) {
-			spin_lock_bh(&hdd_ctx->restrict_offchan_lock);
+			adf_os_spin_lock_bh(&hdd_ctx->restrict_offchan_lock);
 			hdd_ctx->restrict_offchan_flag = true;
-			spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
+			adf_os_spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
 			chan = hdd_get_operating_channel(hdd_ctx, dev_mode);
 			hddLog(LOGE, FL("chan is %d"), chan);
 			if (!chan ||
@@ -10529,9 +10529,9 @@ static int wlan_hdd_handle_restrict_offchan_config(hdd_adapter_t *adapter,
 			(adapter->restrict_offchannel_cnt > 0)) {
 		adapter->restrict_offchannel_cnt--;
 		if (adapter->restrict_offchannel_cnt == 0) {
-			spin_lock_bh(&hdd_ctx->restrict_offchan_lock);
+			adf_os_spin_lock_bh(&hdd_ctx->restrict_offchan_lock);
 			hdd_ctx->restrict_offchan_flag = false;
-			spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
+			adf_os_spin_unlock_bh(&hdd_ctx->restrict_offchan_lock);
 			if (wlan_hdd_send_avoid_freq_for_dnbs(hdd_ctx, 0)) {
 				hddLog(LOGE, FL("unable to clear avoid_freq"));
 				ret_val = -EINVAL;
@@ -12712,12 +12712,12 @@ void hdd_get_bpf_offload_cb(void *hdd_context,
 		hddLog(LOGE, FL("Data is null"));
 		return;
 	}
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 
 	context = &bpf_context;
 	/* The caller presumably timed out so there is nothing we can do */
 	if (context->magic != BPF_CONTEXT_MAGIC) {
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 		return;
 	}
 
@@ -12728,7 +12728,7 @@ void hdd_get_bpf_offload_cb(void *hdd_context,
 	context->capability_response = *data;
 	complete(&context->completion);
 
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	return;
 }
@@ -12794,11 +12794,11 @@ static int hdd_get_bpf_offload(hdd_context_t *hdd_ctx)
 
 	ENTER();
 
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	context = &bpf_context;
 	context->magic = BPF_CONTEXT_MAGIC;
 	INIT_COMPLETION(context->completion);
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	hstatus = sme_get_bpf_offload_capabilities(hdd_ctx->hHal);
 	if (!HAL_STATUS_SUCCESS(hstatus)) {
@@ -12810,9 +12810,9 @@ static int hdd_get_bpf_offload(hdd_context_t *hdd_ctx)
 			msecs_to_jiffies(WLAN_WAIT_TIME_BPF));
 	if (!rc) {
 		hddLog(LOGE, FL("Target response timed out"));
-		spin_lock(&hdd_context_lock);
+		adf_os_spin_lock(&hdd_context_lock);
 		context->magic = 0;
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 
 		return -ETIMEDOUT;
 	}
@@ -15279,11 +15279,11 @@ static int __wlan_hdd_cfg80211_get_chain_rssi(struct wiphy *wiphy,
 	memcpy(&req_msg.peer_macaddr,
 		nla_data(tb[QCA_WLAN_VENDOR_ATTR_MAC_ADDR]), mac_len);
 
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	context = &hdd_ctx->chain_rssi_context;
 	INIT_COMPLETION(context->response_event);
 	context->ignore_result = false;
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	status = sme_get_chain_rssi(hdd_ctx->hHal, &req_msg);
 	if (!HAL_STATUS_SUCCESS(status)) {
@@ -15296,9 +15296,9 @@ static int __wlan_hdd_cfg80211_get_chain_rssi(struct wiphy *wiphy,
 			msecs_to_jiffies(WLAN_WAIT_TIME_CHAIN_RSSI));
 	if (!rc) {
 		hddLog(LOGE, FL("Target response timed out"));
-		spin_lock(&hdd_context_lock);
+		adf_os_spin_lock(&hdd_context_lock);
 		context->ignore_result = true;
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 		return -ETIMEDOUT;
 	}
 
@@ -22264,11 +22264,11 @@ static bool wlan_hdd_sap_skip_scan_check(hdd_context_t *hdd_ctx,
 		hdd_ctx->skip_acs_scan_status);
 	if (hdd_ctx->skip_acs_scan_status != eSAP_SKIP_ACS_SCAN)
 		return false;
-	spin_lock(&hdd_ctx->acs_skip_lock);
+	adf_os_spin_lock(&hdd_ctx->acs_skip_lock);
 	if (hdd_ctx->last_acs_channel_list == NULL ||
 	   hdd_ctx->num_of_channels == 0 ||
 	   request->n_channels == 0) {
-		spin_unlock(&hdd_ctx->acs_skip_lock);
+		adf_os_spin_unlock(&hdd_ctx->acs_skip_lock);
 		return false;
 	}
 	skip = true;
@@ -22288,7 +22288,7 @@ static bool wlan_hdd_sap_skip_scan_check(hdd_context_t *hdd_ctx,
 			break;
 		}
 	}
-	spin_unlock(&hdd_ctx->acs_skip_lock);
+	adf_os_spin_unlock(&hdd_ctx->acs_skip_lock);
 	return skip;
 }
 #else
@@ -28386,16 +28386,16 @@ void hdd_cfg80211_sched_scan_done_callback(void *callbackContext,
         return ;
     }
 
-    spin_lock(&pHddCtx->schedScan_lock);
+    adf_os_spin_lock(&pHddCtx->schedScan_lock);
     if (TRUE == pHddCtx->isWiphySuspended)
     {
         pHddCtx->isSchedScanUpdatePending = TRUE;
-        spin_unlock(&pHddCtx->schedScan_lock);
+        adf_os_spin_unlock(&pHddCtx->schedScan_lock);
         hddLog(VOS_TRACE_LEVEL_INFO,
                "%s: Update cfg80211 scan database after it resume", __func__);
         return ;
     }
-    spin_unlock(&pHddCtx->schedScan_lock);
+    adf_os_spin_unlock(&pHddCtx->schedScan_lock);
 
     ret = wlan_hdd_cfg80211_update_bss(pHddCtx->wiphy, pAdapter);
 
@@ -30949,16 +30949,16 @@ int __wlan_hdd_cfg80211_resume_wlan(struct wiphy *wiphy, bool thermal)
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD, TRACE_CODE_HDD_CFG80211_RESUME_WLAN,
                           NO_SESSION, pHddCtx->isWiphySuspended));
-    spin_lock(&pHddCtx->schedScan_lock);
+    adf_os_spin_lock(&pHddCtx->schedScan_lock);
     pHddCtx->isWiphySuspended = FALSE;
     if (TRUE != pHddCtx->isSchedScanUpdatePending) {
-        spin_unlock(&pHddCtx->schedScan_lock);
+        adf_os_spin_unlock(&pHddCtx->schedScan_lock);
         hddLog(LOG1, FL("Return resume is not due to PNO indication"));
         return 0;
     }
     /* Reset flag to avoid updating cfg80211 data old results again */
     pHddCtx->isSchedScanUpdatePending = FALSE;
-    spin_unlock(&pHddCtx->schedScan_lock);
+    adf_os_spin_unlock(&pHddCtx->schedScan_lock);
 
     status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
 
@@ -31427,12 +31427,12 @@ wlan_hdd_cfg80211_extscan_get_capabilities_rsp(void *ctx,
 		hddLog(LOGE, FL("data is null"));
 		return;
 	}
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 
 	context = &hdd_ctx->ext_scan_context;
 	/* validate response received from target*/
 	if (context->request_id != data->requestId) {
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 		hddLog(LOGE,
 			FL("Target response id did not match: request_id %d resposne_id %d"),
 			context->request_id, data->requestId);
@@ -31442,7 +31442,7 @@ wlan_hdd_cfg80211_extscan_get_capabilities_rsp(void *ctx,
 		complete(&context->response_event);
 	}
 
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	return;
 }
@@ -31571,10 +31571,10 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
 		hddLog(VOS_TRACE_LEVEL_ERROR, FL("data is null"));
 		return;
 	}
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	context = &pHddCtx->ext_scan_context;
 	ignore_cached_results = context->ignore_cached_results;
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	if (ignore_cached_results) {
 		hddLog(LOGE,
@@ -31755,10 +31755,10 @@ wlan_hdd_cfg80211_extscan_cached_results_ind(void *ctx,
 	cfg80211_vendor_cmd_reply(skb);
 
 	if (!data->more_data) {
-		spin_lock(&hdd_context_lock);
+		adf_os_spin_lock(&hdd_context_lock);
 		context->response_status = 0;
 		complete(&context->response_event);
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 	}
 	return;
 
@@ -31766,9 +31766,9 @@ fail:
 	if (skb)
 		kfree_skb(skb);
 
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	context->response_status = -EINVAL;
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 	return;
 }
 
@@ -31952,12 +31952,12 @@ wlan_hdd_cfg80211_extscan_generic_rsp
 	       response->request_id, response->status);
 
 	context = &hdd_ctx->ext_scan_context;
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	if (context->request_id == response->request_id) {
 		context->response_status = response->status ? -EINVAL : 0;
 		complete(&context->response_event);
 	}
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	return;
 }
@@ -32215,16 +32215,16 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 		goto nla_put_failure;
 	}
 
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	context = &pHddCtx->ext_scan_context;
 	if (nla_put_u32(skb,
 		QCA_WLAN_VENDOR_ATTR_EXTSCAN_RESULTS_BUCKETS_SCANNED,
 		context->buckets_scanned)) {
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 		hddLog(LOGE, FL("Failed to include buckets_scanned"));
 		goto nla_put_failure;
 	}
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	cfg80211_vendor_event(skb, flags);
 	return;
@@ -32444,19 +32444,19 @@ wlan_hdd_cfg80211_extscan_scan_progress_event(void *ctx,
 		data->requestId, data->scanEventType, data->status,
 		data->buckets_scanned);
 
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	context = &pHddCtx->ext_scan_context;
 	if (data->scanEventType == WIFI_EXTSCAN_CYCLE_COMPLETED_EVENT) {
 		context->buckets_scanned = 0;
 		data->scanEventType = WIFI_EXTSCAN_RESULTS_AVAILABLE;
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 	} else if (data->scanEventType == WIFI_EXTSCAN_CYCLE_STARTED_EVENT) {
 		context->buckets_scanned = data->buckets_scanned;
 		/* No need to report to user space */
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 		return;
 	} else {
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 	}
 
 	skb = cfg80211_vendor_event_alloc(pHddCtx->wiphy,
@@ -32721,20 +32721,20 @@ void wlan_hdd_cfg80211_chainrssi_callback(void *ctx, void *pmsg)
 	if (wlan_hdd_validate_context(hdd_ctx))
 		return;
 
-	spin_lock(&hdd_context_lock);
+	adf_os_spin_lock(&hdd_context_lock);
 	context = &hdd_ctx->chain_rssi_context;
 	ignore_result = context->ignore_result;
 
 	if (ignore_result) {
 		hddLog(LOGE, FL("Ignore the result received after timeout"));
-		spin_unlock(&hdd_context_lock);
+		adf_os_spin_unlock(&hdd_context_lock);
 		return;
 	}
 
 	memcpy(&context->result, data, sizeof(*data));
 
 	complete(&context->response_event);
-	spin_unlock(&hdd_context_lock);
+	adf_os_spin_unlock(&hdd_context_lock);
 
 	return;
 }

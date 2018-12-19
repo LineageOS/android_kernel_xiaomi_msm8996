@@ -159,7 +159,7 @@ ath_hif_sdio_probe(void *context, void *hif_handle)
 
     sc->aps_osdev.device = os_dev_info.pOSDevice;
     sc->aps_osdev.bc.bc_bustype = HAL_BUS_TYPE_SDIO;
-    spin_lock_init(&sc->target_lock);
+    adf_os_spinlock_init(&sc->target_lock);
 
     {
         /*

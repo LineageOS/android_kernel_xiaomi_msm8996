@@ -126,6 +126,14 @@ adf_os_spinlock_destroy(adf_os_spinlock_t *lock)
     __adf_os_spinlock_destroy(lock);
 }
 
+#define adf_os_raw_spin_lock(_lock) __adf_os_raw_spin_lock(_lock)
+#define adf_os_raw_spin_unlock(_lock) __adf_os_raw_spin_unlock(_lock)
+#define adf_os_raw_spin_lock_bh(_lock) __adf_os_raw_spin_lock_bh(_lock)
+#define adf_os_raw_spin_unlock_bh(_lock) __adf_os_raw_spin_unlock_bh(_lock)
+#define adf_os_raw_spin_lock_irqsave( _lock, flag) __adf_os_raw_spin_lock_irqsave(_lock, flag)
+#define adf_os_raw_spin_unlock_irqrestore( _lock, flag) \
+	__adf_os_raw_spin_unlock_irqrestore(_lock, flag)
+
 #define adf_os_spin_lock( _lock) __adf_os_spin_lock(_lock)
 #define adf_os_spin_unlock( _lock ) __adf_os_spin_unlock(_lock)
 #define adf_os_spin_lock_irqsave( _lock) __adf_os_spin_lock_irqsave(_lock)

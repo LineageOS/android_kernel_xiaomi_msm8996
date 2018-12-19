@@ -343,7 +343,7 @@ struct linkspeedContext
    unsigned int magic;
 };
 
-extern spinlock_t hdd_context_lock;
+extern adf_os_spinlock_t hdd_context_lock;
 
 #define STATS_CONTEXT_MAGIC 0x53544154   //STAT
 #define PEER_INFO_CONTEXT_MAGIC  0x52535349   /* PEER_INFO */
@@ -1301,7 +1301,7 @@ struct hdd_adapter_s
  */
     /** Multiple station supports */
    /** Per-station structure */
-   spinlock_t staInfo_lock; //To protect access to station Info
+   adf_os_spinlock_t staInfo_lock; //To protect access to station Info
    hdd_station_info_t aStaInfo[WLAN_MAX_STA_COUNT];
    //v_U8_t uNumActiveStation;
 
@@ -1335,7 +1335,7 @@ struct hdd_adapter_s
    vos_timer_t host_capture_req_timer;
 #ifdef WLAN_FEATURE_TSF_PLUS
    /* spin lock for read/write timestamps */
-   spinlock_t host_target_sync_lock;
+   adf_os_spinlock_t host_target_sync_lock;
    vos_timer_t host_target_sync_timer;
    uint64_t cur_host_time;
    uint64_t last_host_time;
@@ -1431,7 +1431,7 @@ struct hdd_adapter_s
 
     /* BITMAP indicating pause reason */
     uint32_t pause_map;
-    spinlock_t pause_map_lock;
+    adf_os_spinlock_t pause_map_lock;
 
     adf_os_time_t start_time;
     adf_os_time_t last_time;
@@ -1444,7 +1444,7 @@ struct hdd_adapter_s
     struct hdd_netif_queue_stats queue_oper_stats[WLAN_REASON_TYPE_MAX];
 
     /* random address management for management action frames */
-    spinlock_t random_mac_lock;
+    adf_os_spinlock_t random_mac_lock;
     struct action_frame_random_mac random_mac[MAX_RANDOM_MAC_ADDRS];
     /*
      * Store the restrict_offchannel count
@@ -1813,7 +1813,7 @@ struct hdd_context_s
 #ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
    bool system_suspended;
    volatile int thermal_suspend_state;
-   spinlock_t thermal_suspend_lock;
+   adf_os_spinlock_t thermal_suspend_lock;
    struct workqueue_struct *thermal_suspend_wq;
    struct delayed_work thermal_suspend_work;
 #endif
@@ -1834,7 +1834,7 @@ struct hdd_context_s
    v_BOOL_t suspended;
    bool prevent_suspend;
 
-   spinlock_t filter_lock;
+   adf_os_spinlock_t filter_lock;
 
    /* Lock to avoid race condition during start/stop bss */
    struct mutex sap_lock;
@@ -1947,7 +1947,7 @@ struct hdd_context_s
     /* Use below lock to protect access to isSchedScanUpdatePending
      * since it will be accessed in two different contexts.
      */
-    spinlock_t schedScan_lock;
+    adf_os_spinlock_t schedScan_lock;
 
     // Flag keeps track of wiphy suspend/resume
     v_BOOL_t isWiphySuspended;
@@ -1959,7 +1959,7 @@ struct hdd_context_s
     /* DDR bus bandwidth compute timer */
     vos_timer_t    bus_bw_timer;
     int            cur_vote_level;
-    spinlock_t     bus_bw_lock;
+    adf_os_spinlock_t     bus_bw_lock;
     int            cur_rx_level;
     uint64_t       prev_rx;
     int            cur_tx_level;
@@ -2006,8 +2006,8 @@ struct hdd_context_s
     bool is_ch_avoid_in_progress;
 
     bool is_sta_connection_pending;
-    spinlock_t sap_update_info_lock;
-    spinlock_t sta_update_info_lock;
+    adf_os_spinlock_t sap_update_info_lock;
+    adf_os_spinlock_t sta_update_info_lock;
 
     v_U8_t dev_dfs_cac_status;
 
@@ -2021,7 +2021,7 @@ struct hdd_context_s
     v_U8_t skip_acs_scan_status;
     uint8_t *last_acs_channel_list;
     uint8_t num_of_channels;
-    spinlock_t acs_skip_lock;
+    adf_os_spinlock_t acs_skip_lock;
 #endif
 
     vos_wake_lock_t sap_dfs_wakelock;
@@ -2052,7 +2052,7 @@ struct hdd_context_s
      * radar found indication and application triggered channel
      * switch
      */
-    spinlock_t dfs_lock;
+    adf_os_spinlock_t dfs_lock;
 
 #ifdef FEATURE_WLAN_EXTSCAN
     struct hdd_ext_scan_context ext_scan_context;
@@ -2149,7 +2149,7 @@ struct hdd_context_s
     /* Lock to control access to dnbs avoid freq list */
     struct mutex avoid_freq_lock;
 #endif
-    spinlock_t restrict_offchan_lock;
+    adf_os_spinlock_t restrict_offchan_lock;
     bool  restrict_offchan_flag;
 
 };

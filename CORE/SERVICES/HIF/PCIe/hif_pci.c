@@ -91,7 +91,7 @@ ATH_DEBUG_INSTANTIATE_MODULE_VAR(hif,
 
 
 #ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
-spinlock_t pcie_access_log_lock;
+adf_os_spinlock_t pcie_access_log_lock;
 unsigned int pcie_access_log_seqnum = 0;
 HIF_ACCESS_LOG pcie_access_log[PCIE_ACCESS_LOG_NUM];
 static void HIFTargetDumpAccessLog(void);
@@ -255,14 +255,14 @@ WAR_PCI_WRITE32(char *addr, u32 offset, u32 value)
     if (hif_pci_war1) {
         unsigned long irq_flags;
 
-        spin_lock_irqsave(&pciwar_lock, irq_flags);
+        adf_os_raw_spin_lock_irqsave(&pciwar_lock, irq_flags);
 
         (void)ioread32((void __iomem *)(addr+offset+4)); /* 3rd read prior to write */
         (void)ioread32((void __iomem *)(addr+offset+4)); /* 2nd read prior to write */
         (void)ioread32((void __iomem *)(addr+offset+4)); /* 1st read prior to write */
         iowrite32((u32)(value), (void __iomem *)(addr+offset));
 
-        spin_unlock_irqrestore(&pciwar_lock, irq_flags);
+        adf_os_raw_spin_unlock_irqrestore(&pciwar_lock, irq_flags);
     } else {
         iowrite32((u32)(value), (void __iomem *)(addr+offset));
     }
@@ -619,7 +619,7 @@ HIFPostInit(HIF_DEVICE *hif_device, void *unused, MSG_BASED_HIF_CALLBACKS *callb
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+%s\n",__FUNCTION__));
 #ifdef CONFIG_ATH_PCIE_ACCESS_DEBUG
-    spin_lock_init(&pcie_access_log_lock);
+    adf_os_spinlock_init(&pcie_access_log_lock);
 #endif
     /* Save callbacks for later installation */
     A_MEMCPY(&hif_state->msg_callbacks_pending, callbacks, sizeof(hif_state->msg_callbacks_pending));
@@ -2979,16 +2979,15 @@ HIFTargetReadChecked(A_target_id_t targid, A_UINT32 offset)
     value = A_PCI_READ32(addr);
 
     {
-    unsigned long irq_flags;
     int idx = pcie_access_log_seqnum % PCIE_ACCESS_LOG_NUM;
 
-    spin_lock_irqsave(&pcie_access_log_lock, irq_flags);
+    adf_os_spin_lock_irqsave(&pcie_access_log_lock);
     pcie_access_log[idx].seqnum = pcie_access_log_seqnum;
     pcie_access_log[idx].is_write = FALSE;
     pcie_access_log[idx].addr = addr;
     pcie_access_log[idx].value = value;
     pcie_access_log_seqnum++;
-    spin_unlock_irqrestore(&pcie_access_log_lock, irq_flags);
+    adf_os_spin_unlock_irqrestore(&pcie_access_log_lock);
     }
 
     return value;
@@ -3007,16 +3006,15 @@ HIFTargetWriteChecked(A_target_id_t targid, A_UINT32 offset, A_UINT32 value)
     A_PCI_WRITE32(addr, value);
 
     {
-    unsigned long irq_flags;
     int idx = pcie_access_log_seqnum % PCIE_ACCESS_LOG_NUM;
 
-    spin_lock_irqsave(&pcie_access_log_lock, irq_flags);
+    adf_os_spin_lock_irqsave(&pcie_access_log_lock);
     pcie_access_log[idx].seqnum = pcie_access_log_seqnum;
     pcie_access_log[idx].is_write = TRUE;
     pcie_access_log[idx].addr = addr;
     pcie_access_log[idx].value = value;
     pcie_access_log_seqnum++;
-    spin_unlock_irqrestore(&pcie_access_log_lock, irq_flags);
+    adf_os_spin_unlock_irqrestore(&pcie_access_log_lock);
     }
 }
 
@@ -3031,9 +3029,8 @@ void
 HIFTargetDumpAccessLog(void)
 {
     int idx, len, start_idx, cur_idx;
-    unsigned long irq_flags;
 
-    spin_lock_irqsave(&pcie_access_log_lock, irq_flags);
+    adf_os_spin_lock_irqsave(&pcie_access_log_lock);
     if (pcie_access_log_seqnum > PCIE_ACCESS_LOG_NUM)
     {
         len = PCIE_ACCESS_LOG_NUM;
@@ -3057,7 +3054,7 @@ HIFTargetDumpAccessLog(void)
     }
 
     pcie_access_log_seqnum = 0;
-    spin_unlock_irqrestore(&pcie_access_log_lock, irq_flags);
+    adf_os_spin_unlock_irqrestore(&pcie_access_log_lock);
 }
 #endif
 
@@ -3379,7 +3376,7 @@ void hif_pci_runtime_pm_timeout_fn(unsigned long data)
 	unsigned long timer_expires;
 	struct hif_pm_runtime_context *context, *temp;
 
-	spin_lock_bh(&hif_sc->runtime_lock);
+	adf_os_spin_lock_bh(&hif_sc->runtime_lock);
 
 	timer_expires = hif_sc->runtime_timer_expires;
 
@@ -3407,7 +3404,7 @@ void hif_pci_runtime_pm_timeout_fn(unsigned long data)
 		}
 	}
 
-	spin_unlock_bh(&hif_sc->runtime_lock);
+	adf_os_spin_unlock_bh(&hif_sc->runtime_lock);
 }
 
 int hif_pm_runtime_prevent_suspend(void *ol_sc, void *data)
@@ -3425,10 +3422,10 @@ int hif_pm_runtime_prevent_suspend(void *ol_sc, void *data)
 	if (in_irq())
 		WARN_ON(1);
 
-	spin_lock_bh(&hif_sc->runtime_lock);
+	adf_os_spin_lock_bh(&hif_sc->runtime_lock);
 	context->timeout = 0;
 	__hif_pm_runtime_prevent_suspend(hif_sc, context);
-	spin_unlock_bh(&hif_sc->runtime_lock);
+	adf_os_spin_unlock_bh(&hif_sc->runtime_lock);
 
 	return 0;
 }
@@ -3448,7 +3445,7 @@ int hif_pm_runtime_allow_suspend(void *ol_sc, void *data)
 	if (in_irq())
 		WARN_ON(1);
 
-	spin_lock_bh(&hif_sc->runtime_lock);
+	adf_os_spin_lock_bh(&hif_sc->runtime_lock);
 
 	__hif_pm_runtime_allow_suspend(hif_sc, context);
 
@@ -3464,7 +3461,7 @@ int hif_pm_runtime_allow_suspend(void *ol_sc, void *data)
 		hif_sc->runtime_timer_expires = 0;
 	}
 
-	spin_unlock_bh(&hif_sc->runtime_lock);
+	adf_os_spin_unlock_bh(&hif_sc->runtime_lock);
 
 	return 0;
 }
@@ -3528,7 +3525,7 @@ int hif_pm_runtime_prevent_suspend_timeout(void *ol_sc, void *data,
 	expires = jiffies + msecs_to_jiffies(delay);
 	expires += !expires;
 
-	spin_lock_bh(&hif_sc->runtime_lock);
+	adf_os_spin_lock_bh(&hif_sc->runtime_lock);
 
 	context->timeout = delay;
 	ret = __hif_pm_runtime_prevent_suspend(hif_sc, context);
@@ -3542,7 +3539,7 @@ int hif_pm_runtime_prevent_suspend_timeout(void *ol_sc, void *data,
 		hif_sc->runtime_timer_expires = expires;
 	}
 
-	spin_unlock_bh(&hif_sc->runtime_lock);
+	adf_os_spin_unlock_bh(&hif_sc->runtime_lock);
 
 	VOS_TRACE(VOS_MODULE_ID_HIF, VOS_TRACE_LEVEL_INFO,
 		  "%s: pm_state: %d delay: %dms ret: %d\n", __func__,
@@ -3606,9 +3603,9 @@ void hif_runtime_pm_prevent_suspend_deinit(void *data)
 	 * Ensure to delete the context list entry and reduce the usage count
 	 * before freeing the context if context is active.
 	 */
-	spin_lock_bh(&sc->runtime_lock);
+	adf_os_spin_lock_bh(&sc->runtime_lock);
 	__hif_pm_runtime_allow_suspend(sc, context);
-	spin_unlock_bh(&sc->runtime_lock);
+	adf_os_spin_unlock_bh(&sc->runtime_lock);
 
 	adf_os_mem_free(context);
 }

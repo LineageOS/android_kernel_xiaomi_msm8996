@@ -123,11 +123,11 @@ struct hif_recv_task {
     struct semaphore sem_rx_completion;
     int    rx_completion_shutdown;
     struct completion rx_completion_exit;
-    spinlock_t rx_bundle_lock;
-    spinlock_t rx_sync_completion_lock;
+    adf_os_spinlock_t rx_bundle_lock;
+    adf_os_spinlock_t rx_sync_completion_lock;
     HTC_PACKET_QUEUE rxBundleQueue;
     HTC_PACKET_QUEUE rxSyncCompletionQueue;
-    spinlock_t rx_alloc_lock;
+    adf_os_spinlock_t rx_alloc_lock;
     HTC_PACKET_QUEUE rxAllocQueue;
 };
 #endif
