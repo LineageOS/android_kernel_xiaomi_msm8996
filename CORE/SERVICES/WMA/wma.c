@@ -27917,6 +27917,10 @@ static int wma_set_base_macaddr_indicate(tp_wma_handle wma_handle,
 	WMA_LOGD("Base MAC Addr: "MAC_ADDRESS_STR,
 		MAC_ADDR_ARRAY((*customAddr)));
 
+	/* update the mac addr, because wlan_mac.bin changes it */
+	vos_mem_copy(wma_handle->myaddr, customAddr, sizeof(tSirMacAddr));
+	vos_mem_copy(wma_handle->hwaddr, customAddr, sizeof(tSirMacAddr));
+
 	return 0;
 }
 
