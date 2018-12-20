@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -43,7 +43,6 @@
 #include "limTypes.h"
 #include "halMsgApi.h"
 #include "sirParams.h"
-tSirRetStatus limSendCFParams(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 cfpCount, tANI_U8 cfpPeriod);
 tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
                                   tpUpdateBeaconParams pUpdatedBcnParams,
                                   tpPESession  psessionEntry );
