@@ -458,7 +458,7 @@ static void __adf_flex_mem_release(struct adf_flex_mem_pool *pool)
 		if (seg->used_bitmap != 0)
 			continue;
 
-		vos_list_remove_node(&pool->seg_list, &seg->node);
+		vos_list_remove_node_no_mutex(&pool->seg_list, &seg->node);
 		vos_mem_free(seg);
 	}
 }
@@ -478,7 +478,8 @@ void adf_flex_mem_deinit(struct adf_flex_mem_pool *pool)
 {
 	v_SIZE_t pSize = 0;
 	adf_flex_mem_release(pool);
-	if (vos_list_size(&pool->seg_list, &pSize) == VOS_STATUS_SUCCESS)
+	if (vos_list_size_no_mutex(&pool->seg_list, &pSize) ==
+	    VOS_STATUS_SUCCESS)
 		VOS_BUG(!pSize);
 	else
 		adf_print("%s seg list get ailed",__func__);
@@ -500,7 +501,7 @@ adf_flex_mem_seg_alloc(struct adf_flex_mem_pool *pool)
 	seg->dynamic = true;
 	seg->bytes = (uint8_t *)(seg + 1);
 	seg->used_bitmap = 0;
-	vos_list_insert_back(&pool->seg_list, &seg->node);
+	vos_list_insert_back_no_mutex(&pool->seg_list, &seg->node);
 
 	return seg;
 }
@@ -567,14 +568,15 @@ static void adf_flex_mem_seg_free(struct adf_flex_mem_pool *pool,
 	if (!seg->dynamic)
 		return;
 
-	if (vos_list_size(&pool->seg_list, &pSize) == VOS_STATUS_SUCCESS) {
+	if (vos_list_size_no_mutex(&pool->seg_list, &pSize) ==
+	    VOS_STATUS_SUCCESS) {
 		if (pSize <= pool->reduction_limit)
 			return;
 	} else {
 		adf_print("%s seg list size get failed", __func__);
 	}
 
-	vos_list_remove_node(&pool->seg_list, &seg->node);
+	vos_list_remove_node_no_mutex(&pool->seg_list, &seg->node);
 	vos_mem_free(seg);
 }
 
