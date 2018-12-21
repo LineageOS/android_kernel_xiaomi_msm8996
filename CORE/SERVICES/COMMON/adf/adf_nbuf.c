@@ -26,6 +26,7 @@
  */
 
 
+#include <linux/hashtable.h>
 #include <linux/kernel.h>
 #include <linux/version.h>
 #include <linux/skbuff.h>
@@ -37,6 +38,9 @@
 #include <net/ieee80211_radiotap.h>
 #include "adf_trace.h"
 #include "vos_trace.h"
+#include <vos_api.h>
+#include <adf_os_atomic.h>
+#include <adf_os_time.h>
 
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
 #include <net/cnss_prealloc.h>
@@ -358,6 +362,483 @@ __adf_nbuf_dmamap_destroy(adf_os_device_t osdev, __adf_os_dma_map_t dmap)
     kfree(dmap);
 }
 
+#ifdef NBUF_MAP_UNMAP_DEBUG
+
+/**
+ * DEFINE_ADF_FLEX_MEM_POOL() - define a new flex mem pool with one segment
+ * @name: the name of the pool variable
+ * @size_of_item: size of the items the pool will allocate
+ * @rm_limit: min number of segments to keep during reduction
+ */
+#define DEFINE_ADF_FLEX_MEM_POOL(name, size_of_item, rm_limit) \
+	struct adf_flex_mem_pool name; \
+	uint8_t __ ## name ## _head_bytes[ADF_FM_BITMAP_BITS * (size_of_item)];\
+	struct adf_flex_mem_segment __ ## name ## _head = { \
+		.node = VOS_LIST_NODE_INIT_SINGLE( \
+			VOS_LIST_ANCHOR(name.seg_list)), \
+		.bytes = __ ## name ## _head_bytes, \
+	}; \
+	struct adf_flex_mem_pool name = { \
+		.reduction_limit = (rm_limit), \
+		.item_size = (size_of_item), \
+	}
+
+/**
+ * adf_flex_mem_pool - a pool of memory segments
+ * @seg_list: the list containing the memory segments
+ * @lock: spinlock for protecting internal data structures
+ * @reduction_limit: the minimum number of segments to keep during reduction
+ * @item_size: the size of the items the pool will allocate
+ */
+struct adf_flex_mem_pool {
+	vos_list_t seg_list;
+	adf_os_spinlock_t lock;
+	uint16_t reduction_limit;
+	uint16_t item_size;
+};
+
+/**
+ * adf_flex_mem_segment - a memory pool segment
+ * @node: the list node for membership in the memory pool
+ * @dynamic: true if this segment was dynamically allocated
+ * @used_bitmap: bitmap for tracking which items in the segment are in use
+ * @bytes: raw memory for allocating items from
+ */
+struct adf_flex_mem_segment {
+	vos_list_node_t node;
+	bool dynamic;
+	uint32_t used_bitmap;
+	uint8_t *bytes;
+};
+#define ADF_NBUF_HISTORY_SIZE 4096
+
+static adf_os_atomic_t adf_nbuf_history_index;
+static struct adf_nbuf_event adf_nbuf_history[ADF_NBUF_HISTORY_SIZE];
+
+static int32_t adf_nbuf_circular_index_next(adf_os_atomic_t *index, int size)
+{
+	int32_t next = adf_os_atomic_inc_return(index);
+
+	if (next == size)
+		adf_os_atomic_sub(size, index);
+
+	return next % size;
+}
+
+void
+adf_nbuf_history_add(adf_nbuf_t nbuf, const char *file, uint32_t line,
+		     enum adf_nbuf_event_type type)
+{
+	int32_t idx = adf_nbuf_circular_index_next(&adf_nbuf_history_index,
+						   ADF_NBUF_HISTORY_SIZE);
+	struct adf_nbuf_event *event = &adf_nbuf_history[idx];
+
+	event->nbuf = nbuf;
+	strlcpy(event->file, kbasename(file), ADF_MEM_FILE_NAME_SIZE);
+	event->line = line;
+	event->type = type;
+	event->timestamp = adf_os_ticks();
+}
+
+DEFINE_ADF_FLEX_MEM_POOL(adf_nbuf_map_pool,
+			 sizeof(struct adf_nbuf_map_metadata), 0);
+#define ADF_NBUF_MAP_HT_BITS 10 /* 1024 buckets */
+static DECLARE_HASHTABLE(adf_nbuf_map_ht, ADF_NBUF_MAP_HT_BITS);
+static adf_os_spinlock_t adf_nbuf_map_lock;
+
+static void __adf_flex_mem_release(struct adf_flex_mem_pool *pool)
+{
+	struct adf_flex_mem_segment *seg;
+	struct adf_flex_mem_segment *next;
+
+	list_for_each_entry_safe(seg, next, &(pool->seg_list.anchor), node) {
+		if (!seg->dynamic)
+			continue;
+
+		if (seg->used_bitmap != 0)
+			continue;
+
+		vos_list_remove_node(&pool->seg_list, &seg->node);
+		vos_mem_free(seg);
+	}
+}
+
+void adf_flex_mem_release(struct adf_flex_mem_pool *pool)
+{
+	VOS_BUG(pool);
+	if (!pool)
+		return;
+
+	adf_os_spin_lock_bh(&pool->lock);
+	__adf_flex_mem_release(pool);
+	adf_os_spin_unlock_bh(&pool->lock);
+}
+
+void adf_flex_mem_deinit(struct adf_flex_mem_pool *pool)
+{
+	v_SIZE_t pSize = 0;
+	adf_flex_mem_release(pool);
+	if (vos_list_size(&pool->seg_list, &pSize) == VOS_STATUS_SUCCESS)
+		VOS_BUG(!pSize);
+	else
+		adf_print("%s seg list get ailed",__func__);
+
+	adf_os_spinlock_destroy(&pool->lock);
+}
+
+static struct adf_flex_mem_segment *
+adf_flex_mem_seg_alloc(struct adf_flex_mem_pool *pool)
+{
+	struct adf_flex_mem_segment *seg;
+	size_t total_size = sizeof(struct adf_flex_mem_segment) +
+		pool->item_size * ADF_FM_BITMAP_BITS;
+
+	seg = vos_mem_malloc(total_size);
+	if (!seg)
+		return NULL;
+
+	seg->dynamic = true;
+	seg->bytes = (uint8_t *)(seg + 1);
+	seg->used_bitmap = 0;
+	vos_list_insert_back(&pool->seg_list, &seg->node);
+
+	return seg;
+}
+
+void adf_flex_mem_init(struct adf_flex_mem_pool *pool)
+{
+	int i;
+
+	adf_os_spinlock_init(&pool->lock);
+	vos_list_init(&pool->seg_list);
+	for (i = 0; i < pool->reduction_limit; i++)
+		adf_flex_mem_seg_alloc(pool);
+}
+
+static void *__adf_flex_mem_alloc(struct adf_flex_mem_pool *pool)
+{
+	struct adf_flex_mem_segment *seg;
+
+	list_for_each_entry(seg, &(pool->seg_list.anchor), node) {
+		int index;
+		void *ptr;
+
+		index = adf_ffz(seg->used_bitmap);
+		if (index < 0)
+			continue;
+
+		VOS_BUG(index < ADF_FM_BITMAP_BITS);
+
+		seg->used_bitmap ^= (ADF_FM_BITMAP)1 << index;
+		ptr = &seg->bytes[index * pool->item_size];
+		vos_mem_zero(ptr, pool->item_size);
+
+		return ptr;
+	}
+
+	seg = adf_flex_mem_seg_alloc(pool);
+	if (!seg)
+		return NULL;
+
+	seg->used_bitmap = 1;
+
+	return seg->bytes;
+}
+
+void *adf_flex_mem_alloc(struct adf_flex_mem_pool *pool)
+{
+	void *ptr;
+
+	VOS_BUG(pool);
+	if (!pool)
+		return NULL;
+
+	adf_os_spin_lock_bh(&pool->lock);
+	ptr = __adf_flex_mem_alloc(pool);
+	adf_os_spin_unlock_bh(&pool->lock);
+
+	return ptr;
+}
+
+static void adf_flex_mem_seg_free(struct adf_flex_mem_pool *pool,
+				  struct adf_flex_mem_segment *seg)
+{
+	v_SIZE_t pSize = 0;
+	if (!seg->dynamic)
+		return;
+
+	if (vos_list_size(&pool->seg_list, &pSize) == VOS_STATUS_SUCCESS) {
+		if (pSize <= pool->reduction_limit)
+			return;
+	} else {
+		adf_print("%s seg list size get failed", __func__);
+	}
+
+	vos_list_remove_node(&pool->seg_list, &seg->node);
+	vos_mem_free(seg);
+}
+
+static void __adf_flex_mem_free(struct adf_flex_mem_pool *pool, void *ptr)
+{
+	struct adf_flex_mem_segment *seg;
+	void *low_addr;
+	void *high_addr;
+	unsigned long index;
+
+	list_for_each_entry(seg, &(pool->seg_list.anchor), node) {
+		low_addr = seg->bytes;
+		high_addr = low_addr + pool->item_size * ADF_FM_BITMAP_BITS;
+
+		if (ptr < low_addr || ptr > high_addr)
+			continue;
+
+		index = (ptr - low_addr) / pool->item_size;
+		VOS_BUG(index < ADF_FM_BITMAP_BITS);
+
+		seg->used_bitmap ^= (ADF_FM_BITMAP)1 << index;
+		if (!seg->used_bitmap)
+			adf_flex_mem_seg_free(pool, seg);
+
+		return;
+	}
+
+	adf_print("Failed to find pointer in segment pool");
+}
+
+void adf_flex_mem_free(struct adf_flex_mem_pool *pool, void *ptr)
+{
+	VOS_BUG(pool);
+	if (!pool)
+		return;
+
+	VOS_BUG(ptr);
+	if (!ptr)
+		return;
+
+	adf_os_spin_lock_bh(&pool->lock);
+	__adf_flex_mem_free(pool, ptr);
+	adf_os_spin_unlock_bh(&pool->lock);
+}
+
+static void adf_nbuf_map_tracking_init(void)
+{
+	adf_flex_mem_init(&adf_nbuf_map_pool);
+	hash_init(adf_nbuf_map_ht);
+	adf_os_spinlock_init(&adf_nbuf_map_lock);
+}
+
+void adf_nbuf_map_check_for_leaks(void)
+{
+	struct adf_nbuf_map_metadata *meta;
+	int bucket;
+	uint32_t count = 0;
+	bool is_empty;
+
+	adf_flex_mem_release(&adf_nbuf_map_pool);
+	adf_os_spin_lock_irqsave(&adf_nbuf_map_lock);
+	is_empty = hash_empty(adf_nbuf_map_ht);
+	adf_os_spin_unlock_irqrestore(&adf_nbuf_map_lock);
+
+	if (is_empty)
+		return;
+
+	adf_print("Nbuf map without unmap events detected!");
+	adf_print("------------------------------------------------------------");
+
+	/* Hold the lock for the entire iteration for safe list/meta access. We
+	 * are explicitly preferring the chance to watchdog on the print, over
+	 * the posibility of invalid list/memory access. Since we are going to
+	 * panic anyway, the worst case is loading up the crash dump to find out
+	 * what was in the hash table.
+	 */
+	adf_os_spin_lock_irqsave(&adf_nbuf_map_lock);
+	hash_for_each(adf_nbuf_map_ht, bucket, meta, node) {
+		count++;
+		adf_print("0x%pk @ %s:%u",
+			meta->nbuf, meta->file, meta->line);
+	}
+	adf_os_spin_unlock_irqrestore(&adf_nbuf_map_lock);
+
+	adf_print("%u fatal nbuf map without unmap events detected!", count);
+}
+
+static void adf_nbuf_map_tracking_deinit(void)
+{
+	adf_nbuf_map_check_for_leaks();
+	adf_os_spinlock_destroy(&adf_nbuf_map_lock);
+	adf_flex_mem_deinit(&adf_nbuf_map_pool);
+}
+
+static struct adf_nbuf_map_metadata *adf_nbuf_meta_get(adf_nbuf_t nbuf)
+{
+	struct adf_nbuf_map_metadata *meta;
+
+	hash_for_each_possible(adf_nbuf_map_ht, meta, node, (size_t)nbuf) {
+		if (meta->nbuf == nbuf)
+			return meta;
+	}
+
+	return NULL;
+}
+
+static a_status_t
+adf_nbuf_track_map(adf_nbuf_t nbuf, const char *file, uint32_t line)
+{
+	struct adf_nbuf_map_metadata *meta;
+
+	VOS_BUG(nbuf);
+	if (!nbuf) {
+		adf_print("Cannot map null nbuf");
+		return A_STATUS_EINVAL;
+	}
+
+	adf_os_spin_lock_irqsave(&adf_nbuf_map_lock);
+	meta = adf_nbuf_meta_get(nbuf);
+	adf_os_spin_unlock_irqrestore(&adf_nbuf_map_lock);
+	if (meta) {
+		adf_print(
+			"Double nbuf map detected @ %s:%u; last map from %s:%u",
+			kbasename(file), line, meta->file, meta->line);
+		VOS_BUG(0);
+		return A_STATUS_EINVAL;
+	}
+
+	meta = adf_flex_mem_alloc(&adf_nbuf_map_pool);
+	if (!meta) {
+		adf_print("Failed to allocate nbuf map tracking metadata");
+		return A_STATUS_ENOMEM;
+	}
+
+	meta->nbuf = nbuf;
+	strlcpy(meta->file, kbasename(file), ADF_MEM_FILE_NAME_SIZE);
+	meta->line = line;
+
+	adf_os_spin_lock_irqsave(&adf_nbuf_map_lock);
+	hash_add(adf_nbuf_map_ht, &meta->node, (size_t)nbuf);
+	adf_os_spin_unlock_irqrestore(&adf_nbuf_map_lock);
+
+	adf_nbuf_history_add(nbuf, file, line, ADF_NBUF_MAP);
+
+	return A_STATUS_OK;
+}
+
+static void
+adf_nbuf_untrack_map(adf_nbuf_t nbuf, const char *file, uint32_t line)
+{
+	struct adf_nbuf_map_metadata *meta;
+
+	VOS_BUG(nbuf);
+	if (!nbuf) {
+		adf_print("Cannot unmap null nbuf");
+		return;
+	}
+
+	adf_os_spin_lock_irqsave(&adf_nbuf_map_lock);
+	meta = adf_nbuf_meta_get(nbuf);
+
+	if (!meta) {
+		adf_print(
+		      "Double nbuf unmap or unmap without map detected @ %s:%u",
+		      kbasename(file), line);
+		adf_os_spin_unlock_irqrestore(&adf_nbuf_map_lock);
+		VOS_BUG(0);
+		return;
+	}
+
+	hash_del(&meta->node);
+	adf_os_spin_unlock_irqrestore(&adf_nbuf_map_lock);
+
+	adf_flex_mem_free(&adf_nbuf_map_pool, meta);
+
+	adf_nbuf_history_add(nbuf, file, line, ADF_NBUF_UNMAP);
+}
+
+a_status_t adf_nbuf_map_debug(adf_os_device_t osdev,
+			      adf_nbuf_t buf,
+			      adf_os_dma_dir_t dir,
+			      const char *file,
+			      uint32_t line)
+{
+	a_status_t status;
+
+	status = adf_nbuf_track_map(buf, file, line);
+	if (status)
+		return status;
+
+	status = __adf_nbuf_map(osdev, buf, dir);
+	if (status)
+		adf_nbuf_untrack_map(buf, file, line);
+
+	return status;
+}
+
+void adf_nbuf_unmap_debug(adf_os_device_t osdev,
+			  adf_nbuf_t buf,
+			  adf_os_dma_dir_t dir,
+			  const char *file,
+			  uint32_t line)
+{
+	adf_nbuf_untrack_map(buf, file, line);
+	__adf_nbuf_unmap_single(osdev, buf, dir);
+}
+
+a_status_t adf_nbuf_map_single_debug(adf_os_device_t osdev,
+				     adf_nbuf_t buf,
+				     adf_os_dma_dir_t dir,
+				     const char *file,
+				     uint32_t line)
+{
+	a_status_t status;
+
+	status = adf_nbuf_track_map(buf, file, line);
+	if (status)
+		return status;
+
+	status = __adf_nbuf_map_single(osdev, buf, dir);
+	if (status)
+		adf_nbuf_untrack_map(buf, file, line);
+
+	return status;
+}
+
+void adf_nbuf_unmap_single_debug(adf_os_device_t osdev,
+				 adf_nbuf_t buf,
+				 adf_os_dma_dir_t dir,
+				 const char *file,
+				 uint32_t line)
+{
+	adf_nbuf_untrack_map(buf, file, line);
+	__adf_nbuf_unmap_single(osdev, buf, dir);
+}
+
+static void adf_nbuf_panic_on_free_if_mapped(adf_nbuf_t nbuf, uint8_t *file,
+					     uint32_t line)
+{
+	struct adf_nbuf_map_metadata *meta;
+
+	adf_os_spin_lock_irqsave(&adf_nbuf_map_lock);
+	meta = adf_nbuf_meta_get(nbuf);
+	if (meta)
+		adf_print(
+			"Nbuf freed @ %s:%u while mapped from %s:%u",
+			kbasename(file), line, meta->file, meta->line);
+	adf_os_spin_unlock_irqrestore(&adf_nbuf_map_lock);
+}
+#else
+static inline void adf_nbuf_map_tracking_init(void)
+{
+}
+
+static inline void adf_nbuf_map_tracking_deinit(void)
+{
+}
+
+static inline void adf_nbuf_panic_on_free_if_mapped(adf_nbuf_t nbuf,
+						    uint8_t *file,
+						    uint32_t line)
+{
+}
+#endif
 /**
  * @brief get the dma map of the nbuf
  *
@@ -1455,6 +1936,17 @@ static void adf_nbuf_track_memory_manager_destroy(void)
 	kmem_cache_destroy(nbuf_tracking_cache);
 }
 
+void adf_nbuf_free_debug(adf_nbuf_t net_buf, uint8_t *file, uint32_t line)
+{
+	/* Remove SKB from internal ADF tracking table */
+	adf_nbuf_panic_on_free_if_mapped(net_buf, file, line);
+	if (adf_os_likely(net_buf))
+		adf_net_buf_debug_delete_node(net_buf);
+
+	adf_nbuf_history_add(net_buf, file, line, ADF_NBUF_FREE);
+	__adf_nbuf_free(net_buf);
+}
+
 /**
  * adf_net_buf_debug_init() - initialize network buffer debug functionality
  *
@@ -1470,6 +1962,9 @@ void adf_net_buf_debug_init(void)
 {
 	uint32_t i;
 
+	adf_os_atomic_set(&adf_nbuf_history_index, -1);
+
+	adf_nbuf_map_tracking_init();
 	adf_nbuf_track_memory_manager_create();
 
 	for (i = 0; i < ADF_NET_BUF_TRACK_MAX_SIZE; i++) {
@@ -1511,6 +2006,7 @@ void adf_net_buf_debug_exit(void)
 	}
 
 	adf_nbuf_track_memory_manager_destroy();
+	adf_nbuf_map_tracking_deinit();
 
 	return;
 }
