@@ -93,7 +93,7 @@ static char *getRole( tLimSystemRole role )
  ******************************************/
 char *triggerBeaconGen( tpAniSirGlobal pMac, char *p )
 {
-    tSirMsgQ mesg = { (tANI_U16) SIR_LIM_BEACON_GEN_IND, (tANI_U16) 0, (tANI_U32) 0 };
+    tSirMsgQ mesg = { (tANI_U16) SIR_LIM_BEACON_GEN_IND, (tANI_U16) 0, 0 };
 
     pMac->lim.gLimSmeState = eLIM_SME_NORMAL_STATE;
     MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, NO_SESSION, pMac->lim.gLimSmeState));
