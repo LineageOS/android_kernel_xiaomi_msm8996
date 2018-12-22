@@ -30,16 +30,11 @@
  *  kernel space and user space pktlog application.
  */
 
+#include <pktlog.h>
+
 #ifndef _PKTLOG_AC_API_
 #define _PKTLOG_AC_API_
 #ifndef REMOVE_PKT_LOG
-
-/**
- * @typedef ol_pktlog_dev_handle
- * @brief opaque handle for pktlog device object
- */
-struct ol_pktlog_dev_t;
-typedef struct ol_pktlog_dev_t* ol_pktlog_dev_handle;
 
 /**
  * @typedef ol_softc_handle
