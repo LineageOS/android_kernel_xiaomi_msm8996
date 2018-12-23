@@ -38,7 +38,7 @@
 #define DEFAULT_SAMPLING_MS 3000
 
 /* Max possible is currently 100 (0-99 => two digits) */
-#define NR_THERMAL_ZONES 16
+#define NR_THERMAL_ZONES 23
 
 struct thermal_zone_sysfs {
 	struct device_attribute dev_attr[NR_THERMAL_ZONES];
