@@ -7582,7 +7582,7 @@ int __init msm_thermal_device_init(void)
 {
 	return platform_driver_register(&msm_thermal_device_driver);
 }
-arch_initcall(msm_thermal_device_init);
+subsys_initcall(msm_thermal_device_init);
 
 int __init msm_thermal_late_init(void)
 {
