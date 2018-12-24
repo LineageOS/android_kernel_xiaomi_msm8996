@@ -3189,7 +3189,7 @@ static void hdd_ipa_set_adapter_ip_filter(hdd_adapter_t *adapter)
 	if ((in_dev = __in_dev_get_rtnl(dev)) != NULL) {
 	   for (ifap = &in_dev->ifa_list; (ifa = *ifap) != NULL;
 		   ifap = &ifa->ifa_next) {
-			if (dev->name && !strcmp(dev->name, ifa->ifa_label))
+			if (!strcmp(dev->name, ifa->ifa_label))
 				break; /* found */
 		}
 	}
