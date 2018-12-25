@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -115,6 +115,11 @@ uint8_t ccp_rsn_oui_0e[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x0E};
 uint8_t ccp_rsn_oui_0f[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x0F};
 uint8_t ccp_rsn_oui_10[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x10};
 uint8_t ccp_rsn_oui_11[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x11};
+#endif
+
+#ifdef WLAN_FEATURE_SAE
+uint8_t ccp_rsn_oui_80[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x08};
+uint8_t ccp_rsn_oui_90[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x09};
 #endif
 
 #if defined(WLAN_FEATURE_VOWIFI_11R)
@@ -5016,6 +5021,27 @@ static inline void hdd_translate_fils_rsn_to_csr_auth(u_int8_t auth_suite[4],
 }
 #endif
 
+#ifdef WLAN_FEATURE_SAE
+/**
+ * hdd_translate_sae_rsn_to_csr_auth() - Translate SAE RSN to CSR auth type
+ * @auth_suite: auth suite
+ * @auth_type: pointer to eCsrAuthType
+ *
+ * Return: None
+ */
+static void hdd_translate_sae_rsn_to_csr_auth(int8_t auth_suite[4],
+					      eCsrAuthType *auth_type)
+{
+	if (!memcmp(auth_suite, ccp_rsn_oui_80, 4))
+		*auth_type = eCSR_AUTH_TYPE_SAE;
+}
+#else
+static inline void hdd_translate_sae_rsn_to_csr_auth(int8_t auth_suite[4],
+						     eCsrAuthType *auth_type)
+{
+}
+#endif
+
 eCsrAuthType hdd_TranslateRSNToCsrAuthType( u_int8_t auth_suite[4])
 {
     eCsrAuthType auth_type = eCSR_AUTH_TYPE_UNKNOWN;
@@ -5056,10 +5082,14 @@ eCsrAuthType hdd_TranslateRSNToCsrAuthType( u_int8_t auth_suite[4])
         auth_type = eCSR_AUTH_TYPE_RSN_8021X_SHA256;
     } else
 #endif
-	/* If auth suite is of fils, auth_type will be
-	 * overwritten in hdd_translate_fils_rsn_to_csr_auth
-	 */
-	hdd_translate_fils_rsn_to_csr_auth(auth_suite, &auth_type);
+    {
+        /* If auth suite is of fils, auth_type will be
+         * overwritten in hdd_translate_fils_rsn_to_csr_auth
+         */
+        hdd_translate_fils_rsn_to_csr_auth(auth_suite, &auth_type);
+        hdd_translate_sae_rsn_to_csr_auth(auth_suite, &auth_type);
+    }
+
     return auth_type;
 }
 
@@ -5551,6 +5581,11 @@ int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
 
           pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_SHARED_KEY;
           break;
+
+       case eCSR_AUTH_TYPE_SAE:
+          pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_SAE;
+          break;
+
         default:
 
 #ifdef FEATURE_WLAN_ESE
