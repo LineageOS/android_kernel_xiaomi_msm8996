@@ -104,9 +104,6 @@ on property:persist.spectrum.profile=0
 	#Disable CRC
 		write /sys/module/mmc_core/parameters/use_spi_crc 0
 
-	#Disable BCL
-		write /sys/devices/soc/soc:qcom,bcl/mode "-n disable"
-
 	#Tweak HMP Scheduler to feed the Big cluster more tasks
 		write /proc/sys/kernel/sched_window_stats_policy 2
 		write /proc/sys/kernel/sched_upmigrate 95 
@@ -257,9 +254,6 @@ on property:persist.spectrum.profile=1
 	#Disable CRC
 		write /sys/module/mmc_core/parameters/use_spi_crc 0
 
-	#Disable BCL
-		write /sys/devices/soc/soc:qcom,bcl/mode "-n disable"
-
 	#Tweak HMP Scheduler to feed the Big cluster more tasks
 		write /proc/sys/kernel/sched_window_stats_policy 2
 		write /proc/sys/kernel/sched_upmigrate 95 
@@ -395,9 +389,6 @@ on property:persist.spectrum.profile=2
 
 	#Disable CRC
 		write /sys/module/mmc_core/parameters/use_spi_crc 0
-
-	#Disable BCL
-		write /sys/devices/soc/soc:qcom,bcl/mode "-n disable"
 
 	#Tweak HMP Scheduler for correcting BIG Cluster utilization
 		write /proc/sys/kernel/sched_window_stats_policy 2
@@ -551,9 +542,6 @@ on property:persist.spectrum.profile=3
 
 	#Disable CRC
 		write /sys/module/mmc_core/parameters/use_spi_crc 0
-
-	#Disable BCL
-		write /sys/devices/soc/soc:qcom,bcl/mode "-n disable"
 
 	#Tweaking HMP Scheduler for correcting BIG Cluster utilization
 		write /proc/sys/kernel/sched_window_stats_policy 2
