@@ -27,7 +27,7 @@ static struct kobj_attribute _name##_attr = \
 // Define variables
 struct smbchg_chip *chip_pointer;
 bool force_fast_charge = 1;
-int charge_limit = 0;
+int charge_limit = 100;
 int recharge_at = 0;
 int maximum_qc_current = 2700;
 int full_charge_every = 1;
