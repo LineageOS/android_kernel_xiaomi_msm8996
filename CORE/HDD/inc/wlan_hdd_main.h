@@ -51,6 +51,10 @@
 #include <wlan_hdd_wmm.h>
 #include <wlan_hdd_cfg.h>
 #include <linux/spinlock.h>
+#ifdef WLAN_FEATURE_TSF_PTP
+#include <linux/ptp_classify.h>
+#include <linux/ptp_clock_kernel.h>
+#endif
 #include <wlan_hdd_ftm.h>
 #ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
@@ -2137,6 +2141,10 @@ struct hdd_context_s
     adf_os_atomic_t cap_tsf_flag;
     /* the context that is capturing tsf */
     hdd_adapter_t *cap_tsf_context;
+#endif
+#ifdef WLAN_FEATURE_TSF_PTP
+    struct ptp_clock_info ptp_cinfo;
+    struct ptp_clock *ptp_clock;
 #endif
     /* flag to show whether moniotr mode is enabled */
     bool is_mon_enable;

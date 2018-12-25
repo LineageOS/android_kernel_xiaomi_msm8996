@@ -4153,6 +4153,13 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define TSF_GPIO_PIN_INVALID                       (255)
 #define CFG_SET_TSF_GPIO_PIN_DEFAULT               (TSF_GPIO_PIN_INVALID)
 
+#ifdef WLAN_FEATURE_TSF
+/* GPIO pin to toogle when capture tsf in host side */
+#define CFG_SET_TSF_GPIO_PIN_HOST_NAME                  "gtsf_gpio_pin_host"
+#define CFG_SET_TSF_GPIO_PIN_HOST_MIN                   (0)
+#define CFG_SET_TSF_GPIO_PIN_HOST_MAX                   (254)
+#define CFG_SET_TSF_GPIO_PIN_HOST_DEFAULT               (45)
+
 #ifdef WLAN_FEATURE_TSF_PLUS
 /* PTP options */
 #define CFG_SET_TSF_PTP_OPT_NAME                  "gtsf_ptp_options"
@@ -4163,6 +4170,7 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_SET_TSF_PTP_OPT_RAW                   (0x4)
 #define CFG_SET_TSF_DBG_FS                        (0x8)
 #define CFG_SET_TSF_PTP_OPT_DEFAULT               (0xf)
+#endif
 #endif
 
 #define CFG_MULTICAST_HOST_FW_MSGS          "gMulticastHostFwMsgs"
@@ -6257,7 +6265,7 @@ struct hdd_config {
    uint8_t                     inform_bss_rssi_raw;
 #ifdef WLAN_FEATURE_TSF
    uint32_t                    tsf_gpio_pin;
-
+   uint32_t                    tsf_gpio_pin_host;
 #ifdef WLAN_FEATURE_TSF_PLUS
    uint8_t                     tsf_ptp_options;
 #endif /* WLAN_FEATURE_TSF_PLUS */

@@ -60,6 +60,7 @@
 #include <vos_api.h>
 #include <vos_sched.h>
 #include <linux/etherdevice.h>
+#include <linux/ethtool.h>
 #include <wlan_hdd_includes.h>
 #include <qc_sap_ioctl.h>
 #include <wlan_hdd_hostapd.h>
@@ -2326,6 +2327,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                     pHddApCtx->operatingChannel);
 
             pHostapdState->bssState = BSS_START;
+            hdd_start_tsf_sync(pHostapdAdapter);
 
             /* Set default key index */
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -3146,7 +3148,7 @@ stopbss :
         /* Change the BSS state now since, as we are shutting things down,
          * we don't want interfaces to become re-enabled */
         pHostapdState->bssState = BSS_STOP;
-
+        hdd_stop_tsf_sync(pHostapdAdapter);
         if (0 != (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nAPAutoShutOff)
         {
             if (VOS_TIMER_STATE_RUNNING == pHddApCtx->hdd_ap_inactivity_timer.state)
@@ -7692,6 +7694,10 @@ const struct iw_handler_def hostapd_handler_def = {
    .get_wireless_stats = NULL,
 };
 
+static const struct ethtool_ops wlan_hostapd_ethtool_ops = {
+	.get_ts_info = wlan_get_ts_info,
+};
+
 struct net_device_ops net_ops_struct  = {
     .ndo_open = hdd_hostapd_open,
     .ndo_stop = hdd_hostapd_stop,
@@ -7712,7 +7718,8 @@ static int hdd_set_hostapd(hdd_adapter_t *pAdapter)
 
 void hdd_set_ap_ops( struct net_device *pWlanHostapdDev )
 {
-  pWlanHostapdDev->netdev_ops = &net_ops_struct;
+	pWlanHostapdDev->netdev_ops = &net_ops_struct;
+	pWlanHostapdDev->ethtool_ops = &wlan_hostapd_ethtool_ops;
 }
 
 VOS_STATUS hdd_init_ap_mode(hdd_adapter_t *pAdapter, bool reinit)

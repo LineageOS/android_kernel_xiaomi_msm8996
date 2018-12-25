@@ -477,6 +477,11 @@ ifeq ($(CONFIG_QCOM_TDLS),y)
 HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_tdls.o
 endif
 
+ifeq ($(CONFIG_NETWORK_PHY_TIMESTAMPING), y)
+CONFIG_WLAN_SYNC_TSF_PLUS := y
+CONFIG_WLAN_SYNC_TSF_PTP := y
+endif
+
 ifeq ($(CONFIG_WLAN_SYNC_TSF_PLUS), y)
 CONFIG_WLAN_SYNC_TSF := y
 endif
@@ -1616,6 +1621,10 @@ endif
 
 ifeq ($(CONFIG_WLAN_SYNC_TSF_PLUS), y)
 CDEFINES += -DWLAN_FEATURE_TSF_PLUS
+endif
+
+ifeq ($(CONFIG_WLAN_SYNC_TSF_PTP), y)
+CDEFINES += -DWLAN_FEATURE_TSF_PTP
 endif
 
 # Enable target dump for non-qualcomm platform
