@@ -621,12 +621,6 @@ config LAST_TZ
 	tristate "store last tz log"
 	default n
 
-config FORCE_FAST_CHARGE
-	bool "Force faster charge rate for USB"
-	default y
-	help
-	  This allows users to override default charge rate for USB
-
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
