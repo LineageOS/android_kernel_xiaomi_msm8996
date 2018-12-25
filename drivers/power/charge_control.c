@@ -63,7 +63,7 @@ static ssize_t maximum_qc_current_store(struct kobject *kobj,
 	int val, err;
 	if (kstrtoint(buf, 0, &val))
 		return -EINVAL;
-	if(val < 900 && val > 3000)
+	if(val < 0 && val > 3000)
 		return -EINVAL;
 
 	maximum_qc_current = val;
