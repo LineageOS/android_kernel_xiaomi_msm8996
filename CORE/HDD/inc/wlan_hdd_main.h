@@ -2412,6 +2412,18 @@ int hdd_set_mas(hdd_adapter_t *hostapd_adapter, uint8_t filter_type);
 uint8_t hdd_is_mcc_in_24G(hdd_context_t *hdd_ctx);
 bool wlan_hdd_get_fw_state(hdd_adapter_t *adapter);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
+static inline void hdd_dev_setup_destructor(struct net_device *dev)
+{
+	dev->destructor = free_netdev;
+}
+#else
+static inline void hdd_dev_setup_destructor(struct net_device *dev)
+{
+	dev->needs_free_netdev = true;
+}
+#endif /* KERNEL_VERSION(4, 12, 0) */
+
 #ifdef WLAN_FEATURE_LINK_LAYER_STATS
 static inline bool hdd_link_layer_stats_supported(void)
 {
