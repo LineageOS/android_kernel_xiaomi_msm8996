@@ -42,6 +42,7 @@
 #include <linux/pm_wakeup.h>
 
 #define FPC_TTW_HOLD_TIME_MS	(1000)
+#define FPC1020_NAME "fpc1020"
 //const char fp_hal[] = "android.hardware.biometrics.fingerprint@2.1-service";
 
 struct fpc1020_data {
@@ -130,7 +131,7 @@ static int input_connect(struct input_handler *handler,
  
  	handle->dev = dev;
  	handle->handler = handler;
- 	handle->name = "fpc1020";
+ 	handle->name = FPC1020_NAME;
  	handle->private = fpc1020;
  
  	rc = input_register_handle(handle);
@@ -371,11 +372,6 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *dev_id)
 {
 	struct fpc1020_data *f = dev_id;
 
-	sysfs_notify(&f->dev->kobj, NULL, dev_attr_irq.attr.name);
-
-	reinit_completion(&f->irq_sent);
-	wait_for_completion_timeout(&f->irq_sent, msecs_to_jiffies(100));
-
 	/* Make sure 'wakeup_enabled' is updated before using it
 	** since this is interrupt context (other thread...) */
 	smp_rmb();
@@ -383,13 +379,18 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *dev_id)
 	if (f->screen_off && f->wakeup_enabled)
 		pm_wakeup_event(f->dev, FPC_TTW_HOLD_TIME_MS);
 
+	sysfs_notify(&f->dev->kobj, NULL, dev_attr_irq.attr.name);
+
+	reinit_completion(&f->irq_sent);
+	wait_for_completion_timeout(&f->irq_sent, msecs_to_jiffies(100));
+
 	return IRQ_HANDLED;
 
 }
 
 static int fpc1020_pinctrl_init_tee(struct fpc1020_data *fpc1020)
 {
-	int ret = 0;
+	int ret;
 	struct device *dev = fpc1020->dev;
 
 	fpc1020->ts_pinctrl = devm_pinctrl_get(dev);
@@ -449,10 +450,8 @@ static int fpc1020_get_fp_id_tee(struct fpc1020_data *fpc1020)
 {
 	struct device *dev = fpc1020->dev;
 	struct device_node *np = dev->of_node;
-	int error = 0;
+	int error, pull_up_value, pull_down_value;
 	int fp_id = FP_ID_UNKNOWN;
-	int pull_up_value = 0;
-	int pull_down_value = 0;
 
 	fpc1020->fp_id_gpio = of_get_named_gpio(np, "fpc,fp-id-gpio", 0);
 
@@ -512,8 +511,7 @@ static int fpc1020_get_fp_id_tee(struct fpc1020_data *fpc1020)
 			fp_id = FP_ID_FLOAT_2;
 		}
 	} else {
-		dev_err(dev,
-				"fpc vendor id FP_GPIO is invalid !!!\n");
+		dev_err(dev, "fpc vendor id FP_GPIO is invalid !!!\n");
 		fp_id = FP_ID_UNKNOWN;
 	}
 	return fp_id;
@@ -546,16 +544,8 @@ static int fpc1020_probe(struct platform_device *pdev)
 	if (ret)
 		goto err1;
 
-	f->wakeup_enabled = 0;
-	f->report_key_events = false;
-
- 	f->input_handler.filter = input_filter;
- 	f->input_handler.connect = input_connect;
- 	f->input_handler.disconnect = input_disconnect;
- 	f->input_handler.name = "fpc1020";
- 	f->input_handler.id_table = ids;
- 	ret = input_register_handler(&f->input_handler);
- 	if (ret)
+	ret = gpio_direction_input(f->irq_gpio);
+	if (ret)
 		goto err1;
 
 	ret = fpc1020_pinctrl_init_tee(f);
@@ -578,35 +568,43 @@ static int fpc1020_probe(struct platform_device *pdev)
 
 	ret = devm_request_threaded_irq(dev, gpio_to_irq(f->irq_gpio),
 			NULL, fpc1020_irq_handler,
-			IRQF_TRIGGER_RISING | IRQF_ONESHOT,
+			IRQF_TRIGGER_RISING | IRQF_ONESHOT | IRQF_NO_SUSPEND,
 			dev_name(dev), f);
 	if (ret) {
 		dev_err(dev, "Could not request irq, ret: %d\n", ret);
-		goto err3;
+		goto err2;
 	}
+
+	f->wakeup_enabled = 1;
+	f->report_key_events = false;
+
+ 	f->input_handler.filter = input_filter;
+ 	f->input_handler.connect = input_connect;
+ 	f->input_handler.disconnect = input_disconnect;
+ 	f->input_handler.name = FPC1020_NAME;
+ 	f->input_handler.id_table = ids;
+
+ 	ret = input_register_handler(&f->input_handler);
+ 	if (ret)
+		goto err3;
+
+	fp_id = fpc1020_get_fp_id_tee(f);
+	dev_dbg(f->dev,
+		"fpc vendor fp_id is %d (0:low 1:high 2:float 3:unknown)\n", fp_id);
 
 	f->fb_notif.notifier_call = fb_notifier_callback;
 	ret = fb_register_client(&f->fb_notif);
 	if (ret) {
 		dev_err(dev, "Unable to register fb_notifier, ret: %d\n", ret);
-		goto err4;
+		goto err3;
 	}
 
-	gpio_direction_input(f->irq_gpio);
-
-	fp_id = fpc1020_get_fp_id_tee(f);
-	dev_info(f->dev,
-		"fpc vendor fp_id is %d (0:low 1:high 2:float 3:unknown)\n", fp_id);
-
-	if (of_property_read_bool(dev->of_node, "fpc,enable-wakeup")) {
-		device_init_wakeup(dev, 1);
-		f->wakeup_enabled = 1;
-	}
+	device_init_wakeup(dev, 1);
 
 	return 0;
-err4:
-	devm_free_irq(dev, gpio_to_irq(f->irq_gpio), f);
 err3:
+	devm_free_irq(dev, gpio_to_irq(f->irq_gpio), f);
+err2:
 	sysfs_remove_group(&dev->kobj, &fpc1020_attr_group);
 err1:
 	devm_kfree(dev, f);
@@ -642,7 +640,7 @@ static const struct dev_pm_ops fpc1020_pm_ops = {
 static struct platform_driver fpc1020_driver = {
 	.probe = fpc1020_probe,
 	.driver = {
-		.name = "fpc1020",
+		.name = FPC1020_NAME,
 		.owner = THIS_MODULE,
 		.of_match_table = fpc1020_of_match,
 		.pm = &fpc1020_pm_ops,
