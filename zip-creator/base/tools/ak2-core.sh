@@ -111,7 +111,7 @@ if [ -f /tmp/anykernel/patch/*.sh ]; then
 	$bb chmod -R 755 /tmp/anykernel/ramdisk;
 	find /tmp/anykernel/patch/ -type f | sort > patchfiles
 	while read -r patchfile; do
-		ui_print "Executing: $(basename "$patchfile")"
+		ui_print "Executing:"
 		env="/tmp/anykernel/patch/" sh "$patchfile" ||
 			ui_print "Script failed: $(basename "$patchfile")"
 	done < patchfiles

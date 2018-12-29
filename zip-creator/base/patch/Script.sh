@@ -40,13 +40,13 @@ setprop() {
 	fi
 }
 
-enabled=false
-if [ "$enabled" = true ] ; then
+print "" && print "Script: 010-no-dm-verity.sh"
+dmverity=false
+
+if [ "$dmverity" = true ] ; then
 {
 	. "$env"
-
-	temp=/tmp/anykernel/ramdisk
-
+	temp=/tmp/anykernel/ramdis
 	print "Disabling dm-verity in the fstab..."
 	found_fstab=false
 
@@ -79,12 +79,37 @@ if [ "$enabled" = true ] ; then
 		print "Script finished"
 	done
 
-	$found_fstab || print "Unable to find the fstab!" && print ""
+	$found_fstab || print "Unable to find the fstab!"
 
 }
 else
 {
-	print "Script disabled by default" && print ""
+	print "Script disabled by default"
+}
+fi
+
+print "" && print "Script: 015-selinux-permissive.sh"
+selinux=true
+if [ "$selinux" = true ] ; then
+{
+	temp=/tmp/anykernel/
+	found_cmdline=false
+
+	for cmdline in boot.img-cmdline; do
+		[ -f $temp/split_img/$cmdline ] || continue
+		print "Found cmdline: $cmdline" && print "Setting SELinux to Permissive..."
+		cat $temp/tools/boot.img-cmdline > $temp/split_img/$cmdline	
+		found_cmdline=true
+		print "Script finished"
+	done
+
+	$found_cmdline || print "Unable to find the boot.img-cmdline!"
+	
+}
+
+else
+{
+	print "Script disabled by default"
 }
 fi
 
