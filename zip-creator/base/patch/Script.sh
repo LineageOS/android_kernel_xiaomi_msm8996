@@ -92,13 +92,15 @@ print "" && print "Script: 015-selinux-permissive.sh"
 selinux=true
 if [ "$selinux" = true ] ; then
 {
-	temp=/tmp/anykernel/
+	temp=/tmp/anykernel/split_img
 	found_cmdline=false
 
 	for cmdline in boot.img-cmdline; do
-		[ -f $temp/split_img/$cmdline ] || continue
+		[ -f $temp/$cmdline ] || continue
 		print "Found cmdline: $cmdline" && print "Setting SELinux to Permissive..."
-		cat $temp/tools/boot.img-cmdline > $temp/split_img/$cmdline	
+        echo "androidboot.hardware=qcom ehci-hcd.park=3 lpm_levels.sleep_disabled=1 cma=32M@0-0xffffffff androidboot.selinux=permissive buildvariant=userdebug" >> $temp/boot.img-cmdline-new
+		cat $temp/boot.img-cmdline-new > $temp/$cmdline	
+        rm -rf $temp/boot.img-cmdline-new 
 		found_cmdline=true
 		print "Script finished"
 	done

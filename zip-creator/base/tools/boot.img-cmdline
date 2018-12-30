@@ -1,1 +1,0 @@
-androidboot.hardware=qcom ehci-hcd.park=3 lpm_levels.sleep_disabled=1 cma=32M@0-0xffffffff androidboot.selinux=permissive buildvariant=userdebug
