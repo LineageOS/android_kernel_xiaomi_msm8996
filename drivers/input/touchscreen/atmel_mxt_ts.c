@@ -744,6 +744,7 @@ struct mxt_data {
 	struct work_struct hover_loading_work;
 	struct work_struct noise_work;
 	struct work_struct esd_work;
+	struct work_struct fb_notify_work;
 	bool finger_down[MXT_MAX_FINGER_NUM];
 
 	/* Cached parameters from object table */
@@ -5731,6 +5732,13 @@ static int mxt_pinctrl_select(struct mxt_data *data, bool on)
 }
 
 #ifdef CONFIG_FB
+static void fb_notify_resume_work(struct work_struct *work)
+{
+	struct mxt_data *mxt_data =
+		container_of(work, struct mxt_data, fb_notify_work);
+	mxt_input_enable(mxt_data->input_dev);
+}
+
 extern bool mdss_panel_is_prim(struct fb_info *fbi);
 static int fb_notifier_cb(struct notifier_block *self,
 			unsigned long event, void *data)
@@ -5750,7 +5758,7 @@ static int fb_notifier_cb(struct notifier_block *self,
 		} else if (event == FB_EARLY_EVENT_BLANK) {
 			blank = evdata->data;
 			if (*blank == FB_BLANK_UNBLANK || *blank == FB_BLANK_NORMAL) {
-				mxt_input_enable(mxt_data->input_dev);
+				schedule_work(&mxt_data->fb_notify_work);
 			} else if (*blank == FB_BLANK_POWERDOWN) {
 				mxt_input_disable(mxt_data->input_dev);
 			}
@@ -6794,6 +6802,7 @@ static int mxt_probe(struct i2c_client *client,
 	INIT_WORK(&data->self_tuning_work, mxt_self_tuning_work);
 	INIT_WORK(&data->hover_loading_work, mxt_hover_loading_work);
 	INIT_WORK(&data->esd_work, mxt_esd_work);
+	INIT_WORK(&data->fb_notify_work, fb_notify_resume_work);
 	INIT_DELAYED_WORK(&data->calibration_delayed_work,
 				mxt_calibration_delayed_work);
 
