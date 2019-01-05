@@ -43,10 +43,22 @@
 #include "version.h"
 
 #ifdef CONFIG_SDFAT_SUPPORT_STLOG
+#ifdef CONFIG_PROC_FSLOG
+#include <linux/fslog.h>
+#else
 #include <linux/stlog.h>
+#endif
 #else
 #define ST_LOG(fmt, ...)
 #endif
+
+/*************************************************************************
+ * FUNCTIONS WHICH HAS KERNEL VERSION DEPENDENCY
+ *************************************************************************/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
+#define CURRENT_TIME_SEC	timespec_trunc(current_kernel_time(), NSEC_PER_SEC)
+#endif
+
 
 /*
  * sdfat_fs_error reports a file system problem that might indicate fa data
@@ -84,6 +96,7 @@ void __sdfat_fs_error(struct super_block *sb, int report, const char *fmt, ...)
 			sb->s_id, MAJOR(bd_dev), MINOR(bd_dev));
 	} else if (opts->errors == SDFAT_ERRORS_RO && !(sb->s_flags & MS_RDONLY)) {
 		sb->s_flags |= MS_RDONLY;
+		sdfat_statistics_set_mnt_ro();
 		pr_err("[SDFAT](%s[%d:%d]): Filesystem has been set "
 			"read-only\n", sb->s_id, MAJOR(bd_dev), MINOR(bd_dev));
 #ifdef CONFIG_SDFAT_SUPPORT_STLOG
@@ -253,14 +266,8 @@ void sdfat_time_unix2fat(struct sdfat_sb_info *sbi, struct timespec *ts,
 
 TIMESTAMP_T *tm_now(struct sdfat_sb_info *sbi, TIMESTAMP_T *tp)
 {
-	struct timespec ts;
+	struct timespec ts = CURRENT_TIME_SEC;
 	DATE_TIME_T dt;
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,8,0)
-	ts = CURRENT_TIME_SEC;
-#else
-	ktime_get_real_ts(&ts);
-#endif
 
 	sdfat_time_unix2fat(sbi, &ts, &dt);
 
@@ -384,3 +391,4 @@ void __sdfat_dmsg(int level, const char *fmt, ...)
 #endif
 }
 #endif
+

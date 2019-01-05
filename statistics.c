@@ -8,6 +8,7 @@ enum {
 	SDFAT_MNT_FAT16,
 	SDFAT_MNT_FAT32,
 	SDFAT_MNT_EXFAT,
+	SDFAT_MNT_RO,
 	SDFAT_MNT_MAX
 };
 
@@ -85,11 +86,12 @@ static ssize_t mount_show(struct kobject *kobj,
 {
 	return snprintf(buff, PAGE_SIZE, "\"FAT12_MNT_I\":\"%u\","
 			"\"FAT16_MNT_I\":\"%u\",\"FAT32_MNT_I\":\"%u\","
-			"\"EXFAT_MNT_I\":\"%u\"\n",
+			"\"EXFAT_MNT_I\":\"%u\",\"RO_MNT_I\":\"%u\"\n",
 			statistics.mnt_cnt[SDFAT_MNT_FAT12],
 			statistics.mnt_cnt[SDFAT_MNT_FAT16],
 			statistics.mnt_cnt[SDFAT_MNT_FAT32],
-			statistics.mnt_cnt[SDFAT_MNT_EXFAT]);
+			statistics.mnt_cnt[SDFAT_MNT_EXFAT],
+			statistics.mnt_cnt[SDFAT_MNT_RO]);
 }
 
 static ssize_t nofat_op_show(struct kobject *kobj,
@@ -199,6 +201,11 @@ void sdfat_statistics_set_mnt(FS_INFO_T *fsi)
 		statistics.clus_vfat[fsi->sect_per_clus_bits]++;
 	else
 		statistics.clus_vfat[SDFAT_VF_CLUS_MAX - 1]++;
+}
+
+void sdfat_statistics_set_mnt_ro(void)
+{
+	statistics.mnt_cnt[SDFAT_MNT_RO]++;
 }
 
 void sdfat_statistics_set_mkdir(u8 flags)
