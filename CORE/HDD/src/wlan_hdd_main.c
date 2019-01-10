@@ -17166,16 +17166,22 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                                   NET_NAME_UNKNOWN,
                                   rtnl_lock_enable);
    } else {
+#ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
       pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
                                   wlan_hdd_get_intf_addr(pHddCtx),
                                   NET_NAME_UNKNOWN,
                                   rtnl_lock_enable);
+#endif
 
 #ifdef WLAN_OPEN_P2P_INTERFACE
     if(VOS_MONITOR_MODE != vos_get_conparam()){
       /* Open P2P device interface */
+#ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
       if (pAdapter != NULL &&
           !hdd_cfg_is_sub20_channel_width_enabled(pHddCtx)) {
+#else
+      {
+#endif
          if (pHddCtx->cfg_ini->isP2pDeviceAddrAdministrated &&
              !(pHddCtx->cfg_ini->intfMacAddr[0].bytes[0] & 0x02)) {
             vos_mem_copy(pHddCtx->p2pDeviceAddress.bytes,
@@ -17198,7 +17204,11 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
             }
          }
 
+#ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
          pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p%d",
+#else
+         pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
+#endif
                                         &pHddCtx->p2pDeviceAddress.bytes[0],
                                         NET_NAME_UNKNOWN,
                                         rtnl_lock_enable);
@@ -17228,6 +17238,10 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          }
       }
    }
+
+#ifdef SUPPORT_P2P_BY_ONE_INTF_WLAN
+   pAdapter = pP2pAdapter;
+#endif
 
    if( pAdapter == NULL )
    {

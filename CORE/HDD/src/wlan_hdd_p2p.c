@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2068,11 +2068,13 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
         mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
     }
 
+#ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
     if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
        (type == SIR_MAC_MGMT_FRAME && subType == SIR_MAC_MGMT_PROBE_RSP)) {
         /* Drop Probe response recieved from supplicant in sta mode */
         goto err_rem_channel;
     }
+#endif
 
     //Call sme API to send out a action frame.
     // OR can we send it directly through data path??
