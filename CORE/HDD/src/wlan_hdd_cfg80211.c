@@ -14172,12 +14172,14 @@ static int hdd_convert_auth_type(uint32_t auth_type)
 	case eCSR_AUTH_TYPE_WAPI_WAI_PSK:
 		ret_val = QCA_WLAN_AUTH_TYPE_WAI_PSK;
 		break;
+#ifdef WLAN_FEATURE_11W
 	case eCSR_AUTH_TYPE_RSN_PSK_SHA256:
 		ret_val = QCA_WLAN_AUTH_TYPE_SHA256_PSK;
 		break;
 	case eCSR_AUTH_TYPE_RSN_8021X_SHA256:
 		ret_val = QCA_WLAN_AUTH_TYPE_SHA256;
 		break;
+#endif
 	case eCSR_NUM_OF_SUPPORT_AUTH_TYPE:
 	case eCSR_AUTH_TYPE_FAILED:
 	case eCSR_AUTH_TYPE_NONE:
