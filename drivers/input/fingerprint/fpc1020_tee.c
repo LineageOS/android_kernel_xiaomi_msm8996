@@ -4,8 +4,9 @@
  * Copyright (c) 2015 Fingerprint Cards AB <tech@fingerprints.com>:
  *	Aleksej Makarov
  * 	Henrik Tillman <henrik.tillman@fingerprints.com>
- *
- * Copyright (C) 2017, Sultanxda <sultanxda@gmail.com>
+ * Copyright (C) 2016 XiaoMi, Inc.
+ * Copyright (C) 2017 Sultanxda <sultanxda@gmail.com>
+ * Copyright (C) 2018 xNombre <kartapolska@gmail.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License Version 2
