@@ -40,10 +40,12 @@
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/pm_wakeup.h>
+#include <linux/fpc1020.h>
 
 #define FPC_TTW_HOLD_TIME_MS	(1000)
 #define FPC1020_NAME "fpc1020"
-//const char fp_hal[] = "android.hardware.biometrics.fingerprint@2.1-service";
+
+atomic_t fp_hal_pid;
 
 struct fpc1020_data {
 	struct device *dev;
@@ -306,26 +308,24 @@ static const struct attribute_group fpc1020_attr_group = {
 	.attrs = attributes,
 };
 
-// Unfortunately we have to dummy nice because p->comm length is only 16
-#if 0
 static void set_fingerprint_hal_nice(int nice)
 {
 	struct task_struct *p;
+	int pid = atomic_read(&fp_hal_pid);
+	if(!pid) {
+		return;
+	}
+
 	read_lock(&tasklist_lock);
 	for_each_process(p) {
-		if(!memcmp(p, fp_hal, sizeof(fp_hal))) {
+		if(p->pid == pid) {
 			set_user_nice(p, nice);
-			pr_warn("fp nice set!!");
+			pr_debug("fp nice set!!");
 			break;
 		}
 	}
 	read_unlock(&tasklist_lock);
 }
-#else
-static void set_fingerprint_hal_nice(int nice)
-{
-}
-#endif
 
 static void fpc1020_suspend_resume(struct work_struct *work)
 {
