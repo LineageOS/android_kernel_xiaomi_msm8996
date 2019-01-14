@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1873,10 +1873,86 @@ HIFAckInterrupt(HIF_DEVICE *device)
     /* Acknowledge our function IRQ */
 }
 
+#ifdef CONFIG_GPIO_OOB
 void
 HIFUnMaskInterrupt(HIF_DEVICE *device)
 {
-    int ret;;
+	int ret;
+
+	if (!device || !device->func)
+		return;
+
+	ENTER();
+	/*
+	 * On HP Elitebook 8460P, interrupt mode is not stable in high
+	 * throughput, so polling method should be used instead of
+	 * interrupt mode
+	 */
+	if (brokenirq) {
+		pr_err("AR6000:Using broken IRQ mode\n");
+		/* disable IRQ support even the capability exists */
+		device->func->card->host->caps &= ~MMC_CAP_SDIO_IRQ;
+	}
+	/* Register the IRQ Handler */
+	sdio_claim_host(device->func);
+	if (device->hif_oob.oob_gpio_flag & GPIO_OOB_INTERRUPT_ENABLE) {
+		ret = hif_oob_claim_irq(hif_oob_irq_handler, device);
+	} else {
+		if (false == vos_oob_enabled())
+			ret = sdio_claim_irq(device->func, hifIRQHandler);
+		else
+			ret = vos_register_oob_irq_handler(hif_oob_irq_handler,
+							   device->func);
+	}
+
+	sdio_release_host(device->func);
+	AR_DEBUG_ASSERT(ret == 0);
+	EXIT();
+}
+
+void HIFMaskInterrupt(HIF_DEVICE *device)
+{
+	int ret;
+
+	if (!device || !device->func)
+		return;
+	ENTER();
+
+	/* Mask our function IRQ */
+	sdio_claim_host(device->func);
+	while (atomic_read(&device->irqHandling)) {
+		sdio_release_host(device->func);
+		schedule_timeout_interruptible(HZ / 10);
+		sdio_claim_host(device->func);
+	}
+
+	if (device->hif_oob.oob_gpio_flag & GPIO_OOB_INTERRUPT_ENABLE) {
+		ret = hif_oob_release_irq(device);
+	} else {
+		if (false == vos_oob_enabled())
+			ret = sdio_release_irq(device->func);
+		else
+			ret = vos_unregister_oob_irq_handler(device->func);
+	}
+
+	sdio_release_host(device->func);
+	if (ret) {
+		if (ret == -ETIMEDOUT) {
+			AR_DEBUG_PRINTF(ATH_DEBUG_WARN,
+				("AR6000: Timeout mask interrupt. Card rm?"));
+		} else {
+			AR_DEBUG_PRINTF(ATH_DEBUG_ERROR,
+				("AR6000: Unable to mask interrupt %d\n", ret));
+			AR_DEBUG_ASSERT(ret == 0);
+		}
+	}
+	EXIT();
+}
+#else
+void
+HIFUnMaskInterrupt(HIF_DEVICE *device)
+{
+    int ret;
 
     if (device == NULL || device->func == NULL)
         return;
@@ -1937,6 +2013,7 @@ void HIFMaskInterrupt(HIF_DEVICE *device)
     }
     EXIT();
 }
+#endif
 
 void hif_release_bus_requests(HIF_DEVICE *device)
 {
@@ -2397,6 +2474,7 @@ static int hifDeviceSuspend(struct device *dev)
                     AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("AR6000: set sdio pm flags MMC_PM_WAKE_SDIO_IRQ failed: %d\n",ret));
                     return ret;
                 }
+                hif_set_wow_maskint(device, true);
                 HIFMaskInterrupt(device);
                 device->DeviceState = HIF_DEVICE_STATE_WOW;
                 AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("hifDeviceSuspend: wow success\n"));
@@ -2414,6 +2492,7 @@ static int hifDeviceSuspend(struct device *dev)
                  * But before adding finishe callback function to these handler, sleep wait is a simple method.
                  */
                 msleep(100);
+                hif_set_wow_maskint(device, true);
                 HIFMaskInterrupt(device);
                 device->DeviceState = HIF_DEVICE_STATE_DEEPSLEEP;
                 AR_DEBUG_PRINTF(ATH_DEBUG_INFO, ("hifDeviceSuspend: deep sleep success\n"));
@@ -2486,6 +2565,7 @@ static int hifDeviceResume(struct device *dev)
         }
     }
     else if(device->DeviceState == HIF_DEVICE_STATE_DEEPSLEEP){
+        hif_set_wow_maskint(device, false);
         HIFUnMaskInterrupt(device);
 //        hifRestartAllVap((struct ol_ath_softc_net80211 *)device->claimedContext);
     }
@@ -2501,6 +2581,7 @@ static int hifDeviceResume(struct device *dev)
           return status;
         }
         /*TODO:WOW support*/
+        hif_set_wow_maskint(device, false);
         HIFUnMaskInterrupt(device);
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -413,7 +413,24 @@ static void vos_set_ac_specs_params(tMacOpenParameters *param,
 	}
 }
 
-
+/**
+ * set_oob_gpio_config() - set oob gpio config
+ * @scn: pointer to scn
+ * @hdd_ctx: pointer to hdd_ctx
+ *
+ * Return NULL
+ */
+#ifdef CONFIG_GPIO_OOB
+static void set_oob_gpio_config(struct ol_softc *scn, hdd_context_t *hdd_ctx)
+{
+   scn->oob_gpio_num = hdd_ctx->cfg_ini->oob_gpio_num;
+   scn->oob_gpio_flag = hdd_ctx->cfg_ini->oob_gpio_flag;
+}
+#else
+static void set_oob_gpio_config(struct ol_softc *scn, hdd_context_t *hdd_ctx)
+{
+}
+#endif
 /*---------------------------------------------------------------------------
 
   \brief vos_open() - Open the vOSS Module
@@ -547,6 +564,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    scn->enableFwSelfRecovery = pHddCtx->cfg_ini->enableFwSelfRecovery;
    scn->fastfwdump_host = pHddCtx->cfg_ini->fastfwdump;
    scn->max_no_of_peers = pHddCtx->max_peers;
+   set_oob_gpio_config(scn, pHddCtx);
 #ifdef WLAN_FEATURE_LPSS
    scn->enablelpasssupport = pHddCtx->cfg_ini->enablelpasssupport;
 #endif
