@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -227,17 +227,21 @@ lim_check_and_change_cc(tpAniSirGlobal mac_ptr,
 		    timer_status = VOS_TIMER_STATE_UNUSED;
 		else {
 		    do {
-			timer_status =
-			vos_timer_getCurrentState(&(session_ptr->reg_update_pwr_timer));
-			count++;
-			if (count > 255) {
-				limLog(mac_ptr, LOGE, FL("pwr timer busy!"));
-				return;
-			}
-		    } while(timer_status != VOS_TIMER_STATE_UNUSED);
+				timer_status =
+				vos_timer_getCurrentState(&(session_ptr->reg_update_pwr_timer));
+				count++;
+				if (count > 255) {
+					limLog(mac_ptr, LOGE, FL("pwr timer busy!"));
+					return;
+				}
+			} while (timer_status != VOS_TIMER_STATE_UNUSED);
 		}
 
 		pwr_timer_data = vos_mem_malloc(sizeof(*pwr_timer_data));
+		if (pwr_timer_data == NULL) {
+			limLog(mac_ptr, LOGE, FL("Mem alloc failed"));
+			return;
+		}
 		pwr_timer_data->session_ptr = session_ptr;
 		pwr_timer_data->mac_ptr = mac_ptr;
 		vos_timer_init(&(session_ptr->reg_update_pwr_timer), VOS_TIMER_TYPE_SW,
