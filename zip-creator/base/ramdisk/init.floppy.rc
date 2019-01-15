@@ -53,3 +53,9 @@ exec u:r:su:s0 root root -- /init.animation.sh
 #Underclock
     write /sys/module/cpufreq/parameters/enable_underclock_balanced N
     write /sys/module/cpufreq/parameters/enable_underclock_battery N
+
+# Update cpusets now that boot is complete and we want better load balancing
+    write /dev/cpuset/top-app/cpus 0-3
+    write /dev/cpuset/foreground/cpus 0-2
+    write /dev/cpuset/background/cpus 0
+    write /dev/cpuset/system-background/cpus 0-2
