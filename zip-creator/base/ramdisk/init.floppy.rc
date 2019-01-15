@@ -5,12 +5,45 @@ import /init.spectrum.rc
 
 on boot
 
-    # Set light thermal restrictions while optimizing apps
-    # [throttle_freq_LITTLE, throttle_freq_big, throttle_temp, unthrottle_temp]
+# Set light thermal restrictions while optimizing apps
+# [throttle_freq_LITTLE, throttle_freq_big, throttle_temp, unthrottle_temp]
     write /sys/kernel/msm_thermal/zone0 "1228800 1632000 46 44"
     write /sys/kernel/msm_thermal/zone1 "1228800 1555200 50 47"
     write /sys/kernel/msm_thermal/zone2 "1036800 1248000 55 53"
     write /sys/kernel/msm_thermal/zone3 "729600 729600 65 63"
+    write /sys/kernel/msm_thermal/enabled 1
+ 
+on charger
+
+#Config Simple Thermal driver
+# [throttle_freq_LITTLE, throttle_freq_BIG, throttle_temp, unthrottle_temp]
+    write /sys/kernel/msm_thermal/enabled 0
+    write /sys/kernel/msm_thermal/zone0  "1996800 2150400 37 36"
+    write /sys/kernel/msm_thermal/zone1  "1728000 2073600 38 37"
+    write /sys/kernel/msm_thermal/zone2  "1593600 1996800 39 38"
+    write /sys/kernel/msm_thermal/zone3  "1593600 1920000 40 39"
+    write /sys/kernel/msm_thermal/zone4  "1478400 1824000 41 40"
+    write /sys/kernel/msm_thermal/zone5  "1478400 1785600 42 41"
+    write /sys/kernel/msm_thermal/zone5  "1478400 1708800 43 42"
+    write /sys/kernel/msm_thermal/zone6  "1401600 1632000 44 43"
+    write /sys/kernel/msm_thermal/zone6  "1401600 1555200 45 44"
+    write /sys/kernel/msm_thermal/zone7  "1401600 1478400 46 45"
+    write /sys/kernel/msm_thermal/zone8  "1401600 1401600 47 46"
+    write /sys/kernel/msm_thermal/zone9  "1324800 1324800 48 47"
+    write /sys/kernel/msm_thermal/zone10 "1324800 1248000 49 48"
+    write /sys/kernel/msm_thermal/zone11 "1228800 1190400 50 49"
+    write /sys/kernel/msm_thermal/zone12 "1190400 1113600 51 50"
+    write /sys/kernel/msm_thermal/zone13 "1113600 1036800 52 51"
+    write /sys/kernel/msm_thermal/zone14 "1036800 940800 53 52"
+    write /sys/kernel/msm_thermal/zone15 "960000 883200 54 53"
+    write /sys/kernel/msm_thermal/zone16 "844800 806400 55 54"
+    write /sys/kernel/msm_thermal/zone17 "729600 729600 56 55"
+    write /sys/kernel/msm_thermal/zone18 "652800 652800 57 56"
+    write /sys/kernel/msm_thermal/zone19 "556800 556800 58 57"
+    write /sys/kernel/msm_thermal/zone20 "480000 480000 59 58"
+    write /sys/kernel/msm_thermal/zone21 "422400 403200 60 59"
+    write /sys/kernel/msm_thermal/zone22 "307200 307200 65 60"
+    write /sys/kernel/msm_thermal/sampling_ms 1000
     write /sys/kernel/msm_thermal/enabled 1
     
 on property:sys.boot_completed=1
