@@ -70,6 +70,7 @@ static int tfa98xx_kmsg_regs = 0;
 static int tfa98xx_ftrace_regs = 0;
 
 static char *fw_name = "tfa98xx.cnt";
+static char *tfa9891_fw_name = "tfa9891.cnt";
 module_param(fw_name, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(fw_name, "TFA98xx DSP firmware (container file) name.");
 
@@ -3129,6 +3130,8 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 			pr_info("TFA9891 detected\n");
 			tfa98xx->flags |= TFA98XX_FLAG_SAAM_AVAILABLE;
 			tfa98xx->flags |= TFA98XX_FLAG_SKIP_INTERRUPTS;
+			/* set proper firmware for tfa9891 */
+			fw_name = tfa9891_fw_name;
 			break;
 		case 0x12: /* tfa9895 */
 			pr_info("TFA9895 detected\n");
