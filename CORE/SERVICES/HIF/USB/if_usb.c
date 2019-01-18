@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016, 2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016, 2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -434,6 +434,7 @@ static int hif_usb_resume(struct usb_interface *interface)
 	return 0;
 }
 
+#ifndef USB_RESET_RESUME_PERSISTENCE
 static int hif_usb_reset_resume(struct usb_interface *intf)
 {
 	HIF_DEVICE_USB *device = usb_get_intfdata(intf);
@@ -444,6 +445,14 @@ static int hif_usb_reset_resume(struct usb_interface *intf)
 	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
 	return 0;
 }
+#else
+static int hif_usb_reset_resume(struct usb_interface *intf)
+{
+	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
+	hif_usb_resume(intf);
+	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
+}
+#endif
 
 static struct usb_device_id hif_usb_id_table[] = {
 	{USB_DEVICE_AND_INTERFACE_INFO(VENDOR_ATHR, 0x9378, 0xFF, 0xFF, 0xFF)},
