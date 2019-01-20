@@ -861,7 +861,7 @@ defrag_update_fat_prev(
 	int skip = 0, done = 0;
 
 	/* Check if FS_ERROR occurred */
-	if (sb->s_flags & MS_RDONLY) {
+	if (SDFAT_IS_SB_RDONLY(sb)) {
 		dfr_err("RDONLY partition (err %d)", -EPERM);
 		goto out;
 	}
@@ -1040,7 +1040,7 @@ defrag_update_fat_next(
 	int done = 0, i = 0, j = 0, err = 0;
 
 	/* Check if FS_ERROR occurred */
-	if (sb->s_flags & MS_RDONLY) {
+	if (SDFAT_IS_SB_RDONLY(sb)) {
 		dfr_err("RDONLY partition (err %d)", -EROFS);
 		goto out;
 	}
