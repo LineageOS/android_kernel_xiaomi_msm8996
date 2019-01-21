@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -98,6 +98,16 @@ void hif_init_pdev_txrx_handle(void *ol_sc, void *txrx_handle);
 void hif_disable_isr(void *ol_sc);
 void hif_reset_soc(void *ol_sc);
 void hif_deinit_adf_ctx(void *ol_sc);
+
+/**
+ * hif_get_reg() - get register value
+ * @ol_sc: pointer to ol_sc
+ * @address: register address
+ * @data register value
+ *
+ * Return NULL
+ */
+void hif_get_reg(void *ol_sc, u32 address, u32 *data);
 
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
 void hif_set_fw_info(void *ol_sc, u32 target_fw_version);

@@ -37087,10 +37087,14 @@ static int wma_vdev_tsf_handler(void *handle, uint8_t *data,
 	ptsf->vdev_id = tsf_event->vdev_id;
 	ptsf->tsf_low = tsf_event->tsf_low;
 	ptsf->tsf_high = tsf_event->tsf_high;
+	ptsf->tsf_id = tsf_event->tsf_id;
+	ptsf->tsf_id_valid = tsf_event->tsf_id_valid;
 
 	WMA_LOGD("%s: receive WMI_VDEV_TSF_REPORT_EVENTID ", __func__);
 	WMA_LOGD("%s: vdev_id = %u,tsf_low =%u, tsf_high = %u", __func__,
 			 ptsf->vdev_id, ptsf->tsf_low, ptsf->tsf_high);
+	WMA_LOGD("%s: vdev_id = %u,tsf_id =%u, tsf_id_valid = %u", __func__,
+			 ptsf->vdev_id, ptsf->tsf_id, ptsf->tsf_id_valid);
 
 	vos_msg.type = eWNI_SME_TSF_EVENT;
 	vos_msg.bodyptr = ptsf;

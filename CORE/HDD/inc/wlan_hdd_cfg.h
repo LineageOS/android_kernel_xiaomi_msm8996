@@ -4202,6 +4202,25 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_SET_TSF_GPIO_PIN_HOST_MAX                   (254)
 #define CFG_SET_TSF_GPIO_PIN_HOST_DEFAULT               (45)
 
+/*
+ * <ini>
+ * gtsf_by_register - get tsf by register
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to get tsf by register
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_GET_TSF_BY_REGISTER_NAME                  "gtsf_by_register"
+#define CFG_GET_TSF_BY_REGISTER_MIN                   (0)
+#define CFG_GET_TSF_BY_REGISTER_MAX                   (1)
+#define CFG_GET_TSF_BY_REGISTER_DEFAULT               (0)
+
 #ifdef WLAN_FEATURE_TSF_PLUS
 /* PTP options */
 #define CFG_SET_TSF_PTP_OPT_NAME                  "gtsf_ptp_options"
@@ -6312,6 +6331,7 @@ struct hdd_config {
 #ifdef WLAN_FEATURE_TSF
    uint32_t                    tsf_gpio_pin;
    uint32_t                    tsf_gpio_pin_host;
+   uint8_t                     tsf_by_register;
 #ifdef WLAN_FEATURE_TSF_PLUS
    uint8_t                     tsf_ptp_options;
 #endif /* WLAN_FEATURE_TSF_PLUS */

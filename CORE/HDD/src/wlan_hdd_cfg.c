@@ -4587,6 +4587,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SET_TSF_GPIO_PIN_HOST_MIN,
                 CFG_SET_TSF_GPIO_PIN_HOST_MAX),
 
+   REG_VARIABLE(CFG_GET_TSF_BY_REGISTER_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, tsf_by_register,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_GET_TSF_BY_REGISTER_DEFAULT,
+                CFG_GET_TSF_BY_REGISTER_MIN,
+                CFG_GET_TSF_BY_REGISTER_MAX),
+
    REG_VARIABLE(CFG_SET_TSF_GPIO_PIN_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, tsf_gpio_pin,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
