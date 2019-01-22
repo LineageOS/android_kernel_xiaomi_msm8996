@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -24731,6 +24731,11 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	vos_event_set(&wma->wma_resume_event);
 	if (param_buf->wow_packet_buffer) {
+		if (param_buf->num_wow_packet_buffer <= 4) {
+			WMA_LOGE("Invalid wow packet buffer from firmware %u",
+				param_buf->num_wow_packet_buffer);
+			return -EINVAL;
+		}
 		wow_buf_pkt_len = *(uint32_t *)param_buf->wow_packet_buffer;
 		if (wow_buf_pkt_len > (param_buf->num_wow_packet_buffer - 4)) {
 			WMA_LOGE("Invalid wow buf pkt len from firmware, wow_buf_pkt_len: %u, num_wow_packet_buffer: %u",
@@ -27916,6 +27921,10 @@ static int wma_set_base_macaddr_indicate(tp_wma_handle wma_handle,
 	}
 	WMA_LOGD("Base MAC Addr: "MAC_ADDRESS_STR,
 		MAC_ADDR_ARRAY((*customAddr)));
+
+	/* update the mac addr, because wlan_mac.bin changes it */
+	vos_mem_copy(wma_handle->myaddr, customAddr, sizeof(tSirMacAddr));
+	vos_mem_copy(wma_handle->hwaddr, customAddr, sizeof(tSirMacAddr));
 
 	return 0;
 }

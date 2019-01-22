@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2018 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -253,7 +253,7 @@ static int __wlan_hdd_read_dsrc_chan_stats_debugfs(struct file *file,
 	ptr = chan_stats_buf + sizeof(uint32_t);
 
 	chan_stats = ctx->chan_stats;
-	spin_lock(&ctx->chan_stats_lock);
+	adf_os_spin_lock(&ctx->chan_stats_lock);
 	/* Now only two channel stats supported */
 	for (i = 0; i < DSRC_MAX_CHAN_STATS_CNT; i++, chan_stats++) {
 		if (chan_stats->chan_freq == 0)
@@ -266,7 +266,7 @@ static int __wlan_hdd_read_dsrc_chan_stats_debugfs(struct file *file,
 		ptr += sizeof(*chan_stats);
 		chan_cnt++;
 	}
-	spin_unlock(&ctx->chan_stats_lock);
+	adf_os_spin_unlock(&ctx->chan_stats_lock);
 	vos_mem_copy(chan_stats_buf, &chan_cnt, sizeof(uint32_t));
 
 	ret_cnt = sizeof(uint32_t) + chan_cnt * sizeof(*chan_stats);

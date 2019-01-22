@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -93,6 +93,7 @@
 #include <linux/ctype.h>
 #include <linux/compat.h>
 #include <linux/pm_qos.h>
+#include <linux/ethtool.h>
 #ifdef MSM_PLATFORM
 #ifdef CONFIG_CNSS
 #include <soc/qcom/subsystem_restart.h>
@@ -196,8 +197,8 @@ static char fwpath_mode_local[BUF_LEN];
  * spinlock for synchronizing asynchronous request/response
  * (full description of use in wlan_hdd_main.h)
  */
-DEFINE_SPINLOCK(hdd_context_lock);
-
+//DEFINE_SPINLOCK(hdd_context_lock);
+adf_os_spinlock_t hdd_context_lock;
 /*
  * The rate at which the driver sends RESTART event to supplicant
  * once the function 'vos_wlanRestart()' is called
@@ -1793,12 +1794,11 @@ static void hdd_set_thermal_level_cb(hdd_context_t *pHddCtx, u_int8_t level)
 static bool
 hdd_system_suspend_state(hdd_context_t *hdd_ctx)
 {
-	unsigned long flags;
 	bool s;
 
-	spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock, flags);
+	adf_os_spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock);
 	s = hdd_ctx->system_suspended;
-	spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock, flags);
+	adf_os_spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock);
 	return s;
 }
 
@@ -1814,13 +1814,12 @@ hdd_system_suspend_state(hdd_context_t *hdd_ctx)
 bool
 hdd_system_suspend_state_set(hdd_context_t *hdd_ctx, bool state)
 {
-	unsigned long flags;
 	bool old;
 
-	spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock, flags);
+	adf_os_spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock);
 	old = hdd_ctx->system_suspended;
 	hdd_ctx->system_suspended = state;
-	spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock, flags);
+	adf_os_spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock);
 
 	return old;
 }
@@ -1836,12 +1835,11 @@ hdd_system_suspend_state_set(hdd_context_t *hdd_ctx, bool state)
 int
 hdd_thermal_suspend_state(hdd_context_t *hdd_ctx)
 {
-	unsigned long flags;
 	int s;
 
-	spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock, flags);
+	adf_os_spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock);
 	s = hdd_ctx->thermal_suspend_state;
-	spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock, flags);
+	adf_os_spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock);
 
 	return s;
 }
@@ -1849,11 +1847,10 @@ hdd_thermal_suspend_state(hdd_context_t *hdd_ctx)
 static bool
 hdd_thermal_suspend_transit(hdd_context_t *hdd_ctx, int target, int *old)
 {
-	unsigned long flags;
 	int s;
 	bool ret = false;
 
-	spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock, flags);
+	adf_os_spin_lock_irqsave(&hdd_ctx->thermal_suspend_lock);
 
 	s = hdd_ctx->thermal_suspend_state;
 	if (old)
@@ -1887,7 +1884,7 @@ hdd_thermal_suspend_transit(hdd_context_t *hdd_ctx, int target, int *old)
 	if (ret)
 		hdd_ctx->thermal_suspend_state = target;
 
-	spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock, flags);
+	adf_os_spin_unlock_irqrestore(&hdd_ctx->thermal_suspend_lock);
 	return ret;
 }
 
@@ -7787,16 +7784,15 @@ mem_free:
 
            length = scnprintf( extra, sizeof(extra), "%d %d", (int)txRate,
                       (int)pHddStaCtx->ibss_peer_info.peerInfoParams[0].rssi);
-
+           length = VOS_MIN(priv_data.total_len, length + 1);
             /* Copy the data back into buffer */
-            if (copy_to_user(priv_data.buf, &extra, length+ 1))
-            {
+           if (copy_to_user(priv_data.buf, &extra, length)) {
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: copy data to user buffer failed GETIBSSPEERINFO command",
                   __func__);
                ret = -EFAULT;
                goto exit;
-            }
+           }
          }
          else
          {
@@ -9558,18 +9554,18 @@ bool hdd_dfs_indicate_radar(void *context, void *param)
 
     if (VOS_TRUE == hdd_radar_event->dfs_radar_status)
     {
-        spin_lock_bh(&pHddCtx->dfs_lock);
+        adf_os_spin_lock_bh(&pHddCtx->dfs_lock);
         if (pHddCtx->dfs_radar_found)
         {
             /* Application already triggered channel switch
              * on current channel, so return here
              */
-            spin_unlock_bh(&pHddCtx->dfs_lock);
+            adf_os_spin_unlock_bh(&pHddCtx->dfs_lock);
             return false;
         }
 
         pHddCtx->dfs_radar_found = VOS_TRUE;
-        spin_unlock_bh(&pHddCtx->dfs_lock);
+        adf_os_spin_unlock_bh(&pHddCtx->dfs_lock);
 
         status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
         while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
@@ -10855,6 +10851,10 @@ static v_U16_t hdd_select_queue(struct net_device *dev,
    return hdd_wmm_select_queue(dev, skb);
 }
 
+static const struct ethtool_ops wlan_ethtool_ops = {
+	.get_ts_info = wlan_get_ts_info,
+};
+
 static struct net_device_ops wlan_drv_ops = {
       .ndo_open = hdd_open,
       .ndo_stop = hdd_stop,
@@ -10893,6 +10893,7 @@ void hdd_set_station_ops( struct net_device *pWlanDev )
 		pWlanDev->netdev_ops = &wlan_mon_drv_ops;
 	else
 		pWlanDev->netdev_ops = &wlan_drv_ops;
+	pWlanDev->ethtool_ops = &wlan_ethtool_ops;
 }
 
 void hdd_set_monitor_ops(struct net_device *pwlan_dev)
@@ -11007,7 +11008,7 @@ hdd_adapter_runtime_suspend_denit(hdd_adapter_t *adapter) { }
  */
 static void hdd_adapter_init_action_frame_random_mac(hdd_adapter_t *adapter)
 {
-	spin_lock_init(&adapter->random_mac_lock);
+	adf_os_spinlock_init(&adapter->random_mac_lock);
 	vos_mem_zero(adapter->random_mac, sizeof(adapter->random_mac));
 }
 
@@ -11067,7 +11068,7 @@ static hdd_adapter_t* hdd_alloc_station_adapter(hdd_context_t *pHddCtx,
       pWlanDev->features |= NETIF_F_RXCSUM;
       hdd_set_station_ops( pAdapter->dev );
 
-      pWlanDev->destructor = free_netdev;
+      hdd_dev_setup_destructor(pWlanDev);
       pWlanDev->ieee80211_ptr = &pAdapter->wdev ;
       pWlanDev->tx_queue_len = HDD_NETDEV_TX_QUEUE_LEN;
       pAdapter->wdev.wiphy = pHddCtx->wiphy;
@@ -11076,7 +11077,7 @@ static hdd_adapter_t* hdd_alloc_station_adapter(hdd_context_t *pHddCtx,
       SET_NETDEV_DEV(pWlanDev, pHddCtx->parent_dev);
       hdd_wmm_init( pAdapter );
       hdd_adapter_runtime_suspend_init(pAdapter);
-      spin_lock_init(&pAdapter->pause_map_lock);
+      adf_os_spinlock_init(&pAdapter->pause_map_lock);
       pAdapter->last_tx_jiffies = jiffies;
       pAdapter->bug_report_count = 0;
       pAdapter->start_time = pAdapter->last_time = vos_system_ticks();
@@ -11140,7 +11141,7 @@ static hdd_adapter_t *hdd_alloc_monitor_adapter(hdd_context_t *pHddCtx,
 	   pwlan_dev->features |= NETIF_F_RXCSUM;
 	   hdd_set_monitor_ops(pAdapter->dev);
 
-	   pwlan_dev->destructor = free_netdev;
+	   hdd_dev_setup_destructor(pwlan_dev);
 	   pwlan_dev->ieee80211_ptr = &pAdapter->wdev;
 	   pwlan_dev->tx_queue_len = HDD_NETDEV_TX_QUEUE_LEN;
 	   pAdapter->wdev.wiphy = pHddCtx->wiphy;
@@ -11149,7 +11150,7 @@ static hdd_adapter_t *hdd_alloc_monitor_adapter(hdd_context_t *pHddCtx,
 	   SET_NETDEV_DEV(pwlan_dev, pHddCtx->parent_dev);
 	   hdd_wmm_init(pAdapter);
 	   hdd_adapter_runtime_suspend_init(pAdapter);
-	   spin_lock_init(&pAdapter->pause_map_lock);
+	   adf_os_spinlock_init(&pAdapter->pause_map_lock);
 	   pAdapter->last_tx_jiffies = jiffies;
 	   pAdapter->bug_report_count = 0;
 	   pAdapter->start_time = pAdapter->last_time = vos_system_ticks();
@@ -12615,39 +12616,43 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
              * For NDI do not use pWextState from sta_ctx, if needed
              * extract from ndi_ctx.
              */
-            if (WLAN_HDD_NDI == pAdapter->device_mode)
-                halStatus = sme_RoamDisconnect(pHddCtx->hHal,
+            if ((WLAN_HDD_NDI == pAdapter->device_mode) ||
+                (pWextState->roamProfile.BSSType == eCSR_BSS_TYPE_START_IBSS))
+            {
+               if (WLAN_HDD_NDI == pAdapter->device_mode)
+                  halStatus = sme_RoamDisconnect(pHddCtx->hHal,
                                            pAdapter->sessionId,
                                            eCSR_DISCONNECT_REASON_NDI_DELETE);
-            else if (pWextState->roamProfile.BSSType == eCSR_BSS_TYPE_START_IBSS)
-                halStatus = sme_RoamDisconnect(pHddCtx->hHal,
+               else
+                  halStatus = sme_RoamDisconnect(pHddCtx->hHal,
                                              pAdapter->sessionId,
                                              eCSR_DISCONNECT_REASON_IBSS_LEAVE);
-            else
-                halStatus = sme_RoamDisconnect(pHddCtx->hHal,
-                                            pAdapter->sessionId,
-                                            eCSR_DISCONNECT_REASON_UNSPECIFIED);
-            //success implies disconnect command got queued up successfully
-            if(halStatus == eHAL_STATUS_SUCCESS)
-            {
-               rc = wait_for_completion_timeout(
+               /* success implies disconnect command got queued up */
+               if (halStatus == eHAL_STATUS_SUCCESS)
+               {
+                  rc = wait_for_completion_timeout(
                           &pAdapter->disconnect_comp_var,
                           msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-               if (!rc) {
-                  hddLog(VOS_TRACE_LEVEL_ERROR,
-                         "%s: wait on disconnect_comp_var failed",
+                  if (!rc) {
+                     hddLog(VOS_TRACE_LEVEL_ERROR,
+                            "%s: wait on disconnect_comp_var failed",
+                            __func__);
+                  }
+               }
+               else
+               {
+                  hddLog(LOGE, "%s: failed to post disconnect event to SME",
                          __func__);
                }
-           }
-           else
-           {
-               hddLog(LOGE, "%s: failed to post disconnect event to SME",
-                      __func__);
-           }
-           memset(&wrqu, '\0', sizeof(wrqu));
-           wrqu.ap_addr.sa_family = ARPHRD_ETHER;
-           memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
-           wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
+            }
+            else
+            {
+               wlan_hdd_disconnect(pAdapter, eCSR_DISCONNECT_REASON_DEAUTH);
+            }
+            memset(&wrqu, '\0', sizeof(wrqu));
+            wrqu.ap_addr.sa_family = ARPHRD_ETHER;
+            memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
+            wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
          }
 
          if (pScanInfo != NULL && pScanInfo->mScanPending)
@@ -13312,7 +13317,6 @@ void hdd_connect_result(struct net_device *dev,
 {
 	hdd_adapter_t *padapter = (hdd_adapter_t *) netdev_priv(dev);
 	struct cfg80211_bss *bss = NULL;
-
 	if (WLAN_STATUS_SUCCESS == status) {
 		struct ieee80211_channel *chan;
 		int freq;
@@ -13877,10 +13881,10 @@ VOS_STATUS hdd_get_front_adapter( hdd_context_t *pHddCtx,
                                   hdd_adapter_list_node_t** ppAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status =  hdd_list_peek_front ( &pHddCtx->hddAdapters,
                    (hdd_list_node_t**) ppAdapterNode );
-    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -13889,12 +13893,12 @@ VOS_STATUS hdd_get_next_adapter( hdd_context_t *pHddCtx,
                                  hdd_adapter_list_node_t** pNextAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status = hdd_list_peek_next ( &pHddCtx->hddAdapters,
                                   (hdd_list_node_t*) pAdapterNode,
                                   (hdd_list_node_t**)pNextAdapterNode );
 
-    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -13902,10 +13906,10 @@ VOS_STATUS hdd_remove_adapter( hdd_context_t *pHddCtx,
                                hdd_adapter_list_node_t* pAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status =  hdd_list_remove_node ( &pHddCtx->hddAdapters,
                                      &pAdapterNode->node );
-    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -13913,10 +13917,10 @@ VOS_STATUS hdd_remove_front_adapter( hdd_context_t *pHddCtx,
                                      hdd_adapter_list_node_t** ppAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status =  hdd_list_remove_front( &pHddCtx->hddAdapters,
                    (hdd_list_node_t**) ppAdapterNode );
-    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -13924,10 +13928,10 @@ VOS_STATUS hdd_add_adapter_back( hdd_context_t *pHddCtx,
                                  hdd_adapter_list_node_t* pAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status =  hdd_list_insert_back ( &pHddCtx->hddAdapters,
                    (hdd_list_node_t*) pAdapterNode );
-    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -13935,10 +13939,10 @@ VOS_STATUS hdd_add_adapter_front( hdd_context_t *pHddCtx,
                                   hdd_adapter_list_node_t* pAdapterNode)
 {
     VOS_STATUS status;
-    spin_lock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_lock_bh(&pHddCtx->hddAdapters.lock);
     status =  hdd_list_insert_front ( &pHddCtx->hddAdapters,
                    (hdd_list_node_t*) pAdapterNode );
-    spin_unlock_bh(&pHddCtx->hddAdapters.lock);
+    adf_os_spin_unlock_bh(&pHddCtx->hddAdapters.lock);
     return status;
 }
 
@@ -14251,12 +14255,12 @@ static void hdd_full_power_callback(void *callbackContext, eHalStatus status)
       function and the caller since the caller could time out either
       before or while this code is executing.  we use a spinlock to
       serialize these actions */
-   spin_lock(&hdd_context_lock);
+   adf_os_spin_lock(&hdd_context_lock);
 
    if (POWER_CONTEXT_MAGIC != pContext->magic)
    {
       /* the caller presumably timed out so there is nothing we can do */
-      spin_unlock(&hdd_context_lock);
+      adf_os_spin_unlock(&hdd_context_lock);
       hddLog(VOS_TRACE_LEVEL_WARN,
              "%s: Invalid context, magic [%08x]",
               __func__, pContext->magic);
@@ -14272,7 +14276,7 @@ static void hdd_full_power_callback(void *callbackContext, eHalStatus status)
    complete(&pContext->completion);
 
    /* serialization is complete */
-   spin_unlock(&hdd_context_lock);
+   adf_os_spin_unlock(&hdd_context_lock);
 }
 
 static inline VOS_STATUS hdd_UnregisterWext_all_adapters(hdd_context_t *pHddCtx)
@@ -14682,11 +14686,11 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: deinit skip acs scan timer failed",
               __func__);
 
-   spin_lock(&pHddCtx->acs_skip_lock);
+   adf_os_spin_lock(&pHddCtx->acs_skip_lock);
    vos_mem_free(pHddCtx->last_acs_channel_list);
    pHddCtx->last_acs_channel_list = NULL;
    pHddCtx->num_of_channels = 0;
-   spin_unlock(&pHddCtx->acs_skip_lock);
+   adf_os_spin_unlock(&pHddCtx->acs_skip_lock);
 #endif
 
 
@@ -14740,9 +14744,9 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
          serialize these activities by invalidating the magic while
          holding a shared spinlock which will cause us to block if the
          callback is currently executing */
-      spin_lock(&hdd_context_lock);
+      adf_os_spin_lock(&hdd_context_lock);
       powerContext.magic = 0;
-      spin_unlock(&hdd_context_lock);
+      adf_os_spin_unlock(&hdd_context_lock);
    }
    else
    {
@@ -14976,11 +14980,11 @@ void hdd_skip_acs_scan_timer_handler(void * data)
 
 	hddLog(LOG1, FL("ACS Scan result expired. Reset ACS scan skip"));
 	hdd_ctx->skip_acs_scan_status = eSAP_DO_NEW_ACS_SCAN;
-	spin_lock(&hdd_ctx->acs_skip_lock);
+	adf_os_spin_lock(&hdd_ctx->acs_skip_lock);
 	vos_mem_free(hdd_ctx->last_acs_channel_list);
 	hdd_ctx->last_acs_channel_list = NULL;
 	hdd_ctx->num_of_channels = 0;
-	spin_unlock(&hdd_ctx->acs_skip_lock);
+	adf_os_spin_unlock(&hdd_ctx->acs_skip_lock);
 
 	/* Get first SAP adapter to clear results */
 	ap_adapter = hdd_get_adapter(hdd_ctx, WLAN_HDD_SOFTAP);
@@ -15598,13 +15602,13 @@ static void hdd_bus_bw_compute_cbk(void *priv)
         total_tx += pAdapter->stats.tx_packets;
 
 
-        spin_lock_bh(&pHddCtx->bus_bw_lock);
+        adf_os_spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
         pAdapter->prev_tx_bytes = pAdapter->stats.tx_bytes;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
         pAdapter->prev_fwd_tx_packets = fwd_tx_packets;
         pAdapter->prev_fwd_rx_packets = fwd_rx_packets;
-        spin_unlock_bh(&pHddCtx->bus_bw_lock);
+        adf_os_spin_unlock_bh(&pHddCtx->bus_bw_lock);
         connected = TRUE;
     }
 
@@ -16399,7 +16403,7 @@ static VOS_STATUS hdd_init_thermal_ctx(hdd_context_t *pHddCtx)
 {
 	pHddCtx->system_suspended = false;
 	pHddCtx->thermal_suspend_state = HDD_WLAN_THERMAL_ACTIVE;
-	spin_lock_init(&pHddCtx->thermal_suspend_lock);
+	adf_os_spinlock_init(&pHddCtx->thermal_suspend_lock);
 	INIT_DELAYED_WORK(&pHddCtx->thermal_suspend_work, hdd_thermal_suspend_work);
 	pHddCtx->thermal_suspend_wq = create_singlethread_workqueue("thermal_wq");
 	if (!pHddCtx->thermal_suspend_wq)
@@ -16611,7 +16615,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    init_completion(&pHddCtx->chain_rssi_context.response_event);
 
-   spin_lock_init(&pHddCtx->schedScan_lock);
+   adf_os_spinlock_init(&pHddCtx->schedScan_lock);
 
    hdd_list_init( &pHddCtx->hddAdapters, MAX_NUMBER_OF_ADAPTERS );
 
@@ -16629,13 +16633,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    }
 
 #ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
-   spin_lock_init(&pHddCtx->restrict_offchan_lock);
+   adf_os_spinlock_init(&pHddCtx->restrict_offchan_lock);
    mutex_init(&pHddCtx->avoid_freq_lock);
 #endif
 
-   spin_lock_init(&pHddCtx->dfs_lock);
-   spin_lock_init(&pHddCtx->sap_update_info_lock);
-   spin_lock_init(&pHddCtx->sta_update_info_lock);
+   adf_os_spinlock_init(&pHddCtx->dfs_lock);
+   adf_os_spinlock_init(&pHddCtx->sap_update_info_lock);
+   adf_os_spinlock_init(&pHddCtx->sta_update_info_lock);
    hdd_init_offloaded_packets_ctx(pHddCtx);
    // Load all config first as TL config is needed during vos_open
    pHddCtx->cfg_ini = (hdd_config_t*) vos_mem_malloc(sizeof(hdd_config_t));
@@ -17435,7 +17439,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                   hdd_skip_acs_scan_timer_handler, (void *)pHddCtx);
    if (!VOS_IS_STATUS_SUCCESS(status))
         hddLog(LOGE, FL("Failed to init ACS Skip timer\n"));
-   spin_lock_init(&pHddCtx->acs_skip_lock);
+   adf_os_spinlock_init(&pHddCtx->acs_skip_lock);
 #endif
 
 #ifdef WLAN_FEATURE_NAN
@@ -17522,7 +17526,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                   wlan_hdd_change_tdls_mode, (void *)pHddCtx);
 
 #ifdef FEATURE_BUS_BANDWIDTH
-   spin_lock_init(&pHddCtx->bus_bw_lock);
+   adf_os_spinlock_init(&pHddCtx->bus_bw_lock);
    vos_timer_init(&pHddCtx->bus_bw_timer,
                      VOS_TIMER_TYPE_SW,
                      hdd_bus_bw_compute_cbk,
@@ -17920,6 +17924,7 @@ static int hdd_driver_init( void)
 
    start = adf_get_boottime();
 
+   adf_os_spinlock_init(&hdd_context_lock);
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
    wlan_logging_sock_init_svc();
 #endif

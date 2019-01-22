@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2343,6 +2343,9 @@ eHalStatus sme_handle_update_pwr_ind(tHalHandle hal_ptr, uint32_t pesession_id)
 	tpPESession pesession_ptr =
 		peFindSessionBySessionId(mac_ptr, pesession_id);
 	tPowerdBm regMax = 0,maxTxPower = 0;
+
+	if (pesession_ptr == NULL)
+		return eHAL_STATUS_FAILURE;
 
 	regMax =
 	  cfgGetRegulatoryMaxTransmitPower(mac_ptr,

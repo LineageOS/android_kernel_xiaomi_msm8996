@@ -458,7 +458,7 @@ static void __adf_flex_mem_release(struct adf_flex_mem_pool *pool)
 		if (seg->used_bitmap != 0)
 			continue;
 
-		vos_list_remove_node(&pool->seg_list, &seg->node);
+		vos_list_remove_node_no_mutex(&pool->seg_list, &seg->node);
 		vos_mem_free(seg);
 	}
 }
@@ -478,7 +478,8 @@ void adf_flex_mem_deinit(struct adf_flex_mem_pool *pool)
 {
 	v_SIZE_t pSize = 0;
 	adf_flex_mem_release(pool);
-	if (vos_list_size(&pool->seg_list, &pSize) == VOS_STATUS_SUCCESS)
+	if (vos_list_size_no_mutex(&pool->seg_list, &pSize) ==
+	    VOS_STATUS_SUCCESS)
 		VOS_BUG(!pSize);
 	else
 		adf_print("%s seg list get ailed",__func__);
@@ -500,7 +501,7 @@ adf_flex_mem_seg_alloc(struct adf_flex_mem_pool *pool)
 	seg->dynamic = true;
 	seg->bytes = (uint8_t *)(seg + 1);
 	seg->used_bitmap = 0;
-	vos_list_insert_back(&pool->seg_list, &seg->node);
+	vos_list_insert_back_no_mutex(&pool->seg_list, &seg->node);
 
 	return seg;
 }
@@ -567,14 +568,15 @@ static void adf_flex_mem_seg_free(struct adf_flex_mem_pool *pool,
 	if (!seg->dynamic)
 		return;
 
-	if (vos_list_size(&pool->seg_list, &pSize) == VOS_STATUS_SUCCESS) {
+	if (vos_list_size_no_mutex(&pool->seg_list, &pSize) ==
+	    VOS_STATUS_SUCCESS) {
 		if (pSize <= pool->reduction_limit)
 			return;
 	} else {
 		adf_print("%s seg list size get failed", __func__);
 	}
 
-	vos_list_remove_node(&pool->seg_list, &seg->node);
+	vos_list_remove_node_no_mutex(&pool->seg_list, &seg->node);
 	vos_mem_free(seg);
 }
 
@@ -1703,13 +1705,13 @@ struct adf_nbuf_track_t {
 	size_t size;
 };
 
-static spinlock_t g_adf_net_buf_track_lock[ADF_NET_BUF_TRACK_MAX_SIZE];
+static adf_os_spinlock_t g_adf_net_buf_track_lock[ADF_NET_BUF_TRACK_MAX_SIZE];
 typedef struct adf_nbuf_track_t ADF_NBUF_TRACK;
 
 static ADF_NBUF_TRACK *gp_adf_net_buf_track_tbl[ADF_NET_BUF_TRACK_MAX_SIZE];
 static struct kmem_cache *nbuf_tracking_cache;
 static ADF_NBUF_TRACK *adf_net_buf_track_free_list;
-static spinlock_t adf_net_buf_track_free_list_lock;
+static adf_os_spinlock_t adf_net_buf_track_free_list_lock;
 static uint32_t adf_net_buf_track_free_list_count;
 static uint32_t adf_net_buf_track_used_list_count;
 static uint32_t adf_net_buf_track_max_used;
@@ -1763,10 +1765,9 @@ static inline void adf_update_max_free(void)
 static ADF_NBUF_TRACK *adf_nbuf_track_alloc(void)
 {
 	int flags = GFP_KERNEL;
-	unsigned long irq_flag;
 	ADF_NBUF_TRACK *new_node = NULL;
 
-	spin_lock_irqsave(&adf_net_buf_track_free_list_lock, irq_flag);
+	adf_os_spin_lock_irqsave(&adf_net_buf_track_free_list_lock);
 	adf_net_buf_track_used_list_count++;
 	if (adf_net_buf_track_free_list != NULL) {
 		new_node = adf_net_buf_track_free_list;
@@ -1775,7 +1776,7 @@ static ADF_NBUF_TRACK *adf_nbuf_track_alloc(void)
 		adf_net_buf_track_free_list_count--;
 	}
 	adf_update_max_used();
-	spin_unlock_irqrestore(&adf_net_buf_track_free_list_lock, irq_flag);
+	adf_os_spin_unlock_irqrestore(&adf_net_buf_track_free_list_lock);
 
 	if (new_node != NULL)
 		return new_node;
@@ -1801,8 +1802,6 @@ static ADF_NBUF_TRACK *adf_nbuf_track_alloc(void)
  */
 static void adf_nbuf_track_free(ADF_NBUF_TRACK *node)
 {
-	unsigned long irq_flag;
-
 	if (!node)
 		return;
 
@@ -1814,7 +1813,7 @@ static void adf_nbuf_track_free(ADF_NBUF_TRACK *node)
 	 * traffic occurs.
 	 */
 
-	spin_lock_irqsave(&adf_net_buf_track_free_list_lock, irq_flag);
+	adf_os_spin_lock_irqsave(&adf_net_buf_track_free_list_lock);
 
 	adf_net_buf_track_used_list_count--;
 	if (adf_net_buf_track_free_list_count > FREEQ_POOLSIZE &&
@@ -1827,7 +1826,7 @@ static void adf_nbuf_track_free(ADF_NBUF_TRACK *node)
 		adf_net_buf_track_free_list_count++;
 	}
 	adf_update_max_free();
-	spin_unlock_irqrestore(&adf_net_buf_track_free_list_lock, irq_flag);
+	adf_os_spin_unlock_irqrestore(&adf_net_buf_track_free_list_lock);
 }
 
 /**
@@ -1873,7 +1872,7 @@ static void adf_nbuf_track_prefill(void)
  */
 static void adf_nbuf_track_memory_manager_create(void)
 {
-	spin_lock_init(&adf_net_buf_track_free_list_lock);
+	adf_os_spinlock_init(&adf_net_buf_track_free_list_lock);
 	nbuf_tracking_cache = kmem_cache_create("adf_nbuf_tracking_cache",
 						sizeof(ADF_NBUF_TRACK),
 						0, 0, NULL);
@@ -1893,7 +1892,6 @@ static void adf_nbuf_track_memory_manager_create(void)
 static void adf_nbuf_track_memory_manager_destroy(void)
 {
 	ADF_NBUF_TRACK *node, *tmp;
-	unsigned long irq_flag;
 
 	adf_print("%s: %d residual freelist size",
 			  __func__, adf_net_buf_track_free_list_count);
@@ -1907,7 +1905,7 @@ static void adf_nbuf_track_memory_manager_destroy(void)
 	adf_print("%s: %d max buffers allocated observed",
 			  __func__, adf_net_buf_track_max_allocated);
 
-	spin_lock_irqsave(&adf_net_buf_track_free_list_lock, irq_flag);
+	adf_os_spin_lock_irqsave(&adf_net_buf_track_free_list_lock);
 	node = adf_net_buf_track_free_list;
 
 	while (node) {
@@ -1932,7 +1930,7 @@ static void adf_nbuf_track_memory_manager_destroy(void)
 	adf_net_buf_track_max_free = 0;
 	adf_net_buf_track_max_allocated = 0;
 
-	spin_unlock_irqrestore(&adf_net_buf_track_free_list_lock, irq_flag);
+	adf_os_spin_unlock_irqrestore(&adf_net_buf_track_free_list_lock);
 	kmem_cache_destroy(nbuf_tracking_cache);
 }
 
@@ -1969,7 +1967,7 @@ void adf_net_buf_debug_init(void)
 
 	for (i = 0; i < ADF_NET_BUF_TRACK_MAX_SIZE; i++) {
 		gp_adf_net_buf_track_tbl[i] = NULL;
-		spin_lock_init(&g_adf_net_buf_track_lock[i]);
+		adf_os_spinlock_init(&g_adf_net_buf_track_lock[i]);
 	}
 
 	return;
@@ -1987,12 +1985,11 @@ void adf_net_buf_debug_init(void)
 void adf_net_buf_debug_exit(void)
 {
 	uint32_t i;
-	unsigned long irq_flag;
 	ADF_NBUF_TRACK *p_node;
 	ADF_NBUF_TRACK *p_prev;
 
 	for (i = 0; i < ADF_NET_BUF_TRACK_MAX_SIZE; i++) {
-		spin_lock_irqsave(&g_adf_net_buf_track_lock[i], irq_flag);
+		adf_os_spin_lock_irqsave(&g_adf_net_buf_track_lock[i]);
 		p_node = gp_adf_net_buf_track_tbl[i];
 		while (p_node) {
 			p_prev = p_node;
@@ -2002,7 +1999,7 @@ void adf_net_buf_debug_exit(void)
 				  p_prev->size);
 			adf_nbuf_track_free(p_prev);
 		}
-		spin_unlock_irqrestore(&g_adf_net_buf_track_lock[i], irq_flag);
+		adf_os_spin_unlock_irqrestore(&g_adf_net_buf_track_lock[i]);
 	}
 
 	adf_nbuf_track_memory_manager_destroy();
@@ -2059,14 +2056,13 @@ void adf_net_buf_debug_add_node(adf_nbuf_t net_buf, size_t size,
 				uint8_t *file_name, uint32_t line_num)
 {
 	uint32_t i;
-	unsigned long irq_flag;
 	ADF_NBUF_TRACK *p_node;
 	ADF_NBUF_TRACK *new_node;
 
 	new_node = adf_nbuf_track_alloc();
 
 	i = adf_net_buf_debug_hash(net_buf);
-	spin_lock_irqsave(&g_adf_net_buf_track_lock[i], irq_flag);
+	adf_os_spin_lock_irqsave(&g_adf_net_buf_track_lock[i]);
 
 	p_node = adf_net_buf_debug_look_up(net_buf);
 
@@ -2095,7 +2091,7 @@ void adf_net_buf_debug_add_node(adf_nbuf_t net_buf, size_t size,
 	}
 
 done:
-	spin_unlock_irqrestore(&g_adf_net_buf_track_lock[i], irq_flag);
+	adf_os_spin_unlock_irqrestore(&g_adf_net_buf_track_lock[i]);
 
 	return;
 }
@@ -2111,11 +2107,10 @@ void adf_net_buf_debug_delete_node(adf_nbuf_t net_buf)
 	bool found = false;
 	ADF_NBUF_TRACK *p_head;
 	ADF_NBUF_TRACK *p_node;
-	unsigned long irq_flag;
 	ADF_NBUF_TRACK *p_prev;
 
 	i = adf_net_buf_debug_hash(net_buf);
-	spin_lock_irqsave(&g_adf_net_buf_track_lock[i], irq_flag);
+	adf_os_spin_lock_irqsave(&g_adf_net_buf_track_lock[i]);
 
 	p_head = gp_adf_net_buf_track_tbl[i];
 
@@ -2143,7 +2138,7 @@ void adf_net_buf_debug_delete_node(adf_nbuf_t net_buf)
 	}
 
 done:
-	spin_unlock_irqrestore(&g_adf_net_buf_track_lock[i], irq_flag);
+	adf_os_spin_unlock_irqrestore(&g_adf_net_buf_track_lock[i]);
 
 	if (!found) {
 		adf_print("Unallocated buffer ! Double free of net_buf %pK ?",

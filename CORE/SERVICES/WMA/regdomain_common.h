@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2014-2016 2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014-2016 2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -128,6 +128,7 @@ enum EnumRd {
     ETSI9_WORLD = 0x3E,     /* Ukraine */
     ETSI13_WORLD = 0x27,
     ETSI14_WORLD = 0x29,
+    ETSI15_WORLD = 0x31,
     ETSI_RESERVED   = 0x33,     /* Reserved (Do not used) */
 
     MKK1_MKKA   = 0x40,     /* Japan (JP1) */
@@ -163,6 +164,7 @@ enum EnumRd {
     APL17_ETSID = 0xE0,
     APL14_WORLD = 0x57,
     APL15_WORLD = 0x59,
+    APL19_ETSIC = 0x71,
     APL20_WORLD = 0xE5,
     APL23_WORLD = 0xE3,
 
@@ -275,6 +277,7 @@ enum EnumRd {
     APL14       = 0x1180,
     APL15       = 0x1190,
     APL17       = 0x1210,
+    APL19       = 0x1240,
     APL20       = 0x1250,
     APL23       = 0x1280,
 
@@ -292,6 +295,7 @@ enum EnumRd {
     ETSID       = 0x0F30,
     ETSI13     = 0x0E39,
     ETSI14     = 0x0E40,
+    ETSI15     = 0x0E41,
 
     FCC1        = 0x0110,   /* US & others */
     FCC2        = 0x0120,   /* Canada, Australia & New Zealand */
@@ -412,6 +416,7 @@ static const REG_DMN_PAIR_MAPPING ahCmnRegDomainPairs[] = {
 	{APL12_WORLD,	APL12,		WORLD,		NO_REQ, NO_REQ, PSCAN_DEFER, 0 },
 	{APL14_WORLD,	APL14,		WORLD,		NO_REQ, NO_REQ, PSCAN_DEFER, 0 },
 	{APL15_WORLD,	APL15,		WORLD,		NO_REQ, NO_REQ, PSCAN_DEFER, 0 },
+	{APL19_ETSIC,	APL19,		ETSIC,		NO_REQ, NO_REQ, PSCAN_DEFER, 0 },
 	{APL20_WORLD,	APL20,		WORLD,		NO_REQ, NO_REQ, PSCAN_DEFER, 0 },
 	{APL23_WORLD,	APL23,		WORLD,		NO_REQ, NO_REQ, PSCAN_DEFER, 0 },
 	{APL17_ETSID,	APL17,		ETSID,		NO_REQ, NO_REQ, PSCAN_DEFER, 0 },
@@ -587,7 +592,7 @@ static const COUNTRY_CODE_TO_ENUM_RD ahCmnAllCountries[] = {
     {CTRY_HONG_KONG,   FCC3_WORLD,    "HK", "HONG KONG",      YES, YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_HUNGARY,     ETSI13_WORLD,   "HU", "HUNGARY",        YES,  YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_ICELAND,     ETSI13_WORLD,   "IS", "ICELAND",        YES,  YES, YES, YES, YES, YES, YES, YES, 7000 },
-    {CTRY_INDIA,       APL15_WORLD,    "IN", "INDIA",          YES,  YES, YES, YES, YES, YES, YES, YES, 7000 },
+    {CTRY_INDIA,       APL19_ETSIC,    "IN", "INDIA",          YES,  YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_INDONESIA,   APL2_ETSIC,    "ID", "INDONESIA",      YES,  YES, YES, YES, YES, YES,  NO, NO, 7000 },
     {CTRY_IRAQ, ETSI1_WORLD, "IQ", "IRAQ",       YES,  YES, YES, YES, YES, YES,  YES, YES, 7000 },
     {CTRY_IRELAND,     ETSI13_WORLD,   "IE", "IRELAND",        YES,  YES, YES, YES, YES, YES, YES, YES, 7000 },
@@ -624,6 +629,7 @@ static const COUNTRY_CODE_TO_ENUM_RD ahCmnAllCountries[] = {
     {CTRY_MONGOLIA, FCC3_WORLD, "MN", "MONGOLIA",         YES, YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_MONTENEGRO,  ETSI13_WORLD,   "ME", "MONTENEGRO",     YES,  NO, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_MOROCCO,     ETSI3_WORLD,    "MA", "MOROCCO",        YES,  YES, YES, YES, YES, YES, YES, YES, 7000 },
+    {CTRY_MYANMAR,  APL1_WORLD,    "MM", "MYANMAR",     YES,  YES, YES, YES, YES,  YES,  YES, YES, 7000 },
     {CTRY_NAMIBIA, APL20_WORLD, "NA", "NAMIBIA",         YES, YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_NEPAL,       APL23_WORLD,    "NP", "NEPAL",          YES,  YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_NETHERLANDS, ETSI13_WORLD,   "NL", "NETHERLANDS",    YES,  YES, YES, YES, YES, YES, YES, YES, 7000 },
@@ -656,7 +662,7 @@ static const COUNTRY_CODE_TO_ENUM_RD ahCmnAllCountries[] = {
     {CTRY_SAINT_PIERRE_AND_MIQUELON, ETSI13_WORLD, "PM", "SAINT PIERRE AND MIQUELON",    YES, YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_SAINT_VINCENT_AND_THE_GRENADIENS, ETSI13_WORLD, "VC", "VINCENT AND THE GRENADIENS",    YES, YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_SAMOA, ETSI1_WORLD, "WS", "SAMOA",    YES, YES, YES, YES, YES, YES, YES, NO, 7000 },
-    {CTRY_SAUDI_ARABIA, ETSI1_WORLD,   "SA", "SAUDI ARABIA",   YES, YES, YES, YES, YES, YES, YES, YES, 7000 },
+    {CTRY_SAUDI_ARABIA, ETSI15_WORLD,   "SA", "SAUDI ARABIA",   YES, YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_SENEGAL, FCC13_WORLD, "SN", "SENEGAL",   YES, YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_SERBIA,      ETSI13_WORLD,   "RS", "REPUBLIC OF SERBIA", YES,  YES, YES, YES, YES, YES, YES, YES, 7000 },
     {CTRY_SINGAPORE,   FCC3_WORLD,    "SG", "SINGAPORE",      YES, YES, YES, YES, YES, YES, YES, YES, 7000 },
@@ -1348,6 +1354,14 @@ static const REG_DOMAIN ahCmnRegDomains[] = {
 		BMZERO,
 		BMZERO
 	},
+	{APL19, FCC, DFS_ETSI, PSCAN_ETSI, NO_REQ,
+		BMNOTZERO,
+		BMNOTZERO,
+		BMNOTZERO,
+		BMZERO,
+		BMZERO,
+		BMZERO
+	},
 
 	{APL20, ETSI, DFS_ETSI, PSCAN_ETSI, NO_REQ,
 		BMNOTZERO,
@@ -1449,6 +1463,15 @@ static const REG_DOMAIN ahCmnRegDomains[] = {
 	},
 
 	{ETSI14, ETSI, DFS_ETSI, PSCAN_ETSI, NO_REQ,
+		BMNOTZERO,
+		BMNOTZERO,
+		BMNOTZERO,
+		BMZERO,
+		BMZERO,
+		BMZERO
+	},
+
+	{ETSI15, ETSI, DFS_ETSI, PSCAN_ETSI, NO_REQ,
 		BMNOTZERO,
 		BMNOTZERO,
 		BMNOTZERO,

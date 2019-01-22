@@ -7528,7 +7528,7 @@ struct dsrc_radio_chan_stats_ctxt {
 	struct completion completion_evt;
 	uint32_t config_chans_num;
 	uint32_t config_chans_freq[DSRC_MAX_CHAN_STATS_CNT];
-	spinlock_t chan_stats_lock;
+	adf_os_spinlock_t chan_stats_lock;
 	uint32_t chan_stats_num;
 	struct radio_chan_stats_info chan_stats[DSRC_MAX_CHAN_STATS_CNT];
 };

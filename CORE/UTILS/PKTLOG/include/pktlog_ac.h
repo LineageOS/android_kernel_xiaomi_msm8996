@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013, 2016, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -40,10 +40,10 @@
 #define NO_REG_FUNCS	4
 
 /* Locking interface for pktlog */
-#define PKTLOG_LOCK_INIT(_pl_info)	spin_lock_init(&(_pl_info)->log_lock)
+#define PKTLOG_LOCK_INIT(_pl_info)	adf_os_spinlock_init(&(_pl_info)->log_lock)
 #define	PKTLOG_LOCK_DESTROY(_pl_info)
-#define PKTLOG_LOCK(_pl_info)		spin_lock(&(_pl_info)->log_lock)
-#define PKTLOG_UNLOCK(_pl_info)		spin_unlock(&(_pl_info)->log_lock)
+#define PKTLOG_LOCK(_pl_info)		adf_os_spin_lock(&(_pl_info)->log_lock)
+#define PKTLOG_UNLOCK(_pl_info)		adf_os_spin_unlock(&(_pl_info)->log_lock)
 
 #define PKTLOG_MODE_SYSTEM	1
 #define PKTLOG_MODE_ADAPTER	2

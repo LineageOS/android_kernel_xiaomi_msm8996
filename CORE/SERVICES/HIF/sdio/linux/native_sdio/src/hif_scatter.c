@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -33,6 +33,7 @@
 #include <linux/kthread.h>
 #include "hif_internal.h"
 #include <adf_os_mem.h>
+#include <adf_os_lock.h>
 #define ATH_MODULE_NAME hif
 #include "a_debug.h"
 
@@ -54,26 +55,23 @@
 
 static void FreeScatterReq(HIF_DEVICE *device, HIF_SCATTER_REQ *pReq)
 {
-    unsigned long flag;
-
-    spin_lock_irqsave(&device->lock, flag);
+    adf_os_spin_lock_irqsave(&device->lock);
 
     DL_ListInsertTail(&device->ScatterReqHead, &pReq->ListLink);
 
-    spin_unlock_irqrestore(&device->lock, flag);
+    adf_os_spin_unlock_irqrestore(&device->lock);
 
 }
 
 static HIF_SCATTER_REQ *AllocScatterReq(HIF_DEVICE *device)
 {
     DL_LIST       *pItem;
-    unsigned long flag;
 
-    spin_lock_irqsave(&device->lock, flag);
+    adf_os_spin_lock_irqsave(&device->lock);
 
     pItem = DL_ListRemoveItemFromHead(&device->ScatterReqHead);
 
-    spin_unlock_irqrestore(&device->lock, flag);
+    adf_os_spin_unlock_irqrestore(&device->lock);
 
     if (pItem != NULL) {
         return A_CONTAINING_STRUCT(pItem, HIF_SCATTER_REQ, ListLink);

@@ -125,9 +125,6 @@ static A_STATUS HIFDevAllocAndPrepareRxPackets(HIF_SDIO_DEVICE *pDev,
     int numMessages;
     int fullLength;
     A_BOOL noRecycle;
-#ifdef HIF_RX_THREAD
-    unsigned long flags;
-#endif
     HTC_TARGET *target = NULL;
     target = (HTC_TARGET *)pDev->pTarget;
     /* lock RX while we assemble the packet buffers */
@@ -186,7 +183,7 @@ static A_STATUS HIFDevAllocAndPrepareRxPackets(HIF_SDIO_DEVICE *pDev,
         /* get packet buffers for each message, if there was a bundle detected in the header,
          * use pHdr as a template to fetch all packets in the bundle */
 #ifdef HIF_RX_THREAD
-        spin_lock_irqsave(&pDev->pRecvTask->rx_alloc_lock, flags);
+        adf_os_spin_lock_irqsave(&pDev->pRecvTask->rx_alloc_lock);
 #endif
         for (j = 0; j < numMessages; j++) {
 
@@ -275,7 +272,7 @@ static A_STATUS HIFDevAllocAndPrepareRxPackets(HIF_SDIO_DEVICE *pDev,
             pPacket->Completion = NULL;
         }
 #ifdef HIF_RX_THREAD
-        spin_unlock_irqrestore(&pDev->pRecvTask->rx_alloc_lock, flags);
+        adf_os_spin_unlock_irqrestore(&pDev->pRecvTask->rx_alloc_lock);
 #endif
 
         if (A_FAILED(status)) {
@@ -863,7 +860,6 @@ int rx_completion_task(void *param)
 {
     HIF_SDIO_DEVICE *device;
     HTC_PACKET *pPacket = NULL;
-    unsigned long flags;
     HTC_PACKET *pPacketRxBundle;
     A_UINT32 paddedLength;
     unsigned char    *pBundleBuffer = NULL;
@@ -897,9 +893,9 @@ int rx_completion_task(void *param)
         }
 
         //process single packet
-        spin_lock_irqsave(&device->pRecvTask->rx_bundle_lock, flags);
+        adf_os_spin_lock_irqsave(&device->pRecvTask->rx_bundle_lock);
         if(HTC_QUEUE_EMPTY(&device->pRecvTask->rxBundleQueue)) {
-            spin_lock_irqsave(&device->pRecvTask->rx_sync_completion_lock, flags);
+            adf_os_spin_lock_irqsave(&device->pRecvTask->rx_sync_completion_lock);
             while(!HTC_QUEUE_EMPTY(&device->pRecvTask->rxSyncCompletionQueue)) {
                 pPacket = HTC_PACKET_DEQUEUE(&device->pRecvTask->rxSyncCompletionQueue);
                 if(pPacket == NULL) {
@@ -911,7 +907,7 @@ int rx_completion_task(void *param)
                     break;
                 }
             }
-            spin_unlock_irqrestore(&device->pRecvTask->rx_sync_completion_lock, flags);
+            adf_os_spin_unlock_irqrestore(&device->pRecvTask->rx_sync_completion_lock);
         }
         else {
             //1. Dequeue from bundle buffer queue, scatter data to sync completion queue
@@ -924,20 +920,20 @@ int rx_completion_task(void *param)
                     AR_DEBUG_PRINTF(ATH_DEBUG_WARN, ("Packets in bundle buffer is < 1"));
                     break;
                 }
-                spin_lock_irqsave(&device->pRecvTask->rx_sync_completion_lock, flags);
+                adf_os_spin_lock_irqsave(&device->pRecvTask->rx_sync_completion_lock);
                 if(HTC_PACKET_QUEUE_DEPTH(&device->pRecvTask->rxSyncCompletionQueue) < pPacketRxBundle->BundlePktnum) {
                     // corner case: the sync queue depth is not enough for processing this bundle pkt, push it back
                     HTC_PACKET_ENQUEUE_TO_HEAD(&device->pRecvTask->rxBundleQueue, pPacketRxBundle);
-                    spin_unlock_irqrestore(&device->pRecvTask->rx_sync_completion_lock, flags);
+                    adf_os_spin_unlock_irqrestore(&device->pRecvTask->rx_sync_completion_lock);
                     break;
                 }
-                spin_unlock_irqrestore(&device->pRecvTask->rx_sync_completion_lock, flags);
+                adf_os_spin_unlock_irqrestore(&device->pRecvTask->rx_sync_completion_lock);
                 pBundleBuffer = pPacketRxBundle->pBuffer;
                 pBuffer = pBundleBuffer;
                 if(pPacketRxBundle == NULL)
                     break;
 
-                spin_lock_irqsave(&device->pRecvTask->rx_sync_completion_lock, flags);
+                adf_os_spin_lock_irqsave(&device->pRecvTask->rx_sync_completion_lock);
                 //if the next pkt is single, dequeue it and process it, until the bundle pkts
                 while(TRUE) {
                     nextIsSingle = 0;
@@ -1011,13 +1007,13 @@ int rx_completion_task(void *param)
                     else
                         break;
                 }
-                spin_unlock_irqrestore(&device->pRecvTask->rx_sync_completion_lock, flags);
+                adf_os_spin_unlock_irqrestore(&device->pRecvTask->rx_sync_completion_lock);
                 FreeHTCBundleRxPacket(target, pPacketRxBundle);
             }
         }
-        spin_unlock_irqrestore(&device->pRecvTask->rx_bundle_lock, flags);
+        adf_os_spin_unlock_irqrestore(&device->pRecvTask->rx_bundle_lock);
         //alloc skb for next bundle
-        spin_lock_irqsave(&device->pRecvTask->rx_alloc_lock, flags);
+        adf_os_spin_lock_irqsave(&device->pRecvTask->rx_alloc_lock);
         while(HTC_PACKET_QUEUE_DEPTH(&device->pRecvTask->rxAllocQueue) < 64) {
             pPacket = HIFDevAllocRxBuffer(device, 2048);
             if(pPacket == NULL) {
@@ -1026,7 +1022,7 @@ int rx_completion_task(void *param)
             }
             HTC_PACKET_ENQUEUE(&device->pRecvTask->rxAllocQueue, pPacket);
         }
-        spin_unlock_irqrestore(&device->pRecvTask->rx_alloc_lock, flags);
+        adf_os_spin_unlock_irqrestore(&device->pRecvTask->rx_alloc_lock);
     }
     complete_and_exit(&device->pRecvTask->rx_completion_exit, 0);
     return 0;
@@ -1052,7 +1048,6 @@ static A_STATUS HIFDevIssueRecvPacketBundle(HIF_SDIO_DEVICE *pDev,
     HTC_TARGET *target = NULL;
     A_UINT32 paddedLength;
 #ifdef HIF_RX_THREAD
-    unsigned long flags;
 #else
     unsigned char *pBuffer = NULL;
     A_UINT16 curPayloadLen = 0;
@@ -1145,14 +1140,14 @@ static A_STATUS HIFDevIssueRecvPacketBundle(HIF_SDIO_DEVICE *pDev,
                                 pNumLookAheads, lookAhead_part2);
         *pNumPacketsFetched = i;
         pPacketRxBundle->BundlePktnum = i;
-        spin_lock_irqsave(&pDev->pRecvTask->rx_bundle_lock, flags);
+        adf_os_spin_lock_irqsave(&pDev->pRecvTask->rx_bundle_lock);
         HTC_PACKET_ENQUEUE(&pDev->pRecvTask->rxBundleQueue, pPacketRxBundle);
-        spin_unlock_irqrestore(&pDev->pRecvTask->rx_bundle_lock, flags);
+        adf_os_spin_unlock_irqrestore(&pDev->pRecvTask->rx_bundle_lock);
 
-        spin_lock_irqsave(&pDev->pRecvTask->rx_sync_completion_lock, flags);
+        adf_os_spin_lock_irqsave(&pDev->pRecvTask->rx_sync_completion_lock);
         HTC_PACKET_QUEUE_TRANSFER_TO_TAIL(&pDev->pRecvTask->rxSyncCompletionQueue,
                                           pSyncCompletionQueue);
-        spin_unlock_irqrestore(&pDev->pRecvTask->rx_sync_completion_lock, flags);
+        adf_os_spin_unlock_irqrestore(&pDev->pRecvTask->rx_sync_completion_lock);
 #else
         *pNumPacketsFetched = i;
         pBuffer = pBundleBuffer;
@@ -1198,9 +1193,6 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
     A_BOOL partialBundle;
     HTC_ENDPOINT_ID id;
     int totalFetched = 0;
-#ifdef HIF_RX_THREAD
-    unsigned long flags;
-#endif
 
     HTC_TARGET *target = NULL;
 
@@ -1365,9 +1357,9 @@ A_STATUS HIFDevRecvMessagePendingHandler(HIF_SDIO_DEVICE *pDev,
                 HIFDevPreprocessTrailer(pDev, pPacket, lookAheads,
                                         &NumLookAheads, lookAhead_part2);
                 pPacket->BundlePktnum = 1;
-                spin_lock_irqsave(&pDev->pRecvTask->rx_sync_completion_lock, flags);
+                adf_os_spin_lock_irqsave(&pDev->pRecvTask->rx_sync_completion_lock);
                 HTC_PACKET_ENQUEUE(&pDev->pRecvTask->rxSyncCompletionQueue, pPacket);
-                spin_unlock_irqrestore(&pDev->pRecvTask->rx_sync_completion_lock, flags);
+                adf_os_spin_unlock_irqrestore(&pDev->pRecvTask->rx_sync_completion_lock);
 #else
                 HTC_PACKET_ENQUEUE(&syncCompletedPktsQueue, pPacket);
 #endif

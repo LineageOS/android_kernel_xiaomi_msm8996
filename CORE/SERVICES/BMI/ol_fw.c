@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2873,6 +2873,8 @@ int ol_target_coredump(void *inst, void *memoryBlock, u_int32_t blockLength)
 
 	char *fw_ram_seg_name[] = {"DRAM ", "AXI ", "REG ", "IRAM1 ", "IRAM2 "};
 #endif
+
+	vos_mem_set(result, 0, sizeof(result));
 
 	if (scn->fastfwdump_host && scn->fastfwdump_fw) {
 		if(scn->pdev_txrx_handle) {

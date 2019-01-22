@@ -151,9 +151,9 @@ static inline bool
 hdd_is_sta_connection_pending(hdd_context_t *hdd_ctx)
 {
     bool status;
-    spin_lock(&hdd_ctx->sta_update_info_lock);
+    adf_os_spin_lock(&hdd_ctx->sta_update_info_lock);
     status = hdd_ctx->is_sta_connection_pending;
-    spin_unlock(&hdd_ctx->sta_update_info_lock);
+    adf_os_spin_unlock(&hdd_ctx->sta_update_info_lock);
     return status;
 }
 
@@ -171,9 +171,9 @@ static inline void
 hdd_change_sta_conn_pending_status(hdd_context_t *hdd_ctx,
                                    bool value)
 {
-    spin_lock(&hdd_ctx->sta_update_info_lock);
+    adf_os_spin_lock(&hdd_ctx->sta_update_info_lock);
     hdd_ctx->is_sta_connection_pending = value;
-    spin_unlock(&hdd_ctx->sta_update_info_lock);
+    adf_os_spin_unlock(&hdd_ctx->sta_update_info_lock);
 }
 
 /**
@@ -189,10 +189,10 @@ static inline bool
 hdd_is_sap_restart_required(hdd_context_t *hdd_ctx)
 {
     bool status = false;
-    spin_lock(&hdd_ctx->sap_update_info_lock);
+    adf_os_spin_lock(&hdd_ctx->sap_update_info_lock);
     if (!hdd_ctx->is_ch_avoid_in_progress)
         status = hdd_ctx->is_sap_restart_required;
-    spin_unlock(&hdd_ctx->sap_update_info_lock);
+    adf_os_spin_unlock(&hdd_ctx->sap_update_info_lock);
     return status;
 }
 
@@ -211,9 +211,9 @@ static inline void
 hdd_change_sap_restart_required_status(hdd_context_t *hdd_ctx,
                                        bool value)
 {
-    spin_lock(&hdd_ctx->sap_update_info_lock);
+    adf_os_spin_lock(&hdd_ctx->sap_update_info_lock);
     hdd_ctx->is_sap_restart_required = value;
-    spin_unlock(&hdd_ctx->sap_update_info_lock);
+    adf_os_spin_unlock(&hdd_ctx->sap_update_info_lock);
 }
 
 /**
@@ -230,9 +230,9 @@ static inline void
 hdd_change_ch_avoidance_status(hdd_context_t *hdd_ctx,
                                bool value)
 {
-    spin_lock(&hdd_ctx->sap_update_info_lock);
+    adf_os_spin_lock(&hdd_ctx->sap_update_info_lock);
     hdd_ctx->is_ch_avoid_in_progress = value;
-    spin_unlock(&hdd_ctx->sap_update_info_lock);
+    adf_os_spin_unlock(&hdd_ctx->sap_update_info_lock);
     hddLog(LOG1, FL("is_ch_avoid_in_progress %d"), value);
 }
 

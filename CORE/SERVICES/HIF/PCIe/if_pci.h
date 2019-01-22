@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -125,7 +125,7 @@ struct hif_pci_softc {
     uint32_t prevent_suspend_cnt;
     struct hif_pci_pm_stats pm_stats;
     struct work_struct pm_work;
-    struct spinlock runtime_lock;
+    adf_os_spinlock_t  runtime_lock;
     struct timer_list runtime_timer;
     struct list_head prevent_suspend_list;
     unsigned long runtime_timer_expires;

@@ -72,6 +72,7 @@
 #include <adf_os_types.h>
 #include <vos_lock.h>
 #include <vos_timer.h>
+#include <adf_os_lock.h>
 
 #define TX_POST_EVENT               0x000
 #define TX_SUSPEND_EVENT            0x001
@@ -119,7 +120,7 @@ typedef void (*vos_tlshim_cb) (void *context, void *rxpkt, u_int16_t staid);
 typedef struct _VosMqType
 {
   /* Lock use to synchronize access to this message queue */
-  spinlock_t       mqLock;
+  adf_os_spinlock_t       mqLock;
 
   /* List of vOS Messages waiting on this queue */
   struct list_head  mqList;
@@ -196,9 +197,9 @@ typedef struct _VosSchedContext
    struct completion ResumeMcEvent;
 
    /* lock to make sure that McThread and TxThread Suspend/resume mechanism is in sync*/
-   spinlock_t McThreadLock;
+   adf_os_spinlock_t McThreadLock;
 #ifdef QCA_CONFIG_SMP
-   spinlock_t TlshimRxThreadLock;
+   adf_os_spinlock_t TlshimRxThreadLock;
 
    /* Tlshim Rx thread handle */
    struct task_struct *TlshimRxThread;
@@ -224,13 +225,13 @@ typedef struct _VosSchedContext
    struct list_head tlshimRxQueue;
 
    /* Spinlock to synchronize between tasklet and thread */
-   spinlock_t TlshimRxQLock;
+   adf_os_spinlock_t TlshimRxQLock;
 
    /* Rx queue length */
    unsigned int TlshimRxQlen;
 
    /* Lock to synchronize free buffer queue access */
-   spinlock_t VosTlshimPktFreeQLock;
+   adf_os_spinlock_t VosTlshimPktFreeQLock;
 
    /* Free message queue for Tlshim Rx processing */
    struct list_head VosTlshimPktFreeQ;
@@ -282,13 +283,13 @@ typedef struct _VosWatchdogContext
    v_BOOL_t resetInProgress;
 
    /* Lock for preventing multiple reset being triggered simultaneously */
-   spinlock_t wdLock;
+   adf_os_spinlock_t wdLock;
    /* Timer to detect thread stuck issue */
    vos_timer_t thread_stuck_timer;
    /* Count to determine thread stuck */
    unsigned int mc_thread_stuck_count;
    /* lock to synchronize access to the thread stuck counts */
-   spinlock_t thread_stuck_lock;
+   adf_os_spinlock_t thread_stuck_lock;
 
 } VosWatchdogContext, *pVosWatchdogContext;
 
@@ -416,7 +417,7 @@ typedef struct _VosContextType
    struct vos_wdthread_timer_work wdthread_timer_work;
    struct list_head wdthread_timer_work_list;
    struct work_struct wdthread_work;
-   spinlock_t wdthread_work_lock;
+   adf_os_spinlock_t wdthread_work_lock;
    bool is_closed;
 } VosContextType, *pVosContextType;
 

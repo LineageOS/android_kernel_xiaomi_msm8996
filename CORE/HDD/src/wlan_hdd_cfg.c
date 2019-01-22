@@ -4564,6 +4564,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_INFORM_BSS_RSSI_RAW_MIN,
                 CFG_INFORM_BSS_RSSI_RAW_MAX),
 #ifdef WLAN_FEATURE_TSF
+   REG_VARIABLE(CFG_SET_TSF_GPIO_PIN_HOST_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, tsf_gpio_pin_host,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SET_TSF_GPIO_PIN_HOST_DEFAULT,
+                CFG_SET_TSF_GPIO_PIN_HOST_MIN,
+                CFG_SET_TSF_GPIO_PIN_HOST_MAX),
+
    REG_VARIABLE(CFG_SET_TSF_GPIO_PIN_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, tsf_gpio_pin,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
