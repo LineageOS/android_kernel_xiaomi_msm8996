@@ -451,6 +451,7 @@ static int hif_usb_reset_resume(struct usb_interface *intf)
 	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
 	hif_usb_resume(intf);
 	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
+	return 0;
 }
 #endif
 
