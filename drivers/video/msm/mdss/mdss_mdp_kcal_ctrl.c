@@ -196,10 +196,13 @@ static void mdss_mdp_kcal_update_pcc(struct kcal_lut_data *lut_data)
 
 	struct mdp_pcc_data_v1_7 *payload;
 
-	if(lgd_panel) {
+	bool applied = false;
+
+	if(lgd_panel && applied == false) {
 		lut_data->red += (-26); //230
 		lut_data->green += (-26); //230
 		lut_data->blue += (-12); //244
+        applied = true;
 	}
 
 	lut_data->red = lut_data->red < lut_data->minimum ?
