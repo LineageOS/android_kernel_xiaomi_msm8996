@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -4899,7 +4899,7 @@ typedef struct {
 							  for success case in coarse detection*/
 	uint32_t fine_Q;                              /** number of times motion is expected to be detected
 							  for success case in fine detection*/
-	uint8_t md_coarse_thr_high;                  /** higher threshold value (in percent)
+	uint32_t md_coarse_thr_high;                  /** higher threshold value (in percent)
                                                           from host to FW, which will be used in
                                                           coarse detection phase of motion detection.
                                                           This is the threshold for the correlation
@@ -4908,19 +4908,19 @@ typedef struct {
                                                           environment.  A value of 100(%) indicates
                                                           that neither the transceiver nor any
                                                           nearby objects have changed position. */
-	uint8_t md_fine_thr_high;                    /** higher threshold value (in percent)
+	uint32_t md_fine_thr_high;                    /** higher threshold value (in percent)
 	                                                  from host to FW, which will be used in
 	                                                  fine detection phase of motion detection.
 	                                                  This is the threshold for correlation
                                                           between the old and current RF environments,
                                                           as explained above. */
-	uint8_t md_coarse_thr_low;                   /** lower threshold value (in percent)
+	uint32_t md_coarse_thr_low;                   /** lower threshold value (in percent)
                                                           for immediate detection of motion in
                                                           coarse detection phase.
                                                           This is the threshold for correlation
                                                           between the old and current RF environments,
                                                           as explained above. */
-	uint8_t md_fine_thr_low;                     /** lower threshold value (in percent)
+	uint32_t md_fine_thr_low;                     /** lower threshold value (in percent)
                                                           for immediate detection of motion in
                                                           fine detection phase.
                                                           This is the threshold for correlation
