@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015,2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015,2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -43,6 +43,11 @@
   -------------------------------------------------------------------------*/
 
 #ifdef WLAN_FEATURE_TSF
+
+#define REG_TSF1_L 0x1054
+#define REG_TSF1_H 0x1058
+#define REG_TSF2_L 0x10d4
+#define REG_TSF2_H 0x10d8
 
 /**
  * wlan_hdd_tsf_init() - set gpio and callbacks for

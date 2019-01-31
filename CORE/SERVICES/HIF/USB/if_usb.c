@@ -648,6 +648,13 @@ void hif_reset_soc(void *ol_sc)
 	/* TODO */
 }
 
+void hif_get_reg(void *ol_sc, u32 address, u32 *data)
+{
+	struct ol_softc *scn = (struct ol_softc *)ol_sc;
+
+	HIFDiagReadAccess(scn->hif_hdl, address, data);
+}
+
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
 {
 	u_int32_t hif_type, target_type;

@@ -12177,6 +12177,8 @@ hdd_adapter_t *hdd_open_adapter(hdd_context_t *hdd_ctx,
 	/* Adapter successfully added. Increment the vdev count  */
 	hdd_ctx->current_intf_count++;
 
+	adapter->tsf_id = HDD_TSF2;
+
 	hddLog(VOS_TRACE_LEVEL_DEBUG,
 	       "%s: current_intf_count=%d", __func__,
 	       hdd_ctx->current_intf_count);

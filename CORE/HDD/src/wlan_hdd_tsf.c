@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -32,6 +32,13 @@
 #include "wlan_hdd_main.h"
 #include "wlan_hdd_tsf.h"
 #include "wma_api.h"
+#if defined(HIF_PCI)
+#include "if_pci.h"
+#elif defined(HIF_USB)
+#include "if_usb.h"
+#elif defined(HIF_SDIO)
+#include "if_ath_sdio.h"
+#endif
 #include <linux/errqueue.h>
 #if defined(CONFIG_NON_QC_PLATFORM)
 #include <linux/gpio.h>
@@ -651,6 +658,133 @@ static inline uint64_t hdd_get_monotonic_host_time(hdd_context_t *hdd_ctx)
 		ktime_get_ns() : ktime_get_real_ns());
 }
 
+/**
+ * is_target_host_valid() - is target tsf valid or not
+ * @delt_host_time: current host time - last golden host time
+ * @delt_target_time: current target time - last golden target time
+ *
+ * Return: TRUE if target tsf is valid
+ */
+static inline bool is_target_host_valid(uint64_t delt_host_time,
+					uint64_t delt_target_time)
+{
+	if ((delt_target_time * HOST_TO_TARGET_TIME_RATIO >
+	    (delt_host_time - delt_host_time/100)) &&
+	    (delt_target_time * HOST_TO_TARGET_TIME_RATIO <
+	    (delt_host_time + delt_host_time/100)))
+		return true;
+	else
+		return false;
+}
+
+/**
+ * update_target_host_time - update new captured target tsf
+ * @adapter: pointer to adapter
+ *
+ * Return True if current target tsf can be set as golden tsf.
+ */
+static bool update_target_host_time(hdd_adapter_t *adapter)
+{
+	uint64_t delt_host_time = 0;
+	uint64_t delt_target_time = 0;
+	int num_index = 0;
+	int i = 0;
+	bool update_time = false;
+
+	delt_host_time = adapter->cur_host_time - adapter->last_host_time;
+	delt_target_time = adapter->cur_target_time - adapter->last_target_time;
+
+	if ((!adapter->last_target_time) ||
+		is_target_host_valid(delt_host_time, delt_target_time)) {
+		adapter->last_host_time = adapter->cur_host_time;
+		adapter->last_target_time = adapter->cur_target_time;
+		adapter->invalid_time_num = 0;
+		return true;
+	} else if (adapter->invalid_time_num >= MAX_INVALD_TIME_NUM) {
+		update_time = true;
+		for (i = 0; i < MAX_INVALD_TIME_NUM; i++) {
+		num_index = (adapter->invalid_time_num - i - 1) %
+			MAX_INVALD_TIME_NUM;
+			delt_host_time = adapter->cur_host_time -
+			adapter->invalid_host_time[num_index];
+			delt_target_time = adapter->cur_target_time -
+			adapter->invalid_target_time[num_index];
+			if (!is_target_host_valid(delt_host_time,
+				delt_target_time)) {
+				update_time = false;
+				break;
+			}
+		}
+	}
+
+	if (update_time) {
+		adapter->last_host_time = adapter->cur_host_time;
+		adapter->last_target_time = adapter->cur_target_time;
+		adapter->invalid_time_num = 0;
+		return true;
+	} else {
+		num_index = adapter->invalid_time_num % MAX_INVALD_TIME_NUM;
+		adapter->invalid_host_time[num_index] = adapter->cur_host_time;
+		adapter->invalid_target_time[num_index] =
+					adapter->cur_target_time;
+		adapter->invalid_time_num++;
+		return false;
+	}
+}
+
+/**
+ * hdd_get_tsf_by_register() - get tsf by register
+ * @adapter: pointer to adapter
+ * @host_time: current host time
+ * @target_time: current target time.
+ *
+ * Return 0 if succeeds
+ */
+static inline int32_t hdd_get_tsf_by_register(hdd_adapter_t *adapter,
+			uint64_t host_time, uint64_t *target_time)
+{
+	v_PVOID_t pHifContext = NULL;
+	v_CONTEXT_t pVosContext = NULL;
+	uint32_t datal;
+	uint32_t datah;
+	uint32_t tsf_id = adapter->tsf_id;
+	int32_t ret = 0;
+
+	pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+	if(!pVosContext)
+		return -EFAULT;
+	pHifContext = vos_get_context(VOS_MODULE_ID_HIF, pVosContext);
+	if (!pHifContext)
+		return -EFAULT;
+
+	if (tsf_id == HDD_TSF1) {
+		hif_get_reg(pHifContext, REG_TSF1_L, &datal);
+		hif_get_reg(pHifContext, REG_TSF1_H, &datah);
+		*target_time = datal + ((uint64_t)datah << 32);
+	} else if (tsf_id == HDD_TSF2) {
+		hif_get_reg(pHifContext, REG_TSF2_L, &datal);
+		hif_get_reg(pHifContext, REG_TSF2_H, &datah);
+		*target_time = datal + ((uint64_t)datah << 32);
+	} else {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("invalid tsf id %u"), tsf_id);
+		return -EFAULT;
+	}
+
+	adapter->cur_host_time = host_time;
+	if (!ret)
+		adapter->cur_target_time = *target_time;
+
+	if (!ret && update_target_host_time(adapter))
+		*target_time = adapter->cur_target_time;
+	else
+		*target_time = ((adapter->cur_host_time -
+				adapter->last_host_time) /
+				HOST_TO_TARGET_TIME_RATIO) +
+				adapter->last_target_time;
+
+	return 0;
+}
+
 static ssize_t __hdd_wlan_tsf_show(struct device *dev,
 				   struct device_attribute *attr, char *buf)
 {
@@ -667,10 +801,6 @@ static ssize_t __hdd_wlan_tsf_show(struct device *dev,
 	adapter = (hdd_adapter_t *)(netdev_priv(net_dev));
 	if (adapter->magic != WLAN_HDD_ADAPTER_MAGIC)
 		return scnprintf(buf, PAGE_SIZE, "Invalid device\n");
-
-	if (!hdd_get_th_sync_status(adapter))
-		return scnprintf(buf, PAGE_SIZE,
-				 "TSF sync is not initialized\n");
 
 	hdd_ctx = WLAN_HDD_GET_CTX(adapter);
 	if (!hdd_ctx)
@@ -692,12 +822,25 @@ static ssize_t __hdd_wlan_tsf_show(struct device *dev,
 	}
 
 	host_time = hdd_get_monotonic_host_time(hdd_ctx);
-	if (hdd_get_targettime_from_hosttime(adapter, host_time,
-					     &target_time))
-		size = scnprintf(buf, PAGE_SIZE, "Invalid timestamp\n");
-	else
-		size = scnprintf(buf, PAGE_SIZE, "%s%llu %llu %pM\n",
-				 buf, target_time, host_time, bssid);
+	if (hdd_ctx->cfg_ini->tsf_by_register) {
+		if (hdd_get_tsf_by_register(adapter, host_time,
+				      &target_time))
+			size = scnprintf(buf, PAGE_SIZE, "Invalid timestamp\n");
+		else
+			size = scnprintf(buf, PAGE_SIZE, "%s%llu %llu %pM\n",
+					 buf, target_time, host_time, bssid);
+	} else {
+		if (!hdd_get_th_sync_status(adapter))
+			return scnprintf(buf, PAGE_SIZE,
+					 "TSF sync is not initialized\n");
+
+		if (hdd_get_targettime_from_hosttime(adapter, host_time,
+						     &target_time))
+			size = scnprintf(buf, PAGE_SIZE, "Invalid timestamp\n");
+		else
+			size = scnprintf(buf, PAGE_SIZE, "%s%llu %llu %pM\n",
+					 buf, target_time, host_time, bssid);
+	}
 	return size;
 }
 
@@ -818,7 +961,6 @@ static enum hdd_tsf_op_result hdd_tsf_sync_init(hdd_adapter_t *adapter)
 {
 	VOS_STATUS ret;
 	hdd_context_t *hddctx;
-	struct net_device *net_dev;
 
 	if (!adapter)
 		return HDD_TSF_OP_FAIL;
@@ -856,9 +998,6 @@ static enum hdd_tsf_op_result hdd_tsf_sync_init(hdd_adapter_t *adapter)
 		goto fail;
 	}
 
-	net_dev = adapter->dev;
-	if (net_dev && HDD_TSF_IS_DBG_FS_SET(hddctx))
-		device_create_file(&net_dev->dev, &dev_attr_tsf);
 	hdd_set_th_sync_status(adapter, true);
 
 	return HDD_TSF_OP_SUCC;
@@ -871,7 +1010,6 @@ static enum hdd_tsf_op_result hdd_tsf_sync_deinit(hdd_adapter_t *adapter)
 {
 	VOS_STATUS ret;
 	hdd_context_t *hddctx;
-	struct net_device *net_dev;
 
 	if (!adapter)
 		return HDD_TSF_OP_FAIL;
@@ -906,12 +1044,6 @@ static enum hdd_tsf_op_result hdd_tsf_sync_deinit(hdd_adapter_t *adapter)
 
 	hdd_reset_timestamps(adapter);
 
-	net_dev = adapter->dev;
-	if (net_dev && HDD_TSF_IS_DBG_FS_SET(hddctx)) {
-		struct device *dev = &net_dev->dev;
-
-		device_remove_file(dev, &dev_attr_tsf);
-	}
 	return HDD_TSF_OP_SUCC;
 }
 
@@ -951,9 +1083,19 @@ enum hdd_tsf_op_result hdd_netbuf_timestamp(adf_nbuf_t netbuf,
 int hdd_start_tsf_sync(hdd_adapter_t *adapter)
 {
 	enum hdd_tsf_op_result ret;
+	hdd_context_t *hddctx;
+	struct net_device *net_dev;
 
 	if (!adapter)
 		return -EINVAL;
+
+	net_dev = adapter->dev;
+	hddctx = WLAN_HDD_GET_CTX(adapter);
+	if (net_dev && HDD_TSF_IS_DBG_FS_SET(hddctx))
+		device_create_file(&net_dev->dev, &dev_attr_tsf);
+
+	if (hddctx->cfg_ini->tsf_by_register)
+		return 0;
 
 	ret = hdd_tsf_sync_init(adapter);
 	if (ret != HDD_TSF_OP_SUCC) {
@@ -969,9 +1111,21 @@ int hdd_start_tsf_sync(hdd_adapter_t *adapter)
 int hdd_stop_tsf_sync(hdd_adapter_t *adapter)
 {
 	enum hdd_tsf_op_result ret;
+	hdd_context_t *hddctx;
+	struct net_device *net_dev;
 
 	if (!adapter)
 		return -EINVAL;
+
+	hddctx = WLAN_HDD_GET_CTX(adapter);
+	net_dev = adapter->dev;
+	if (net_dev && HDD_TSF_IS_DBG_FS_SET(hddctx)) {
+		struct device *dev = &net_dev->dev;
+
+		device_remove_file(dev, &dev_attr_tsf);
+	}
+	if (hddctx->cfg_ini->tsf_by_register)
+		return 0;
 
 	ret = __hdd_stop_tsf_sync(adapter);
 	if (ret != HDD_TSF_OP_SUCC)
@@ -1372,12 +1526,24 @@ static int wlan_ptp_gettime(struct ptp_clock_info *ptp, struct timespec *ts)
 	}
 
 	host_time = hdd_get_monotonic_host_time(pHddCtx);
-	if (hdd_get_targettime_from_hosttime(adapter, host_time,
-					     &target_time)) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, FL("get invalid target timestamp"));
-		return -EINVAL;
+	if (pHddCtx->cfg_ini->tsf_by_register) {
+		if (hdd_get_tsf_by_register(adapter, host_time,
+					      &target_time)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       FL("get invalid target timestamp"));
+			return -EINVAL;
+		} else {
+			*ts = ns_to_timespec(target_time * NSEC_PER_USEC);
+		}
 	} else {
-		*ts = ns_to_timespec(target_time * NSEC_PER_USEC);
+		if (hdd_get_targettime_from_hosttime(adapter, host_time,
+					     &target_time)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       FL("get invalid target timestamp"));
+			return -EINVAL;
+		} else {
+			*ts = ns_to_timespec(target_time * NSEC_PER_USEC);
+		}
 	}
 
 	return 0;
@@ -1440,12 +1606,24 @@ static int wlan_ptp_gettime(struct ptp_clock_info *ptp, struct timespec64 *ts)
 	}
 
 	host_time = hdd_get_monotonic_host_time(pHddCtx);
-	if (hdd_get_targettime_from_hosttime(adapter, host_time,
-					     &target_time)) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, FL("get invalid target timestamp"));
-		return -EINVAL;
+	if (pHddCtx->cfg_ini->tsf_by_register) {
+		if (hdd_get_tsf_by_register(adapter, host_time,
+					      &target_time)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       FL("get invalid target timestamp"));
+			return -EINVAL;
+		} else {
+			*ts = ns_to_timespec64(target_time * NSEC_PER_USEC);
+		}
 	} else {
-		*ts = ns_to_timespec64(target_time * NSEC_PER_USEC);
+		if (hdd_get_targettime_from_hosttime(adapter, host_time,
+					     &target_time)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       FL("get invalid target timestamp"));
+			return -EINVAL;
+		} else {
+			*ts = ns_to_timespec64(target_time * NSEC_PER_USEC);
+		}
 	}
 
 	return 0;
@@ -1521,6 +1699,22 @@ static int hdd_get_tsf_cb(void *pcb_cxt, struct stsf *ptsf)
 		return -EINVAL;
 	}
 
+	if (hddctx->cfg_ini->tsf_by_register) {
+		if (ptsf->tsf_id_valid) {
+			adapter->tsf_id = ptsf->tsf_id;
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       FL("vdev id %u, tsf id %u"),
+			       ptsf->vdev_id, ptsf->tsf_id);
+			return 0;
+		} else {
+			adapter->tsf_id = HDD_TSF_INVALID;
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       FL("vdev id %u, invalid tsf id"),
+			       ptsf->vdev_id);
+			return -EINVAL;
+		}
+	}
+
 	if (!hdd_tsf_is_initialized(adapter)) {
 		hddLog(VOS_TRACE_LEVEL_ERROR,
 			FL("tsf is not init, ignore tsf event"));
@@ -1562,6 +1756,17 @@ void wlan_hdd_tsf_init(hdd_context_t *hdd_ctx)
 
 	if (!hdd_ctx)
 		return;
+
+	if (hdd_ctx->cfg_ini->tsf_by_register) {
+		wlan_hdd_phc_init(hdd_ctx);
+		hal_status = sme_set_tsfcb(hdd_ctx->hHal, hdd_get_tsf_cb,
+					   hdd_ctx);
+		if (eHAL_STATUS_SUCCESS != hal_status)
+			hddLog(LOGE, FL("get tsf id cb failed, status: %d"),
+					hal_status);
+
+		return;
+	}
 
 	if (adf_os_atomic_inc_return(&hdd_ctx->tsf_ready_flag) > 1)
 		return;
@@ -1608,6 +1813,15 @@ void wlan_hdd_tsf_deinit(hdd_context_t *hdd_ctx)
 
 	if (!hdd_ctx)
 		return;
+
+	if (hdd_ctx->cfg_ini->tsf_by_register) {
+		wlan_hdd_phc_deinit(hdd_ctx);
+		hal_status = sme_set_tsfcb(hdd_ctx->hHal, NULL, NULL);
+		if (eHAL_STATUS_SUCCESS != hal_status)
+			hddLog(LOGE, FL("reset tsf cb failed, status: %d"),
+					hal_status);
+		return;
+	}
 
 	if (!adf_os_atomic_read(&hdd_ctx->tsf_ready_flag))
 		return;

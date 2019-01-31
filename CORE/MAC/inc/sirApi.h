@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -7193,6 +7193,8 @@ struct sblock_info {
  * @vdev_id: vdev id
  * @tsf_low: low 32bits of tsf
  * @tsf_high: high 32bits of tsf
+ * @tsf_id: tsf id
+ * @tsf_id_valid: valid tsf id or not
  *
  * driver use this struct to store the tsf info
  */
@@ -7200,6 +7202,8 @@ struct stsf {
 	uint32_t vdev_id;
 	uint32_t tsf_low;
 	uint32_t tsf_high;
+	uint32_t tsf_id;
+	uint32_t tsf_id_valid;
 };
 
 #ifdef WLAN_FEATURE_MOTION_DETECTION
