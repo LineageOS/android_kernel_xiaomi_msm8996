@@ -569,6 +569,7 @@ typedef enum
 
     eCSR_ROAM_NDP_STATUS_UPDATE,
     eCSR_ROAM_UPDATE_SCAN_RESULT,
+    eCSR_ROAM_SAE_COMPUTE,
 }eRoamCmdStatus;
 
 
@@ -1572,6 +1573,9 @@ typedef struct tagCsrRoamInfo
     bool is_fils_connection;
     uint16_t fils_seq_num;
     struct fils_join_rsp_params *fils_join_rsp;
+#endif
+#ifdef WLAN_FEATURE_SAE
+    struct sir_sae_info *sae_info;
 #endif
 }tCsrRoamInfo;
 

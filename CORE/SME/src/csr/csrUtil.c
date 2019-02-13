@@ -521,6 +521,7 @@ get_eRoamCmdStatus_str(eRoamCmdStatus val)
         CASE_RETURN_STR(eCSR_ROAM_ESE_ADJ_AP_REPORT_IND);
         CASE_RETURN_STR(eCSR_ROAM_ESE_BCN_REPORT_IND);
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
+        CASE_RETURN_STR(eCSR_ROAM_SAE_COMPUTE);
     default:
         return "unknown";
     }
