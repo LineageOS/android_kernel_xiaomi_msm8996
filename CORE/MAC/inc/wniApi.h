@@ -433,6 +433,7 @@ enum eWniMsgTypes
     /* Link layer statistics */
     eWMI_SME_LL_STATS_IND,
     eWNI_SME_TRIGGER_SAE,
+    eWNI_SME_SEND_MGMT_FRAME_TX,
 
     eWNI_SME_MSG_TYPES_END
 };
