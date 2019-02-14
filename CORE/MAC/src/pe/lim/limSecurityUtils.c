@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2017, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -506,10 +506,15 @@ limRestoreFromAuthState(tpAniSirGlobal pMac, tSirResultCodes resultCode, tANI_U1
      * retry is needed also cancel the auth rety timer
      */
     pMac->auth_ack_status = LIM_AUTH_ACK_RCD_SUCCESS;
+
+    /* Auth retry and AUth failure timers are not started for SAE */
     /* 'Change' timer for future activations */
-    limDeactivateAndChangeTimer(pMac, eLIM_AUTH_RETRY_TIMER);
-    // 'Change' timer for future activations
-    limDeactivateAndChangeTimer(pMac, eLIM_AUTH_FAIL_TIMER);
+    if (tx_timer_running(&pMac->lim.limTimers.
+                         g_lim_periodic_auth_retry_timer))
+        limDeactivateAndChangeTimer(pMac, eLIM_AUTH_RETRY_TIMER);
+    /* 'Change' timer for future activations */
+    if (tx_timer_running(&pMac->lim.limTimers.gLimAuthFailureTimer))
+        limDeactivateAndChangeTimer(pMac, eLIM_AUTH_FAIL_TIMER);
 
     sirCopyMacAddr(currentBssId,sessionEntry->bssId);
 
