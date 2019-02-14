@@ -92,6 +92,51 @@ limSetChannel(tpAniSirGlobal pMac, tANI_U8 channel, tANI_U8 secChannelOffset, tP
 #define IS_MLM_SCAN_REQ_BACKGROUND_SCAN_NORMAL(pMac)        (pMac->lim.gpLimMlmScanReq->backgroundScanMode == eSIR_NORMAL_BACKGROUND_SCAN)
 
 /**
+ * lim_process_sae_auth_timeout() - This function is called to process sae
+ * auth timeout
+ * @mac_ctx: Pointer to Global MAC structure
+ *
+ * @Return: None
+ */
+static void lim_process_sae_auth_timeout(tpAniSirGlobal mac_ctx)
+{
+	tpPESession session;
+
+	session = peFindSessionBySessionId(mac_ctx,
+			mac_ctx->lim.limTimers.sae_auth_timer.sessionId);
+	if (session == NULL) {
+		limLog(mac_ctx, LOGE,
+			FL("Session does not exist for given session id"));
+		return;
+	}
+
+	limLog(mac_ctx, LOG1,
+		FL("SAE auth timeout sessionid %d mlmstate %X SmeState %X"),
+		session->peSessionId, session->limMlmState,
+		session->limSmeState);
+
+	switch (session->limMlmState) {
+	case eLIM_MLM_WT_SAE_AUTH_STATE:
+		/*
+		 * SAE authentication is not completed. Restore from
+		 * auth state.
+		 */
+		if (session->pePersona == VOS_STA_MODE)
+			limRestoreFromAuthState(mac_ctx,
+				eSIR_SME_AUTH_TIMEOUT_RESULT_CODE,
+				eSIR_MAC_UNSPEC_FAILURE_REASON, session);
+		break;
+	default:
+		/* SAE authentication is timed out in unexpected state */
+		limLog(mac_ctx, LOGE,
+			FL("received unexpected SAE auth timeout in state %X"),
+			session->limMlmState);
+		limPrintMlmState(mac_ctx, LOGE, session->limMlmState);
+		break;
+	}
+}
+
+/**
  * limProcessMlmReqMessages()
  *
  *FUNCTION:
@@ -159,6 +204,9 @@ limProcessMlmReqMessages(tpAniSirGlobal pMac, tpSirMsgQ Msg)
                                             break;
         case SIR_LIM_DISASSOC_ACK_TIMEOUT:  limProcessDisassocAckTimeout(pMac); break;
         case SIR_LIM_DEAUTH_ACK_TIMEOUT:    limProcessDeauthAckTimeout(pMac); break;
+        case SIR_LIM_AUTH_SAE_TIMEOUT:
+            lim_process_sae_auth_timeout(pMac);
+            break;
         case LIM_MLM_TSPEC_REQ:
         default:
             break;
@@ -2317,7 +2365,7 @@ static VOS_STATUS lim_process_mlm_auth_req_sae(tpAniSirGlobal mac_ctx,
 
 	if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MQ_ID_SME, &msg))
 	{
-		limLog(mac_ctx, LOGE, "%s failed to post msg to self ",
+		limLog(mac_ctx, LOGE, FL("%s failed to post msg to self "),
 			__func__);
 		vos_mem_free((void *)sae_info);
 		status = VOS_STATUS_E_FAILURE;
@@ -2327,6 +2375,18 @@ static VOS_STATUS lim_process_mlm_auth_req_sae(tpAniSirGlobal mac_ctx,
 
 	MTRACE(macTrace(mac_ctx, TRACE_CODE_MLM_STATE, session->peSessionId,
 			session->limMlmState));
+
+	mac_ctx->lim.limTimers.sae_auth_timer.sessionId =
+		session->peSessionId;
+
+	/* Activate SAE auth timer */
+	MTRACE(macTrace(mac_ctx, TRACE_CODE_TIMER_ACTIVATE,
+		session->peSessionId, eLIM_AUTH_SAE_TIMER));
+	if (tx_timer_activate(&mac_ctx->lim.limTimers.sae_auth_timer)
+		!= TX_SUCCESS) {
+		limLog(mac_ctx, LOGE,
+			FL("could not start Auth SAE timer"));
+	}
 
 	return status;
 }
