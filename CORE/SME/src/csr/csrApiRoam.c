@@ -18437,6 +18437,14 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
      smsLog( pMac, LOGE,"Roam Scan Offload is already started");
      return eHAL_STATUS_FAILURE;
    }
+
+   /* Roaming is not supported currently for SAE authentication */
+   if (pSession->pCurRoamProfile &&
+       CSR_IS_AUTH_TYPE_SAE(
+     pSession->pCurRoamProfile->AuthType.authType[0])) {
+     smsLog(pMac, LOGE, "Roaming not suppprted for SAE connection");
+     return eHAL_STATUS_SUCCESS;
+   }
    /*The Dynamic Config Items Update may happen even if the state is in INIT.
     * It is important to ensure that the command is passed down to the FW only
     * if the Infra Station is in a connected state.A connected station could also be

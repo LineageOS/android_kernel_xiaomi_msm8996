@@ -1918,7 +1918,12 @@ typedef eHalStatus (*csrRoamSessionCloseCallback)(void *pContext);
 
 ///////////////////////////////////////////Common Roam ends
 
-
+#ifdef WLAN_FEATURE_SAE
+#define CSR_IS_AUTH_TYPE_SAE(auth_type) \
+	(eCSR_AUTH_TYPE_SAE == auth_type)
+#else
+#define CSR_IS_AUTH_TYPE_SAE(auth_type) (false)
+#endif
 
 /* ---------------------------------------------------------------------------
     \fn csrSetChannels
