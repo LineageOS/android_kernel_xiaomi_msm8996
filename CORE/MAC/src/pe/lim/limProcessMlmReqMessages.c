@@ -756,9 +756,15 @@ void limDoSendAuthMgmtFrame(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
         tSirMacAuthFrameBody    authFrameBody;
 
-        //Prepare & send Authentication frame
-        authFrameBody.authAlgoNumber =
+        /* Mark auth algo as open when auth type is SAE and PMK is cached */
+        if ((pMac->lim.gpLimMlmAuthReq->authType == eSIR_AUTH_TYPE_SAE) &&
+            psessionEntry->sae_pmk_cached) {
+            authFrameBody.authAlgoNumber = eSIR_OPEN_SYSTEM;
+        } else {
+            authFrameBody.authAlgoNumber =
                         (tANI_U8) pMac->lim.gpLimMlmAuthReq->authType;
+        }
+        //Prepare & send Authentication frame
         authFrameBody.authTransactionSeqNumber = SIR_MAC_AUTH_FRAME_1;
         authFrameBody.authStatusCode = 0;
         pMac->auth_ack_status = LIM_AUTH_ACK_NOT_RCD;
@@ -2538,7 +2544,8 @@ limProcessMlmAuthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                                  pMac->lim.gpLimMlmAuthReq->peerMacAddr);
 
         psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
-        if (pMac->lim.gpLimMlmAuthReq->authType == eSIR_AUTH_TYPE_SAE) {
+        if ((pMac->lim.gpLimMlmAuthReq->authType == eSIR_AUTH_TYPE_SAE) &&
+            !psessionEntry->sae_pmk_cached) {
             if (lim_process_mlm_auth_req_sae(pMac, psessionEntry) !=
                 VOS_STATUS_SUCCESS) {
                 mlmAuthCnf.resultCode = eSIR_SME_INVALID_PARAMETERS;

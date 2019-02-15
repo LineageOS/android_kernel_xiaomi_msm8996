@@ -14425,6 +14425,37 @@ static void csr_update_fils_connection_info(tCsrRoamProfile *profile,
 { }
 #endif
 
+#ifdef WLAN_FEATURE_SAE
+/*
+ * csr_update_sae_config: Copy SAE info to join request
+ * @profile: pointer to profile
+ * @csr_join_req: csr join request
+ *
+ * Return: None
+ */
+static void csr_update_sae_config(tSirSmeJoinReq *csr_join_req,
+			tpAniSirGlobal mac, tCsrRoamSession *session)
+{
+	tPmkidCacheInfo pmkid_cache;
+	uint32_t index;
+
+	vos_mem_copy(pmkid_cache.BSSID,
+		csr_join_req->bssDescription.bssId, VOS_MAC_ADDR_SIZE);
+
+	csr_join_req->sae_pmk_cached =
+	    csr_lookup_pmkid_using_bssid(mac, session, &pmkid_cache, &index);
+
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+		"pmk_cached %d for BSSID=" MAC_ADDRESS_STR,
+		csr_join_req->sae_pmk_cached,
+		MAC_ADDR_ARRAY(csr_join_req->bssDescription.bssId));
+}
+#else
+static void csr_update_sae_config(tSirSmeJoinReq *csr_join_req,
+			tpAniSirGlobal mac, tCsrRoamSession *session)
+{ }
+#endif
+
 
 ////////////////////Mail box
 
@@ -14502,7 +14533,6 @@ csrPrepareJoinReassocReqBuffer(tpAniSirGlobal pMac,
         *pBuf++ = pMac->sub20_channelwidth;
 
     csr_update_fils_connection_info(pProfile, &pBuf);
-
     *pBuf++ = uapsdMask;
 
     // move the entire BssDescription into the join request.
@@ -15242,6 +15272,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
             csrPrepareJoinReassocReqBuffer(pMac, pBssDescription, pBuf,
                                            (tANI_U8)pProfile->uapsd_mask,
                                            messageType, pProfile);
+        csr_update_sae_config(pMsg, pMac, pSession);
 
         pBuf += used_length;
         /*

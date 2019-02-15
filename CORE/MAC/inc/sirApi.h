@@ -1211,6 +1211,7 @@ typedef struct sSirSmeJoinReq
 #ifdef WLAN_FEATURE_FILS_SK
     struct cds_fils_connection_info fils_con_info;
 #endif
+    bool sae_pmk_cached;
     tSirBssDescription  bssDescription;
     /*
      * WARNING: Pls make bssDescription as last variable in struct

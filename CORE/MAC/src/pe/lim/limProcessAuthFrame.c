@@ -1226,17 +1226,29 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             if (pRxAuthFrameBody->authAlgoNumber !=
                 pMac->lim.gpLimMlmAuthReq->authType)
             {
-                /**
-                 * Received Authentication frame with an auth
-                 * algorithm other than one requested.
-                 * Wait until Authentication Failure Timeout.
+                /*
+                 * Auth algo is open in rx auth frame when auth type is SAE and
+                 * PMK is cached as driver sent auth algo as open in tx frame
+                 * as well.
                  */
+                if ((pMac->lim.gpLimMlmAuthReq->authType ==
+                    eSIR_AUTH_TYPE_SAE) && psessionEntry->sae_pmk_cached) {
+                    limLog(pMac, LOGW,
+                        FL("rx Auth frame2 auth algo %d in SAE PMK case"),
+                        pRxAuthFrameBody->authAlgoNumber);
+                } else {
+                    /**
+                     * Received Authentication frame with an auth
+                     * algorithm other than one requested.
+                     * Wait until Authentication Failure Timeout.
+                     */
 
-                // Log error
-                PELOGW(limLog(pMac, LOGW,
-                       FL("received Auth frame2 for unexpected auth algo number %d "
-                       MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
-                       MAC_ADDR_ARRAY(pHdr->sa));)
+                    // Log error
+                    PELOGW(limLog(pMac, LOGW,
+                           FL("received Auth frame2 for unexpected auth algo number %d"
+                           MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
+                           MAC_ADDR_ARRAY(pHdr->sa));)
+                }
 
                 break;
             }
