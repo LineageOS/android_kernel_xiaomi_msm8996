@@ -86,6 +86,7 @@ typedef enum eAniAuthType
     eSIR_FILS_SK_WITH_PFS = 5,
     eSIR_FILS_PK_AUTH = 6,
 #endif
+    eSIR_AUTH_TYPE_OWE = 7,
 #if defined FEATURE_WLAN_ESE
     eSIR_LEAP_AUTH = 0x80,
 #endif

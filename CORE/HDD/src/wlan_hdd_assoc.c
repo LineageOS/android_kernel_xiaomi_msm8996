@@ -110,6 +110,9 @@ v_U8_t ccpRSNOui07[ HDD_RSN_OUI_SIZE ] = { 0x00, 0x0F, 0xAC, 0x06 }; // RSN-PSK-
 v_U8_t ccpRSNOui08[ HDD_RSN_OUI_SIZE ] = { 0x00, 0x0F, 0xAC, 0x05 };
 #endif
 
+/* OWE https://tools.ietf.org/html/rfc8110 */
+uint8_t ccp_rsn_oui_18[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x12};
+
 #ifdef WLAN_FEATURE_FILS_SK
 uint8_t ccp_rsn_oui_0e[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x0E};
 uint8_t ccp_rsn_oui_0f[HDD_RSN_OUI_SIZE] = {0x00, 0x0F, 0xAC, 0x0F};
@@ -5134,6 +5137,8 @@ eCsrAuthType hdd_TranslateRSNToCsrAuthType( u_int8_t auth_suite[4])
     if (memcmp(auth_suite , ccpRSNOui08, 4) == 0)
     {
         auth_type = eCSR_AUTH_TYPE_RSN_8021X_SHA256;
+    } else if (memcmp(auth_suite, ccp_rsn_oui_18, 4) == 0) {
+        auth_type = eCSR_AUTH_TYPE_OWE;
     } else
 #endif
     {
@@ -5537,7 +5542,10 @@ int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
     pRoamProfile->AuthType.numEntries = 1;
-    hddLog( LOG1, "%s: pHddStaCtx->conn_info.authType = %d", __func__, pHddStaCtx->conn_info.authType);
+    hddLog( LOG1,
+        "%s: authType = %d RSNAuthType %d wpa_versions %d",
+         __func__, pHddStaCtx->conn_info.authType, RSNAuthType,
+         pWextState->wpaVersion);
 
     switch( pHddStaCtx->conn_info.authType)
     {
@@ -5618,6 +5626,12 @@ int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
 				hddLog(LOG1, "updated profile authtype as %d", RSNAuthType);
             } else
 #endif
+            if ((RSNAuthType == eCSR_AUTH_TYPE_OWE) &&
+                ((pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)
+                  == IW_AUTH_KEY_MGMT_802_1X)) {
+               /* OWE case */
+               pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_OWE;
+            } else
             if( (pWextState->authKeyMgmt & IW_AUTH_KEY_MGMT_802_1X)
                     == IW_AUTH_KEY_MGMT_802_1X) {
                pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_RSN;
