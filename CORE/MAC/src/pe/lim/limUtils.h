@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -248,22 +248,22 @@ static inline int limSelectCBMode(tDphHashNode *pStaDs, tpPESession psessionEntr
         if ( channel== 36 || channel == 52 || channel == 100 ||
              channel == 116 || channel == 149 )
         {
-           return PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW - 1;
+           return PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_LOW;
         }
         else if ( channel == 40 || channel == 56 || channel == 104 ||
              channel == 120 || channel == 153 )
         {
-           return PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW - 1;
+           return PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_LOW;
         }
         else if ( channel == 44 || channel == 60 || channel == 108 ||
                   channel == 124 || channel == 157 )
         {
-           return PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH -1;
+           return PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_HIGH;
         }
         else if ( channel == 48 || channel == 64 || channel == 112 ||
              channel == 128 || channel == 161 )
         {
-            return PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH - 1;
+            return PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH;
         }
         else if ( channel == 165 )
         {
@@ -277,14 +277,14 @@ static inline int limSelectCBMode(tDphHashNode *pStaDs, tpPESession psessionEntr
              channel == 120 || channel == 128 || channel == 136 ||
              channel == 144 || channel == 153 || channel == 161 )
         {
-           return PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
+           return PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
         }
         else if ( channel== 36 || channel == 44 || channel == 52 ||
              channel == 60 || channel == 100 || channel == 108 ||
              channel == 116 || channel == 124 || channel == 132 ||
              channel == 140 || channel == 149 || channel == 157 )
         {
-           return PHY_DOUBLE_CHANNEL_HIGH_PRIMARY;
+           return PHY_DOUBLE_CHANNEL_LOW_PRIMARY;
         }
         else if ( channel == 165 )
         {
