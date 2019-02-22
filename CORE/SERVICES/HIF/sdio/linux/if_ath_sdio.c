@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -479,6 +479,13 @@ HIFCancelDeferredTargetSleep(HIF_DEVICE *hif_device)
 void hif_reset_soc(void *ol_sc)
 {
     ENTER("- dummy function!");
+}
+
+void hif_get_reg(void *ol_sc, u32 address, u32 *data)
+{
+	struct ol_softc *scn = (struct ol_softc *)ol_sc;
+
+	HIFDiagReadAccess(scn->hif_hdl, address, data);
 }
 
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3404,6 +3404,13 @@ void hif_pci_save_htc_htt_config_endpoint(int htc_endpoint)
     }
 
     scn->hif_sc->htc_endpoint = htc_endpoint;
+}
+
+void hif_get_reg(void *ol_sc, u32 address, u32 *data)
+{
+	struct ol_softc *scn = (struct ol_softc *)ol_sc;
+
+	HIFDiagReadAccess(scn->hif_hdl, address, data);
 }
 
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)

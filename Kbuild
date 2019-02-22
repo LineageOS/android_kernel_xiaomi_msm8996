@@ -137,6 +137,9 @@ ifeq ($(KERNEL_BUILD), 0)
         ifeq ($(CONFIG_ROME_IF),sdio)
                 CONFIG_WLAN_FEATURE_11W := y
         endif
+        ifeq ($(CONFIG_ROME_IF),pci)
+                CONFIG_WLAN_FEATURE_11W := y
+        endif
 
         ifneq ($(CONFIG_MOBILE_ROUTER), y)
         #Flag to enable NAN
@@ -396,6 +399,10 @@ HIF_COMMON_DIR := CORE/SERVICES/HIF/common
 HIF_COMMON_OBJS := $(HIF_COMMON_DIR)/hif_bmi_reg_access.o \
                    $(HIF_COMMON_DIR)/hif_diag_reg_access.o
 
+ifeq ($(CONFIG_GPIO_OOB),y)
+HIF_DIR_OBJS += $(HIF_DIR)/hif_oob.o
+endif
+
 HIF_SDIO_DIR := CORE/SERVICES/HIF/sdio
 HIF_SDIO_OBJS := $(HIF_SDIO_DIR)/hif_sdio_send.o \
                  $(HIF_SDIO_DIR)/hif_sdio_dev.o \
@@ -415,6 +422,7 @@ HIF_SDIO_NATIVE_OBJS := $(HIF_SDIO_NATIVE_SRC_DIR)/hif.o \
                         $(HIF_SDIO_NATIVE_SRC_DIR)/hif_scatter.o
 
 HIF_INC := -I$(WLAN_ROOT)/$(HIF_COMMON_DIR) \
+           -I$(WLAN_ROOT)/$(HIF_DIR) \
            -I$(WLAN_ROOT)/$(HIF_SDIO_DIR) \
            -I$(WLAN_ROOT)/$(HIF_SDIO_LINUX_DIR) \
            -I$(WLAN_ROOT)/$(HIF_SDIO_NATIVE_INC_DIR) \
@@ -869,9 +877,14 @@ HIF_DIR := CORE/SERVICES/HIF
 ifeq ($(CONFIG_HIF_PCI), 1)
 HIF_PCIE_DIR := $(HIF_DIR)/PCIe
 
-HIF_INC := -I$(WLAN_ROOT)/$(HIF_PCIE_DIR)
+HIF_INC := -I$(WLAN_ROOT)/$(HIF_PCIE_DIR) \
+           -I$(WLAN_ROOT)/$(HIF_DIR)
 
 HIF_OBJS := $(HIF_DIR)/ath_procfs.o
+
+ifeq ($(CONFIG_GPIO_OOB),y)
+HIF_OBJS += $(HIF_DIR)/hif_oob.o
+endif
 
 HIF_PCIE_OBJS := $(HIF_PCIE_DIR)/copy_engine.o \
                  $(HIF_PCIE_DIR)/hif_pci.o \
@@ -884,9 +897,14 @@ endif
 ifeq ($(CONFIG_HIF_USB), 1)
 HIF_USB_DIR := $(HIF_DIR)/USB
 
-HIF_INC := -I$(WLAN_ROOT)/$(HIF_USB_DIR)
+HIF_INC := -I$(WLAN_ROOT)/$(HIF_USB_DIR) \
+           -I$(WLAN_ROOT)/$(HIF_DIR)
 
 HIF_OBJS := $(HIF_DIR)/ath_procfs.o
+
+ifeq ($(CONFIG_GPIO_OOB),y)
+HIF_OBJS += $(HIF_DIR)/hif_oob.o
+endif
 
 HIF_USB_OBJS := $(HIF_USB_DIR)/usbdrv.o \
                  $(HIF_USB_DIR)/hif_usb.o \
@@ -1633,6 +1651,10 @@ CDEFINES += -DCONFIG_NON_QC_PLATFORM
 CDEFINES += -DTARGET_DUMP_FOR_NON_QC_PLATFORM
 endif
 
+ifeq ($(CONFIG_GPIO_OOB),y)
+CDEFINES += -DCONFIG_GPIO_OOB
+endif
+
 ifeq ($(CONFIG_NON_QC_PLATFORM), y)
 ifeq ($(CONFIG_ROME_IF),pci)
 CDEFINES += -DCONFIG_NON_QC_PLATFORM_PCI
@@ -1713,6 +1735,10 @@ CDEFINES += -DWLAN_FEATURE_WOW_PULSE
 CDEFINES += -DFEATURE_PBM_MAGIC_WOW
 endif
 
+ifeq ($(CONFIG_USB_RESET_RESUME_PERSISTENCE), y)
+CDEFINES += -DUSB_RESET_RESUME_PERSISTENCE
+endif
+
 ifeq ($(CONFIG_WLAN_FEATURE_NAN_DATAPATH),y)
 CDEFINES += -DWLAN_FEATURE_NAN_DATAPATH
 endif
@@ -1723,6 +1749,10 @@ endif
 
 ifeq ($(CONFIG_HIF_PCI), 1)
 CDEFINES += -DFORCE_LEGACY_PCI_INTERRUPTS
+endif
+
+ifeq ($(CONFIG_SUPPORT_P2P_BY_ONE_INTF_WLAN), y)
+CDEFINES += -DSUPPORT_P2P_BY_ONE_INTF_WLAN
 endif
 
 ifeq ($(CONFIG_WLAN_THERMAL_SHUTDOWN), 1)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2954,6 +2954,22 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_POWERSAVE_OFFLOAD_MIN,
                  CFG_POWERSAVE_OFFLOAD_MAX ),
 
+#ifdef CONFIG_GPIO_OOB
+   REG_VARIABLE(CFG_ENABLE_OOB_GPIO_FLAG_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, oob_gpio_flag,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                CFG_ENABLE_OOB_GPIO_FLAG_DEFAULT,
+                CFG_ENABLE_OOB_GPIO_FLAG_MIN,
+                CFG_ENABLE_OOB_GPIO_FLAG_MAX),
+
+   REG_VARIABLE(CFG_ENABLE_OOB_GPIO_NUM_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, oob_gpio_num,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                CFG_ENABLE_OOB_GPIO_NUM_DEFAULT,
+                CFG_ENABLE_OOB_GPIO_NUM_MIN,
+                CFG_ENABLE_OOB_GPIO_NUM_MAX),
+#endif
+
    REG_VARIABLE( CFG_ENABLE_FW_UART_PRINT_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enablefwprint,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -4570,6 +4586,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_SET_TSF_GPIO_PIN_HOST_DEFAULT,
                 CFG_SET_TSF_GPIO_PIN_HOST_MIN,
                 CFG_SET_TSF_GPIO_PIN_HOST_MAX),
+
+   REG_VARIABLE(CFG_GET_TSF_BY_REGISTER_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, tsf_by_register,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_GET_TSF_BY_REGISTER_DEFAULT,
+                CFG_GET_TSF_BY_REGISTER_MIN,
+                CFG_GET_TSF_BY_REGISTER_MAX),
 
    REG_VARIABLE(CFG_SET_TSF_GPIO_PIN_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, tsf_gpio_pin,

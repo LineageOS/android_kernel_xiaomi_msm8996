@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -244,6 +244,10 @@ struct ol_softc {
 
 #ifdef PERE_IP_HDR_ALIGNMENT_WAR
     bool                    host_80211_enable; /* Enables native-wifi mode on host */
+#endif
+#ifdef CONFIG_GPIO_OOB
+    u_int32_t               oob_gpio_num;
+    u_int32_t               oob_gpio_flag;
 #endif
     bool                    enableuartprint;    /* enable uart/serial prints from target */
     bool                    enablefwlog;        /* enable fwlog */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1177,6 +1177,19 @@ struct hdd_netif_queue_history {
 	uint32_t pause_map;
 };
 
+/**
+ * enum HDD_TSF_ID - TSF ID
+ * HDD_TSF1 - TSF 1
+ * HDD_TSF2 - TSF 2
+ * HDD_TSF_NUM_MAX - max tsf num
+ * HDD_TSF_INVALID - invalid tsf id
+ */
+typedef enum {
+	HDD_TSF1,
+	HDD_TSF2,
+	HDD_TSF_NUM_MAX,
+	HDD_TSF_INVALID,
+}HDD_TSF_ID;
 
 struct hdd_adapter_s
 {
@@ -1334,16 +1347,20 @@ struct hdd_adapter_s
    }sessionCtx;
 
 #ifdef WLAN_FEATURE_TSF
+#define MAX_INVALD_TIME_NUM 4
    /* tsf value get from firmware */
    uint64_t cur_target_time;
+   uint64_t cur_host_time;
+   uint64_t last_host_time;
+   uint64_t last_target_time;
    vos_timer_t host_capture_req_timer;
+   uint64_t invalid_target_time[MAX_INVALD_TIME_NUM];
+   uint64_t invalid_host_time[MAX_INVALD_TIME_NUM];
+   uint8_t invalid_time_num;
 #ifdef WLAN_FEATURE_TSF_PLUS
    /* spin lock for read/write timestamps */
    adf_os_spinlock_t host_target_sync_lock;
    vos_timer_t host_target_sync_timer;
-   uint64_t cur_host_time;
-   uint64_t last_host_time;
-   uint64_t last_target_time;
    /* to store the count of continuous invalid tstamp-pair */
    int continuous_error_count;
    /* to indicate whether tsf_sync has been initialized */
@@ -1443,6 +1460,7 @@ struct hdd_adapter_s
     adf_os_time_t total_unpause_time;
 
     uint8_t history_index;
+    HDD_TSF_ID tsf_id;
     struct hdd_netif_queue_history
             queue_oper_history[WLAN_HDD_MAX_HISTORY_ENTRY];
     struct hdd_netif_queue_stats queue_oper_stats[WLAN_REASON_TYPE_MAX];

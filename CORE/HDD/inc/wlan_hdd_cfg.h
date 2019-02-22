@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2949,6 +2949,48 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_P2P_LISTEN_OFFLOAD_ENABLE                   ( 1 )
 #define CFG_P2P_LISTEN_OFFLOAD_DEFAULT                  ( CFG_P2P_LISTEN_OFFLOAD_DISABLE )
 
+#ifdef CONFIG_GPIO_OOB
+/*
+ * <ini>
+ * goob_gpio_num - OOB GPIO NUM
+ * @Min: 0
+ * @Max: 255
+ * @Default: 255
+ *
+ * This ini is used to config OOB GPIO NUM
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_ENABLE_OOB_GPIO_NUM_NAME             "goob_gpio_num"
+#define CFG_ENABLE_OOB_GPIO_NUM_MIN              (0)
+#define CFG_ENABLE_OOB_GPIO_NUM_MAX              (255)
+#define CFG_ENABLE_OOB_GPIO_NUM_DEFAULT          (CFG_ENABLE_OOB_GPIO_NUM_MAX)
+
+/*
+ * <ini>
+ * goob_gpio_flag - OOB GPIO flag
+ *                  bit 0 - enable OOB wake up
+ *                  bit 1 - enable OOB interrupt
+ * @Min: 0
+ * @Max: 3
+ * @Default: 0
+ *
+ * This ini is used to enable OOB GPIO feature
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_ENABLE_OOB_GPIO_FLAG_NAME            "goob_gpio_flag"
+#define CFG_ENABLE_OOB_GPIO_FLAG_MIN             (0)
+#define CFG_ENABLE_OOB_GPIO_FLAG_MAX             (3)
+#define CFG_ENABLE_OOB_GPIO_FLAG_DEFAULT         (0)
+#endif
+
 /*
  * Firmware uart print
  */
@@ -4159,6 +4201,25 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_SET_TSF_GPIO_PIN_HOST_MIN                   (0)
 #define CFG_SET_TSF_GPIO_PIN_HOST_MAX                   (254)
 #define CFG_SET_TSF_GPIO_PIN_HOST_DEFAULT               (45)
+
+/*
+ * <ini>
+ * gtsf_by_register - get tsf by register
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to get tsf by register
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_GET_TSF_BY_REGISTER_NAME                  "gtsf_by_register"
+#define CFG_GET_TSF_BY_REGISTER_MIN                   (0)
+#define CFG_GET_TSF_BY_REGISTER_MAX                   (1)
+#define CFG_GET_TSF_BY_REGISTER_DEFAULT               (0)
 
 #ifdef WLAN_FEATURE_TSF_PLUS
 /* PTP options */
@@ -5962,6 +6023,10 @@ struct hdd_config {
    v_BOOL_t                    enableTCPChkSumOffld;
    v_BOOL_t                    enableIPChecksumOffload;
    v_BOOL_t                    enablePowersaveOffload;
+#ifdef CONFIG_GPIO_OOB
+   v_U32_t                     oob_gpio_num;
+   v_U32_t                     oob_gpio_flag;
+#endif
    v_BOOL_t                    enablefwprint;
    v_BOOL_t                    enablefwlog;
    v_BOOL_t                    fastfwdump;
@@ -6266,6 +6331,7 @@ struct hdd_config {
 #ifdef WLAN_FEATURE_TSF
    uint32_t                    tsf_gpio_pin;
    uint32_t                    tsf_gpio_pin_host;
+   uint8_t                     tsf_by_register;
 #ifdef WLAN_FEATURE_TSF_PLUS
    uint8_t                     tsf_ptp_options;
 #endif /* WLAN_FEATURE_TSF_PLUS */

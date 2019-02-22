@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -35,6 +35,7 @@
 #include <vos_getBin.h>
 #include "epping_main.h"
 #include "htc_api.h"
+#include <hif_oob.h>
 
 #define MAX_HTC_RX_BUNDLE  2
 
@@ -309,6 +310,7 @@ void  HTCDestroy(HTC_HANDLE HTCHandle)
     HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("+HTCDestroy ..  Destroying :0x%pK \n",target));
     HIFStop(HTCGetHifDevice(HTCHandle));
+    hif_oob_gpio_deinit(HTCGetHifDevice(HTCHandle));
     HTCCleanup(target);
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("-HTCDestroy \n"));
 }
@@ -528,6 +530,30 @@ A_UINT8 HTCGetCreditAllocation(HTC_TARGET *target, A_UINT16 ServiceID)
     return allocation;
 }
 
+/**
+ * get_oob_gpio_config() - get oob gpio config
+ * @HTCHandle - pointer to HTC handle
+ * @gpio_num - pointer to gpio num
+ * @gpio_flag - pointer to gpio flag
+ *
+ * Return NULL
+ */
+#ifdef CONFIG_GPIO_OOB
+static void get_oob_gpio_config(HTC_HANDLE htc_handle, uint32_t *gpio_num,
+				uint32_t *gpio_flag)
+{
+	HTC_TARGET   *target = GET_HTC_TARGET_FROM_HANDLE(htc_handle);
+	struct ol_softc *scn = (struct ol_softc *)target->HTCInitInfo.pContext;
+
+	*gpio_num = scn->oob_gpio_num;
+	*gpio_flag = scn->oob_gpio_flag;
+}
+#else
+static void get_oob_gpio_config(HTC_HANDLE htc_handle, uint32_t *gpio_num,
+				uint32_t *gpio_flag)
+{
+}
+#endif
 
 A_STATUS HTCWaitTarget(HTC_HANDLE HTCHandle)
 {
@@ -540,12 +566,18 @@ A_STATUS HTCWaitTarget(HTC_HANDLE HTCHandle)
     A_UINT16 htc_rdy_msg_id;
     A_UINT8 i = 0;
     HTC_PACKET *pRxBundlePacket, *pTempBundlePacket;
+    uint32_t gpio_num = 0;
+    uint32_t gpio_flag = 0;
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRC, ("HTCWaitTarget - Enter (target:0x%pK) \n", HTCHandle));
     AR_DEBUG_PRINTF(ATH_DEBUG_ANY, ("+HWT\n"));
 
     do {
-
+        get_oob_gpio_config(HTCHandle, &gpio_num, &gpio_flag);
+        if (gpio_flag) {
+            if (hif_oob_gpio_init(target->hif_dev, gpio_num, gpio_flag))
+                AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("OOB init failed\n"));
+        }
         status = HIFStart(target->hif_dev);
         if (A_FAILED(status)) {
             AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("HIFStart failed\n"));
@@ -800,6 +832,7 @@ void HTCStop(HTC_HANDLE HTCHandle)
      */
 
     HIFStop(target->hif_dev);
+    hif_oob_gpio_deinit(target->hif_dev);
 
 #ifdef RX_SG_SUPPORT
     LOCK_HTC_RX(target);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2016-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -36,6 +36,7 @@
 #include <adf_os_lock.h>
 #include "hif.h"
 #include "hif_sdio_common.h"
+#include "hif_oob.h"
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)
 #include <linux/scatterlist.h>
 #define HIF_LINUX_MMC_SCATTER_SUPPORT
@@ -135,6 +136,9 @@ struct hif_device {
     /* mailbox swapping for control and data svc*/
     A_BOOL swap_mailbox;
     bool ctrl_response_timeout;
+#ifdef CONFIG_GPIO_OOB
+    struct hif_oob_ctx hif_oob;
+#endif
 };
 
 #define HIF_DMA_BUFFER_SIZE (4 * 1024)
