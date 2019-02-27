@@ -4315,6 +4315,18 @@ eHalStatus sme_LLStatsGetReq (tHalHandle hHal,
 eHalStatus sme_ll_stats_set_thresh(tHalHandle hal,
 				   struct sir_ll_ext_stats_threshold *thresh);
 
+/**
+ * sme_ll_stats_set_primary_mac() - Set primary peer
+ * @hal: HAL handle
+ * @session_id: session ID
+ * @mac_addr: MAC address for the primary peer.
+ *
+ * return: eHAL_STATUS_SUCCESS for success. Others for failure.
+ */
+eHalStatus sme_ll_stats_set_primary_mac(tHalHandle hal,
+					uint8_t session_id,
+					tSirMacAddr mac_addr);
+
 /* ---------------------------------------------------------------------------
     \fn sme_SetLinkLayerStatsIndCB
     \brief  SME API to trigger the stats are available  after get request
