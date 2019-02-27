@@ -76,11 +76,12 @@ static int oob_task(void *pm_oob)
 	while (!hif_oob->oob_shutdown) {
 		if (down_interruptible(&hif_oob->oob_sem) != 0)
 			continue;
-		while (!gpio_get_value(hif_oob->oob_gpio_num))
+		while (!gpio_get_value(hif_oob->oob_gpio_num)) {
 			if (hif_oob->wow_maskint)
 				break;
 			hif_oob->oob_irq_handler(
 				hif_oob_irq_handler_ctx((HIF_DEVICE *)pm_oob));
+		}
 	}
 
 	complete_and_exit(&hif_oob->oob_completion, 0);
