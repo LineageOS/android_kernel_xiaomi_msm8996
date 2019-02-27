@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -137,7 +137,15 @@ bool wma_check_scan_in_progress(WMA_HANDLE handle);
 int wma_runtime_suspend_req(WMA_HANDLE handle);
 int wma_runtime_resume_req(WMA_HANDLE handle);
 #endif
-
+#ifdef FEATURE_PBM_MAGIC_WOW
+/**
+ * wma_wow_get_pbm_mp_reason() - API to get parsed wow reason
+ * @vos_context: handle of vos context
+ *
+ * Return: enum pbm_mp_reason
+ */
+enum pbm_mp_reason wma_wow_get_pbm_mp_reason(void *vos_context);
+#endif
 int wma_get_client_count(WMA_HANDLE handle);
 int wma_set_peer_param(void *wma_ctx, u_int8_t *peer_addr, u_int32_t param_id,
 			u_int32_t param_value, u_int32_t vdev_id);
