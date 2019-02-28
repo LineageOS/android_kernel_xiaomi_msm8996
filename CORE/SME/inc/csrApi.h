@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -48,6 +48,7 @@ typedef enum
     // MAC layer authentication types
     eCSR_AUTH_TYPE_OPEN_SYSTEM,
     eCSR_AUTH_TYPE_SHARED_KEY,
+    eCSR_AUTH_TYPE_SAE,
     eCSR_AUTH_TYPE_AUTOSWITCH,
 
     // Upper layer authentication types

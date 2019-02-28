@@ -23711,6 +23711,12 @@ static int wlan_hdd_cfg80211_set_auth_type(hdd_adapter_t *pAdapter,
             pHddStaCtx->conn_info.authType = eCSR_AUTH_TYPE_OPEN_SYSTEM;
             break;
 #endif
+
+        case NL80211_AUTHTYPE_SAE:
+            hddLog(LOG1, "set authentication type to SAE");
+            pHddStaCtx->conn_info.authType = eCSR_AUTH_TYPE_SAE;
+            break;
+
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR,
                     "%s: Unsupported authentication type %d", __func__,
@@ -23853,6 +23859,11 @@ static int wlan_hdd_set_akm_suite( hdd_adapter_t *pAdapter,
                 eCSR_AUTH_TYPE_FT_FILS_SHA384;
             break;
 #endif
+
+        case WLAN_AKM_SUITE_SAE:
+            hddLog(LOG1, "setting key mgmt type to SAE");
+            pWextState->authKeyMgmt |= IW_AUTH_KEY_MGMT_802_1X;
+            break;
 
         default:
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported key mgmt type %d",
