@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1044,5 +1044,15 @@ void lim_process_rx_channel_status_event(tpAniSirGlobal mac_ctx, void *buf);
 
 int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg);
 void limRemainOnChnRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
+
+/**
+ * lim_send_mgmt_frame_tx() - Sends mgmt frame
+ * @mac_ctx Pointer to Global MAC structure
+ * @msg: Received message info
+ *
+ * Return: None
+ */
+void lim_send_mgmt_frame_tx(tpAniSirGlobal mac_ctx,
+			    tpSirMsgQ msg);
 
 #endif /* __LIM_TYPES_H */

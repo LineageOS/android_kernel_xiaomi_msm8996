@@ -149,6 +149,56 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter,
                                                 eRoamCmdStatus roamStatus,
                                                 eCsrRoamResult roamResult );
 
+#if defined(WLAN_FEATURE_SAE) && \
+	defined(CFG80211_EXTERNAL_AUTH_SUPPORT)
+/**
+ * wlan_hdd_sae_callback() - Sends SAE info to supplicant
+ * @adapter: pointer adapter context
+ * @roam_info: pointer to roam info
+ *
+ * This API is used to send required SAE info to trigger SAE in supplicant.
+ *
+ * Return: None
+ */
+static void wlan_hdd_sae_callback(hdd_adapter_t *adapter,
+				tCsrRoamInfo *roam_info)
+{
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+	int flags;
+	struct sir_sae_info *sae_info = roam_info->sae_info;
+	struct cfg80211_external_auth_params params = {0};
+
+	if (wlan_hdd_validate_context(hdd_ctx))
+		return;
+
+	if (!sae_info) {
+		hddLog(LOGE, FL("SAE info in NULL"));
+		return;
+	}
+
+	flags = vos_get_gfp_flags();
+
+	params.key_mgmt_suite = 0x00;
+	params.key_mgmt_suite |= 0x0F << 8;
+	params.key_mgmt_suite |= 0xAC << 16;
+	params.key_mgmt_suite |= 0x8 << 24;
+
+	params.action = NL80211_EXTERNAL_AUTH_START;
+	vos_mem_copy(params.bssid, sae_info->peer_mac_addr.bytes,
+		VOS_MAC_ADDR_SIZE);
+	vos_mem_copy(params.ssid.ssid, sae_info->ssid.ssId,
+		sae_info->ssid.length);
+	params.ssid.ssid_len = sae_info->ssid.length;
+
+	cfg80211_external_auth_request(adapter->dev, &params, flags);
+	hddLog(LOG1, FL("SAE: sent cmd"));
+}
+#else
+static void wlan_hdd_sae_callback(hdd_adapter_t *adapter,
+				tCsrRoamInfo *roam_info)
+{ }
+#endif
+
 static v_VOID_t
 hdd_connSetAuthenticated(hdd_adapter_t *pAdapter, v_U8_t authState)
 {
@@ -4977,6 +5027,10 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
             hdd_ndp_event_handler(pAdapter, pRoamInfo, roamId, roamStatus,
                 roamResult );
             break;
+        case eCSR_ROAM_SAE_COMPUTE:
+            if (pRoamInfo)
+                wlan_hdd_sae_callback(pAdapter, pRoamInfo);
+        break;
         case  eCSR_ROAM_STA_CHANNEL_SWITCH:
 	  {
 		pHddCtx = WLAN_HDD_GET_CTX(pAdapter);

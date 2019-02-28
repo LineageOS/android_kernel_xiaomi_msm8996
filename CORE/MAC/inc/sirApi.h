@@ -1211,6 +1211,7 @@ typedef struct sSirSmeJoinReq
 #ifdef WLAN_FEATURE_FILS_SK
     struct cds_fils_connection_info fils_con_info;
 #endif
+    bool sae_pmk_cached;
     tSirBssDescription  bssDescription;
     /*
      * WARNING: Pls make bssDescription as last variable in struct
@@ -8685,4 +8686,33 @@ struct action_frame_random_filter {
 	uint8_t mac_addr[VOS_MAC_ADDR_SIZE];
 };
 
+/**
+ * struct sae_info - SAE info used for commit/confirm messages
+ * @msg_type: Message type
+ * @msg_len: length of message
+ * @vdev_id: vdev id
+ * @peer_mac_addr: peer MAC address
+ * @ssid: SSID
+ */
+struct sir_sae_info {
+	uint16_t msg_type;
+	uint16_t msg_len;
+	uint32_t vdev_id;
+	v_MACADDR_t peer_mac_addr;
+	tSirMacSSid ssid;
+};
+
+/**
+ * struct sir_sae_msg - SAE msg used for message posting
+ * @message_type: message type
+ * @length: message length
+ * @session_id: SME session id
+ * @sae_status: SAE status, 0: Success, Non-zero: Failure.
+ */
+struct sir_sae_msg {
+	uint16_t message_type;
+	uint16_t length;
+	uint16_t session_id;
+	uint8_t sae_status;
+};
 #endif /* __SIR_API_H */

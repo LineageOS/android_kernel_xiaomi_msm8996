@@ -569,6 +569,7 @@ typedef enum
 
     eCSR_ROAM_NDP_STATUS_UPDATE,
     eCSR_ROAM_UPDATE_SCAN_RESULT,
+    eCSR_ROAM_SAE_COMPUTE,
 }eRoamCmdStatus;
 
 
@@ -1573,6 +1574,9 @@ typedef struct tagCsrRoamInfo
     uint16_t fils_seq_num;
     struct fils_join_rsp_params *fils_join_rsp;
 #endif
+#ifdef WLAN_FEATURE_SAE
+    struct sir_sae_info *sae_info;
+#endif
 }tCsrRoamInfo;
 
 
@@ -1914,7 +1918,12 @@ typedef eHalStatus (*csrRoamSessionCloseCallback)(void *pContext);
 
 ///////////////////////////////////////////Common Roam ends
 
-
+#ifdef WLAN_FEATURE_SAE
+#define CSR_IS_AUTH_TYPE_SAE(auth_type) \
+	(eCSR_AUTH_TYPE_SAE == auth_type)
+#else
+#define CSR_IS_AUTH_TYPE_SAE(auth_type) (false)
+#endif
 
 /* ---------------------------------------------------------------------------
     \fn csrSetChannels

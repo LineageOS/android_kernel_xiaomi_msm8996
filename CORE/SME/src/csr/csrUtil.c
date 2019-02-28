@@ -521,6 +521,7 @@ get_eRoamCmdStatus_str(eRoamCmdStatus val)
         CASE_RETURN_STR(eCSR_ROAM_ESE_ADJ_AP_REPORT_IND);
         CASE_RETURN_STR(eCSR_ROAM_ESE_BCN_REPORT_IND);
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
+        CASE_RETURN_STR(eCSR_ROAM_SAE_COMPUTE);
     default:
         return "unknown";
     }
@@ -3659,16 +3660,7 @@ static bool csr_lookup_pmkid_using_ssid(tpAniSirGlobal mac,
     return false;
 }
 
-/**
- * csr_lookup_pmkid_using_bssid() - lookup pmkid using bssid
- * @mac: pointer to mac
- * @session: sme session pointer
- * @pmk_cache: pointer to pmk cache
- * @index: index value needs to be seached
- *
- * Return: true if pmkid is found else false
- */
-static bool csr_lookup_pmkid_using_bssid(tpAniSirGlobal mac,
+bool csr_lookup_pmkid_using_bssid(tpAniSirGlobal mac,
                     tCsrRoamSession *session,
                     tPmkidCacheInfo *pmk_cache,
                     uint32_t *index)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1088,6 +1088,19 @@ tANI_BOOLEAN csrElectedCountryInfo(tpAniSirGlobal pMac);
 void csrAddVoteForCountryInfo(tpAniSirGlobal pMac, tANI_U8 *pCountryCode);
 void csrClearVotesForCountryInfo(tpAniSirGlobal pMac);
 
+/**
+ * csr_lookup_pmkid_using_bssid() - lookup pmkid using bssid
+ * @mac: pointer to mac
+ * @session: sme session pointer
+ * @pmk_cache: pointer to pmk cache
+ * @index: index value needs to be seached
+ *
+ * Return: true if pmkid is found else false
+ */
+bool csr_lookup_pmkid_using_bssid(tpAniSirGlobal mac,
+	                    tCsrRoamSession *session,
+	                    tPmkidCacheInfo *pmk_cache,
+	                    uint32_t *index);
 #endif
 eHalStatus csr_send_ext_change_channel(tpAniSirGlobal mac_ctx,
 				uint32_t channel, uint8_t session_id);
