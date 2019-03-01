@@ -669,9 +669,9 @@ static inline bool is_target_host_valid(uint64_t delt_host_time,
 					uint64_t delt_target_time)
 {
 	if ((delt_target_time * HOST_TO_TARGET_TIME_RATIO >
-	    (delt_host_time - delt_host_time/100)) &&
+	    (delt_host_time - vos_do_div(delt_host_time, 100)) &&
 	    (delt_target_time * HOST_TO_TARGET_TIME_RATIO <
-	    (delt_host_time + delt_host_time/100)))
+	    (delt_host_time + vos_do_div(delt_host_time, 100)))))
 		return true;
 	else
 		return false;
@@ -777,10 +777,10 @@ static inline int32_t hdd_get_tsf_by_register(hdd_adapter_t *adapter,
 	if (!ret && update_target_host_time(adapter))
 		*target_time = adapter->cur_target_time;
 	else
-		*target_time = ((adapter->cur_host_time -
-				adapter->last_host_time) /
-				HOST_TO_TARGET_TIME_RATIO) +
-				adapter->last_target_time;
+		*target_time = vos_do_div64(adapter->cur_host_time -
+					    adapter->last_host_time,
+					    HOST_TO_TARGET_TIME_RATIO) +
+					    adapter->last_target_time;
 
 	return 0;
 }
