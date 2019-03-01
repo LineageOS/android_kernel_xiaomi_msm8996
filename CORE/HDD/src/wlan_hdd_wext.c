@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -9156,8 +9156,13 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
                     return -EINVAL;
                 }
 
-                if (apps_args[0] < 0 || apps_args[0] > 1 || apps_args[1] < 0
-                    || apps_args[2] <= 10000 || apps_args[3] < 0 || apps_args[4] < 0
+                if ((0 == apps_args[0]) && (0 == apps_args[1])
+                    && (0 == apps_args[2]) && (0 == apps_args[3])
+                    && (0 == apps_args[4]) && (0 == apps_args[5])) {
+                    hddLog(LOGE, FL("setHpcsParams: reset params"));
+                } else if (apps_args[0] < 0 || apps_args[0] > 1
+                    || apps_args[1] < 0 || apps_args[2] <= 10000
+                    || apps_args[3] < 0 || apps_args[4] < 0
                     || apps_args[5] < 10000) {
                     hddLog(LOGE, FL("setHpcsParams: Invalid values"));
                     return -EINVAL;
