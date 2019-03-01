@@ -7131,13 +7131,22 @@ static int put_wifi_signal_info(struct sir_wifi_peer_signal_stats *peer_signal,
 {
 	uint32_t i, chain_count;
 	struct nlattr *chains, *att;
+	v_CONTEXT_t vos_context = vos_get_global_context(0, NULL);
+	hdd_context_t *hdd_ctx;
+
+	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_context);
 
 	/* There might be no signal info for a peer */
 	if (peer_signal == NULL)
 		return 0;
 
-	chain_count = peer_signal->num_chain < WIFI_MAX_CHAINS ?
-		      peer_signal->num_chain : WIFI_MAX_CHAINS;
+	if ((!hdd_ctx) || (hdd_ctx->cfg_ini->per_chain_stats_enabled == 0))
+		chain_count = WIFI_MAX_CHAINS;
+	else
+		chain_count = peer_signal->num_chain < WIFI_MAX_CHAINS ?
+			      peer_signal->num_chain : WIFI_MAX_CHAINS;
+
+	hddLog(LOG2, FL("chain_count=%d"), chain_count);
 	if (nla_put_u32(skb,
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_ANT_NUM,
 			chain_count)) {

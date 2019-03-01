@@ -5592,6 +5592,29 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_IS_SAE_ENABLED_MIN     (0)
 #define CFG_IS_SAE_ENABLED_MAX     (1)
 
+/*
+ * <ini>
+ * per_chain_stats - Enable/Disable per antenna LL stats
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to enable/disable per antenna LL stats.
+ * When antenna diversity is enabled this should be set to 1.
+ *
+ * Related: None
+ *
+ * Supported Feature: antenna diversity
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_IS_PER_CHAIN_STATS_ENABLED_NAME    "per_chain_stats"
+#define CFG_IS_PER_CHAIN_STATS_ENABLED_DEFAULT (0)
+#define CFG_IS_PER_CHAIN_STATS_ENABLED_MIN     (0)
+#define CFG_IS_PER_CHAIN_STATS_ENABLED_MAX     (1)
+
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -6522,6 +6545,8 @@ struct hdd_config {
 #ifdef WLAN_FEATURE_SAE
    bool is_sae_enabled;
 #endif
+
+    bool per_chain_stats_enabled;
 };
 
 typedef struct hdd_config hdd_config_t;
