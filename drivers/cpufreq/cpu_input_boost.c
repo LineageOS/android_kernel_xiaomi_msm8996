@@ -74,10 +74,12 @@ static void update_online_cpu_policy(void)
 {
 	u32 cpu;
 
-	/* Trigger cpufreq notifier for online CPUs */
+	/* Only one CPU from each cluster needs to be updated */
 	get_online_cpus();
-	for_each_online_cpu(cpu)
-		cpufreq_update_policy(cpu);
+	cpu = cpumask_first_and(cpu_lp_mask, cpu_online_mask);
+	cpufreq_update_policy(cpu);
+	cpu = cpumask_first_and(cpu_perf_mask, cpu_online_mask);
+	cpufreq_update_policy(cpu);
 	put_online_cpus();
 }
 
