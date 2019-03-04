@@ -12402,6 +12402,8 @@ hdd_adapter_t *hdd_open_adapter(hdd_context_t *hdd_ctx,
 	if (ret != 0)
 		hddLog(LOGE, "FAILED TO SET RTSCTS Profile ret:%d", ret);
 
+	hdd_create_tsf_file(adapter);
+
 	return adapter;
 
 err_post_add_adapter:
@@ -12468,6 +12470,7 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
    pAdapterNode = pCurrent;
    if( VOS_STATUS_SUCCESS == status )
    {
+      hdd_remove_tsf_file(pAdapter);
       wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
       hdd_deinit_packet_filtering(pAdapterNode->pAdapter);
       hdd_cleanup_adapter( pHddCtx, pAdapterNode->pAdapter, rtnl_held );
