@@ -194,8 +194,8 @@ static void devfreq_input_boost(struct work_struct *work)
 
 static void devfreq_input_unboost(struct work_struct *work)
 {
-	struct boost_dev *b =
-		container_of(to_delayed_work(work), typeof(*b), input_unboost);
+	struct boost_dev *b = container_of(to_delayed_work(work),
+					   typeof(*b), input_unboost);
 	struct devfreq *df = b->df;
 
 	mutex_lock(&df->lock);
@@ -227,8 +227,8 @@ static void devfreq_max_boost(struct work_struct *work)
 
 static void devfreq_max_unboost(struct work_struct *work)
 {
-	struct boost_dev *b =
-		container_of(to_delayed_work(work), typeof(*b), max_unboost);
+	struct boost_dev *b = container_of(to_delayed_work(work),
+					   typeof(*b), max_unboost);
 	struct devfreq *df = b->df;
 
 	mutex_lock(&df->lock);
