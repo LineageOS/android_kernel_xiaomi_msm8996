@@ -787,6 +787,10 @@ VOSS_OBJS :=    $(VOSS_SRC_DIR)/vos_api.o \
 		$(VOSS_SRC_DIR)/vos_types.o \
                 $(VOSS_SRC_DIR)/vos_utils.o
 
+ifeq ($(CONFIG_CLD_REGDB),y)
+VOSS_OBJS += $(VOSS_SRC_DIR)/vos_regdb.o
+endif
+
 ifeq ($(BUILD_DIAG_VERSION),1)
 VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
 endif
@@ -1110,6 +1114,10 @@ CDEFINES +=     -DWLAN_FEATURE_MBSSID \
 		-DFEATURE_WLAN_CH_AVOID \
 		-DFEATURE_WLAN_STA_AP_MODE_DFS_DISABLE \
 		-DWLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
+endif
+
+ifeq ($(CONFIG_CLD_REGDB), y)
+CDEFINES +=     -DCLD_REGDB
 endif
 
 ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
