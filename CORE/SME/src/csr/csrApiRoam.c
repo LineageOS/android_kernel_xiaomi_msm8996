@@ -3585,8 +3585,10 @@ eHalStatus csrRoamPrepareBssConfig(tpAniSirGlobal pMac, tCsrRoamProfile *pProfil
                 pBssConfig->uCfgDot11Mode = eCSR_CFG_DOT11_MODE_11A;
             }
         }
-        smsLog(pMac, LOG1, FL("phyMode %d uCfgDot11Mode %d"),
-                              pProfile->phyMode, pBssConfig->uCfgDot11Mode);
+        smsLog(pMac, LOG1,
+               FL("phyMode %d uCfgDot11Mode %d negotiatedAuthType %d"),
+                              pProfile->phyMode, pBssConfig->uCfgDot11Mode,
+                              pProfile->negotiatedAuthType);
         //Qos
         if ((pBssConfig->uCfgDot11Mode != eCSR_CFG_DOT11_MODE_11N) &&
                 (pMac->roam.configParam.WMMSupportMode == eCsrRoamWmmNoQos))
