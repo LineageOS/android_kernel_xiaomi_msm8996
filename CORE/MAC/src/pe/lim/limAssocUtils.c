@@ -2359,6 +2359,9 @@ limAddSta(
     vos_mem_copy ((tANI_U8*)&pAddStaParams->supportedRates,
                   (tANI_U8*)&pStaDs->supportedRates, sizeof(tSirSupportedRates));
 
+    if (pMac->mcs_tx_force2chain == true)
+        pAddStaParams->supportedRates.mcs_txforce2chain = true;
+
     pAddStaParams->assocId = pStaDs->assocId;
 
     pAddStaParams->wmmEnabled = pStaDs->qosMode;
@@ -4204,6 +4207,9 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             vos_mem_copy((tANI_U8*)&pAddBssParams->staContext.supportedRates,
                                                 (tANI_U8*)&pStaDs->supportedRates,
                                                 sizeof(tSirSupportedRates));
+            if (pMac->mcs_tx_force2chain == true)
+                pAddBssParams->staContext.supportedRates.mcs_txforce2chain
+                 = true;
         }
         else
             PELOGE(limLog(pMac, LOGE, FL("could not Update the supported rates."));)

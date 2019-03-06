@@ -2428,6 +2428,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_MAX_HT_MCS_FOR_TX_DATA_MIN,
                  CFG_MAX_HT_MCS_FOR_TX_DATA_MAX),
 
+   REG_VARIABLE(CFG_MCS_TX_FORCE2CHAIN_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, mcs_tx_force2chain,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_MCS_TX_FORCE2CHAIN_DEFAULT,
+                CFG_MCS_TX_FORCE2CHAIN_DISABLE,
+                CFG_MCS_TX_FORCE2CHAIN_ENABLE),
+
    REG_VARIABLE(CFG_SAP_GET_PEER_INFO, WLAN_PARAM_Integer,
                  hdd_config_t, sap_get_peer_info,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -6351,6 +6358,10 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
          CFG_STA_CHANGE_COUNTRYCODE_DYN_NAME ,
          pHddCtx->cfg_ini->sta_change_cc_via_beacon);
 
+  hddLog(LOGE, "Name = [%s] Value = [%u]",
+         CFG_MCS_TX_FORCE2CHAIN_NAME ,
+         pHddCtx->cfg_ini->mcs_tx_force2chain);
+
 
   hdd_ndp_print_ini_config(pHddCtx);
 
@@ -8534,6 +8545,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    smeConfig->sta_change_cc_via_beacon =
 	 pHddCtx->cfg_ini->sta_change_cc_via_beacon;
+
+   smeConfig->mcs_tx_force2chain =
+	 pHddCtx->cfg_ini->mcs_tx_force2chain;
 
 #ifdef WLAN_FEATURE_SAP_TO_FOLLOW_STA_CHAN
    smeConfig->csrConfig.sap_ch_switch_with_csa = pHddCtx->cfg_ini->sap_ch_switch_with_csa;

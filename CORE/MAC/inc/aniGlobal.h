@@ -1298,6 +1298,7 @@ typedef struct sAniSirGlobal
     uint8_t  sub20_dynamic_channelwidth;
     uint8_t  sta_sub20_current_channelwidth;
     bool     sta_change_cc_via_beacon;
+    bool     mcs_tx_force2chain;
     bool max_power_cmd_pending;
     uint32_t sta_auth_retries_for_code17;
     uint32_t rx_packet_drop_counter;

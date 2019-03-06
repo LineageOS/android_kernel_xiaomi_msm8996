@@ -16303,6 +16303,21 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		return -EINVAL;
 	}
 
+	if (params->supportedRates.mcs_txforce2chain) {
+		for (i = 0; i < MAX_SUPPORTED_RATES; i++) {
+			if (params->supportedRates.supportedMCSSet[i / 8] &
+			    (1 << (i % 8))) {
+				if (i >= 8) {
+					/* MCS8 or higher rate is present */
+					peer_nss = 2;
+					WMA_LOGE("%s: assoc dev support 2*2",
+						 __func__);
+					break;
+				}
+			}
+		}
+	}
+
 	wma_mask_tx_ht_rate(wma, params->supportedRates.supportedMCSSet);
 
 	vos_mem_zero(&peer_legacy_rates, sizeof(wmi_rate_set));
