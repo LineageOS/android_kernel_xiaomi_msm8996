@@ -1588,6 +1588,26 @@ typedef enum
 
 /*
  * <ini>
+ * g_mcs_tx_force2chain - force tx use 2 chain
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to configure force tx use 2 chain
+ * is peer device support 2*2 even our device only
+ * support mcs0~mcs7.
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_MCS_TX_FORCE2CHAIN_NAME      "g_mcs_tx_force2chain"
+#define CFG_MCS_TX_FORCE2CHAIN_DISABLE   ( 0 )
+#define CFG_MCS_TX_FORCE2CHAIN_ENABLE    ( 1 )
+#define CFG_MCS_TX_FORCE2CHAIN_DEFAULT   ( 0 )
+
+/*
+ * <ini>
  * gSapGetPeerInfo - Enable/Disable remote peer info query support
  * @Min: 0 - Disable remote peer info query support
  * @Max: 1 - Enable remote peer info query support
@@ -6145,6 +6165,7 @@ struct hdd_config {
    uint8_t                     enable_rts_sifsbursting;
    uint8_t                     max_mpdus_inampdu;
    uint16_t                    max_ht_mcs_txdata;
+   bool                        mcs_tx_force2chain;
    bool                        sap_get_peer_info;
    bool                        disable_abg_rate_txdata;
    uint8_t                     rate_for_tx_mgmt;

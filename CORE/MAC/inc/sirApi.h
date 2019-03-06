@@ -457,7 +457,7 @@ typedef struct sSirSupportedRates {
     * bits 0-15 and 32 should be set.
     */
     tANI_U8 supportedMCSSet[SIR_MAC_MAX_SUPPORTED_MCS_SET];
-
+    bool mcs_txforce2chain;
     /*
      * RX Highest Supported Data Rate defines the highest data
      * rate that the STA is able to receive, in unites of 1Mbps.
