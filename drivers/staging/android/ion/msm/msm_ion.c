@@ -760,13 +760,15 @@ long msm_ion_custom_ioctl(struct ion_client *client,
 		int ret;
 
 		ret = ion_walk_heaps(client, data.prefetch_data.heap_id,
-			ION_HEAP_TYPE_SECURE_DMA,
-			(void *)data.prefetch_data.len,
-			ion_secure_cma_prefetch);
+				     (enum ion_heap_type)
+				     ION_HEAP_TYPE_SECURE_DMA,
+				     (void *)data.prefetch_data.len,
+				     ion_secure_cma_prefetch);
 		if (ret)
 			return ret;
 
 		ret = ion_walk_heaps(client, data.prefetch_data.heap_id,
+			(enum ion_heap_type)
 			ION_HEAP_TYPE_SYSTEM_SECURE,
 			(void *)&data.prefetch_data,
 			ion_system_secure_heap_prefetch);
@@ -779,6 +781,7 @@ long msm_ion_custom_ioctl(struct ion_client *client,
 		int ret;
 
 		ret = ion_walk_heaps(client, data.prefetch_data.heap_id,
+			(enum ion_heap_type)
 			ION_HEAP_TYPE_SECURE_DMA,
 			(void *)data.prefetch_data.len,
 			ion_secure_cma_drain_pool);
