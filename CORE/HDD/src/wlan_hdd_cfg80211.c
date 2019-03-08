@@ -22354,6 +22354,7 @@ bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx, v_U8_t *session_id,
 	hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
 	hdd_adapter_t *pAdapter = NULL;
 	VOS_STATUS status = 0;
+	bool ret = false;
 
 	if (TRUE == pHddCtx->btCoexModeSet) {
 		hddLog(LOG1, FL("BTCoex Mode operation in progress"));
@@ -22366,8 +22367,11 @@ bool hdd_isConnectionInProgress(hdd_context_t *pHddCtx, v_U8_t *session_id,
 		pAdapter = pAdapterNode->pAdapter;
 
 		if (pAdapter)
-			hdd_check_connection_status(pAdapter, session_id,
-						    reason);
+			ret = hdd_check_connection_status(pAdapter, session_id,
+							  reason);
+		if (ret)
+			return ret;
+
 		status = hdd_get_next_adapter(pHddCtx, pAdapterNode, &pNext);
 		pAdapterNode = pNext;
 	}
