@@ -18440,6 +18440,14 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
      return eHAL_STATUS_FAILURE;
    }
 
+   /* Roaming is not supported currently for OWE akm */
+   if (pSession->pCurRoamProfile &&
+       (pSession->pCurRoamProfile->AuthType.authType[0] ==
+       eCSR_AUTH_TYPE_OWE)) {
+     smsLog(pMac, LOGE, "Roaming not suppprted for OWE connection");
+     return eHAL_STATUS_SUCCESS;
+   }
+
    /* Roaming is not supported currently for SAE authentication */
    if (pSession->pCurRoamProfile &&
        CSR_IS_AUTH_TYPE_SAE(
