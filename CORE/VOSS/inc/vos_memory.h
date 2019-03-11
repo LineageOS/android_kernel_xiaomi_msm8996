@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2015, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -89,7 +89,14 @@ v_VOID_t *vos_mem_malloc_debug(v_SIZE_t size, const char *fileName,
 v_VOID_t * vos_mem_malloc( v_SIZE_t size );
 #endif
 
+#ifdef CONFIG_VOS_MEM_PRE_ALLOC
+#define WCNSS_PRE_ALLOC_GET_THRESHOLD (16*1024)
 
+v_VOID_t wcnss_prealloc_reset(v_VOID_t);
+v_SINT_t wcnss_prealloc_put(v_VOID_t *ptr);
+v_VOID_t *wcnss_prealloc_get(v_UINT_t size);
+
+#endif /* CONFIG_VOS_MEM_PRE_ALLOC */
 /*----------------------------------------------------------------------------
 
   \brief vos_mem_free() - vOSS Free Memory
