@@ -1802,6 +1802,10 @@ ifeq ($(CONFIG_WLAN_WAPI_MODE_11AC_DISABLE), y)
 CDEFINES += -DWLAN_WAPI_MODE_11AC_DISABLE
 endif
 
+ifeq ($(CONFIG_WLAN_DYNAMIC_POWER_CONTROL), y)
+CDEFINES += -DFEATURE_DYNAMIC_POWER_CONTROL
+endif
+
 KBUILD_CPPFLAGS += $(CDEFINES)
 
 # Currently, for versions of gcc which support it, the kernel Makefile

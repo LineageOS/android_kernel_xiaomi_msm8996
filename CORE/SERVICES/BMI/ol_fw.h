@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -176,6 +176,19 @@ void ol_target_ready(struct ol_softc *scn, void *cfg_ctx);
 static inline void ol_target_ready(struct ol_softc *scn, void *cfg_ctx)
 {
 
+}
+#endif
+
+#ifdef FEATURE_DYNAMIC_POWER_CONTROL
+void ol_set_sleep_power_mode(uint32_t mode);
+uint32_t ol_get_sleep_power_mode(void);
+#else
+static inline void ol_set_sleep_power_mode(uint32_t mode)
+{
+}
+static inline uint32_t ol_get_sleep_power_mode(void)
+{
+	return 0;
 }
 #endif
 
