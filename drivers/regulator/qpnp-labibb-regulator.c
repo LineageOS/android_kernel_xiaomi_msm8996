@@ -1,4 +1,5 @@
 /* Copyright (c) 2014-2017, 2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -119,6 +120,12 @@
 /* REG_LAB_PS_CTL */
 #define LAB_PS_THRESH_MASK		GENMASK(1, 0)
 #define LAB_PS_CTL_EN			BIT(7)
+
+/* REG_LAB_ENABLE_SOFT_START */
+#define LAB_ENABLE_SOFT_START		BIT(5)
+
+/* REG_LAB_SEL_PS_TABLE_1 */
+#define LAB_SEL_PS_TABLE_1		BIT(2)
 
 /* REG_LAB_RDSON_MNGMNT */
 #define LAB_RDSON_MNGMNT_NFET_SLEW_EN	BIT(5)
@@ -1385,6 +1392,8 @@ static int qpnp_lab_ps_ctl_v2(struct qpnp_labibb *labibb,
 	} else {
 		val = 0;
 	}
+
+	val |= LAB_ENABLE_SOFT_START | LAB_SEL_PS_TABLE_1;
 
 	rc = qpnp_labibb_masked_write(labibb, labibb->lab_base +
 			 REG_LAB_PS_CTL, mask, val);
