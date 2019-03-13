@@ -91,4 +91,9 @@ void set_poweroff_reason(int poweroff_reason);
 unsigned int get_powerup_reason(void);
 int is_abnormal_powerup(void);
 void set_powerup_reason(unsigned int powerup_reason);
+unsigned int get_hw_version(void);
+void set_hw_version(unsigned int hw_version);
+unsigned int get_hw_version_devid(void);
+unsigned int get_hw_version_major(void);
+unsigned int get_hw_version_minor(void);
 #endif

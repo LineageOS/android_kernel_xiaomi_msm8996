@@ -74,6 +74,13 @@ void __init early_init_dt_setup_pureason_arch(unsigned long pu_reason)
 	set_powerup_reason(pu_reason);
 	pr_info("Powerup reason=0x%x\n", get_powerup_reason());
 }
+
+void __init early_init_dt_setup_hwversion_arch(unsigned long hw_version)
+{
+	set_hw_version(hw_version);
+	pr_info("Hw version=0x%x\n", get_hw_version());
+}
+
 #endif
 
 phys_addr_t __fdt_pointer __initdata;

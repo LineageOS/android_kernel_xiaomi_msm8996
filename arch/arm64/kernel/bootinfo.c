@@ -217,15 +217,44 @@ static ssize_t poweroff_reason_show(struct kobject *kobj,
 	return l;
 }
 
+static ssize_t hw_version_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	u32 hw_version;
+
+	hw_version = get_hw_version();
+
+	return sprintf(buf, "0x%x\n", hw_version);
+}
+
 bootinfo_attr(poweroff_reason);
 bootinfo_attr(powerup_reason);
 bootinfo_attr(powerup_reason_details);
+bootinfo_attr(hw_version);
 bootinfo_func_init(u32, powerup_reason, 0);
+bootinfo_func_init(u32, hw_version, 0);
+
+unsigned int get_hw_version_devid(void)
+{
+	return (get_hw_version() & HW_DEVID_VERSION_MASK) >> HW_DEVID_VERSION_SHIFT;
+}
+EXPORT_SYMBOL(get_hw_version_devid);
+
+unsigned int get_hw_version_major(void)
+{
+	return (get_hw_version() & HW_MAJOR_VERSION_MASK) >> HW_MAJOR_VERSION_SHIFT;
+}
+EXPORT_SYMBOL(get_hw_version_major);
+
+unsigned int get_hw_version_minor(void)
+{
+	return (get_hw_version() & HW_MINOR_VERSION_MASK) >> HW_MINOR_VERSION_SHIFT;
+}
 
 static struct attribute *g[] = {
 	&poweroff_reason_attr.attr,
 	&powerup_reason_attr.attr,
 	&powerup_reason_details_attr.attr,
+ 	&hw_version_attr.attr,
 	NULL,
 };
 
