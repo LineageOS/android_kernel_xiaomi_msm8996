@@ -17177,6 +17177,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       }
 #endif
 
+      if (0 != vos_set_sleep_power_mode(dev,
+          pHddCtx->cfg_ini->sleep_power_mode)) {
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: set sleep power mode failed", __func__);
+         pHddCtx->cfg_ini->sleep_power_mode = 0;
+      }
+      ol_set_sleep_power_mode(pHddCtx->cfg_ini->sleep_power_mode);
+
       status = wlan_hdd_reg_init(pHddCtx);
       if (status != VOS_STATUS_SUCCESS) {
          hddLog(VOS_TRACE_LEVEL_FATAL,

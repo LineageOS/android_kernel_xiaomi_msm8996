@@ -63,6 +63,10 @@
 static struct hash_fw fw_hash;
 #endif
 
+#ifdef FEATURE_DYNAMIC_POWER_CONTROL
+static uint32_t g_sleep_power_mode = 0;
+#endif
+
 #if defined(HIF_PCI) || defined(HIF_SDIO)
 static u_int32_t refclk_speed_to_hz[] = {
 	48000000, /* SOC_REFCLK_48_MHZ */
@@ -996,15 +1000,36 @@ release_fw:
 	return status;
 }
 
+#ifdef FEATURE_DYNAMIC_POWER_CONTROL
+void ol_set_sleep_power_mode(uint32_t mode)
+{
+	g_sleep_power_mode = mode;
+}
+
+uint32_t ol_get_sleep_power_mode(void)
+{
+	return g_sleep_power_mode;
+}
+#endif
+
 static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 				u_int32_t address, bool compressed)
 {
 	int ret;
+	bool default_sleep_power_mode_changed = false;
 
-	/* Wait until suspend and resume are completed before loading FW */
-	vos_lock_pm_sem();
+	if (0 != ol_get_sleep_power_mode()) {
+		default_sleep_power_mode_changed = true;
+	}
+
+	if (!default_sleep_power_mode_changed) {
+		/* Wait until suspend and resume are completed before loading FW */
+		vos_lock_pm_sem();
+	}
 	ret = __ol_transfer_bin_file(scn, file, address, compressed);
-	vos_release_pm_sem();
+	if (!default_sleep_power_mode_changed) {
+		vos_release_pm_sem();
+	}
 
 	return ret;
 }

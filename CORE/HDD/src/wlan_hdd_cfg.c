@@ -5445,6 +5445,14 @@ REG_TABLE_ENTRY g_registry_table[] =
 		CFG_ENABLE_BCAST_PROBE_RESP_DEFAULT,
 		CFG_ENABLE_BCAST_PROBE_RESP_MIN,
 		CFG_ENABLE_BCAST_PROBE_RESP_MAX),
+
+	REG_VARIABLE(CFG_SLEEP_POWER_MODE_NAME, WLAN_PARAM_Integer,
+		struct hdd_config, sleep_power_mode,
+		VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		CFG_SLEEP_POWER_MODE_DEFAULT,
+		CFG_SLEEP_POWER_MODE_MIN,
+		CFG_SLEEP_POWER_MODE_MAX),
+
 #ifdef WLAN_FEATURE_SAE
 	REG_VARIABLE(CFG_IS_SAE_ENABLED_NAME, WLAN_PARAM_Integer,
 		struct hdd_config, is_sae_enabled,
@@ -6414,6 +6422,10 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   hddLog(LOG2, "Name = [%s] Value =[%s]",
                CFG_PROBE_REQ_OUI_NAME,
                pHddCtx->cfg_ini->probe_req_ouis);
+
+  hddLog(LOG2, "Name = [%s] Value = [%u]",
+               CFG_SLEEP_POWER_MODE_NAME,
+               pHddCtx->cfg_ini->sleep_power_mode);
 
   hddLog(LOG2, "Name = [%s] Value = [%u]",
                  CFG_ARP_AC_CATEGORY,

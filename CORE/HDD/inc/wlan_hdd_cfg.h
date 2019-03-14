@@ -5591,6 +5591,31 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 
 /*
  * <ini>
+ * gChangeSleepPowerMode - Change suspend/resume mode.
+ * @Min: 0
+ * @Max: 2
+ * @Default: 0
+ *
+ * This ini is used to set WLAN chipset suspend/resume mode
+ * 0: do not change sleep power mode
+ * 1: wlan chip reset when do suspend/resume
+ * 2: wlan chip cut power when suspend
+ * others: invalid
+ *
+ * Related: None
+ *
+ * Usage: Internal/External
+ *
+ * </ini>
+ */
+
+#define CFG_SLEEP_POWER_MODE_NAME    "gChangeSleepPowerMode"
+#define CFG_SLEEP_POWER_MODE_MIN     (0)
+#define CFG_SLEEP_POWER_MODE_MAX     (2)
+#define CFG_SLEEP_POWER_MODE_DEFAULT (0)
+
+/*
+ * <ini>
  * sae_enabled - Enable/Disable SAE support in driver
  * @Min: 0
  * @Max: 1
@@ -6563,11 +6588,11 @@ struct hdd_config {
    uint32_t dpd_recalib_cooling_time;
    uint32_t dpd_recalib_duration_max;
    bool enable_bcast_probe_rsp;
+   uint32_t sleep_power_mode;
 #ifdef WLAN_FEATURE_SAE
    bool is_sae_enabled;
 #endif
-
-    bool per_chain_stats_enabled;
+   bool per_chain_stats_enabled;
 };
 
 typedef struct hdd_config hdd_config_t;
