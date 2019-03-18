@@ -2469,7 +2469,8 @@ static void hdd_debug_cc_timer_expired_handler(void *arg)
 			    peFindSessionByBssid(mac_ptr,
 						 mac_ptr->roam.roamSession[roam_session_id].connectedProfile.bssid,
 						 &pe_session_id);
-			lim_update_max_txpower_ind(mac_ptr, pesession);
+			if (pesession != NULL)
+				lim_update_max_txpower_ind(mac_ptr, pesession);
 			return;
 		}
 	}
