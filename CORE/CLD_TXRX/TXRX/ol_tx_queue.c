@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1261,8 +1261,10 @@ ol_txrx_vdev_flush(ol_txrx_vdev_handle vdev)
         while (vdev->ll_pause.txq.head) {
             adf_nbuf_t next = adf_nbuf_next(vdev->ll_pause.txq.head);
             adf_nbuf_set_next(vdev->ll_pause.txq.head, NULL);
-            adf_nbuf_unmap(vdev->pdev->osdev, vdev->ll_pause.txq.head,
-                           ADF_OS_DMA_TO_DEVICE);
+            if (NBUF_MAPPED_PADDR_LO(vdev->ll_pause.txq.head) &&
+                !adf_nbuf_is_ipa_nbuf(vdev->ll_pause.txq.head))
+                adf_nbuf_unmap(vdev->pdev->osdev, vdev->ll_pause.txq.head,
+                               ADF_OS_DMA_TO_DEVICE);
             adf_nbuf_tx_free(vdev->ll_pause.txq.head, ADF_NBUF_PKT_ERROR);
             vdev->ll_pause.txq.head = next;
         }
