@@ -5361,7 +5361,14 @@ void mdss_fb_calc_fps(struct msm_fb_data_type *mfd)
 
 void mdss_fb_idle_pc(struct msm_fb_data_type *mfd)
 {
-	struct mdss_overlay_private *mdp5_data = mfd_to_mdp5_data(mfd);
+	struct mdss_overlay_private *mdp5_data = NULL;
+
+	if (mfd)
+		mdp5_data = mfd_to_mdp5_data(mfd);
+	else {
+		pr_warn("%s: mfd is NULL\n", __func__);
+		return;
+	}
 
 	if (mdss_fb_is_power_off(mfd))
 		return;
