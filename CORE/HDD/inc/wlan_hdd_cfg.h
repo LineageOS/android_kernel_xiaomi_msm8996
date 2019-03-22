@@ -4220,7 +4220,7 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_SET_TSF_GPIO_PIN_HOST_NAME                  "gtsf_gpio_pin_host"
 #define CFG_SET_TSF_GPIO_PIN_HOST_MIN                   (0)
 #define CFG_SET_TSF_GPIO_PIN_HOST_MAX                   (254)
-#define CFG_SET_TSF_GPIO_PIN_HOST_DEFAULT               (45)
+#define CFG_SET_TSF_GPIO_PIN_HOST_DEFAULT               (TSF_GPIO_PIN_INVALID)
 
 /*
  * <ini>
