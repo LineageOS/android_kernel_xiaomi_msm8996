@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014 2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -68,7 +68,7 @@ struct ath_hif_sdio_softc {
     * Guard changes to Target HW state and to software
     * structures that track hardware state.
     */
-    spinlock_t target_lock;
+    adf_os_spinlock_t target_lock;
     void *hif_handle;
     struct targetdef_s *targetdef;
     struct hostdef_s *hostdef;
@@ -103,6 +103,16 @@ void hif_reset_soc(void *ol_sc);
 
 void hif_register_tbl_attach(u32 hif_type);
 void target_register_tbl_attach(u32 target_type);
+
+/**
+ * hif_get_reg() - get register value
+ * @ol_sc: pointer to ol_sc
+ * @address: register address
+ * @data register value
+ *
+ * Return NULL
+ */
+void hif_get_reg(void *ol_sc, u32 address, u32 *data);
 
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
 void hif_set_fw_info(void *ol_sc, u32 target_fw_version);

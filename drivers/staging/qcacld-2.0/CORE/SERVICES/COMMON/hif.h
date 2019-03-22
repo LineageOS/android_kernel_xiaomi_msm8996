@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -836,6 +836,11 @@ void hif_unregister_driver(void);
  * 1 bit sdio mode and set the appropriate host flags.
  */
 bool hif_is_80211_fw_wow_required(void);
+
+#ifdef FEATURE_PBM_MAGIC_WOW
+void hif_bus_suspend_nonos(void);
+void hif_bus_resume_nonos(void);
+#endif
 
 #ifdef FEATURE_RUNTIME_PM
 /* Runtime power management API of HIF to control

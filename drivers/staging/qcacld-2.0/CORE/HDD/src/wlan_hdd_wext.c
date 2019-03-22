@@ -259,6 +259,7 @@ typedef enum eMonFilterType{
 #define WE_MOTION_DET_START_STOP                  93
 #define WE_MOTION_DET_BASE_LINE_START_STOP        94
 #endif
+#define WE_SET_WOW_START                          95
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_INT                (SIOCIWFIRSTPRIV + 1)
@@ -339,6 +340,8 @@ typedef enum eMonFilterType{
 #define WE_SET_WLAN_DBG                           1
 #define WE_SET_DP_TRACE                           2
 #define WE_SET_SAP_CHANNELS                       3
+#define WE_SET_ADD_EASY_WOW_PORT                  4
+#define WE_SET_RM_EASY_WOW_PORT                   5
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_GET_CHAR_SET_NONE               (SIOCIWFIRSTPRIV + 5)
@@ -7227,6 +7230,20 @@ static int __iw_setint_getnone(struct net_device *dev,
             }
             break;
 #endif
+#ifdef FEATURE_PBM_MAGIC_WOW
+        case WE_SET_WOW_START:
+        {
+            if ((set_value != 1) && (set_value != 0)) {
+                hddLog(LOGE, "Invalid value %d set wow_start", set_value);
+                return -EINVAL;
+            }
+            if (set_value)
+                hdd_start_wow_nonos(pAdapter);
+	    else
+                hdd_stop_wow_nonos(pAdapter);
+	    break;
+        }
+#endif
         default:
         {
             hddLog(LOGE, "%s: Invalid sub command %d", __func__, sub_cmd);
@@ -8048,7 +8065,16 @@ static int __iw_set_three_ints_getnone(struct net_device *dev,
             hdd_ctx->cfg_ini->force_sap_acs_end_ch = value[2];
         }
         break;
-
+#ifdef FEATURE_PBM_MAGIC_WOW
+    case WE_SET_ADD_EASY_WOW_PORT:
+        if (!hdd_add_easy_wow_ptrn(pAdapter, value[1], value[2], 0, 0, value[3]))
+            ret = -EINVAL;
+        break;
+    case WE_SET_RM_EASY_WOW_PORT:
+        if (!hdd_del_easy_wow_ptrn(pAdapter, value[1], value[2], 0, 0, value[3]))
+            ret = -EINVAL;
+        break;
+#endif
     default:
        hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
        break;
@@ -8720,11 +8746,11 @@ void hdd_wmm_tx_snapshot(hdd_adapter_t *pAdapter)
     int i = 0, j = 0;
     for ( i=0; i< NUM_TX_QUEUES; i++)
     {
-        spin_lock_bh(&pAdapter->wmm_tx_queue[i].lock);
+        adf_os_spin_lock_bh(&pAdapter->wmm_tx_queue[i].lock);
         hddLog(LOGE, "HDD WMM TxQueue Info For AC: %d Count: %d PrevAdress:%pK, NextAddress:%pK",
                i, pAdapter->wmm_tx_queue[i].count,
                pAdapter->wmm_tx_queue[i].anchor.prev, pAdapter->wmm_tx_queue[i].anchor.next);
-        spin_unlock_bh(&pAdapter->wmm_tx_queue[i].lock);
+        adf_os_spin_unlock_bh(&pAdapter->wmm_tx_queue[i].lock);
     }
 
     for(i =0; i<WLAN_MAX_STA_COUNT; i++)
@@ -8734,12 +8760,12 @@ void hdd_wmm_tx_snapshot(hdd_adapter_t *pAdapter)
              hddLog(LOGE, "******STAIndex: %d*********", i);
              for ( j=0; j< NUM_TX_QUEUES; j++)
              {
-                spin_lock_bh(&pAdapter->aStaInfo[i].wmm_tx_queue[j].lock);
+                adf_os_spin_lock_bh(&pAdapter->aStaInfo[i].wmm_tx_queue[j].lock);
                 hddLog(LOGE, "HDD TxQueue Info For AC: %d Count: %d PrevAdress:%pK, NextAddress:%pK",
                        j, pAdapter->aStaInfo[i].wmm_tx_queue[j].count,
                        pAdapter->aStaInfo[i].wmm_tx_queue[j].anchor.prev,
                        pAdapter->aStaInfo[i].wmm_tx_queue[j].anchor.next);
-                spin_unlock_bh(&pAdapter->aStaInfo[i].wmm_tx_queue[j].lock);
+                adf_os_spin_unlock_bh(&pAdapter->aStaInfo[i].wmm_tx_queue[j].lock);
              }
         }
     }
@@ -12448,7 +12474,17 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
         0,
         "setsapchannels" },
+#ifdef FEATURE_PBM_MAGIC_WOW
+    {   WE_SET_ADD_EASY_WOW_PORT,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        0,
+        "add_wow_port" },
 
+    {   WE_SET_RM_EASY_WOW_PORT,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        0,
+        "rm_wow_port" },
+#endif
      /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_THREE_INT,
         0,
@@ -12770,6 +12806,12 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_DUMP_DP_TRACE_LEVEL,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
         0, "dump_dp_trace"},
+#ifdef FEATURE_PBM_MAGIC_WOW
+    {
+        WE_SET_WOW_START,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0, "wow_start" },
+#endif
     {
         WLAN_PRIV_SET_FTIES,
         IW_PRIV_TYPE_CHAR | MAX_FTIE_SIZE,

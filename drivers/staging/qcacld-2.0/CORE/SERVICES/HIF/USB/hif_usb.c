@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -479,10 +479,10 @@ static HIF_DEVICE_USB *usb_hif_create(struct usb_interface *interface)
 
 		adf_os_mem_zero(device, sizeof(*device));
 		usb_set_intfdata(interface, device);
-		spin_lock_init(&(device->cs_lock));
-		spin_lock_init(&(device->rx_lock));
-		spin_lock_init(&(device->tx_lock));
-		spin_lock_init(&(device->rx_prestart_lock));
+		adf_os_spinlock_init(&(device->cs_lock));
+		adf_os_spinlock_init(&(device->rx_lock));
+		adf_os_spinlock_init(&(device->tx_lock));
+		adf_os_spinlock_init(&(device->rx_prestart_lock));
 		device->udev = dev;
 		device->interface = interface;
 

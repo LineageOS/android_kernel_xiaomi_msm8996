@@ -106,6 +106,14 @@
  */
 #define WLAN_SVC_SSR_FAIL_IND     0x110
 
+/*
+ * DO NOT USE, reserved for customization,
+ * in order for customers to report customized status,
+ * range required is from 0x900 - 0x90F.
+ */
+#define WLAN_SVC_USER_CUSTOMIZED_1_IND 0x900
+#define WLAN_SVC_USER_CUSTOMIZED_16_IND 0x90F
+
 #define WLAN_SVC_MAX_SSID_LEN    32
 #define WLAN_SVC_MAX_BSSID_LEN   6
 #define WLAN_SVC_MAX_STR_LEN     16

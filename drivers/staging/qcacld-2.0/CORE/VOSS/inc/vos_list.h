@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -252,6 +252,21 @@ VOS_STATUS vos_list_insert_front( vos_list_t *pList, vos_list_node_t *pNode );
   --------------------------------------------------------------------------*/
 VOS_STATUS vos_list_insert_back( vos_list_t *pList, vos_list_node_t *pNode );
 
+/**
+ * vos_list_insert_back_no_mutex() - insert node at back of a linked list
+ * @pList: Pointer to list object where the node will be inserted.
+ * @pNode: Pointer to the list node to be inserted into the list.
+ *
+ * Return VOS_STATUS_SUCCESS - list node was successfully inserted onto
+ *        the back of the list.
+ *        VOS_STATUS_E_INVAL - The value specified by pList is not a valid,
+ *        initialized list object.
+ *        VOS_STATUS_E_FAULT  - pList is an invalid pointer or pNode is an
+ *        invalid pointer.
+ */
+VOS_STATUS vos_list_insert_back_no_mutex(vos_list_t *pList,
+					 vos_list_node_t *pNode);
+
 /**---------------------------------------------------------------------------
 
   \brief vos_list_insert_back_size() - insert node at back of a linked list and
@@ -367,6 +382,20 @@ VOS_STATUS vos_list_remove_back( vos_list_t *pList, vos_list_node_t **ppNode );
 
   --------------------------------------------------------------------------*/
 VOS_STATUS vos_list_size( vos_list_t *pList, v_SIZE_t *pSize );
+
+/**
+ * vos_list_size_no_mutex() - return the size of of a linked list
+ * @pList: Pointer to list object where the node will be inserted.
+ * @pNode: Pointer to the list node to be inserted into the list.
+ *
+ * Return VOS_STATUS_SUCCESS - list node was successfully inserted onto
+ *        the back of the list.
+ *        VOS_STATUS_E_INVAL - The value specified by pList is not a valid,
+ *        initialized list object.
+ *        VOS_STATUS_E_FAULT  - pList is an invalid pointer or pNode is an
+ *        invalid pointer.
+ */
+VOS_STATUS vos_list_size_no_mutex( vos_list_t *pList, v_SIZE_t *pSize );
 
 /**---------------------------------------------------------------------------
 
@@ -579,6 +608,24 @@ VOS_STATUS vos_list_insert_after( vos_list_t *pList, vos_list_node_t *pNodeToIns
   --------------------------------------------------------------------------*/
 VOS_STATUS vos_list_remove_node( vos_list_t *pList, vos_list_node_t *pNodeToRemove );
 
+/**
+ * vos_list_remove_node_no_mutex() - API will remove a specified node from the
+ * properly initialized vOS List object.
+ * @pList: Pointer to list object where the node will be inserted.
+ * @pNode: Pointer to the list node to be inserted into the list.
+ *
+ * Return VOS_STATUS_SUCCESS - list node was successfully inserted onto
+ *        the back of the list.
+ *        VOS_STATUS_E_INVAL - The value specified by pList is not a valid,
+ *        initialized list object.
+ *        VOS_STATUS_E_FAULT  - pList is an invalid pointer or pNode is an
+ *        invalid pointer.
+ */
+VOS_STATUS vos_list_remove_node_no_mutex(vos_list_t *pList,
+					 vos_list_node_t *pNodeToRemove);
 
+#define VOS_LIST_NODE_INIT_SINGLE(node) __VOS_LIST_NODE_INIT_SINGLE(node)
+
+#define VOS_LIST_ANCHOR(list) __VOS_LIST_ANCHOR(list)
 
 #endif // __VOS_LIST_H

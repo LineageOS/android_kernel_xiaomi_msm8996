@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -66,6 +66,7 @@ enum wlan_op_mode {
 #define OL_TXQ_PAUSE_REASON_VDEV_SUSPEND      (1 << 4)
 #define OL_TXQ_PAUSE_REASON_MCC_VDEV_START    (1 << 5)
 #define OL_TXQ_PAUSE_REASON_THROTTLE          (1 << 6)
+#define OL_TXQ_PAUSE_REASON_CRASH_DUMP        (1 << 7)
 
 /**
  * enum netif_action_type - Type of actions on netif queues
@@ -510,8 +511,63 @@ ol_txrx_pdev_unpause(ol_txrx_pdev_handle data_pdev, u_int32_t reason);
 #if defined(CONFIG_HL_SUPPORT)
 void
 ol_txrx_pdev_pause_other_vdev(ol_txrx_pdev_handle data_pdev, u_int32_t reason, u_int32_t current_id);
+
+/**
+ * ol_tx_queue_flush() - Flush pending frames in the tx queues which are not
+ *                       queued in the TX scheduler.
+ * @pdev: the physical device being flushed.
+ *
+ * Return: None
+ */
+void
+ol_tx_queue_flush(struct ol_txrx_pdev_t *pdev);
+
+/**
+ * ol_txrx_vdev_unpause_txq() - Unpause OL_TX_NUM_TIDS/OL_TXRX_NUM_EXT_TIDS
+ * @vdev: the device being unpaused.
+ * @reason:  unpause reason.
+ *
+ * Return: None
+ */
+void
+ol_txrx_vdev_unpause_txq(ol_txrx_vdev_handle vdev, u_int32_t reason);
+
+/**
+ * ol_txrx_pdev_unpause_vdev_txq() - Unpause OL_TX_NUM_TIDS/OL_TXRX_NUM_EXT_TIDS
+ * @data_pdev: the physical device being unpaused.
+ * @reason:  unpause reason.
+ *
+ * Return: None
+ */
+void
+ol_txrx_pdev_unpause_vdev_txq(ol_txrx_pdev_handle pdev, u_int32_t reason);
+
+/**
+ * ol_txrx_vdev_pause_txq() - Suspend OL_TX_NUM_TIDS/OL_TXRX_NUM_EXT_TIDS
+ * @vdev: the device being paused.
+ * @reason:  pause reason.
+ *
+ * Return: None
+ */
+void
+ol_txrx_vdev_pause_txq(ol_txrx_vdev_handle vdev, u_int32_t reason);
+
+/**
+ * ol_txrx_pdev_pause_vdev_txq() - Suspend OL_TX_NUM_TIDS/OL_TXRX_NUM_EXT_TIDS
+ * @data_pdev: the physical device being paused.
+ * @reason:  pause reason.
+ *
+ * Return: None
+ */
+void
+ol_txrx_pdev_pause_vdev_txq(ol_txrx_pdev_handle pdev, u_int32_t reason);
 #else
 #define ol_txrx_pdev_pause_other_vdev(data_pdev,reason,current_id) /* no-op */
+#define ol_tx_queue_flush(pdev) /* no-op */
+#define ol_txrx_pdev_unpause_vdev_txq(data_pdev,reason) /* no-op */
+#define ol_txrx_vdev_unpause_txq(data_pdev,reason) /* no-op */
+#define ol_txrx_pdev_pause_vdev_txq(data_pdev,reason) /* no-op */
+#define ol_txrx_vdev_pause_txq(data_pdev,reason) /* no-op */
 #endif /* CONFIG_HL_SUPPORT */
 
 /**

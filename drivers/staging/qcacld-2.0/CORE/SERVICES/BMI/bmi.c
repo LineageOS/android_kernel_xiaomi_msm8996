@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2014, 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012, 2014, 2016-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -355,14 +355,18 @@ BMIReadMemory(HIF_DEVICE *device,
                     device, address, length));
 
     cid = BMI_READ_MEMORY;
-#if defined(SDIO_3_0)
-    /* 4bytes align operation */
-    align = 4 - (length & 3);
-    remaining = length + align;
-#else
+
     align = 0;
     remaining = length;
+
+#if defined(SDIO_3_0)
+    /* 4bytes align operation */
+    if(length & 3) {
+        align = 4 - (length & 3);
+        remaining = length + align;
+    }
 #endif
+
     while (remaining)
     {
         rxlen = (remaining < BMI_DATASZ_MAX) ? remaining : BMI_DATASZ_MAX;

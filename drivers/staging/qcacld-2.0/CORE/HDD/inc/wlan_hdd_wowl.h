@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -107,9 +107,25 @@
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
+#ifdef FEATURE_PBM_MAGIC_WOW
+
+#define WOWL_PTRN_MAX_SIZE          146
+#define WOWL_PTRN_MASK_MAX_SIZE      19
+#define WOWL_MAX_PTRNS_ALLOWED       11
+
+#define MAX_PATTERN_DATA_LEN        146
+#define MAX_PATTERN_MASK_LEN        19
+#define MAX_PATTERN_NUMBER          11
+
+#define EASY_WOW_PTRN_ID_BASE       WOWL_MAX_PTRNS_ALLOWED
+
+#else
+
 #define WOWL_PTRN_MAX_SIZE          146
 #define WOWL_PTRN_MASK_MAX_SIZE      19
 #define WOWL_MAX_PTRNS_ALLOWED       22
+
+#endif
 
 /*----------------------------------------------------------------------------
  * Type Declarations
@@ -200,5 +216,17 @@ v_BOOL_t hdd_init_wowl (hdd_adapter_t* pAdapter);
   @return           : integer equivalent of hexa decimal
   ===========================================================================*/
 int hdd_parse_hex(unsigned char c);
+
+VOS_STATUS hdd_easy_wow_init(hdd_context_t *hdd_ctx);
+void hdd_easy_wow_deinit(hdd_context_t *hdd_ctx);
+
+#ifdef FEATURE_PBM_MAGIC_WOW
+bool
+hdd_add_easy_wow_ptrn(hdd_adapter_t *adapter, uint32_t ipv, uint32_t proto,
+                      uint32_t offset, uint32_t src_port, uint32_t dst_port);
+bool
+hdd_del_easy_wow_ptrn(hdd_adapter_t *adapter, uint32_t ipv, uint32_t proto,
+                      uint32_t offset, uint32_t src_port, uint32_t dst_port);
+#endif
 
 #endif /* #ifndef _WLAN_HDD_WOWL_H */

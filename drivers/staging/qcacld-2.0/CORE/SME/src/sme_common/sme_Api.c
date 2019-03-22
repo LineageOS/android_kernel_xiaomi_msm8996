@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -77,6 +77,8 @@
 #include "sme_nan_datapath.h"
 #include "csrApi.h"
 #include "utilsApi.h"
+#include "cfgApi.h"
+#include "limUtils.h"
 
 extern tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
@@ -2335,6 +2337,40 @@ eHalStatus sme_handle_cc_change_ind(tHalHandle hal_ptr, void *msg_buf)
 	return (status);
 }
 
+eHalStatus sme_handle_update_pwr_ind(tHalHandle hal_ptr, uint32_t pesession_id)
+{
+	tpAniSirGlobal mac_ptr = PMAC_STRUCT(hal_ptr);
+	tpPESession pesession_ptr =
+		peFindSessionBySessionId(mac_ptr, pesession_id);
+	tPowerdBm regMax = 0,maxTxPower = 0;
+
+	if (pesession_ptr == NULL)
+		return eHAL_STATUS_FAILURE;
+
+	regMax =
+	  cfgGetRegulatoryMaxTransmitPower(mac_ptr,
+					   pesession_ptr->currentOperChannel);
+	maxTxPower = VOS_MIN(regMax, mac_ptr->roam.configParam.nTxPowerCap);
+	if (maxTxPower != pesession_ptr->maxTxPower) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
+			  "updating new maxTx power %d to HAL from old pwr %d",
+			  maxTxPower, pesession_ptr->maxTxPower);
+		if(limSendSetMaxTxPowerReq(mac_ptr,
+					   maxTxPower,
+					   pesession_ptr) == eSIR_SUCCESS)
+			pesession_ptr->maxTxPower = maxTxPower;
+		else {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				  "Set max txpwr req fail");
+		}
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "no change on current max txpwr %d", maxTxPower);
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
 /*--------------------------------------------------------------------------
 
   \brief sme_Start() - Put all SME modules at ready state.
@@ -3002,6 +3038,9 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                    smsLog(pMac, LOGE, "Empty rsp message for meas "
                           "(eWNI_SME_CC_CHANGE_IND), nothing to process");
                 }
+                break;
+          case eWNI_SME_UPDATE_PWR_IND:
+                status = sme_handle_update_pwr_ind(pMac,pMsg->bodyval);
                 break;
           case eWNI_SME_POST_SWITCH_CHL_IND:
              {
@@ -18212,61 +18251,6 @@ eHalStatus sme_thermal_throttle_set_conf_cmd(tHalHandle hHal, bool enable,
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                   FL("Unable to post WMI_THERM_THROT_SET_CONF_CMDID message"));
         vos_mem_free(therm_data);
-        return eHAL_STATUS_FAILURE;
-    }
-    return eHAL_STATUS_SUCCESS;
-}
-
-eHalStatus sme_cfr_capture_configure(struct sme_peer_cfr_capture_conf arg)
-{
-    vos_msg_t msg;
-    struct sme_peer_cfr_capture_conf *cfr_cfg_data;
-    cfr_cfg_data = vos_mem_malloc(sizeof(*cfr_cfg_data));
-    if (!cfr_cfg_data) {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  FL("Unable to allocate memory"));
-        return eHAL_STATUS_FAILED_ALLOC;
-    }
-
-    vos_mem_zero(cfr_cfg_data, sizeof(*cfr_cfg_data));
-
-    memcpy(cfr_cfg_data, &arg, sizeof(*cfr_cfg_data));
-
-    msg.type = WDA_PEER_CFR_CAPTURE_CONF_CMD;
-    msg.reserved = 0;
-    msg.bodyptr = cfr_cfg_data;
-
-    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  FL("Unable to post WDA_PEER_CFR_CAPTURE_CONF_CMD message"));
-        vos_mem_free(cfr_cfg_data);
-        return eHAL_STATUS_FAILURE;
-    }
-    return eHAL_STATUS_SUCCESS;
-}
-
-eHalStatus sme_periodic_cfr_enable(u8 cfr_enable)
-{
-    vos_msg_t msg;
-    u8 *cfr_data;
-
-    cfr_data = vos_mem_malloc(sizeof(*cfr_data));
-    if (!cfr_data) {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  FL("Unable to allocate memory"));
-        return eHAL_STATUS_FAILED_ALLOC;
-    }
-
-    *cfr_data = cfr_enable;
-
-    msg.type = WDA_PERIODIC_CFR_ENABLE_CMD;
-    msg.reserved = 0;
-    msg.bodyptr = cfr_data;
-
-    if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  FL("Unable to post WDA_PEER_CFR_CAPTURE_CONF_CMD message"));
-        vos_mem_free(cfr_data);
         return eHAL_STATUS_FAILURE;
     }
     return eHAL_STATUS_SUCCESS;

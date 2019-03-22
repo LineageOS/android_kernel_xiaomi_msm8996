@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -72,5 +72,11 @@ typedef struct list_head vos_list_node_t;
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+#define __VOS_LIST_NODE_INIT(prev_node, next_node) \
+	{ .prev = &(prev_node), .next = &(next_node), }
+#define __VOS_LIST_NODE_INIT_SINGLE(node) \
+	__VOS_LIST_NODE_INIT(node, node)
+#define __VOS_LIST_ANCHOR(list) ((list).anchor)
 
 #endif // __I_VOS_LIST_H

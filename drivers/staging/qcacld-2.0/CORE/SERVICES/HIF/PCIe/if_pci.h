@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -125,7 +125,7 @@ struct hif_pci_softc {
     uint32_t prevent_suspend_cnt;
     struct hif_pci_pm_stats pm_stats;
     struct work_struct pm_work;
-    struct spinlock runtime_lock;
+    adf_os_spinlock_t  runtime_lock;
     struct timer_list runtime_timer;
     struct list_head prevent_suspend_list;
     unsigned long runtime_timer_expires;
@@ -175,6 +175,16 @@ void hif_reset_soc(void *ol_sc);
 void hif_deinit_adf_ctx(void *ol_sc);
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision);
 void hif_set_fw_info(void *ol_sc, u32 target_fw_version);
+
+/**
+ * hif_get_reg() - get register value
+ * @ol_sc: pointer to ol_sc
+ * @address: register address
+ * @data register value
+ *
+ * Return NULL
+ */
+void hif_get_reg(void *ol_sc, u32 address, u32 *data);
 
 #ifdef IPA_UC_OFFLOAD
 /*

@@ -273,55 +273,44 @@ enum qca_nl80211_vendor_subcmds {
     /* NS Offload enable/disable cmd */
     QCA_NL80211_VENDOR_SUBCMD_ND_OFFLOAD = 82,
 
-    QCA_NL80211_VENDOR_SUBCMD_PACKET_FILTER = 83,
-    QCA_NL80211_VENDOR_SUBCMD_GET_BUS_SIZE = 84,
+	QCA_NL80211_VENDOR_SUBCMD_PACKET_FILTER = 83,
+	QCA_NL80211_VENDOR_SUBCMD_GET_BUS_SIZE = 84,
 
-    QCA_NL80211_VENDOR_SUBCMD_GET_WAKE_REASON_STATS = 85,
+	QCA_NL80211_VENDOR_SUBCMD_GET_WAKE_REASON_STATS = 85,
 
-    /* OCB commands */
-    QCA_NL80211_VENDOR_SUBCMD_OCB_SET_CONFIG = 92,
-    QCA_NL80211_VENDOR_SUBCMD_OCB_SET_UTC_TIME = 93,
-    QCA_NL80211_VENDOR_SUBCMD_OCB_START_TIMING_ADVERT = 94,
-    QCA_NL80211_VENDOR_SUBCMD_OCB_STOP_TIMING_ADVERT = 95,
-    QCA_NL80211_VENDOR_SUBCMD_OCB_GET_TSF_TIMER = 96,
-    QCA_NL80211_VENDOR_SUBCMD_DCC_GET_STATS = 97,
-    QCA_NL80211_VENDOR_SUBCMD_DCC_CLEAR_STATS = 98,
-    QCA_NL80211_VENDOR_SUBCMD_DCC_UPDATE_NDL = 99,
-    QCA_NL80211_VENDOR_SUBCMD_DCC_STATS_EVENT = 100,
+	/* OCB commands */
+	QCA_NL80211_VENDOR_SUBCMD_OCB_SET_CONFIG = 92,
+	QCA_NL80211_VENDOR_SUBCMD_OCB_SET_UTC_TIME = 93,
+	QCA_NL80211_VENDOR_SUBCMD_OCB_START_TIMING_ADVERT = 94,
+	QCA_NL80211_VENDOR_SUBCMD_OCB_STOP_TIMING_ADVERT = 95,
+	QCA_NL80211_VENDOR_SUBCMD_OCB_GET_TSF_TIMER = 96,
+	QCA_NL80211_VENDOR_SUBCMD_DCC_GET_STATS = 97,
+	QCA_NL80211_VENDOR_SUBCMD_DCC_CLEAR_STATS = 98,
+	QCA_NL80211_VENDOR_SUBCMD_DCC_UPDATE_NDL = 99,
+	QCA_NL80211_VENDOR_SUBCMD_DCC_STATS_EVENT = 100,
 
-    /* subcommand to get link properties */
-    QCA_NL80211_VENDOR_SUBCMD_LINK_PROPERTIES = 101,
-    QCA_NL80211_VENDOR_SUBCMD_SETBAND = 105,
-    QCA_NL80211_VENDOR_SUBCMD_SET_TXPOWER_SCALE = 109,
-    QCA_NL80211_VENDOR_SUBCMD_SET_TXPOWER_SCALE_DECR_DB = 115,
-    QCA_NL80211_VENDOR_SUBCMD_ACS_POLICY = 116,
-    QCA_NL80211_VENDOR_SUBCMD_STA_CONNECT_ROAM_POLICY = 117,
-    QCA_NL80211_VENDOR_SUBCMD_SET_SAP_CONFIG  = 118,
-    QCA_NL80211_VENDOR_SUBCMD_GET_STATION = 121,
+	/* subcommand to get link properties */
+	QCA_NL80211_VENDOR_SUBCMD_LINK_PROPERTIES = 101,
+	QCA_NL80211_VENDOR_SUBCMD_SETBAND = 105,
+	QCA_NL80211_VENDOR_SUBCMD_SET_TXPOWER_SCALE = 109,
+	QCA_NL80211_VENDOR_SUBCMD_SET_TXPOWER_SCALE_DECR_DB = 115,
+	QCA_NL80211_VENDOR_SUBCMD_ACS_POLICY = 116,
+	QCA_NL80211_VENDOR_SUBCMD_STA_CONNECT_ROAM_POLICY = 117,
+	QCA_NL80211_VENDOR_SUBCMD_SET_SAP_CONFIG  = 118,
+	QCA_NL80211_VENDOR_SUBCMD_GET_STATION = 121,
 
-    /* subcommand for link layer statistics extension */
-    QCA_NL80211_VENDOR_SUBCMD_LL_STATS_EXT = 127,
-    /* subcommand to get chain rssi value */
-    QCA_NL80211_VENDOR_SUBCMD_GET_CHAIN_RSSI = 138,
-    QCA_NL80211_VENDOR_SUBCMD_CHIP_PWRSAVE_FAILURE = 148,
-    /* subcommand to flush peer tids */
-    QCA_NL80211_VENDOR_SUBCMD_PEER_FLUSH_PENDING  = 162,
-    QCA_NL80211_VENDOR_SUBCMD_GET_RROP_INFO = 163,
-    QCA_NL80211_VENDOR_SUBCMD_GET_SAR_LIMITS = 164,
-    QCA_NL80211_VENDOR_SUBCMD_WLAN_MAC_INFO = 165,
-    QCA_NL80211_VENDOR_SUBCMD_SET_QDEPTH_THRESH = 166,
+	/* subcommand for link layer statistics extension */
+	QCA_NL80211_VENDOR_SUBCMD_LL_STATS_EXT = 127,
+	/* subcommand to get chain rssi value */
+	QCA_NL80211_VENDOR_SUBCMD_GET_CHAIN_RSSI = 138,
+	QCA_NL80211_VENDOR_SUBCMD_CHIP_PWRSAVE_FAILURE = 148,
+	/* subcommand to flush peer tids */
+	QCA_NL80211_VENDOR_SUBCMD_PEER_FLUSH_PENDING  = 162,
 #ifdef FEATURE_WLAN_THERMAL_SHUTDOWN
-    /* Thermal Shutdown cmds to protect chip */
-    QCA_NL80211_VENDOR_SUBCMD_THERMAL_CMD = 167,
-    QCA_NL80211_VENDOR_SUBCMD_THERMAL_EVENT = 168,
+	/* Thermal Shutdown cmds to protect chip */
+	QCA_NL80211_VENDOR_SUBCMD_THERMAL_CMD = 167,
+	QCA_NL80211_VENDOR_SUBCMD_THERMAL_EVENT = 168,
 #endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
-    /* Wi-Fi test configuration subcommand */
-    QCA_NL80211_VENDOR_SUBCMD_WIFI_TEST_CONFIGURATION = 169,
-    /* Frame filter operations for other BSSs/unassociated STAs */
-    QCA_NL80211_VENDOR_SUBCMD_BSS_FILTER = 170,
-    QCA_NL80211_VENDOR_SUBCMD_NAN_EXT = 171,
-    QCA_NL80211_VENDOR_SUBCMD_ROAM_SCAN_EVENT = 172,
-    QCA_NL80211_VENDOR_SUBCMD_PEER_CFR_CAPTURE_CFG = 173,
 };
 
 /**
@@ -2835,66 +2824,6 @@ enum qca_wlan_vendor_attr_thermal_cmd {
 
 #endif /* FEATURE_WLAN_THERMAL_SHUTDOWN */
 
-/**
- * enum qca_wlan_vendor_cfr_method - QCA Vendor CFR methods used by
- * attribute QCA_WLAN_VENDOR_ATTR_PEER_CFR_METHOD as part of vendor
- * command QCA_NL80211_VENDOR_SUBCMD_PEER_CFR_CAPTURE_CFG
- */
-enum qca_wlan_vendor_cfr_method {
-	/* CFR Method using QOS Null frame */
-	QCA_WLAN_VENDOR_CFR_METHOD_QOS_NULL = 0,
-};
-
-/**
- * enum qca_wlan_vendor_peer_cfr_capture_attr - Used by the vendor command
- * QCA_NL80211_VENDOR_SUBCMD_PEER_CFR_CAPTURE_CFG to configure PEER
- * Channel Frequency Response capture parameters and enable Periodic CFR
- * Capture
- */
-enum qca_wlan_vendor_peer_cfr_capture_attr {
-	QCA_WLAN_VENDOR_ATTR_PEER_CFR_CAPTURE_INVALID = 0,
-	/* 6-byte MAC address of the PEER
-	 * This attribute is mandatory
-	 */
-	QCA_WLAN_VENDOR_ATTR_CFR_PEER_MAC_ADDR = 1,
-	/* Enable PEER CFR Capture, flag attribute
-	 * This attribute is mandatory to Enable Peer CFR Capture
-	 * If this attribute is not present, Peer CFR Capture is disabled
-	 */
-	QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE = 2,
-	/* BW of measurement, attribute uses the values in enum nl80211_chan_width
-	 * Supported values: 20, 40, 80, 80+80, 160
-	 * Note that all targets may not support all bandwidths
-	 * u8 attribute. This attribute is mandatory if attribute
-	 * QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE is used
-	 */
-	QCA_WLAN_VENDOR_ATTR_PEER_CFR_BANDWIDTH = 3,
-	/* Periodicity of CFR measurement in msec
-	 * Periodicity should be multiple of Base timer
-	 * Current Base timer value supported is 10msecs(default)
-	 * 0 for one shot capture. u32 attribute
-	 * This attribute is mandatory if attribute
-	 * QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE is used
-	 */
-	QCA_WLAN_VENDOR_ATTR_PEER_CFR_PERIODICITY = 4,
-	/* Method used to capture Channel Frequency Response
-	 * Attribute uses the value of enum qca_wlan_vendor_cfr_method
-	 * u8 attribute. This attribute is mandatory if attribute
-	 * QCA_WLAN_VENDOR_ATTR_PEER_CFR_ENABLE is used
-	 */
-	QCA_WLAN_VENDOR_ATTR_PEER_CFR_METHOD = 5,
-	/* Enable Periodic CFR Capture, flag attribute
-	 * This attribute is mandatory to Enable Periodic CFR Capture
-	 * If this attribute is not present, Periodic CFR Capture is disabled
-	 */
-	QCA_WLAN_VENDOR_ATTR_PERIODIC_CFR_CAPTURE_ENABLE = 6,
-
-	/*Keep last*/
-	QCA_WLAN_VENDOR_ATTR_PEER_CFR_AFTER_LAST,
-	QCA_WLAN_VENDOR_ATTR_PEER_CFR_MAX =
-	QCA_WLAN_VENDOR_ATTR_PEER_CFR_AFTER_LAST - 1,
-};
-
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0))
 /**
  * enum ieee80211_band - supported frequency bands
@@ -3156,4 +3085,47 @@ int wlan_hdd_disconnect(hdd_adapter_t *pAdapter, u16 reason);
 #ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
 int wlan_hdd_send_avoid_freq_for_dnbs(hdd_context_t *hdd_ctx, uint8_t op_chan);
 #endif
+
+#undef nla_parse
+#undef nla_parse_nested
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
+static inline int wlan_cfg80211_nla_parse(struct nlattr **tb,
+					  int maxtype,
+					  const struct nlattr *head,
+					  int len,
+					  const struct nla_policy *policy)
+{
+	return nla_parse(tb, maxtype, head, len, policy);
+}
+
+static inline int
+wlan_cfg80211_nla_parse_nested(struct nlattr *tb[],
+			       int maxtype,
+			       const struct nlattr *nla,
+			       const struct nla_policy *policy)
+{
+	return nla_parse_nested(tb, maxtype, nla, policy);
+}
+#else
+static inline int wlan_cfg80211_nla_parse(struct nlattr **tb,
+					  int maxtype,
+					  const struct nlattr *head,
+					  int len,
+					  const struct nla_policy *policy)
+{
+	return nla_parse(tb, maxtype, head, len, policy, NULL);
+}
+
+static inline int
+wlan_cfg80211_nla_parse_nested(struct nlattr *tb[],
+			       int maxtype,
+			       const struct nlattr *nla,
+			       const struct nla_policy *policy)
+{
+	return nla_parse_nested(tb, maxtype, nla, policy, NULL);
+}
+#endif
+#define nla_parse(...) (obsolete, use wlan_cfg80211_nla_parse)
+#define nla_parse_nested(...) (obsolete, use wlan_cfg80211_nla_parse_nested)
+
 #endif

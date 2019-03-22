@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -292,16 +292,16 @@ bool hdd_check_random_mac(hdd_adapter_t *adapter, uint8_t *random_mac_addr)
 {
 	uint32_t i = 0;
 
-	spin_lock(&adapter->random_mac_lock);
+	adf_os_spin_lock(&adapter->random_mac_lock);
 	for (i = 0; i < MAX_RANDOM_MAC_ADDRS; i++) {
 		if ((adapter->random_mac[i].in_use) &&
 		    (!memcmp(adapter->random_mac[i].addr, random_mac_addr,
 			     VOS_MAC_ADDR_SIZE))) {
-			spin_unlock(&adapter->random_mac_lock);
+			adf_os_spin_unlock(&adapter->random_mac_lock);
 			return true;
 		}
 	}
-	spin_unlock(&adapter->random_mac_lock);
+	adf_os_spin_unlock(&adapter->random_mac_lock);
 	return false;
 }
 
@@ -434,7 +434,7 @@ static int32_t hdd_set_action_frame_random_mac(hdd_adapter_t *adapter,
 	hddLog(LOG1, FL("mac_addr: " MAC_ADDRESS_STR " && cookie = %llu"),
 			MAC_ADDR_ARRAY(random_mac_addr), cookie);
 
-	spin_lock(&adapter->random_mac_lock);
+	adf_os_spin_lock(&adapter->random_mac_lock);
 	for (i = 0; i < MAX_RANDOM_MAC_ADDRS; i++) {
 		if (adapter->random_mac[i].in_use) {
 			in_use_cnt++;
@@ -448,7 +448,7 @@ static int32_t hdd_set_action_frame_random_mac(hdd_adapter_t *adapter,
 		append_ret = append_action_frame_cookie(
 					&adapter->random_mac[i].cookie_list,
 					cookie);
-		spin_unlock(&adapter->random_mac_lock);
+		adf_os_spin_unlock(&adapter->random_mac_lock);
 
 		if(append_ret == -ENOMEM) {
 			hddLog(LOGE, FL("No Sufficient memory for cookie"));
@@ -466,7 +466,7 @@ static int32_t hdd_set_action_frame_random_mac(hdd_adapter_t *adapter,
 
 	if ((in_use_cnt == MAX_RANDOM_MAC_ADDRS)
 		|| (i == MAX_RANDOM_MAC_ADDRS)) {
-		spin_unlock(&adapter->random_mac_lock);
+		adf_os_spin_unlock(&adapter->random_mac_lock);
 		hddLog(LOGE, FL("Reached the limit of Max random addresses"));
 		return -EBUSY;
 	}
@@ -475,21 +475,21 @@ static int32_t hdd_set_action_frame_random_mac(hdd_adapter_t *adapter,
 	action_cookie = allocate_action_frame_cookie(&adapter->random_mac[i].cookie_list,
 					cookie);
 	if(!action_cookie) {
-		spin_unlock(&adapter->random_mac_lock);
+		adf_os_spin_unlock(&adapter->random_mac_lock);
 		hddLog(LOGE, FL("No Sufficient memory for cookie"));
 		return -ENOMEM;
 	}
 	vos_mem_copy(adapter->random_mac[i].addr, random_mac_addr,
 		     VOS_MAC_ADDR_SIZE);
 	adapter->random_mac[i].in_use = true;
-	spin_unlock(&adapter->random_mac_lock);
+	adf_os_spin_unlock(&adapter->random_mac_lock);
 	/* Program random mac_addr */
 	if (!hdd_set_random_mac(adapter, adapter->random_mac[i].addr)) {
-		spin_lock(&adapter->random_mac_lock);
+		adf_os_spin_lock(&adapter->random_mac_lock);
 		/* clear the cookie */
 		delete_action_frame_cookie(action_cookie);
 		adapter->random_mac[i].in_use = false;
-		spin_unlock(&adapter->random_mac_lock);
+		adf_os_spin_unlock(&adapter->random_mac_lock);
 		hddLog(LOGE, FL("random mac filter set failed for: "
 				MAC_ADDRESS_STR),
 				MAC_ADDR_ARRAY(adapter->random_mac[i].addr));
@@ -527,7 +527,7 @@ static int32_t hdd_reset_action_frame_random_mac(hdd_adapter_t *adapter,
 	hddLog(LOG1, FL("mac_addr: " MAC_ADDRESS_STR " && cookie = %llu"),
 			MAC_ADDR_ARRAY(random_mac_addr), cookie);
 
-	spin_lock(&adapter->random_mac_lock);
+	adf_os_spin_lock(&adapter->random_mac_lock);
 	for (i = 0; i < MAX_RANDOM_MAC_ADDRS; i++) {
 		if ((adapter->random_mac[i].in_use) &&
 		    (!memcmp(adapter->random_mac[i].addr,
@@ -536,7 +536,7 @@ static int32_t hdd_reset_action_frame_random_mac(hdd_adapter_t *adapter,
 	}
 
 	if (i == MAX_RANDOM_MAC_ADDRS) {
-		spin_unlock(&adapter->random_mac_lock);
+		adf_os_spin_unlock(&adapter->random_mac_lock);
 		hddLog(LOGE, FL("trying to delete cookie of random mac-addr"
 				" for which entry is not present"));
 		return -EINVAL;
@@ -546,7 +546,7 @@ static int32_t hdd_reset_action_frame_random_mac(hdd_adapter_t *adapter,
 				    cookie);
 
 	if (!action_cookie) {
-		spin_unlock(&adapter->random_mac_lock);
+		adf_os_spin_unlock(&adapter->random_mac_lock);
 		hddLog(LOG1, FL("No cookie matches"));
 		return 0;
 	}
@@ -554,7 +554,7 @@ static int32_t hdd_reset_action_frame_random_mac(hdd_adapter_t *adapter,
 	delete_action_frame_cookie(action_cookie);
 	if (list_empty(&adapter->random_mac[i].cookie_list)) {
 		adapter->random_mac[i].in_use = false;
-		spin_unlock(&adapter->random_mac_lock);
+		adf_os_spin_unlock(&adapter->random_mac_lock);
 		hdd_clear_random_mac(adapter, random_mac_addr);
 		hddLog(LOG1, FL("Deleted random mac_addr:"
 				MAC_ADDRESS_STR),
@@ -562,7 +562,7 @@ static int32_t hdd_reset_action_frame_random_mac(hdd_adapter_t *adapter,
 		return 0;
 	}
 
-	spin_unlock(&adapter->random_mac_lock);
+	adf_os_spin_unlock(&adapter->random_mac_lock);
 	return 0;
 }
 
@@ -585,7 +585,7 @@ static int32_t hdd_delete_action_frame_cookie(hdd_adapter_t *adapter,
 
 	hddLog(LOG1, FL("Delete cookie = %llu"), cookie);
 
-        spin_lock(&adapter->random_mac_lock);
+        adf_os_spin_lock(&adapter->random_mac_lock);
         for (i = 0; i < MAX_RANDOM_MAC_ADDRS; i++) {
 		if (!adapter->random_mac[i].in_use)
 			continue;
@@ -600,18 +600,18 @@ static int32_t hdd_delete_action_frame_cookie(hdd_adapter_t *adapter,
 
 		if (list_empty(&adapter->random_mac[i].cookie_list)) {
 			adapter->random_mac[i].in_use = false;
-			spin_unlock(&adapter->random_mac_lock);
+			adf_os_spin_unlock(&adapter->random_mac_lock);
 			hdd_clear_random_mac(adapter,
 					     adapter->random_mac[i].addr);
 			hddLog(LOG1, FL("Deleted random addr "MAC_ADDRESS_STR),
 				MAC_ADDR_ARRAY(adapter->random_mac[i].addr));
 			return 0;
 		}
-		spin_unlock(&adapter->random_mac_lock);
+		adf_os_spin_unlock(&adapter->random_mac_lock);
 		return 0;
 	}
 
-	spin_unlock(&adapter->random_mac_lock);
+	adf_os_spin_unlock(&adapter->random_mac_lock);
 	hddLog(LOG1, FL("Invalid cookie"));
 	return -EINVAL;
 }
@@ -632,7 +632,7 @@ static void hdd_delete_all_action_frame_cookies(hdd_adapter_t *adapter)
 	struct list_head *n;
 	struct list_head *temp;
 
-	spin_lock(&adapter->random_mac_lock);
+	adf_os_spin_lock(&adapter->random_mac_lock);
 
 	for (i = 0; i < MAX_RANDOM_MAC_ADDRS; i++) {
 
@@ -650,14 +650,14 @@ static void hdd_delete_all_action_frame_cookies(hdd_adapter_t *adapter)
 		}
 
 		adapter->random_mac[i].in_use = false;
-		spin_unlock(&adapter->random_mac_lock);
+		adf_os_spin_unlock(&adapter->random_mac_lock);
 		hdd_clear_random_mac(adapter, adapter->random_mac[i].addr);
 		hddLog(LOG1, FL("Deleted random addr " MAC_ADDRESS_STR),
 				MAC_ADDR_ARRAY(adapter->random_mac[i].addr));
-		spin_lock(&adapter->random_mac_lock);
+		adf_os_spin_lock(&adapter->random_mac_lock);
 	}
 
-	spin_unlock(&adapter->random_mac_lock);
+	adf_os_spin_unlock(&adapter->random_mac_lock);
 }
 
 static eHalStatus
@@ -1286,10 +1286,10 @@ static int wlan_hdd_roc_request_enqueue(hdd_adapter_t *adapter,
 	hdd_roc_req->pRemainChanCtx = remain_chan_ctx;
 
 	/* Enqueue this RoC request */
-	spin_lock(&hdd_ctx->hdd_roc_req_q.lock);
+	adf_os_spin_lock(&hdd_ctx->hdd_roc_req_q.lock);
 	status = hdd_list_insert_back(&hdd_ctx->hdd_roc_req_q,
 					&hdd_roc_req->node);
-	spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
+	adf_os_spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
 
 	if (VOS_STATUS_SUCCESS != status) {
 		hddLog(LOGP, FL("Not able to enqueue RoC Req context"));
@@ -1368,14 +1368,14 @@ void wlan_hdd_roc_request_dequeue(struct work_struct *work)
 	 * that any pending roc in the queue will be scheduled
 	 * on the current roc completion by scheduling the work queue.
 	 */
-	spin_lock(&hdd_ctx->hdd_roc_req_q.lock);
+	adf_os_spin_lock(&hdd_ctx->hdd_roc_req_q.lock);
 	if (list_empty(&hdd_ctx->hdd_roc_req_q.anchor)) {
-		spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
+		adf_os_spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
 		return;
 	}
 	status = hdd_list_remove_front(&hdd_ctx->hdd_roc_req_q,
 			(hdd_list_node_t **) &hdd_roc_req);
-	spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
+	adf_os_spin_unlock(&hdd_ctx->hdd_roc_req_q.lock);
 	if (VOS_STATUS_SUCCESS != status) {
 		hddLog(LOG1, FL("unable to remove roc element from list"));
 		return;
@@ -1756,13 +1756,13 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
     }
 
     /* Remove RoC request inside queue */
-    spin_lock(&pHddCtx->hdd_roc_req_q.lock);
+    adf_os_spin_lock(&pHddCtx->hdd_roc_req_q.lock);
     list_for_each_safe(tmp, q, &pHddCtx->hdd_roc_req_q.anchor) {
         curr_roc_req = list_entry(tmp, hdd_roc_req_t, node);
         if ((uintptr_t)curr_roc_req->pRemainChanCtx == cookie) {
             status = hdd_list_remove_node(&pHddCtx->hdd_roc_req_q,
                                    (hdd_list_node_t*)curr_roc_req);
-            spin_unlock(&pHddCtx->hdd_roc_req_q.lock);
+            adf_os_spin_unlock(&pHddCtx->hdd_roc_req_q.lock);
             if (status == VOS_STATUS_SUCCESS) {
                 vos_mem_free(curr_roc_req->pRemainChanCtx);
                 vos_mem_free(curr_roc_req);
@@ -1770,7 +1770,7 @@ int __wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
             return 0;
         }
     }
-    spin_unlock(&pHddCtx->hdd_roc_req_q.lock);
+    adf_os_spin_unlock(&pHddCtx->hdd_roc_req_q.lock);
 
     /* FIXME cancel currently running remain on chan.
      * Need to check cookie and cancel accordingly
@@ -2068,11 +2068,13 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
         mutex_unlock(&cfgState->remain_on_chan_ctx_lock);
     }
 
+#ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
     if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
        (type == SIR_MAC_MGMT_FRAME && subType == SIR_MAC_MGMT_PROBE_RSP)) {
         /* Drop Probe response recieved from supplicant in sta mode */
         goto err_rem_channel;
     }
+#endif
 
     //Call sme API to send out a action frame.
     // OR can we send it directly through data path??
@@ -3008,7 +3010,23 @@ struct wireless_dev* __wlan_hdd_add_virtual_intf(
 #endif
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
+struct wireless_dev *wlan_hdd_add_virtual_intf(struct wiphy *wiphy,
+					       const char *name,
+					       unsigned char name_assign_type,
+					       enum nl80211_iftype type,
+					       struct vif_params *params)
+{
+	struct wireless_dev *wdev;
+
+	vos_ssr_protect(__func__);
+	wdev = __wlan_hdd_add_virtual_intf(wiphy, name, name_assign_type,
+					   type, &params->flags, params);
+	vos_ssr_unprotect(__func__);
+
+	return wdev;
+}
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
 /**
  * wlan_hdd_add_virtual_intf() - Add virtual interface wrapper
  * @wiphy: wiphy pointer

@@ -137,6 +137,9 @@ ifeq ($(KERNEL_BUILD), 0)
         ifeq ($(CONFIG_ROME_IF),sdio)
                 CONFIG_WLAN_FEATURE_11W := y
         endif
+        ifeq ($(CONFIG_ROME_IF),pci)
+                CONFIG_WLAN_FEATURE_11W := y
+        endif
 
         ifneq ($(CONFIG_MOBILE_ROUTER), y)
         #Flag to enable NAN
@@ -396,6 +399,10 @@ HIF_COMMON_DIR := CORE/SERVICES/HIF/common
 HIF_COMMON_OBJS := $(HIF_COMMON_DIR)/hif_bmi_reg_access.o \
                    $(HIF_COMMON_DIR)/hif_diag_reg_access.o
 
+ifeq ($(CONFIG_GPIO_OOB),y)
+HIF_DIR_OBJS += $(HIF_DIR)/hif_oob.o
+endif
+
 HIF_SDIO_DIR := CORE/SERVICES/HIF/sdio
 HIF_SDIO_OBJS := $(HIF_SDIO_DIR)/hif_sdio_send.o \
                  $(HIF_SDIO_DIR)/hif_sdio_dev.o \
@@ -415,6 +422,7 @@ HIF_SDIO_NATIVE_OBJS := $(HIF_SDIO_NATIVE_SRC_DIR)/hif.o \
                         $(HIF_SDIO_NATIVE_SRC_DIR)/hif_scatter.o
 
 HIF_INC := -I$(WLAN_ROOT)/$(HIF_COMMON_DIR) \
+           -I$(WLAN_ROOT)/$(HIF_DIR) \
            -I$(WLAN_ROOT)/$(HIF_SDIO_DIR) \
            -I$(WLAN_ROOT)/$(HIF_SDIO_LINUX_DIR) \
            -I$(WLAN_ROOT)/$(HIF_SDIO_NATIVE_INC_DIR) \
@@ -475,6 +483,11 @@ endif
 
 ifeq ($(CONFIG_QCOM_TDLS),y)
 HDD_OBJS +=	$(HDD_SRC_DIR)/wlan_hdd_tdls.o
+endif
+
+ifeq ($(CONFIG_NETWORK_PHY_TIMESTAMPING), y)
+CONFIG_WLAN_SYNC_TSF_PLUS := y
+CONFIG_WLAN_SYNC_TSF_PTP := y
 endif
 
 ifeq ($(CONFIG_WLAN_SYNC_TSF_PLUS), y)
@@ -864,9 +877,14 @@ HIF_DIR := CORE/SERVICES/HIF
 ifeq ($(CONFIG_HIF_PCI), 1)
 HIF_PCIE_DIR := $(HIF_DIR)/PCIe
 
-HIF_INC := -I$(WLAN_ROOT)/$(HIF_PCIE_DIR)
+HIF_INC := -I$(WLAN_ROOT)/$(HIF_PCIE_DIR) \
+           -I$(WLAN_ROOT)/$(HIF_DIR)
 
 HIF_OBJS := $(HIF_DIR)/ath_procfs.o
+
+ifeq ($(CONFIG_GPIO_OOB),y)
+HIF_OBJS += $(HIF_DIR)/hif_oob.o
+endif
 
 HIF_PCIE_OBJS := $(HIF_PCIE_DIR)/copy_engine.o \
                  $(HIF_PCIE_DIR)/hif_pci.o \
@@ -879,9 +897,14 @@ endif
 ifeq ($(CONFIG_HIF_USB), 1)
 HIF_USB_DIR := $(HIF_DIR)/USB
 
-HIF_INC := -I$(WLAN_ROOT)/$(HIF_USB_DIR)
+HIF_INC := -I$(WLAN_ROOT)/$(HIF_USB_DIR) \
+           -I$(WLAN_ROOT)/$(HIF_DIR)
 
 HIF_OBJS := $(HIF_DIR)/ath_procfs.o
+
+ifeq ($(CONFIG_GPIO_OOB),y)
+HIF_OBJS += $(HIF_DIR)/hif_oob.o
+endif
 
 HIF_USB_OBJS := $(HIF_USB_DIR)/usbdrv.o \
                  $(HIF_USB_DIR)/hif_usb.o \
@@ -1207,6 +1230,7 @@ endif
 ifeq ($(CONFIG_SLUB_DEBUG_ON),y)
 CDEFINES += -DTIMER_MANAGER
 CDEFINES += -DMEMORY_DEBUG
+CDEFINES += -DNBUF_MAP_UNMAP_DEBUG
 endif
 
 ifeq ($(HAVE_CFG80211),1)
@@ -1380,6 +1404,9 @@ CDEFINES += -DCONFIG_HL_SUPPORT
 CDEFINES += -DDEBUG_HL_LOGGING
 ifeq ($(CONFIG_QOS_FWD_SUPPORT), y)
 CDEFINES += -DQOS_FWD_SUPPORT
+endif
+ifeq ($(CONFIG_USB_WARM_RESET), y)
+CDEFINES += -DFEATURE_USB_WARM_RESET
 endif
 endif
 
@@ -1616,10 +1643,18 @@ ifeq ($(CONFIG_WLAN_SYNC_TSF_PLUS), y)
 CDEFINES += -DWLAN_FEATURE_TSF_PLUS
 endif
 
+ifeq ($(CONFIG_WLAN_SYNC_TSF_PTP), y)
+CDEFINES += -DWLAN_FEATURE_TSF_PTP
+endif
+
 # Enable target dump for non-qualcomm platform
 ifeq ($(CONFIG_NON_QC_PLATFORM), y)
 CDEFINES += -DCONFIG_NON_QC_PLATFORM
 CDEFINES += -DTARGET_DUMP_FOR_NON_QC_PLATFORM
+endif
+
+ifeq ($(CONFIG_GPIO_OOB),y)
+CDEFINES += -DCONFIG_GPIO_OOB
 endif
 
 ifeq ($(CONFIG_NON_QC_PLATFORM), y)
@@ -1687,7 +1722,6 @@ ifeq ($(CONFIG_WLAN_OFFLOAD_PACKETS),y)
 CDEFINES += -DWLAN_FEATURE_OFFLOAD_PACKETS
 endif
 
-
 ifeq ($(CONFIG_WLAN_UDP_RESPONSE_OFFLOAD),y)
 CDEFINES += -DWLAN_FEATURE_UDP_RESPONSE_OFFLOAD
 endif
@@ -1695,6 +1729,16 @@ endif
 
 ifeq ($(CONFIG_WLAN_WOW_PULSE), y)
 CDEFINES += -DWLAN_FEATURE_WOW_PULSE
+endif
+
+#Enable Pattern Bitmap Match & Magic Pattern WOW
+ifeq ($(CONFIG_PBM_MAGIC_WOW), y)
+CDEFINES += -DWLAN_FEATURE_WOW_PULSE
+CDEFINES += -DFEATURE_PBM_MAGIC_WOW
+endif
+
+ifeq ($(CONFIG_USB_RESET_RESUME_PERSISTENCE), y)
+CDEFINES += -DUSB_RESET_RESUME_PERSISTENCE
 endif
 
 ifeq ($(CONFIG_WLAN_FEATURE_NAN_DATAPATH),y)
@@ -1707,6 +1751,10 @@ endif
 
 ifeq ($(CONFIG_HIF_PCI), 1)
 CDEFINES += -DFORCE_LEGACY_PCI_INTERRUPTS
+endif
+
+ifeq ($(CONFIG_SUPPORT_P2P_BY_ONE_INTF_WLAN), y)
+CDEFINES += -DSUPPORT_P2P_BY_ONE_INTF_WLAN
 endif
 
 ifeq ($(CONFIG_WLAN_THERMAL_SHUTDOWN), 1)

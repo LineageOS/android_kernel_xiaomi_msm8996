@@ -744,6 +744,22 @@ static void hdd_copy_ht_operation(hdd_station_ctx_t *hdd_sta_ctx,
 			roam_ht_ops->basicMCSSet[i];
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
+static void hdd_copy_vht_center_freq(struct ieee80211_vht_operation *ieee_ops,
+				     tDot11fIEVHTOperation *roam_ops)
+{
+	ieee_ops->center_freq_seg0_idx = roam_ops->chanCenterFreqSeg1;
+	ieee_ops->center_freq_seg1_idx = roam_ops->chanCenterFreqSeg2;
+}
+#else
+static void hdd_copy_vht_center_freq(struct ieee80211_vht_operation *ieee_ops,
+				     tDot11fIEVHTOperation *roam_ops)
+{
+	ieee_ops->center_freq_seg1_idx = roam_ops->chanCenterFreqSeg1;
+	ieee_ops->center_freq_seg2_idx = roam_ops->chanCenterFreqSeg2;
+}
+#endif /* KERNEL_VERSION(4, 12, 0) */
+
 /**
  * hdd_copy_vht_operation()- copy VHT operations element from roam info to
  *  hdd station context.
@@ -762,8 +778,7 @@ static void hdd_copy_vht_operation(hdd_station_ctx_t *hdd_sta_ctx,
 	adf_os_mem_zero(hdd_vht_ops, sizeof(struct ieee80211_vht_operation));
 
 	hdd_vht_ops->chan_width = roam_vht_ops->chanWidth;
-	hdd_vht_ops->center_freq_seg1_idx = roam_vht_ops->chanCenterFreqSeg1;
-	hdd_vht_ops->center_freq_seg2_idx = roam_vht_ops->chanCenterFreqSeg2;
+	hdd_copy_vht_center_freq(hdd_vht_ops, roam_vht_ops);
 	hdd_vht_ops->basic_mcs_set = roam_vht_ops->basicMCSSet;
 }
 
@@ -1298,13 +1313,13 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
 #ifdef FEATURE_BUS_BANDWIDTH
         /* start timer in sta/p2p_cli */
-        spin_lock_bh(&pHddCtx->bus_bw_lock);
+        adf_os_spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = pAdapter->stats.tx_packets;
         pAdapter->prev_rx_packets = pAdapter->stats.rx_packets;
         tlshim_get_intra_bss_fwd_pkts_count(pAdapter->sessionId,
              &pAdapter->prev_fwd_tx_packets, &pAdapter->prev_fwd_rx_packets);
         pAdapter->prev_tx_bytes = pAdapter->stats.tx_bytes;
-        spin_unlock_bh(&pHddCtx->bus_bw_lock);
+        adf_os_spin_unlock_bh(&pHddCtx->bus_bw_lock);
         hdd_start_bus_bw_compute_timer(pAdapter);
 #endif
         if (pHddCtx->cfg_ini->mon_on_sta_enable &&
@@ -1363,13 +1378,13 @@ static void hdd_SendAssociationEvent(struct net_device *dev,tCsrRoamInfo *pCsrRo
 
 #ifdef FEATURE_BUS_BANDWIDTH
         /* stop timer in sta/p2p_cli */
-        spin_lock_bh(&pHddCtx->bus_bw_lock);
+        adf_os_spin_lock_bh(&pHddCtx->bus_bw_lock);
         pAdapter->prev_tx_packets = 0;
         pAdapter->prev_rx_packets = 0;
         pAdapter->prev_fwd_tx_packets = 0;
         pAdapter->prev_fwd_rx_packets = 0;
         pAdapter->prev_tx_bytes = 0;
-        spin_unlock_bh(&pHddCtx->bus_bw_lock);
+        adf_os_spin_unlock_bh(&pHddCtx->bus_bw_lock);
         hdd_stop_bus_bw_compute_timer(pAdapter);
 #endif
         if (pHddCtx->cfg_ini->mon_on_sta_enable &&
@@ -4572,8 +4587,8 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     hdd_context_t *pHddCtx = NULL;
     struct cfg80211_bss *bss_status;
-    tHalHandle hal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-    tpAniSirGlobal mac = PMAC_STRUCT(hal);
+    tHalHandle hal;
+    tpAniSirGlobal mac;
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "CSR Callback: status= %d result= %d roamID=%d",
                     roamStatus, roamResult, roamId );
@@ -4958,9 +4973,16 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                 roamResult );
             break;
         case  eCSR_ROAM_STA_CHANNEL_SWITCH:
-            hdd_chan_change_notify(pAdapter, pAdapter->dev,
-                                   pRoamInfo->chan_info.chan_id,
-                                   mac->roam.configParam.phyMode);
+	  {
+		pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+		if((pHddCtx) && (pHddCtx->hHal) && (pRoamInfo)) {
+			hal = pHddCtx->hHal;
+			mac = PMAC_STRUCT(hal);
+			hdd_chan_change_notify(pAdapter, pAdapter->dev,
+				               pRoamInfo->chan_info.chan_id,
+					       mac->roam.configParam.phyMode);
+		  }
+	  }
         default:
             break;
     }

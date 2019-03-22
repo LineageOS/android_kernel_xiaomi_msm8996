@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -233,7 +233,7 @@ void vos_mem_trace_dump(int level)
 	VOS_STATUS vosStatus;
 	struct s_vos_mem_struct *memStruct;
 
-	spin_lock(&vosMemList.lock);
+	adf_os_spin_lock(&vosMemList.lock);
 	hdd_list_peek_front(&vosMemList, &pNodeNext);
 	do {
 		if (pNodeNext == NULL)
@@ -251,7 +251,7 @@ void vos_mem_trace_dump(int level)
 		pNodeNext = NULL;
 	} while ((vosStatus = hdd_list_peek_next(&vosMemList,
 		pNode, &pNodeNext)) == VOS_STATUS_SUCCESS);
-	spin_unlock(&vosMemList.lock);
+	adf_os_spin_unlock(&vosMemList.lock);
 	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
 		"vos_mem [total active] count %d size %d", i, totalUsed);
 
@@ -332,9 +332,9 @@ void vos_mem_clean()
 
        do
        {
-          spin_lock(&vosMemList.lock);
+          adf_os_spin_lock(&vosMemList.lock);
           vosStatus = hdd_list_remove_front(&vosMemList, &pNode);
-          spin_unlock(&vosMemList.lock);
+          adf_os_spin_unlock(&vosMemList.lock);
           if(VOS_STATUS_SUCCESS == vosStatus)
           {
              memStruct = (struct s_vos_mem_struct*)pNode;
@@ -396,7 +396,6 @@ v_VOID_t *vos_mem_malloc_debug(v_SIZE_t size, const char *fileName,
    v_VOID_t* memPtr = NULL;
    v_SIZE_t new_size;
    int flags = GFP_KERNEL;
-   unsigned long IrqFlags;
    unsigned long  time_before_kmalloc;
 
 
@@ -452,10 +451,10 @@ v_VOID_t *vos_mem_malloc_debug(v_SIZE_t size, const char *fileName,
       vos_mem_copy(&memStruct->header[0], &WLAN_MEM_HEADER[0], sizeof(WLAN_MEM_HEADER));
       vos_mem_copy( (v_U8_t*)(memStruct + 1) + size, &WLAN_MEM_TAIL[0], sizeof(WLAN_MEM_TAIL));
 
-      spin_lock_irqsave(&vosMemList.lock, IrqFlags);
+      adf_os_spin_lock_irqsave(&vosMemList.lock);
       vosStatus = hdd_list_insert_front(&vosMemList, &memStruct->pNode);
       alloc_trace_usage(fileName, lineNum, size);
-      spin_unlock_irqrestore(&vosMemList.lock, IrqFlags);
+      adf_os_spin_unlock_irqrestore(&vosMemList.lock);
       if(VOS_STATUS_SUCCESS != vosStatus)
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -470,8 +469,6 @@ v_VOID_t *vos_mem_malloc_debug(v_SIZE_t size, const char *fileName,
 
 v_VOID_t vos_mem_free( v_VOID_t *ptr )
 {
-    unsigned long IrqFlags;
-
     if (ptr != NULL)
     {
         VOS_STATUS vosStatus;
@@ -482,11 +479,11 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
             return;
 #endif
 
-        spin_lock_irqsave(&vosMemList.lock, IrqFlags);
+        adf_os_spin_lock_irqsave(&vosMemList.lock);
         vosStatus = hdd_list_remove_node(&vosMemList, &memStruct->pNode);
         free_trace_usage(memStruct->fileName, memStruct->lineNum,
                          memStruct->size);
-        spin_unlock_irqrestore(&vosMemList.lock, IrqFlags);
+        adf_os_spin_unlock_irqrestore(&vosMemList.lock);
 
         if(VOS_STATUS_SUCCESS == vosStatus)
         {
@@ -726,10 +723,10 @@ v_VOID_t * vos_mem_dma_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t line
       vos_mem_copy(&memStruct->header[0], &WLAN_MEM_HEADER[0], sizeof(WLAN_MEM_HEADER));
       vos_mem_copy( (v_U8_t*)(memStruct + 1) + size, &WLAN_MEM_TAIL[0], sizeof(WLAN_MEM_TAIL));
 
-      spin_lock(&vosMemList.lock);
+      adf_os_spin_lock(&vosMemList.lock);
       vosStatus = hdd_list_insert_front(&vosMemList, &memStruct->pNode);
       alloc_trace_usage(fileName, lineNum, size);
-      spin_unlock(&vosMemList.lock);
+      adf_os_spin_unlock(&vosMemList.lock);
       if(VOS_STATUS_SUCCESS != vosStatus)
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -749,11 +746,11 @@ v_VOID_t vos_mem_dma_free( v_VOID_t *ptr )
         VOS_STATUS vosStatus;
         struct s_vos_mem_struct* memStruct = ((struct s_vos_mem_struct*)ptr) - 1;
 
-        spin_lock(&vosMemList.lock);
+        adf_os_spin_lock(&vosMemList.lock);
         vosStatus = hdd_list_remove_node(&vosMemList, &memStruct->pNode);
         free_trace_usage(memStruct->fileName, memStruct->lineNum,
                              memStruct->size);
-        spin_unlock(&vosMemList.lock);
+        adf_os_spin_unlock(&vosMemList.lock);
 
         if(VOS_STATUS_SUCCESS == vosStatus)
         {

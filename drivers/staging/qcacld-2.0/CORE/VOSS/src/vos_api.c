@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -238,6 +238,17 @@ static inline void vos_runtime_pm_config(struct ol_softc *scn,
 		hdd_context_t *pHddCtx) { }
 #endif
 
+#ifdef FEATURE_USB_WARM_RESET
+static inline void vos_usb_warm_reset_config(struct ol_softc *scn,
+		hdd_context_t *pHddCtx)
+{
+	scn->enable_usb_warm_reset = pHddCtx->cfg_ini->enable_usb_warm_reset;
+}
+#else
+static inline void vos_usb_warm_reset_config(struct ol_softc *scn,
+		hdd_context_t *pHddCtx) { }
+#endif
+
 #if defined (FEATURE_SECURE_FIRMWARE) && defined (FEATURE_FW_HASH_CHECK)
 static inline void vos_fw_hash_check_config(struct ol_softc *scn,
 					hdd_context_t *pHddCtx)
@@ -402,7 +413,24 @@ static void vos_set_ac_specs_params(tMacOpenParameters *param,
 	}
 }
 
-
+/**
+ * set_oob_gpio_config() - set oob gpio config
+ * @scn: pointer to scn
+ * @hdd_ctx: pointer to hdd_ctx
+ *
+ * Return NULL
+ */
+#ifdef CONFIG_GPIO_OOB
+static void set_oob_gpio_config(struct ol_softc *scn, hdd_context_t *hdd_ctx)
+{
+   scn->oob_gpio_num = hdd_ctx->cfg_ini->oob_gpio_num;
+   scn->oob_gpio_flag = hdd_ctx->cfg_ini->oob_gpio_flag;
+}
+#else
+static void set_oob_gpio_config(struct ol_softc *scn, hdd_context_t *hdd_ctx)
+{
+}
+#endif
 /*---------------------------------------------------------------------------
 
   \brief vos_open() - Open the vOSS Module
@@ -534,13 +562,16 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    scn->enableuartprint = pHddCtx->cfg_ini->enablefwprint;
    scn->enablefwlog     = pHddCtx->cfg_ini->enablefwlog;
    scn->enableFwSelfRecovery = pHddCtx->cfg_ini->enableFwSelfRecovery;
+   scn->fastfwdump_host = pHddCtx->cfg_ini->fastfwdump;
    scn->max_no_of_peers = pHddCtx->max_peers;
+   set_oob_gpio_config(scn, pHddCtx);
 #ifdef WLAN_FEATURE_LPSS
    scn->enablelpasssupport = pHddCtx->cfg_ini->enablelpasssupport;
 #endif
    scn->enableRamdumpCollection = pHddCtx->cfg_ini->is_ramdump_enabled;
    scn->enable_self_recovery = pHddCtx->cfg_ini->enableSelfRecovery;
 
+   vos_usb_warm_reset_config(scn, pHddCtx);
    vos_fw_hash_check_config(scn, pHddCtx);
    vos_runtime_pm_config(scn, pHddCtx);
 
@@ -3502,18 +3533,18 @@ bool vos_is_chan_ok_for_dnbs(uint8_t channel)
 	  return false;
 	}
 
-	spin_lock_bh(&pHddCtx->restrict_offchan_lock);
+	adf_os_spin_lock_bh(&pHddCtx->restrict_offchan_lock);
 	if (pHddCtx->restrict_offchan_flag) {
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
 				"%s: flag is set", __func__);
 		wlansap_channel_compare(gpVosContext->pMACContext, channel, &equal);
-		spin_unlock_bh(&pHddCtx->restrict_offchan_lock);
+		adf_os_spin_unlock_bh(&pHddCtx->restrict_offchan_lock);
 		return equal;
 	}
 	else
 		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
 				"%s: flag is not set", __func__);
-	spin_unlock_bh(&pHddCtx->restrict_offchan_lock);
+	adf_os_spin_unlock_bh(&pHddCtx->restrict_offchan_lock);
 	return true;
 }
 #endif

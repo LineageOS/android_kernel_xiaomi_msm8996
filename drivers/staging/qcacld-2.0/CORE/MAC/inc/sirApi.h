@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -7193,6 +7193,8 @@ struct sblock_info {
  * @vdev_id: vdev id
  * @tsf_low: low 32bits of tsf
  * @tsf_high: high 32bits of tsf
+ * @tsf_id: tsf id
+ * @tsf_id_valid: valid tsf id or not
  *
  * driver use this struct to store the tsf info
  */
@@ -7200,6 +7202,8 @@ struct stsf {
 	uint32_t vdev_id;
 	uint32_t tsf_low;
 	uint32_t tsf_high;
+	uint32_t tsf_id;
+	uint32_t tsf_id_valid;
 };
 
 #ifdef WLAN_FEATURE_MOTION_DETECTION
@@ -7528,7 +7532,7 @@ struct dsrc_radio_chan_stats_ctxt {
 	struct completion completion_evt;
 	uint32_t config_chans_num;
 	uint32_t config_chans_freq[DSRC_MAX_CHAN_STATS_CNT];
-	spinlock_t chan_stats_lock;
+	adf_os_spinlock_t chan_stats_lock;
 	uint32_t chan_stats_num;
 	struct radio_chan_stats_info chan_stats[DSRC_MAX_CHAN_STATS_CNT];
 };
@@ -7699,6 +7703,7 @@ struct udp_resp_offload {
  * @wow_pulse_interval_low: Pulse interval low
  * @wow_pulse_interval_high: Pulse interval high
  * @wow_pulse_repeat_count: Pulse repeat count
+ * @wow_pulse_init_state: Pulse init level
  *
  * SME uses this structure to configure wow pulse info
  * and send it to WMA
@@ -7708,7 +7713,8 @@ struct wow_pulse_mode {
 	uint8_t                    wow_pulse_pin;
 	uint16_t                   wow_pulse_interval_high;
 	uint16_t                   wow_pulse_interval_low;
-	uint16_t                   wow_pulse_repeat_count;
+	uint32_t                   wow_pulse_repeat_count;
+	uint8_t                    wow_pulse_init_state;
 };
 
 /*
@@ -8625,6 +8631,11 @@ struct sme_change_country_code_ind {
 	uint16_t  msg_len;
 	uint8_t   session_id;
 	uint8_t   country_code[WNI_CFG_COUNTRY_CODE_LEN];
+};
+
+struct update_pwr_timer_data {
+	void* mac_ptr;
+	void* session_ptr;
 };
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -423,10 +423,7 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         }
 
         if (pBeacon->cfPresent)
-        {
             cfgSetInt(pMac, WNI_CFG_CFP_PERIOD, pBeacon->cfParamSet.cfpPeriod);
-            limSendCFParams(pMac, bssIdx, pBeacon->cfParamSet.cfpCount, pBeacon->cfParamSet.cfpPeriod);
-        }
 
         if (pBeacon->timPresent)
         {

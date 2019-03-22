@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -292,7 +292,7 @@ chan_to_ht_40_index_map chan_to_ht_40_index[NUM_20MHZ_RF_CHANNELS] =
 static CountryInfoTable_t countryInfoTable =
 {
     /* the first entry in the table is always the world domain */
-    141,
+    142,
     {
       {REGDOMAIN_WORLD, {'0', '0'}}, // WORLD DOMAIN
       {REGDOMAIN_FCC, {'A', 'D'}}, // ANDORRA
@@ -375,6 +375,7 @@ static CountryInfoTable_t countryInfoTable =
       {REGDOMAIN_ETSI, {'M', 'A'}}, //MOROCCO
       {REGDOMAIN_ETSI, {'M', 'C'}}, //MONACO
       {REGDOMAIN_ETSI, {'M', 'K'}}, //MACEDONIA, THE FORMER YUGOSLAV REPUBLIC OF
+      {REGDOMAIN_ETSI, {'M', 'M'}}, //MYANMAR
       {REGDOMAIN_FCC, {'M','N'}}, //MONGOLIA
       {REGDOMAIN_FCC, {'M', 'O'}}, //MACAO
       {REGDOMAIN_FCC, {'M', 'P'}}, //NORTHERN MARIANA ISLANDS
@@ -2148,13 +2149,27 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
                    }
                 }
             } else {
-                /* Enable is only last flag we support */
-                pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
-                    channels[k].enabled = NV_CHANNEL_ENABLE;
+                /* there are 14 channel in hdd_channels_2_4_GHZ,
+                 * there are 24/25 hdd_channels_5_GHZ,
+                 * there are 2 channel in hdd_etsi_srd_chan
+                 * the last element of wiphy->bands[i]->channels[j]
+                 * is channel 173, and the index is 39/40.*/
+                if((!pHddCtx->cfg_ini->dot11p_mode) && (k > RF_CHAN_169)) {
+                   pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
+                       channels[RF_CHAN_173].enabled = NV_CHANNEL_ENABLE;
+                   pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
+                       channels[RF_CHAN_173].pwrLimit =
+                       (tANI_S8) ((wiphy->bands[i]->channels[j].max_power));
+                } else {
+                    /* Enable is only last flag we support */
+                    pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
+                        channels[k].enabled = NV_CHANNEL_ENABLE;
 
-                /* max_power is in dBm */
-                pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].pwrLimit =
-                    (tANI_S8) ((wiphy->bands[i]->channels[j].max_power));
+                    /* max_power is in dBm */
+                    pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
+                        channels[k].pwrLimit =
+                        (tANI_S8) ((wiphy->bands[i]->channels[j].max_power));
+                }
 
                 /* Disable the center channel if neither HT40+ nor HT40- is allowed
                  */

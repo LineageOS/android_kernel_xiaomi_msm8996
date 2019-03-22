@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -49,6 +49,7 @@
 #include <linux/spinlock.h>
 #include <vos_trace.h>
 #include <vos_list.h>
+#include <adf_os_lock.h>
 
 /**-----------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -64,7 +65,7 @@ typedef struct hdd_list_s
    hdd_list_node_t anchor;
    v_SIZE_t count;
    v_SIZE_t max_size;
-   spinlock_t lock;
+   adf_os_spinlock_t lock;
 } hdd_list_t;
 
 typedef struct
@@ -84,7 +85,7 @@ VOS_INLINE_FN v_VOID_t hdd_list_init( hdd_list_t *pList, v_SIZE_t max_size)
    INIT_LIST_HEAD( &pList->anchor );
    pList->count = 0;
    pList->max_size = max_size;
-   spin_lock_init(&pList->lock);
+   adf_os_spinlock_init(&pList->lock);
 }
 
 VOS_INLINE_FN v_VOID_t hdd_list_destroy( hdd_list_t *pList )

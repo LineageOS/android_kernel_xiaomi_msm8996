@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -47,6 +47,8 @@
 #include "rrmApi.h"
 #endif
 #include "vos_utils.h"
+
+#define REG_PWR_SET_WAIT_MS 400
 
 #ifdef WLAN_FEATURE_FILS_SK
 /**
@@ -134,6 +136,42 @@ limDeactivateMinChannelTimerDuringScan(tpAniSirGlobal pMac)
     return eSIR_SUCCESS;
 } /*** end limDeactivateMinChannelTimerDuringScan() ***/
 
+static void
+lim_update_max_txpower_ind(tpAniSirGlobal mac_ptr, tpPESession session_ptr)
+{
+	tSirMsgQ  mmh_msg;
+
+	limLog(mac_ptr, LOG1, FL("update max pwr in country code: %c%c"),
+	       mac_ptr->scan.countryCodeCurrent[0],
+	       mac_ptr->scan.countryCodeCurrent[1]);
+
+	mmh_msg.type = eWNI_SME_UPDATE_PWR_IND;
+	mmh_msg.bodyptr = NULL;
+	mmh_msg.bodyval = session_ptr->peSessionId;
+	limSysProcessMmhMsgApi(mac_ptr, &mmh_msg, ePROT);
+	return;
+}
+
+
+static void hdd_update_pwr_timer_expired_handler(void *arg)
+{
+	struct update_pwr_timer_data *timer_data = NULL;
+	tpAniSirGlobal mac_ptr = NULL;
+	tpPESession session_ptr = NULL;
+	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+		  ("%s ENTER "), __func__);
+
+	if (!arg)
+		return;
+	timer_data = (struct update_pwr_timer_data *)arg;
+	mac_ptr = (tpAniSirGlobal)timer_data->mac_ptr;
+	session_ptr = (tpPESession)timer_data->session_ptr;
+	vos_timer_destroy(&(session_ptr->reg_update_pwr_timer));
+	lim_update_max_txpower_ind(mac_ptr, session_ptr);
+	vos_mem_free(session_ptr->reg_update_pwr_timer.userData);
+	session_ptr->reg_update_pwr_timer.userData = NULL;
+}
+
 /**
  * lim_check_and_change_cc: indicate upper layer country code changed
  * @mac_ptr: Pointer to Global MAC structure
@@ -147,11 +185,13 @@ lim_check_and_change_cc(tpAniSirGlobal mac_ptr,
 			tpSirProbeRespBeacon beacon_ptr,
 			tpPESession session_ptr)
 {
-
 	tSirMsgQ  mmh_msg;
 	tANI_U16  msg_len = 0;
 	struct sme_change_country_code_ind *change_cc_ind_ptr = NULL;
 	v_BOOL_t country_code_not_changed;
+	VOS_TIMER_STATE timer_status;
+	struct update_pwr_timer_data *pwr_timer_data = NULL;
+	uint32_t count = 0;
 
 	limLog(mac_ptr, LOG1, FL("enter new cc %c%c  old cc: %c%c"),
 	       beacon_ptr->countryInfoParam.countryString[0],
@@ -182,6 +222,32 @@ lim_check_and_change_cc(tpAniSirGlobal mac_ptr,
 		mmh_msg.bodyptr = change_cc_ind_ptr;
 		mmh_msg.bodyval = 0;
 		limSysProcessMmhMsgApi(mac_ptr, &mmh_msg, ePROT);
+
+		if (session_ptr->reg_update_pwr_timer.state == 0)
+		    timer_status = VOS_TIMER_STATE_UNUSED;
+		else {
+		    do {
+				timer_status =
+				vos_timer_getCurrentState(&(session_ptr->reg_update_pwr_timer));
+				count++;
+				if (count > 255) {
+					limLog(mac_ptr, LOGE, FL("pwr timer busy!"));
+					return;
+				}
+			} while (timer_status != VOS_TIMER_STATE_UNUSED);
+		}
+
+		pwr_timer_data = vos_mem_malloc(sizeof(*pwr_timer_data));
+		if (pwr_timer_data == NULL) {
+			limLog(mac_ptr, LOGE, FL("Mem alloc failed"));
+			return;
+		}
+		pwr_timer_data->session_ptr = session_ptr;
+		pwr_timer_data->mac_ptr = mac_ptr;
+		vos_timer_init(&(session_ptr->reg_update_pwr_timer), VOS_TIMER_TYPE_SW,
+			       hdd_update_pwr_timer_expired_handler,
+			       (void *)pwr_timer_data);
+		vos_timer_start(&(session_ptr->reg_update_pwr_timer), REG_PWR_SET_WAIT_MS);
 
 		return;
 	}

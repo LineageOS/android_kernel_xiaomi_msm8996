@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016, 2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -75,7 +75,7 @@ typedef struct
 vos_pkt_proto_trace_t   *trace_buffer = NULL;
 unsigned int            trace_buffer_order = 0;
 unsigned int trace_dump_order = 0;
-spinlock_t              trace_buffer_lock;
+adf_os_spinlock_t              trace_buffer_lock;
 #endif /* QCA_PKT_PROTO_TRACE */
 
 /**
@@ -342,11 +342,11 @@ void vos_pkt_trace_buf_update
       return;
    }
 
-   spin_lock_bh(&trace_buffer_lock);
+   adf_os_spin_lock_bh(&trace_buffer_lock);
    slot = trace_buffer_order % VOS_PKT_TRAC_MAX_TRACE_BUF;
    trace_buffer[slot].order = trace_buffer_order;
    trace_buffer_order++;
-   spin_unlock_bh(&trace_buffer_lock);
+   adf_os_spin_unlock_bh(&trace_buffer_lock);
    do_gettimeofday(&tv);
    trace_buffer[slot].event_sec_time = tv.tv_sec;
    trace_buffer[slot].event_msec_time = tv.tv_usec;
@@ -436,7 +436,7 @@ void vos_pkt_proto_trace_init
 )
 {
    /* Init spin lock to protect global memory */
-   spin_lock_init(&trace_buffer_lock);
+   adf_os_spinlock_init(&trace_buffer_lock);
    trace_buffer_order = 0;
    trace_buffer = vos_mem_malloc(
        VOS_PKT_TRAC_MAX_TRACE_BUF * sizeof(vos_pkt_proto_trace_t));
@@ -462,10 +462,10 @@ void vos_pkt_proto_trace_close
 {
    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
              "%s %d", __func__, __LINE__);
-   spin_lock_bh(&trace_buffer_lock);
+   adf_os_spin_lock_bh(&trace_buffer_lock);
    vos_mem_free(trace_buffer);
    trace_buffer = NULL;
-   spin_unlock_bh(&trace_buffer_lock);
+   adf_os_spin_unlock_bh(&trace_buffer_lock);
 
    return;
 }

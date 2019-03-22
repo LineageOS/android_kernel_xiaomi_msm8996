@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2954,6 +2954,22 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_POWERSAVE_OFFLOAD_MIN,
                  CFG_POWERSAVE_OFFLOAD_MAX ),
 
+#ifdef CONFIG_GPIO_OOB
+   REG_VARIABLE(CFG_ENABLE_OOB_GPIO_FLAG_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, oob_gpio_flag,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                CFG_ENABLE_OOB_GPIO_FLAG_DEFAULT,
+                CFG_ENABLE_OOB_GPIO_FLAG_MIN,
+                CFG_ENABLE_OOB_GPIO_FLAG_MAX),
+
+   REG_VARIABLE(CFG_ENABLE_OOB_GPIO_NUM_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, oob_gpio_num,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                CFG_ENABLE_OOB_GPIO_NUM_DEFAULT,
+                CFG_ENABLE_OOB_GPIO_NUM_MIN,
+                CFG_ENABLE_OOB_GPIO_NUM_MAX),
+#endif
+
    REG_VARIABLE( CFG_ENABLE_FW_UART_PRINT_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enablefwprint,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -2968,12 +2984,28 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_FW_LOG_DISABLE,
                  CFG_ENABLE_FW_LOG_ENABLE),
 
+   REG_VARIABLE( CFG_ENABLE_FAST_FW_DUMP_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, fastfwdump,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_FAST_FW_DUMP_DEFAULT,
+                 CFG_ENABLE_FAST_FW_DUMP_DISABLE,
+                 CFG_ENABLE_FAST_FW_DUMP_ENABLE),
+
    REG_VARIABLE( CFG_ENABLE_FW_SELF_RECOVERY_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, enableFwSelfRecovery,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                  CFG_ENABLE_FW_SELF_RECOVERY_DEFAULT,
                  CFG_ENABLE_FW_SELF_RECOVERY_DISABLE,
                  CFG_ENABLE_FW_SELF_RECOVERY_ENABLE),
+
+#ifdef FEATURE_USB_WARM_RESET
+   REG_VARIABLE( CFG_ENABLE_USB_WARM_RESET_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, enable_usb_warm_reset,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_USB_WARM_RESET_DEFAULT,
+                 CFG_ENABLE_USB_WARM_RESET_DISABLE,
+                 CFG_ENABLE_USB_WARM_RESET_ENABLE),
+#endif
 
 #ifdef IPA_OFFLOAD
    REG_VARIABLE( CFG_IPA_OFFLOAD_CONFIG_NAME, WLAN_PARAM_HexInteger,
@@ -4548,6 +4580,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_INFORM_BSS_RSSI_RAW_MIN,
                 CFG_INFORM_BSS_RSSI_RAW_MAX),
 #ifdef WLAN_FEATURE_TSF
+   REG_VARIABLE(CFG_SET_TSF_GPIO_PIN_HOST_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, tsf_gpio_pin_host,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_SET_TSF_GPIO_PIN_HOST_DEFAULT,
+                CFG_SET_TSF_GPIO_PIN_HOST_MIN,
+                CFG_SET_TSF_GPIO_PIN_HOST_MAX),
+
+   REG_VARIABLE(CFG_GET_TSF_BY_REGISTER_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, tsf_by_register,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_GET_TSF_BY_REGISTER_DEFAULT,
+                CFG_GET_TSF_BY_REGISTER_MIN,
+                CFG_GET_TSF_BY_REGISTER_MAX),
+
    REG_VARIABLE(CFG_SET_TSF_GPIO_PIN_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, tsf_gpio_pin,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -4722,6 +4768,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_WOW_PULSE_REPEAT_COUNT_DEFAULT,
                 CFG_WOW_PULSE_REPEAT_COUNT_MIN,
                 CFG_WOW_PULSE_REPEAT_COUNT_MAX),
+
+   REG_VARIABLE(CFG_WOW_PULSE_INIT_STATE_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, wow_pulse_init_state,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_WOW_PULSE_INIT_STATE_DEFAULT,
+                CFG_WOW_PULSE_INIT_STATE_MIN,
+                CFG_WOW_PULSE_INIT_STATE_MAX),
 #endif
 
    REG_VARIABLE(CFG_MIB_STATS_ENABLED_NAME, WLAN_PARAM_Integer,

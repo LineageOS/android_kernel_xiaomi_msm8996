@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -37,6 +37,10 @@
 #include <linux/interrupt.h>
 #include <linux/version.h>
 #include <asm/div64.h>
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0))
+#include <uapi/linux/sched/types.h>
+#endif
 
 /**=========================================================================
 

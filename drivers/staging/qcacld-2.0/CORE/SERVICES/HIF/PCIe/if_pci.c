@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -943,9 +943,9 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 				msecs_age / 1000, msecs_age % 1000);
 	}
 
-	spin_lock_bh(&sc->runtime_lock);
+	adf_os_spin_lock_bh(&sc->runtime_lock);
 	if (list_empty(&sc->prevent_suspend_list)) {
-		spin_unlock_bh(&sc->runtime_lock);
+		adf_os_spin_unlock_bh(&sc->runtime_lock);
 		return 0;
 	}
 
@@ -957,7 +957,7 @@ static int hif_pci_autopm_debugfs_show(struct seq_file *s, void *data)
 		seq_puts(s, " ");
 	}
 	seq_puts(s, "\n");
-	spin_unlock_bh(&sc->runtime_lock);
+	adf_os_spin_unlock_bh(&sc->runtime_lock);
 
 	return 0;
 #undef HIF_PCI_AUTOPM_STATS
@@ -1431,7 +1431,7 @@ static inline void hif_pci_pm_debugfs(struct hif_pci_softc *sc, bool init)
 
 static void hif_pci_pm_runtime_pre_init(struct hif_pci_softc *sc)
 {
-	spin_lock_init(&sc->runtime_lock);
+	adf_os_spinlock_init(&sc->runtime_lock);
 	setup_timer(&sc->runtime_timer, hif_pci_runtime_pm_timeout_fn,
 			(unsigned long)sc);
 
@@ -1514,13 +1514,13 @@ static void hif_pci_pm_runtime_post_exit(struct hif_pci_softc *sc)
 	else
 		return;
 
-	spin_lock_bh(&sc->runtime_lock);
+	adf_os_spin_lock_bh(&sc->runtime_lock);
 	list_for_each_entry_safe(ctx, tmp, &sc->prevent_suspend_list, list) {
-		spin_unlock_bh(&sc->runtime_lock);
+		adf_os_spin_unlock_bh(&sc->runtime_lock);
 		hif_runtime_pm_prevent_suspend_deinit(ctx);
-		spin_lock_bh(&sc->runtime_lock);
+		adf_os_spin_lock_bh(&sc->runtime_lock);
 	}
-	spin_unlock_bh(&sc->runtime_lock);
+	adf_os_spin_unlock_bh(&sc->runtime_lock);
 	/*
 	 * This is totally a preventive measure to ensure Runtime PM
 	 * isn't disabled for life time.
@@ -1549,11 +1549,11 @@ static void hif_pci_pm_runtime_ssr_post_exit(struct hif_pci_softc *sc)
 {
 	struct hif_pm_runtime_context *ctx, *tmp;
 
-	spin_lock_bh(&sc->runtime_lock);
+	adf_os_spin_lock_bh(&sc->runtime_lock);
 	list_for_each_entry_safe(ctx, tmp, &sc->prevent_suspend_list, list) {
 		hif_pm_ssr_runtime_allow_suspend(sc, ctx);
 	}
-	spin_unlock_bh(&sc->runtime_lock);
+	adf_os_spin_unlock_bh(&sc->runtime_lock);
 }
 
 #else
@@ -3404,6 +3404,13 @@ void hif_pci_save_htc_htt_config_endpoint(int htc_endpoint)
     }
 
     scn->hif_sc->htc_endpoint = htc_endpoint;
+}
+
+void hif_get_reg(void *ol_sc, u32 address, u32 *data)
+{
+	struct ol_softc *scn = (struct ol_softc *)ol_sc;
+
+	HIFDiagReadAccess(scn->hif_hdl, address, data);
 }
 
 void hif_get_hw_info(void *ol_sc, u32 *version, u32 *revision)
