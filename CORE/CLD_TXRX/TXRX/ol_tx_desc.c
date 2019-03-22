@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2014, 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014, 2016-2017, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -303,7 +303,8 @@ void ol_tx_desc_frame_list_free(
 #ifdef QCA_SUPPORT_SW_TXRX_ENCAP
         OL_TX_RESTORE_HDR(tx_desc, msdu); /* restore original hdr offset */
 #endif
-        adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_TO_DEVICE);
+        if (!adf_nbuf_is_ipa_nbuf(msdu))
+            adf_nbuf_unmap(pdev->osdev, msdu, ADF_OS_DMA_TO_DEVICE);
         /* free the tx desc */
         ol_tx_desc_free(pdev, tx_desc);
         /* link the netbuf into a list to free as a batch */
