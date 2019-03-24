@@ -661,9 +661,10 @@ int  proc_time_in_state_show(struct seq_file *m, struct pid_namespace *ns,
 
 #else
 
-static inline void acct_update_power(struct task_struct *p, cputime_t cputime)
-{
-}
+static inline void acct_update_power(struct task_struct *p,
+	cputime_t cputime) {}
+static inline void cpufreq_task_stats_init(struct task_struct *p) {}
+static inline void cpufreq_task_stats_exit(struct task_struct *p) {}
 
 #endif
 
