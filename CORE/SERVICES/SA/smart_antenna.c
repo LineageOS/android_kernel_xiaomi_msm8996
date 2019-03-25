@@ -161,8 +161,7 @@ static void sa_put_node(struct smart_ant *sa, struct sa_node *node)
 	if (!sa || !node)
 		return;
 
-	adf_os_atomic_dec(&node->ref_count);
-	if (adf_os_atomic_read(&node->ref_count) <= 0) {
+	if (adf_os_atomic_dec_and_test(&node->ref_count)) {
 		SA_DPRINTK(sa, SMART_ANTENNA_DEBUG,
 			   "%s: Node "MAC_ADDRESS_STR" is released",
 			   __func__, MAC_ADDR_ARRAY(node->node_info.mac_addr));
@@ -250,7 +249,7 @@ static void __smart_ant_node_connect(struct smart_ant *sa,
 		}
 		adf_os_spin_lock(&sa->sa_lock);
 	}
-	adf_os_atomic_inc(&new_node->ref_count);
+	adf_os_atomic_set(&new_node->ref_count, 1);
 	TAILQ_INSERT_TAIL(&sa->node_list, new_node, sa_elm);
 	adf_os_spin_unlock(&sa->sa_lock);
 

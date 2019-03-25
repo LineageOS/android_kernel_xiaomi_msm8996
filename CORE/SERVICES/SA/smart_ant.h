@@ -74,9 +74,8 @@
 #define SMART_ANT_UNSUPPORTED_CHANNEL   (-1)
 struct sa_node {
 	TAILQ_ENTRY(sa_node) sa_elm;
-
-	struct sa_node_info node_info;
 	adf_os_atomic_t ref_count;
+	struct sa_node_info node_info;
 	void *node_ccp;
 };
 

@@ -62,10 +62,9 @@ int deregister_smart_ant_ops(char *dev_name)
 			   __func__);
 		return SMART_ANT_STATUS_FAILURE;
 	}
-	if (adf_os_atomic_read(&sa_handle->sa_init) == 0 ) {
-		sa_handle->sa_callbacks = NULL;
-		sa_handle->smart_ant_state &= ~SMART_ANT_STATE_CB_REGISTERED;
-	}
+
+	sa_handle->sa_callbacks = NULL;
+	sa_handle->smart_ant_state &= ~SMART_ANT_STATE_CB_REGISTERED;
 	return SMART_ANT_STATUS_SUCCESS;
 }
 EXPORT_SYMBOL(deregister_smart_ant_ops);

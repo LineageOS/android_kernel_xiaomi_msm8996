@@ -113,6 +113,7 @@
 
 #include "wmi_unified_priv.h"
 #include "limSessionUtils.h"
+#include "if_smart_antenna.h"
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -7530,6 +7531,45 @@ put_attr_fail:
 	return -EINVAL;
 }
 
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+
+/**
+ * hdd_ind_counter2sa() - indicate interference stats to SA module
+ * @stats: interference stats
+ *
+ */
+static void hdd_ind_counter2sa(struct sir_wifi_ll_ext_stats *stats)
+{
+	tSirMacAddr mac_addr;
+	struct sa_int_stats_feedback fb;
+	struct sir_wifi_chan_cca_stats *cca;
+
+	vos_mem_copy(&mac_addr,
+		     &stats->peer_stats[0].mac_address,
+		     sizeof(tSirMacAddr));
+	cca = stats->cca;
+	fb.rx_time = cca->rx_in_bss_time + cca->rx_out_bss_time;
+	fb.rx_bad_time = cca->rx_in_bad_cond_time;
+	fb.tx_time = cca->tx_time;
+	fb.tx_bad_time = cca->tx_in_bad_cond_time;
+	fb.idle_time = cca->idle_time;
+	fb.on_bss_time = cca->rx_in_bss_time;
+	fb.out_bss_time = cca->rx_out_bss_time;
+	fb.magic = stats->maxtrix;
+	fb.phyerr_count = stats->phyerr_count;
+	fb.timestamp = stats->timestamp;
+
+	/* Get the primory peer MAC address */
+	hddLog(VOS_TRACE_LEVEL_ERROR,
+	       FL("Indicate counter for PEER " MAC_ADDRESS_STR),
+	       MAC_ADDR_ARRAY(mac_addr));
+	smart_antenna_update_int_stats(mac_addr, &fb);
+}
+#else
+static __inline__ void hdd_ind_counter2sa(struct sir_wifi_ll_ext_stats *stats)
+{
+}
+#endif
 /**
  * wlan_hdd_cfg80211_ll_stats_ext_callback() - LL stats callback
  * @rsp - msg from FW
@@ -7595,6 +7635,9 @@ static void wlan_hdd_cfg80211_ll_stats_ext_callback(tSirLLStatsResults *rsp)
 		hddLog(LOGE, FL("MAC counters stats"));
 		status = put_wifi_ll_ext_stats((struct sir_wifi_ll_ext_stats *)
 					       rsp->results, skb);
+
+		/* indicate counts to SA */
+		hdd_ind_counter2sa((struct sir_wifi_ll_ext_stats *)rsp->results);
 	} else {
 		hddLog(LOGE, FL("Unknown link layer stats"));
 		status = -1;
@@ -19018,6 +19061,7 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     hddLog(LOG1, FL("Device_mode %s(%d)"),
            hdd_device_mode_to_string(pAdapter->device_mode),
            pAdapter->device_mode);
+    smart_antenna_deinit(false);
 
     /*
      * if a sta connection is in progress in another adapter, disconnect
@@ -19558,6 +19602,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
             }
         }
         hdd_change_ch_avoidance_status(pHddCtx, false);
+	smart_antenna_init(true);
 #ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
         /*
          * If Do_Not_Break_Stream enabled send avoid channel list

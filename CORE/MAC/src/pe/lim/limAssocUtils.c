@@ -64,6 +64,7 @@
 #include "vos_types.h"
 #include "wlan_qct_wda.h"
 
+#include "if_smart_antenna.h"
 /*
  * fill up the rate info properly based on what is actually supported by the peer
  * TBD TBD TBD
@@ -2277,8 +2278,83 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
     return eSIR_FAILURE;
 } /*** limPopulateMatchingRateSet() ***/
 
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+/**
+ * lim_sa_assoc_ind() - Indicate node connection to SA module
+ * @stads: Node description
+ */
+void lim_sa_assoc_ind(tpDphHashNode stads)
+{
+	uint32_t i, rate_num;
+	tpSirSupportedRates rate_cap;
+	struct sa_node_info node_info;
 
+	vos_mem_copy(node_info.mac_addr, stads->staAddr, sizeof(stads->staAddr));
+	rate_cap = &stads->supportedRates;
+	rate_num = 0;
+	for (i = 0; i < SIR_NUM_11B_RATES; i++) {
+		if (!rate_cap->llbRates[i])
+			continue;
+		node_info.rate_cap.ratecode_legacy[rate_num] =
+						rate_cap->llbRates[i];
+		rate_num++;
+	}
 
+	for (i = 0; i < SIR_NUM_11A_RATES; i++) {
+		if (!rate_cap->llaRates[i])
+			continue;
+		node_info.rate_cap.ratecode_legacy[rate_num] =
+						rate_cap->llaRates[i];
+		rate_num++;
+	}
+	node_info.rate_cap.ratecount[RATE_INDEX_CCK_OFDM] = rate_num;
+
+	rate_num = 0;
+	for (i = 0; i < SIR_MAC_MAX_SUPPORTED_MCS_SET; i++) {
+		if (rate_cap->supportedMCSSet[i / 8] & (1 << (i % 8))) {
+			node_info.rate_cap.mcs[rate_num++] = i;
+		}
+	}
+	node_info.rate_cap.ratecount[RATE_INDEX_MCS] = rate_num;
+
+	/* 20M bandwidth is the default mode */
+	node_info.node_caps |= SMART_ANT_BW_20MHZ;
+
+	if (stads->htSupportedChannelWidthSet)
+		node_info.node_caps |= SMART_ANT_NODE_HT | SMART_ANT_BW_40MHZ;
+
+	if (stads->vhtSupportedChannelWidthSet ==
+			WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ)
+		node_info.node_caps |= SMART_ANT_NODE_VHT | SMART_ANT_BW_80MHZ;
+
+	if (stads->sub20_dynamic_channelwidth & SUB20_MODE_5MHZ)
+		node_info.node_caps |= SMART_ANT_BW_5MHZ;
+
+	if (stads->sub20_dynamic_channelwidth & SUB20_MODE_10MHZ)
+		node_info.node_caps |= SMART_ANT_BW_10MHZ;
+
+	node_info.nss = stads->nss;
+
+	smart_antenna_node_connected(&node_info);
+}
+
+/**
+ * lim_sa_disassoc_ind() - Indicate node disconnection to SA module
+ * @stads: Node description
+ */
+void lim_sa_disassoc_ind(tpDphHashNode stads)
+{
+	smart_antenna_node_disconnected(stads->staAddr);
+}
+#else
+static inline void lim_sa_assoc_ind(tpDphHashNode stads)
+{
+}
+
+static inline void lim_sa_disassoc_ind(tpDphHashNode stads)
+{
+}
+#endif
 /**
  * limAddSta()
  *
@@ -2736,6 +2812,7 @@ limAddSta(
         vos_mem_free(pAddStaParams);
     }
 
+    lim_sa_assoc_ind(pStaDs);
   return retCode;
 }
 
@@ -2861,6 +2938,7 @@ limDelSta(
         vos_mem_free(pDelStaParams);
     }
 
+    lim_sa_disassoc_ind(pStaDs);
     return retCode;
 }
 

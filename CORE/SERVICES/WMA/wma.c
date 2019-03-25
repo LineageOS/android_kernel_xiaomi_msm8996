@@ -6185,6 +6185,7 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 	struct ol_txrx_peer_t *peer;
 	ol_txrx_pdev_handle pdev;
 	wmi_stats_period *period;
+	wmi_stats_interference *intf_stats;
 
 	mac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 					      wma_handle->vos_context);
@@ -6212,6 +6213,7 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 	wmi_peer_signal = param_buf->peer_signal_stats;
 	wmi_peer_rx = param_buf->peer_ac_rx_stats;
 	period = param_buf->stats_period;
+	intf_stats = param_buf->stats_interference;
 	WMA_LOGD("%s: stats period length is %d. ", __func__,
 		 fixed_param->stats_period_array_len);
 
@@ -6246,6 +6248,13 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 	ll_stats->rx_chgd_bitmap = fixed_param->rx_chgd_bitmap;
 	ll_stats->channel_num = fixed_param->num_chan_cca_stats;
 	ll_stats->peer_num = peer_num;
+
+	if (intf_stats) {
+		WMA_LOGD("%s: Pop interference stats", __func__);
+		ll_stats->maxtrix = intf_stats->sa_ant_matrix;
+		ll_stats->phyerr_count = intf_stats->phyerr_count;
+		ll_stats->timestamp = intf_stats->timestamp;
+	}
 
 	__wma_ll_stats_time_stamp(period, &ll_stats->time_stamp);
 	result = (uint8_t *)ll_stats->stats;
