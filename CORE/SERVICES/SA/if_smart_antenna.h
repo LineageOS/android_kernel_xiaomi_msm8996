@@ -28,7 +28,7 @@
 
 struct smart_ant;
 struct sa_ops {
-	int (* sa_init)(struct smart_ant *sa);
+	int (* sa_init)(struct smart_ant *sa, bool new_init);
 	int (* sa_deinit)(struct smart_ant *sa);
 	void (* sa_node_connect)(struct smart_ant *sa,
 				 struct sa_node_info *node);
@@ -49,13 +49,13 @@ extern struct smart_ant * sa_get_handle(void);
 
 /**
  * smart_antenna_init() - initialize smart antenna related feature
- *  @new_init: flag for a new initialization.
- *    0: No; Other: new initialization.
+ *  @new_init: flag for a new STA.
+ *    0: No; Other: new STA.
  *
  * return: 0 for success.
  */
 static __inline__
-int smart_antenna_init(int new_init)
+int smart_antenna_init(bool new_init)
 {
 	struct smart_ant *sa;
 	struct sa_ops *sa_ops;
@@ -76,7 +76,7 @@ int smart_antenna_init(int new_init)
 		return SMART_ANT_STATUS_FAILURE;
 	}
 
-	return sa_ops->sa_init(sa);
+	return sa_ops->sa_init(sa, new_init);
 }
 
 /**
