@@ -35726,8 +35726,7 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 		case WDA_SET_AC_TXQ_OPTIMIZE:
-			wma_set_ac_txq_optimize(wma_handle, msg->bodyptr);
-			vos_mem_free(msg->bodyptr);
+			wma_set_ac_txq_optimize(wma_handle, msg->bodyval);
 			break;
 		case WDA_MNT_FILTER_TYPE_CMD:
 			wma_mnt_filter_type_cmd(wma_handle,
@@ -40162,7 +40161,7 @@ VOS_STATUS wma_set_cts2self_for_p2p_go(void *wda_handle,
  * Return: VOS_STATUS.
  */
 static int32_t
-wmi_unified_ac_txq_optimize_send(wmi_unified_t wmi, uint8_t *ac_txq_optimize)
+wmi_unified_ac_txq_optimize_send(wmi_unified_t wmi, uint8_t ac_txq_optimize)
 {
 	wmi_pdev_set_ac_tx_queue_optimized_cmd_fixed_param *cmd;
 	wmi_buf_t buf;
@@ -40182,11 +40181,12 @@ wmi_unified_ac_txq_optimize_send(wmi_unified_t wmi, uint8_t *ac_txq_optimize)
 		       wmi_pdev_set_ac_tx_queue_optimized_cmd_fixed_param));
 
 	cmd->pdev_id = 0;
-	if ((*ac_txq_optimize & 0x0f) < NUM_AC)
-		cmd->ac = *ac_txq_optimize & 0x0f;
-	else
+	if ((ac_txq_optimize & 0x0f) < NUM_AC)
+		cmd->ac = ac_txq_optimize & 0x0f;
+	else {
+		WMA_LOGE("%s: error conf val 0x%x", __func__, ac_txq_optimize);
 		return -EINVAL;
-
+	}
 	cmd->ac_tx_queue_optimize_enable = 1;
 
 	if (wmi_unified_cmd_send(wmi, buf, len,
@@ -40207,18 +40207,18 @@ wmi_unified_ac_txq_optimize_send(wmi_unified_t wmi, uint8_t *ac_txq_optimize)
  *
  * Return: VOS_STATUS.
  */
-VOS_STATUS wma_set_ac_txq_optimize(void *wda_handle, uint8_t *value)
+VOS_STATUS wma_set_ac_txq_optimize(void *wda_handle, uint8_t value)
 {
 	int32_t ret;
 	tp_wma_handle wma = (tp_wma_handle)wda_handle;
 
 	ret = wmi_unified_ac_txq_optimize_send(wma->wmi_handle, value);
 	if (ret) {
-		WMA_LOGE("Fail to Set AC queue, input 0x%02x", *value);
+		WMA_LOGE("Fail to Set AC queue, input 0x%02x", value);
 		return VOS_STATUS_E_FAILURE;
 	}
 
-	WMA_LOGI("Successfully Set AC queue, input 0x%02x", *value);
+	WMA_LOGI("Successfully Set AC queue, input 0x%02x", value);
 	return VOS_STATUS_SUCCESS;
 }
 
