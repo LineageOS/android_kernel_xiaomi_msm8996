@@ -415,6 +415,8 @@ int proc_concurrent_policy_time_show(struct seq_file *m,
 	for (cpu = 0; cpu < num_possible_cpus(); ++cpu) {
 
 		policy = cpufreq_cpu_get(cpu);
+		if (!policy)
+			continue;
 		if (policy != last_policy) {
 			cnt = 0;
 			last_policy = policy;
