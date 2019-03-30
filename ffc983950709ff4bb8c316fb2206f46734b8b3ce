@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2bdc0899_81acea46",
+        "filename": "drivers/cpufreq/cpufreq_stats.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 417,
+      "author": {
+        "id": 20357
+      },
+      "writtenOn": "2019-03-30T03:40:38Z",
+      "side": 1,
+      "message": "cat /proc/\u003cPID\u003e/concurrent_policy_time causes phone restart on my motorola merlin\nI suspect it should check (!policy) here. Otherwise, it will cause error when any core is unplugged.\nSee line 395 in https://review.lineageos.org/c/LineageOS/android_kernel_xiaomi_jason/+/232271",
+      "range": {
+        "startLine": 417,
+        "startChar": 2,
+        "endLine": 417,
+        "endChar": 8
+      },
+      "revId": "ffc983950709ff4bb8c316fb2206f46734b8b3ce",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
