@@ -46,6 +46,30 @@
       "revId": "ffc983950709ff4bb8c316fb2206f46734b8b3ce",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9e8f1462_84cceb26",
+        "filename": "drivers/cpufreq/cpufreq_stats.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 417,
+      "author": {
+        "id": 20357
+      },
+      "writtenOn": "2019-03-31T02:08:55Z",
+      "side": 1,
+      "message": "Just because I picked this commit for the merlin kernel and it crashes when some cpus are offline.\nAnyways, please ignore this if it does not affect your device",
+      "parentUuid": "eff073c8_9da2907f",
+      "range": {
+        "startLine": 417,
+        "startChar": 2,
+        "endLine": 417,
+        "endChar": 8
+      },
+      "revId": "ffc983950709ff4bb8c316fb2206f46734b8b3ce",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
     }
   ]
 }
