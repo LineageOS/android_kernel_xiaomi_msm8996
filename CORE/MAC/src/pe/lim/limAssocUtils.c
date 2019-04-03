@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -407,8 +407,8 @@ limCheckMCSSet(tpAniSirGlobal pMac, tANI_U8* supportedMCSSet)
  *
  * @param  rxRSNIe - received RSN IE in (Re)Assco req
  *
- * @return status - true if ALL BSS basic rates are present in the
- *                  received rateset else false.
+ * @return status - true if ALL supported cipher suites are present in the
+ *                  received rsn IE else false.
  */
 
 tANI_U8
@@ -530,8 +530,8 @@ limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSess
  *
  * @param  rxWPAIe - Received WPA IE in (Re)Assco req
  *
- * @return status - true if ALL BSS basic rates are present in the
- *                  received rateset else false.
+ * @return status - true if ALL supported cipher suites are present in the
+ *                  received wpa IE else false.
  */
 
 tANI_U8
@@ -2358,6 +2358,9 @@ limAddSta(
     //Copy legacy rates
     vos_mem_copy ((tANI_U8*)&pAddStaParams->supportedRates,
                   (tANI_U8*)&pStaDs->supportedRates, sizeof(tSirSupportedRates));
+
+    if (pMac->mcs_tx_force2chain == true)
+        pAddStaParams->supportedRates.mcs_txforce2chain = true;
 
     pAddStaParams->assocId = pStaDs->assocId;
 
@@ -4204,6 +4207,9 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
             vos_mem_copy((tANI_U8*)&pAddBssParams->staContext.supportedRates,
                                                 (tANI_U8*)&pStaDs->supportedRates,
                                                 sizeof(tSirSupportedRates));
+            if (pMac->mcs_tx_force2chain == true)
+                pAddBssParams->staContext.supportedRates.mcs_txforce2chain
+                 = true;
         }
         else
             PELOGE(limLog(pMac, LOGE, FL("could not Update the supported rates."));)

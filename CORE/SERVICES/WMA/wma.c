@@ -4563,6 +4563,17 @@ static int wma_group_num_bss_to_scan_id(const u_int8_t *cmd_param_info,
 	t_cached_result = cached_result;
 	t_scan_id_grp = &t_cached_result->result[0];
 
+	if ((t_cached_result->num_scan_ids *
+	    MIN(t_scan_id_grp->num_results,
+		param_buf->num_bssid_list)) > param_buf->num_bssid_list) {
+		WMA_LOGE("%s:num_scan_ids %d, num_results %d num_bssid_list %d",
+			 __func__,
+			 t_cached_result->num_scan_ids,
+			 t_scan_id_grp->num_results,
+			 param_buf->num_bssid_list);
+		return -EINVAL;
+	}
+
 	WMA_LOGD("%s: num_scan_ids:%d", __func__,
 			t_cached_result->num_scan_ids);
 	for (i = 0; i < t_cached_result->num_scan_ids; i++) {
@@ -16292,6 +16303,21 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		return -EINVAL;
 	}
 
+	if (params->supportedRates.mcs_txforce2chain) {
+		for (i = 0; i < MAX_SUPPORTED_RATES; i++) {
+			if (params->supportedRates.supportedMCSSet[i / 8] &
+			    (1 << (i % 8))) {
+				if (i >= 8) {
+					/* MCS8 or higher rate is present */
+					peer_nss = 2;
+					WMA_LOGE("%s: assoc dev support 2*2",
+						 __func__);
+					break;
+				}
+			}
+		}
+	}
+
 	wma_mask_tx_ht_rate(wma, params->supportedRates.supportedMCSSet);
 
 	vos_mem_zero(&peer_legacy_rates, sizeof(wmi_rate_set));
@@ -21325,8 +21351,8 @@ static void wma_set_max_tx_power(WMA_HANDLE handle,
 	}
 
 	if (wma_handle->interfaces[vdev_id].max_tx_power == tx_pwr_params->power) {
-		ret = 0;
-		goto end;
+		WMA_LOGI("Set MAX TX pwr limit equal to current used %d",
+			wma_handle->interfaces[vdev_id].max_tx_power);
 	}
 	prev_max_power = wma_handle->interfaces[vdev_id].max_tx_power;
 	wma_handle->interfaces[vdev_id].max_tx_power = tx_pwr_params->power;
@@ -24542,6 +24568,123 @@ end:
 	}
 }
 
+#ifdef FEATURE_PBM_MAGIC_WOW
+/**
+ * wma_wow_parse_pbm_mp_reason() - To parse wakeup packet and assign reason
+ * @wma: wma handle
+ * @wow_reason: wow reason pass from fwr
+ * @data: buffer of wakeup packet
+ * @len: buffer length of wakeup packet
+ *
+ * wow_parsed_reason and is_parsed_reason_set will set by this function
+ *
+ * Return: None
+ */
+static void
+wma_wow_parse_pbm_mp_reason(tp_wma_handle wma, int32_t wow_reason,
+			    uint8_t *data, uint32_t len)
+{
+	uint16_t ether_type;
+	uint8_t proto_type;
+
+	wma->wow_parsed_reason = PBM_MP_REASON_UNKNOWN;
+
+	if (wow_reason != WOW_REASON_RECV_MAGIC_PATTERN &&
+	    wow_reason != WOW_REASON_PATTERN_MATCH_FOUND) {
+		WMA_LOGE("wow reason not expected %d", wow_reason);
+		goto out;
+	}
+	if (wow_reason == WOW_REASON_RECV_MAGIC_PATTERN) {
+		wma->wow_parsed_reason = PBM_MP_REASON_MAGIC;
+		goto out;
+	}
+	if (!data || !len) {
+		WMA_LOGE("can't parse wow reason");
+		goto out;
+	}
+	if (len < ADF_NBUF_TRAC_IPV4_OFFSET) {
+		WMA_LOGE("eth len too short %d", len);
+		goto out;
+	}
+	ether_type = *(uint16_t *)(data + ADF_NBUF_TRAC_ETH_TYPE_OFFSET);
+	if (ADF_NBUF_TRAC_IPV4_ETH_TYPE == adf_os_cpu_to_be16(ether_type)) {
+		if (len < WMA_IPV4_PROTO_GET_MIN_LEN) {
+			WMA_LOGE("ipv4 len too short %d", len);
+			goto out;
+		}
+		proto_type = adf_nbuf_data_get_ipv4_proto(data);
+		if (proto_type == ADF_NBUF_TRAC_UDP_TYPE)
+			wma->wow_parsed_reason = PBM_MP_REASON_IPV4_UDP;
+		else if (proto_type == ADF_NBUF_TRAC_TCP_TYPE)
+			wma->wow_parsed_reason = PBM_MP_REASON_IPV4_TCP;
+		else {
+			WMA_LOGE("ipv4 unknown proto %d", proto_type);
+			goto out;
+		}
+	} else if (ADF_NBUF_TRAC_IPV6_ETH_TYPE ==
+		   adf_os_cpu_to_be16(ether_type)) {
+		if (len < WMA_IPV6_PROTO_GET_MIN_LEN) {
+			WMA_LOGE("ipv6 len too short %d", len);
+			goto out;
+		}
+		proto_type = adf_nbuf_data_get_ipv6_proto(data);
+		if (proto_type == ADF_NBUF_TRAC_UDP_TYPE)
+			wma->wow_parsed_reason = PBM_MP_REASON_IPV6_UDP;
+		else if (proto_type == ADF_NBUF_TRAC_TCP_TYPE)
+			wma->wow_parsed_reason = PBM_MP_REASON_IPV6_TCP;
+		else {
+			WMA_LOGE("ipv6 unknown proto %d", proto_type);
+			goto out;
+		}
+	}
+out:
+	wma->is_parsed_reason_set = true;
+}
+
+/**
+ * wma_wow_pbm_mp_clear() - To clear parsed reason set flag
+ * @wma: wma handle
+ *
+ * Return: None
+ */
+static void wma_wow_pbm_mp_clear(tp_wma_handle wma)
+{
+	wma->is_parsed_reason_set = false;
+}
+
+#define PBM_MP_WAIT_REASON_CNT  25
+enum pbm_mp_reason wma_wow_get_pbm_mp_reason(void *vos_context)
+{
+	tp_wma_handle wma;
+	int i = 0;
+
+	wma = (tp_wma_handle)vos_get_context(VOS_MODULE_ID_WDA, vos_context);
+	if (!wma) {
+		WMA_LOGE("invalid wma handle");
+		return PBM_MP_REASON_UNKNOWN;
+	}
+
+	while (!wma->is_parsed_reason_set) {
+		if (i++ >= PBM_MP_WAIT_REASON_CNT) {
+			WMA_LOGE("wait for reason timeout");
+			wma->wow_parsed_reason = PBM_MP_REASON_UNKNOWN;
+			break;
+		}
+		adf_os_msleep(20);
+	}
+
+	return wma->wow_parsed_reason;
+}
+#else
+static inline void
+wma_wow_parse_pbm_mp_reason(tp_wma_handle wma, int32_t wow_reason,
+			    uint8_t *data, uint32_t len)
+{
+}
+
+static void inline wma_wow_pbm_mp_clear(tp_wma_handle wma) {}
+#endif
+
 /**
  * wma_wow_dump_mgmt_buffer() - API to parse data buffer for mgmt.
  *    packet that resulted in WOW wakeup.
@@ -24744,6 +24887,11 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 			return -EINVAL;
 		}
 	}
+
+	wma_wow_parse_pbm_mp_reason(wma, wake_info->wake_reason,
+				    param_buf->wow_packet_buffer + 4,
+				    wow_buf_pkt_len);
+
 	switch (wake_info->wake_reason) {
 	case WOW_REASON_AUTH_REQ_RECV:
 	case WOW_REASON_ASSOC_REQ_RECV:
@@ -41899,6 +42047,7 @@ int wma_suspend_fw(void)
 		return -EBUSY;
 	}
 
+	wma_wow_pbm_mp_clear(wma);
 	is_wow_enabled = wma_is_wow_mode_selected(wma);
 	if (is_wow_enabled)
 		ret = wma_enable_wow_in_fw(wma, 0);

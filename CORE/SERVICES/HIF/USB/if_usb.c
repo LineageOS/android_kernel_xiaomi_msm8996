@@ -384,12 +384,30 @@ static void hif_usb_remove(struct usb_interface *interface)
 
 static int hif_usb_suspend(struct usb_interface *interface, pm_message_t state)
 {
-	HIF_DEVICE_USB *device = usb_get_intfdata(interface);
-	struct hif_usb_softc *sc = device->sc;
-	void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+	HIF_DEVICE_USB *device;
+	struct hif_usb_softc *sc;
+	void *vos;
 	v_VOID_t * temp_module;
 
 	printk("Enter:%s,Line:%d\n", __func__,__LINE__);
+
+	device = usb_get_intfdata(interface);
+	if (!device) {
+		printk("%s: device is NULL\n", __func__);
+		return (-1);
+	}
+
+	sc = device->sc;
+	if (!sc) {
+		printk("%s: sc is NULL\n", __func__);
+		return (-1);
+	}
+
+	vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+	if (!vos) {
+		printk("%s: vos is NULL\n", __func__);
+		return (-1);
+	}
 
 	temp_module = vos_get_context(VOS_MODULE_ID_WDA, vos);
 	if (!temp_module) {
@@ -451,6 +469,7 @@ static int hif_usb_reset_resume(struct usb_interface *intf)
 	printk("Enter:%s,Line:%d \n\r", __func__,__LINE__);
 	hif_usb_resume(intf);
 	printk("Exit:%s,Line:%d \n\r", __func__,__LINE__);
+	return 0;
 }
 #endif
 

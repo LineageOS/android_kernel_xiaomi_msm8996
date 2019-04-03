@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -248,6 +248,11 @@ static inline void vos_set_cc_source(enum cnss_cc_src cc_source)
 static inline enum cnss_cc_src vos_get_cc_source(void)
 {
 	return CNSS_SOURCE_USER;
+}
+
+static inline int vos_set_sleep_power_mode(struct device *dev, int mode)
+{
+	return 0;
 }
 #else /* END WLAN_OPEN_SOURCE and !CONFIG_CNSS */
 static inline void vos_dump_stack (struct task_struct *task)
@@ -574,6 +579,18 @@ static inline int vos_update_boarddata(unsigned char *buf, unsigned int len)
 
 static inline int vos_cache_boarddata(unsigned int offset,
 	unsigned int len, unsigned char *buf)
+{
+	return 0;
+}
+#endif
+
+#if defined(CONFIG_CNSS) && defined(FEATURE_DYNAMIC_POWER_CONTROL)
+static inline int vos_set_sleep_power_mode(struct device *dev, int mode)
+{
+	return cnss_common_set_sleep_power_mode(dev, mode);
+}
+#else
+static inline int vos_set_sleep_power_mode(struct device *dev, int mode)
 {
 	return 0;
 }

@@ -53,6 +53,12 @@
 #include "regdomain.h"
 #include "regdomain_common.h"
 #include "vos_cnss.h"
+#include "limSession.h"
+#include "limScanResultUtils.h"
+#ifdef CLD_REGDB
+#include "regdb.h"
+#include <net/regulatory.h>
+#endif
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)) && !defined(WITH_BACKPORTS)
 #define IEEE80211_CHAN_NO_80MHZ		1<<7
@@ -751,6 +757,17 @@ static int regd_init_wiphy(hdd_context_t *pHddCtx, struct regulatory *reg,
 	wiphy->flags = pHddCtx->reg.reg_flags;
 #endif
 
+#ifdef CLD_REGDB
+	/*
+	 * Set wiphy->regulatory_flags to REGULATORY_WIPHY_SELF_MANAGED
+	 * So kernel would not change wiphy channel flags.
+	 * Later wiphy->regulatory_flags would be changed by
+	 * __wlan_hdd_linux_reg_notifier.
+	 */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) || defined(WITH_BACKPORTS)
+	wiphy->regulatory_flags = REGULATORY_WIPHY_SELF_MANAGED;
+#endif
+#endif
 	return 0;
 }
 
@@ -1542,6 +1559,10 @@ VOS_STATUS vos_nv_get_dfs_region(uint8_t *dfs_region)
 	return VOS_STATUS_SUCCESS;
 }
 
+#ifdef CLD_REGDB
+void __wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
+                                   struct regulatory_request *request);
+#endif
 /**------------------------------------------------------------------------
   \brief vos_nv_getRegDomainFromCountryCode() - get the regulatory domain of
   a country given its country code
@@ -1566,6 +1587,9 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
     struct wiphy *wiphy = NULL;
     int i;
     int wait_result;
+#ifdef CLD_REGDB
+    struct regulatory_request request;
+#endif
 
     /* sanity checks */
     if (NULL == pRegDomain)
@@ -1605,6 +1629,13 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
                    ("Invalid pHddCtx pointer") );
         return VOS_STATUS_E_FAULT;
     }
+
+#ifdef CLD_REGDB
+    request.alpha2[0] = pHddCtx->reg.alpha2[0];
+    request.alpha2[1] = pHddCtx->reg.alpha2[1];
+    request.initiator = NL80211_REGDOM_SET_BY_DRIVER;
+    request.dfs_region = 0;
+#endif
 
     if (pHddCtx->isLogpInProgress) {
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -1668,6 +1699,9 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
             regulatory_hint(wiphy, country_code);
             wait_for_completion_timeout(&pHddCtx->reg_init,
                                         msecs_to_jiffies(REG_WAIT_TIME));
+#ifdef CLD_REGDB
+            __wlan_hdd_linux_reg_notifier(wiphy, &request);
+#endif
         }
 
     } else if (COUNTRY_IE == source || COUNTRY_USER == source) {
@@ -1917,6 +1951,118 @@ int vos_update_band(v_U8_t  band_capability)
 	return 0;
 }
 
+#ifdef CLD_REGDB
+
+/**
+ * freq_in_rule_band - tells us if a frequency is in a frequency band
+ * @freq_range: frequency rule we want to query
+ * @freq_khz: frequency we are inquiring about
+ *
+ * This lets us know if a specific frequency rule is or is not relevant to
+ * a specific frequency's band. Bands are device specific and artificial
+ * definitions (the "2.4 GHz band", the "5 GHz band" and the "60GHz band"),
+ * however it is safe for now to assume that a frequency rule should not be
+ * part of a frequency's band if the start freq or end freq are off by more
+ * than 2 GHz for the 2.4 and 5 GHz bands, and by more than 10 GHz for the
+ * 60 GHz band.
+ * This resolution can be lowered and should be considered as we add
+ * regulatory rule support for other "bands".
+ **/
+static bool freq_in_rule_band(const struct ieee80211_freq_range *freq_range,
+			      u32 freq_khz)
+{
+#define ONE_GHZ_IN_KHZ	1000000
+	/*
+	 * From 802.11ad: directional multi-gigabit (DMG):
+	 * Pertaining to operation in a frequency band containing a channel
+	 * with the Channel starting frequency above 45 GHz.
+	 */
+	u32 limit = freq_khz > 45 * ONE_GHZ_IN_KHZ ?
+			10 * ONE_GHZ_IN_KHZ : 2 * ONE_GHZ_IN_KHZ;
+	if (abs(freq_khz - freq_range->start_freq_khz) <= limit)
+		return true;
+	if (abs(freq_khz - freq_range->end_freq_khz) <= limit)
+		return true;
+	return false;
+#undef ONE_GHZ_IN_KHZ
+}
+
+static bool alpha2_equal(const char *alpha2_x, const char *alpha2_y)
+{
+	if (!alpha2_x || !alpha2_y)
+		return false;
+	return alpha2_x[0] == alpha2_y[0] && alpha2_x[1] == alpha2_y[1];
+}
+
+const struct ieee80211_regdomain* search_regd(const char* alpha2)
+{
+	const struct ieee80211_regdomain *curdom = NULL;
+	int i;
+
+	for (i = 0; i < reg_regdb_size; i++) {
+		curdom = reg_regdb[i];
+
+		if (alpha2_equal(alpha2, curdom->alpha2)) {
+			return curdom;
+		}
+	}
+	return NULL;
+}
+
+static bool reg_does_bw_fit(const struct ieee80211_freq_range *freq_range,
+			    u32 center_freq_khz, u32 bw_khz)
+{
+	u32 start_freq_khz, end_freq_khz;
+
+	start_freq_khz = center_freq_khz - (bw_khz/2);
+	end_freq_khz = center_freq_khz + (bw_khz/2);
+
+	if (start_freq_khz >= freq_range->start_freq_khz &&
+	    end_freq_khz <= freq_range->end_freq_khz)
+		return true;
+
+	return false;
+}
+
+static const struct ieee80211_reg_rule *
+freq_reg_info_regd(struct wiphy *wiphy, u32 center_freq,
+        const struct ieee80211_regdomain *regd)
+{
+	int i;
+	bool band_rule_found = false;
+	bool bw_fits = false;
+
+	if (!regd)
+		return ERR_PTR(-EINVAL);
+
+	for (i = 0; i < regd->n_reg_rules; i++) {
+		const struct ieee80211_reg_rule *rr;
+		const struct ieee80211_freq_range *fr = NULL;
+
+		rr = &regd->reg_rules[i];
+		fr = &rr->freq_range;
+
+		/*
+		 * We only need to know if one frequency rule was
+		 * was in center_freq's band, that's enough, so lets
+		 * not overwrite it once found
+		 */
+		if (!band_rule_found)
+			band_rule_found = freq_in_rule_band(fr, center_freq);
+
+		bw_fits = reg_does_bw_fit(fr, center_freq, MHZ_TO_KHZ(20));
+
+		if (band_rule_found && bw_fits)
+			return rr;
+	}
+
+	if (!band_rule_found)
+		return ERR_PTR(-ERANGE);
+
+	return ERR_PTR(-EINVAL);
+}
+#endif
+
 /* create_linux_regulatory_entry to populate internal structures from wiphy */
 static int create_linux_regulatory_entry(struct wiphy *wiphy,
                                          v_U8_t nBandCapability,
@@ -1930,6 +2076,9 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
 	 int err;
 #endif
     const struct ieee80211_reg_rule *reg_rule;
+#ifdef CLD_REGDB
+    const struct ieee80211_regdomain* regd;
+#endif
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
     if (NULL != pVosContext)
@@ -1999,8 +2148,14 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
 #endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
-                reg_rule = freq_reg_info(wiphy, MHZ_TO_KHZ(wiphy->bands[i]->
-                                         channels[j].center_freq));
+#ifdef CLD_REGDB
+                regd = search_regd(pHddCtx->reg.alpha2);
+                reg_rule = freq_reg_info_regd(wiphy,
+                           MHZ_TO_KHZ(wiphy->bands[i]->channels[j].center_freq), regd);
+#else
+                reg_rule = freq_reg_info(wiphy,
+                           MHZ_TO_KHZ(wiphy->bands[i]->channels[j].center_freq));
+#endif
 #else
                 err = freq_reg_info(wiphy, MHZ_TO_KHZ(wiphy->bands[i]->
                                     channels[j].center_freq),
@@ -2285,15 +2440,40 @@ static void restore_custom_reg_settings(struct wiphy *wiphy)
 
 static void hdd_debug_cc_timer_expired_handler(void *arg)
 {
-	hdd_context_t *pHddCtx;
+	hdd_context_t *hdd_ctx_ptr = NULL;
+	tpAniSirGlobal mac_ptr = NULL;
+	tpPESession pesession = NULL;
+	uint32_t roam_session_id = 0;
+	uint8_t pe_session_id = 0;
 	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
 		  ("%s ENTER "), __func__);
 
 	if (!arg)
 		return;
-	pHddCtx = (hdd_context_t *)arg;
-	vos_timer_destroy(&(pHddCtx->reg.reg_set_timer));
-	regdmn_set_regval(&pHddCtx->reg);
+	hdd_ctx_ptr = (hdd_context_t *)arg;
+	mac_ptr =  PMAC_STRUCT(hdd_ctx_ptr->hHal);
+	vos_timer_destroy(&(hdd_ctx_ptr->reg.reg_set_timer));
+	regdmn_set_regval(&hdd_ctx_ptr->reg);
+
+	if (vos_get_concurrency_mode() == VOS_STA ||
+	    vos_get_concurrency_mode() == VOS_STA_SAP)
+		for (roam_session_id = 0;
+		     roam_session_id < CSR_ROAM_SESSION_MAX;
+		     roam_session_id++) {
+		if (!CSR_IS_SESSION_VALID(mac_ptr, roam_session_id)) {
+			continue;
+		}
+		if (mac_ptr->roam.roamSession[roam_session_id].connectState ==
+		    eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED) {
+			pesession =
+			    peFindSessionByBssid(mac_ptr,
+						 mac_ptr->roam.roamSession[roam_session_id].connectedProfile.bssid,
+						 &pe_session_id);
+			if (pesession != NULL)
+				lim_update_max_txpower_ind(mac_ptr, pesession);
+			return;
+		}
+	}
 }
 
 /*

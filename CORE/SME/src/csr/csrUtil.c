@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -86,8 +86,27 @@ tANI_U8 csrRSNOui[][ CSR_RSN_OUI_SIZE ] = {
     {0x00, 0x0F, 0xAC, 0x10},
 #define ENUM_FT_FILS_SHA384 12
     /* FILS FT SHA384 */
-    {0x00, 0x0F, 0xAC, 0x11}
+    {0x00, 0x0F, 0xAC, 0x11},
+#else
+    {0x00, 0x00, 0x00, 0x00},
+    {0x00, 0x00, 0x00, 0x00},
+    {0x00, 0x00, 0x00, 0x00},
+    {0x00, 0x00, 0x00, 0x00},
 #endif
+#ifdef WLAN_FEATURE_SAE
+#define ENUM_SAE 13
+    /* SAE */
+    {0x00, 0x0F, 0xAC, 0x08},
+#define ENUM_FT_SAE 14
+    /* FT SAE */
+    {0x00, 0x0F, 0xAC, 0x09},
+#else
+    {0x00, 0x00, 0x00, 0x00},
+    {0x00, 0x00, 0x00, 0x00},
+#endif
+#define ENUM_OWE 15
+    /* OWE https://tools.ietf.org/html/rfc8110 */
+    {0x00, 0x0F, 0xAC, 0x12},
     /* define new oui here */
 };
 
@@ -505,6 +524,7 @@ get_eRoamCmdStatus_str(eRoamCmdStatus val)
         CASE_RETURN_STR(eCSR_ROAM_ESE_ADJ_AP_REPORT_IND);
         CASE_RETURN_STR(eCSR_ROAM_ESE_BCN_REPORT_IND);
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
+        CASE_RETURN_STR(eCSR_ROAM_SAE_COMPUTE);
     default:
         return "unknown";
     }
@@ -2377,6 +2397,13 @@ tANI_BOOLEAN csrIsProfileRSN( tCsrRoamProfile *pProfile )
             fRSNProfile = true;
             break;
 #endif
+        case eCSR_AUTH_TYPE_SAE:
+            fRSNProfile = true;
+            break;
+        case eCSR_AUTH_TYPE_OWE:
+            fRSNProfile = true;
+            break;
+
         default:
             fRSNProfile = FALSE;
             break;
@@ -3171,6 +3198,42 @@ static bool csr_is_auth_fils_ft_sha384(tpAniSirGlobal mac,
 }
 #endif
 
+#ifdef WLAN_FEATURE_SAE
+/**
+ * csr_is_auth_wpa_sae() - check whether oui is SAE
+ * @mac: Global MAC context
+ * @all_suites: pointer to all supported akm suites
+ * @suite_count: all supported akm suites count
+ * @oui: Oui needs to be matched
+ *
+ * Return: True if OUI is SAE, false otherwise
+ */
+static bool csr_is_auth_wpa_sae(tpAniSirGlobal mac,
+                                uint8_t all_suites[][CSR_RSN_OUI_SIZE],
+                                uint8_t suite_count, uint8_t oui[])
+{
+	return csrIsOuiMatch(mac, all_suites, suite_count,
+			     csrRSNOui[ENUM_SAE], oui);
+}
+#endif
+
+/*
+ * csr_is_auth_wpa_owe() - check whether oui is OWE
+ * @mac: Global MAC context
+ * @all_suites: pointer to all supported akm suites
+ * @suite_count: all supported akm suites count
+ * @oui: Oui needs to be matched
+ *
+ * Return: True if OUI is SAE, false otherwise
+ */
+static bool csr_is_auth_wpa_owe(tpAniSirGlobal mac,
+				uint8_t all_suites[][CSR_RSN_OUI_SIZE],
+				uint8_t suite_count, uint8_t oui[])
+{
+	return csrIsOuiMatch
+		(mac, all_suites, suite_count, csrRSNOui[ENUM_OWE], oui);
+}
+
 static tANI_BOOLEAN csrIsAuthWpa( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_WPA_OUI_SIZE],
                                 tANI_U8 cAllSuites,
                                 tANI_U8 Oui[] )
@@ -3282,6 +3345,46 @@ static void csr_is_fils_auth(tpAniSirGlobal mac_ctx,
 }
 #endif
 
+#ifdef WLAN_FEATURE_SAE
+/**
+ * csr_check_sae_auth() - update negotiated auth if matches to SAE auth type
+ * @mac_ctx: pointer to mac context
+ * @authsuites: auth suites
+ * @c_auth_suites: auth suites count
+ * @authentication: authentication
+ * @auth_type: authentication type list
+ * @index: current counter
+ * @neg_authtype: pointer to negotiated auth
+ *
+ * Return: None
+ */
+static void csr_check_sae_auth(tpAniSirGlobal mac_ctx,
+                               uint8_t authsuites[][CSR_RSN_OUI_SIZE],
+                               uint8_t c_auth_suites,
+                               uint8_t authentication[],
+                               tCsrAuthList *auth_type,
+                               uint8_t index, eCsrAuthType *neg_authtype)
+{
+	if ((*neg_authtype == eCSR_AUTH_TYPE_UNKNOWN) &&
+		csr_is_auth_wpa_sae(mac_ctx, authsuites,
+				    c_auth_suites, authentication)) {
+		if (eCSR_AUTH_TYPE_SAE == auth_type->authType[index])
+			*neg_authtype = eCSR_AUTH_TYPE_SAE;
+	}
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+		  FL("negotiated auth type is %d"), *neg_authtype);
+}
+#else
+static void csr_check_sae_auth(tpAniSirGlobal mac_ctx,
+                               uint8_t authsuites[][CSR_RSN_OUI_SIZE],
+                               uint8_t c_auth_suites,
+                               uint8_t authentication[],
+                               tCsrAuthList *auth_type,
+                               uint8_t index, eCsrAuthType *neg_authtype)
+{
+}
+#endif
+
 tANI_BOOLEAN csrGetRSNInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEncryptionType enType, tCsrEncryptionList *pMCEncryption,
                                    tDot11fIERSN *pRSNIe,
                            tANI_U8 *UnicastCypher,
@@ -3348,6 +3451,8 @@ tANI_BOOLEAN csrGetRSNInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eCs
                  /* Set FILS as first preference */
                 csr_is_fils_auth(pMac, AuthSuites, cAuthSuites,
                                  Authentication, pAuthType, i, &negAuthType);
+                csr_check_sae_auth(pMac, AuthSuites, cAuthSuites,
+                                 Authentication, pAuthType, i, &negAuthType);
 #ifdef WLAN_FEATURE_VOWIFI_11R
                 /* Changed the AKM suites according to order of preference */
                 if ( (negAuthType == eCSR_AUTH_TYPE_UNKNOWN) && csrIsFTAuthRSN( pMac, AuthSuites, cAuthSuites, Authentication ) )
@@ -3393,6 +3498,12 @@ tANI_BOOLEAN csrGetRSNInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eCs
                         negAuthType = eCSR_AUTH_TYPE_RSN_8021X_SHA256;
                 }
 #endif
+                if ((negAuthType == eCSR_AUTH_TYPE_UNKNOWN) &&
+                    csr_is_auth_wpa_owe(pMac, AuthSuites,
+                                        cAuthSuites, Authentication)) {
+                    if (eCSR_AUTH_TYPE_OWE == pAuthType->authType[i])
+                        negAuthType = eCSR_AUTH_TYPE_OWE;
+                }
 
                 // The 1st auth type in the APs RSN IE, to match stations connecting
                 // profiles auth type will cause us to exit this loop
@@ -3579,16 +3690,7 @@ static bool csr_lookup_pmkid_using_ssid(tpAniSirGlobal mac,
     return false;
 }
 
-/**
- * csr_lookup_pmkid_using_bssid() - lookup pmkid using bssid
- * @mac: pointer to mac
- * @session: sme session pointer
- * @pmk_cache: pointer to pmk cache
- * @index: index value needs to be seached
- *
- * Return: true if pmkid is found else false
- */
-static bool csr_lookup_pmkid_using_bssid(tpAniSirGlobal mac,
+bool csr_lookup_pmkid_using_bssid(tpAniSirGlobal mac,
                     tCsrRoamSession *session,
                     tPmkidCacheInfo *pmk_cache,
                     uint32_t *index)

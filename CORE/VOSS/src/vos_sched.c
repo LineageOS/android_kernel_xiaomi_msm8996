@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -779,6 +779,19 @@ VosMCThread
     retWaitStatus = wait_event_interruptible(pSchedContext->mcWaitQueue,
        test_bit(MC_POST_EVENT, &pSchedContext->mcEventFlag) ||
        test_bit(MC_SUSPEND_EVENT, &pSchedContext->mcEventFlag));
+
+    if (vos_is_shutdown_in_progress(VOS_MODULE_ID_HDD, NULL))
+    {
+        if(test_bit(MC_POST_EVENT, &pSchedContext->mcEventFlag) &&
+           !test_bit(MC_SHUTDOWN_EVENT, &pSchedContext->mcEventFlag))
+        {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                "%s: shutdown is in progress, so do not process other event!",
+                __func__);
+            clear_bit(MC_POST_EVENT, &pSchedContext->mcEventFlag);
+            continue;
+        }
+    }
 
     if(retWaitStatus == -ERESTARTSYS)
     {

@@ -93,6 +93,7 @@
 #include "wma.h"
 
 #include "vos_utils.h"
+#include<adf_os_module.h>
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -3548,3 +3549,164 @@ bool vos_is_chan_ok_for_dnbs(uint8_t channel)
 	return true;
 }
 #endif
+
+#ifdef CUSTOMIZED_FIRMWARE_PATH
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20)
+#define GET_INODE_FROM_FILEP(filp) \
+    (filp)->f_path.dentry->d_inode
+#else
+#define GET_INODE_FROM_FILEP(filp) \
+    (filp)->f_dentry->d_inode
+#endif
+#define A_ROUND_UP(x, y)  ((((x) + ((y) - 1)) / (y)) * (y))
+char *qca_fw_path= "";
+#define DEFAULT_QCA_FW_PATH     "/system/etc/wifi/qca9379"
+static int qca_readwrite_file(const char *filename,
+			char *rbuf,
+			const char *wbuf,
+			size_t length)
+{
+    int ret = 0;
+    struct file *filp = (struct file *)-ENOENT;
+    mm_segment_t oldfs;
+    oldfs = get_fs();
+    set_fs(KERNEL_DS);
+
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: filename %s \n", __func__, filename);
+
+    do {
+        int mode = (wbuf) ? O_RDWR : O_RDONLY;
+        filp = filp_open(filename, mode, S_IRUSR);
+        if (IS_ERR(filp) || !filp->f_op) {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: filename %s \n", __func__, filename);
+            ret = -ENOENT;
+            break;
+        }
+
+        if (length == 0) {
+            /* Read the length of the file only */
+            struct inode    *inode;
+
+            inode = GET_INODE_FROM_FILEP(filp);
+            if (!inode) {
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Get inode from %s failed \n",
+					__func__, filename);
+                ret = -ENOENT;
+                break;
+            }
+            ret = i_size_read(inode->i_mapping->host);
+            break;
+        }
+
+        if (wbuf) {
+           if ( (ret=filp->f_op->write(filp, wbuf, length, &filp->f_pos)) < 0) {
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Write %u bytes to file %s error %d\n",
+                                __FUNCTION__,
+                                (unsigned int)length, filename, ret);
+                break;
+            }
+        } else {
+            if ( (ret=filp->f_op->read(filp, rbuf, length, &filp->f_pos)) < 0) {
+                hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Read %u bytes from file %s error %d\n",
+                                __FUNCTION__,
+                                (unsigned int)length, filename, ret);
+                break;
+            }
+        }
+    } while (0);
+
+    if (!IS_ERR(filp)) {
+        filp_close(filp, NULL);
+    }
+    set_fs(oldfs);
+
+    return ret;
+}
+
+static int customized_request_firmware(const struct firmware **firmware_p,
+	const char *name,
+	struct device *device)
+{
+    int ret = 0;
+    struct firmware *firmware;
+    char filename[256];
+    const char *raw_filename = name;
+    int customized = 1;
+    *firmware_p = firmware = A_MALLOC(sizeof(*firmware));
+    if (!firmware)
+        return -ENOMEM;
+    A_MEMZERO(firmware, sizeof(*firmware));
+    do {
+        size_t length, bufsize, bmisize;
+
+        if (strcmp(qca_fw_path, "") == 0)
+            customized = 0;
+        if (snprintf(filename, sizeof(filename), "%s/%s",
+                                customized?qca_fw_path:DEFAULT_QCA_FW_PATH,
+                                raw_filename) >= sizeof(filename)) {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "snprintf: %s/%s\n",
+                customized?qca_fw_path:DEFAULT_QCA_FW_PATH, raw_filename);
+            ret = -1;
+            break;
+        }
+        if ( (ret=qca_readwrite_file(filename, NULL, NULL, 0)) < 0) {
+            break;
+        } else {
+            length = ret;
+        }
+
+        if (strcmp(raw_filename, "softmac") == 0) {
+            bufsize = length = 17;
+        } else {
+            bufsize = ALIGN(length, PAGE_SIZE);
+            bmisize = A_ROUND_UP(length, 4);
+            bufsize = max(bmisize, bufsize);
+        }
+        firmware->data = vmalloc(bufsize);
+        firmware->size = length;
+
+        if (!firmware->data) {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Cannot allocate buffer for firmware\n",
+                             __FUNCTION__);
+            ret = -ENOMEM;
+            break;
+        }
+
+        if ( (ret=qca_readwrite_file(filename, (char*)firmware->data, NULL, length)) != length) {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: file read error, ret %d request %d\n",
+                            __FUNCTION__,ret,(int)length);
+            ret = -1;
+            break;
+        }
+
+    } while (0);
+
+    if (ret<0) {
+        if (firmware) {
+        if (firmware->data)
+                vfree(firmware->data);
+            A_FREE(firmware);
+        }
+        *firmware_p = NULL;
+    } else {
+        ret = 0;
+    }
+    return ret;
+}
+
+module_param(qca_fw_path, charp, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+#endif
+
+int qca_request_firmware(const struct firmware **firmware_p,
+                const char *name,
+                struct device *device)
+{
+#ifdef CUSTOMIZED_FIRMWARE_PATH
+    return customized_request_firmware(firmware_p, name,device);
+#else
+    return request_firmware(firmware_p, name,device);
+#endif
+}
+

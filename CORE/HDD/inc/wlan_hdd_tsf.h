@@ -160,6 +160,22 @@ wlan_get_ts_info(struct net_device *dev, struct ethtool_ts_info *info)
 	CFG_SET_TSF_DBG_FS))
 
 /**
+ * hdd_create_tsf_file() - create tsf file node
+ * @adapter: pointer to adapter
+ *
+ * Return: NULL
+ */
+void hdd_create_tsf_file(hdd_adapter_t *adapter);
+
+/**
+ * hdd_remove_tsf_file() - remove tsf file node
+ * @adapter: pointer to adapter
+ *
+ * Return: NULL
+ */
+void hdd_remove_tsf_file(hdd_adapter_t *adapter);
+
+/**
  * hdd_start_tsf_sync() - start tsf sync
  * @adapter: pointer to adapter
  *
@@ -234,6 +250,16 @@ int hdd_rx_timestamp(adf_nbuf_t netbuf, uint64_t target_time);
 void
 hdd_tsf_record_sk_for_skb(hdd_context_t *hdd_ctx, adf_nbuf_t nbuf);
 #else
+static inline void hdd_create_tsf_file(hdd_adapter_t *adapter)
+{
+	return;
+}
+
+static inline void hdd_remove_tsf_file(hdd_adapter_t *adapter)
+{
+	return;
+}
+
 static inline int hdd_start_tsf_sync(hdd_adapter_t *adapter)
 {
 	return -ENOTSUPP;

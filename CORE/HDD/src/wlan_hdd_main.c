@@ -8497,6 +8497,30 @@ mem_free:
        } else if (strncmp(command, "STOP", 4) == 0) {
           hddLog(LOG1, FL("STOP command"));
           pHddCtx->driver_being_stopped = true;
+       } else if ((strncmp(command, "BTCOEXSCAN", 10) == 0) &&
+                  (((tANI_U8 *)strchrnul(command, ' ') - command) == 10)) {
+          hddLog(LOG1, FL("ignore BTCOEXSCAN and return -ENOTSUPP"));
+          ret = -ENOTSUPP;
+       } else if ((strncmp(command, "RXFILTER", 8) == 0) &&
+                  (((tANI_U8 *)strchrnul(command, ' ') - command) == 8)) {
+          hddLog(LOG1, FL("ignore RXFILTER and return -ENOTSUPP"));
+          ret = -ENOTSUPP;
+       } else if ((strncmp(command, "RXFILTER-START", 14) == 0) &&
+                  (((tANI_U8 *)strchrnul(command, ' ') - command) == 14)) {
+          hddLog(LOG1, FL("ignore RXFILTER-START and return 0"));
+          ret = 0;
+       } else if ((strncmp(command, "RXFILTER-STOP", 13) == 0) &&
+                  (((tANI_U8 *)strchrnul(command, ' ') - command) == 13)) {
+          hddLog(LOG1, FL("ignore RXFILTER-STOP and return 0"));
+          ret = 0;
+       } else if ((strncmp(command, "BTCOEXSCAN-START", 16) == 0) &&
+                  (((tANI_U8 *)strchrnul(command, ' ') - command) == 16)) {
+          hddLog(LOG1, FL("ignore BTCOEXSCAN-START and return 0"));
+          ret = 0;
+       } else if ((strncmp(command, "BTCOEXSCAN-STOP", 15) == 0) &&
+                  (((tANI_U8 *)strchrnul(command, ' ') - command) == 15)) {
+          hddLog(LOG1, FL("ignore BTCOEXSCAN-STOP and return 0"));
+          ret = 0;
        } else {
            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                             TRACE_CODE_HDD_UNSUPPORTED_IOCTL,
@@ -10558,7 +10582,7 @@ VOS_STATUS hdd_get_cfg_file_size(v_VOID_t *pCtx, char *pFileName, v_SIZE_t *pBuf
 
    ENTER();
 
-   status = request_firmware(&pHddCtx->fw, pFileName, pHddCtx->parent_dev);
+   status = qca_request_firmware(&pHddCtx->fw, pFileName, pHddCtx->parent_dev);
 
    if(status || !pHddCtx->fw || !pHddCtx->fw->data) {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: CFG download failed",__func__);
@@ -10599,7 +10623,7 @@ VOS_STATUS hdd_read_cfg_file(v_VOID_t *pCtx, char *pFileName,
 
    ENTER();
 
-   status = request_firmware(&pHddCtx->fw, pFileName, pHddCtx->parent_dev);
+   status = qca_request_firmware(&pHddCtx->fw, pFileName, pHddCtx->parent_dev);
 
    if(status || !pHddCtx->fw || !pHddCtx->fw->data) {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: CFG download failed",__func__);
@@ -12378,6 +12402,8 @@ hdd_adapter_t *hdd_open_adapter(hdd_context_t *hdd_ctx,
 	if (ret != 0)
 		hddLog(LOGE, "FAILED TO SET RTSCTS Profile ret:%d", ret);
 
+	hdd_create_tsf_file(adapter);
+
 	return adapter;
 
 err_post_add_adapter:
@@ -12444,6 +12470,7 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
    pAdapterNode = pCurrent;
    if( VOS_STATUS_SUCCESS == status )
    {
+      hdd_remove_tsf_file(pAdapter);
       wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
       hdd_deinit_packet_filtering(pAdapterNode->pAdapter);
       hdd_cleanup_adapter( pHddCtx, pAdapterNode->pAdapter, rtnl_held );
@@ -14682,6 +14709,10 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hdd_abort_mac_scan_all_adapters(pHddCtx);
    hdd_deinit_bus_bw_timer(pHddCtx);
 
+#ifdef CONFIG_IXC_TIMER
+      vos_timer_stop(&pHddCtx->set_ixc_prio_timer);
+      vos_timer_destroy(&pHddCtx->set_ixc_prio_timer);
+#endif
 #ifdef FEATURE_WLAN_AP_AP_ACS_OPTIMIZE
    vosStatus = vos_timer_deinit(&pHddCtx->skip_acs_scan_timer);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -14695,6 +14726,16 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    adf_os_spin_unlock(&pHddCtx->acs_skip_lock);
 #endif
 
+   if (pHddCtx->cfg_ini->sta_change_cc_via_beacon) {
+       if (pHddCtx->reg.reg_set_timer.state != 0) {
+           vosStatus = vos_timer_deinit(&(pHddCtx->reg.reg_set_timer));
+           if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+               hddLog(VOS_TRACE_LEVEL_FATAL,
+                      "%s: deinit reg set timer failed reason %d",
+                      __func__, vosStatus);
+           pHddCtx->reg.reg_set_timer.userData = NULL;
+       }
+   }
 
    if (pConfig && !pConfig->enablePowersaveOffload)
    {
@@ -15399,6 +15440,178 @@ static VOS_STATUS wlan_hdd_reg_init(hdd_context_t *hdd_ctx)
 
    return status;
 }
+
+#ifdef CONFIG_IXC_TIMER
+#ifdef CONFIG_PERF_MODE
+#define wmem_max "/proc/sys/net/core/wmem_max"
+#define wmem_default "/proc/sys/net/core/wmem_default"
+#define rmem_max "/proc/sys/net/core/rmem_max"
+#define rmem_default "/proc/sys/net/core/rmem_default"
+#define tcp_mem "/proc/sys/net/ipv4/tcp_mem"
+#define tcp_rmem "/proc/sys/net/ipv4/tcp_rmem"
+#define tcp_wmem "/proc/sys/net/ipv4/wcp_rmem"
+#define tcp_limit_output_bytes "/proc/sys/net/ipv4/tcp_limit_output_bytes"
+#define flush "/proc/sys/net/ipv4/route/flush"
+#define tcp_sack "/proc/sys/net/ipv4/tcp_sack"
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20)
+#define GET_INODE_FROM_FILEP(filp) \
+    (filp)->f_path.dentry->d_inode
+#else
+#define GET_INODE_FROM_FILEP(filp) \
+    (filp)->f_dentry->d_inode
+#endif
+
+int _readwrite_file(const char *filename, char *rbuf,
+	const char *wbuf, size_t length, int mode)
+{
+	int ret = 0;
+	struct file *filp = (struct file *)-ENOENT;
+	mm_segment_t oldfs;
+	oldfs = get_fs();
+	set_fs(KERNEL_DS);
+
+	do {
+		filp = filp_open(filename, mode, S_IRUSR);
+
+		if (IS_ERR(filp) || !filp->f_op) {
+			ret = -ENOENT;
+			break;
+		}
+
+		if (length == 0) {
+			/* Read the length of the file only */
+			struct inode    *inode;
+
+			inode = GET_INODE_FROM_FILEP(filp);
+			if (!inode) {
+				printk(KERN_ERR
+					"_readwrite_file: Error 2\n");
+				ret = -ENOENT;
+				break;
+			}
+			ret = i_size_read(inode->i_mapping->host);
+			break;
+		}
+
+		if (wbuf) {
+			ret = vfs_write(
+				filp, wbuf, length, &filp->f_pos);
+			if (ret < 0) {
+				printk(KERN_ERR
+					"_readwrite_file: Error 3\n");
+				break;
+			}
+		} else {
+			ret = vfs_read(
+				filp, rbuf, length, &filp->f_pos);
+			if (ret < 0) {
+				printk(KERN_ERR
+					"_readwrite_file: Error 4\n");
+				break;
+			}
+		}
+	} while (0);
+
+	if (!IS_ERR(filp)) {
+		filp_close(filp, NULL);
+	}
+
+	set_fs(oldfs);
+	return ret;
+}
+
+void write_sys_file(const char* filename, char* buf, unsigned int len)
+{
+	int ret;
+	ret = _readwrite_file(filename, NULL,
+	                      buf,
+	                      len,
+	                      (O_WRONLY | O_APPEND));
+	if (ret < 0) {
+		printk("%s:%d: fail to write %s\n", __func__, __LINE__, filename);
+	}
+}
+
+void enable_wlan_perf_mode(void)
+{
+	int i,cpu_num;
+	char file_name[128];
+
+	write_sys_file(wmem_max, "8000000", 7);
+	write_sys_file(wmem_default, "8000000", 7);
+	write_sys_file(rmem_max, "8000000", 7);
+	write_sys_file(rmem_default, "8000000", 7);
+
+	write_sys_file(tcp_mem, "8000000 8000000 8000000", 23);
+
+	write_sys_file(tcp_rmem, "10240 87380 8000000", 19);
+	write_sys_file(tcp_wmem, "10240 87380 8000000", 19);
+	write_sys_file(tcp_limit_output_bytes, "1048576", 7);
+	write_sys_file(flush, "1", 1);
+	write_sys_file(tcp_sack, "0", 1);
+	write_sys_file("/proc/sys/nbet/ipv4/tcp_use_rconfig", "1", 1);
+	write_sys_file("/proc/sys/nbet/ipv4/tcp_delack_seg", "60", 2);
+
+	cpu_num = num_possible_cpus();
+	for(i=0; i < cpu_num; i++) {
+		snprintf(file_name, sizeof(file_name), "/sys/bus/cpu/devices/cpu%d/online", i);
+		write_sys_file(file_name, "1", 1);
+		snprintf(file_name, sizeof(file_name),
+			"/sys/bus/cpu/devices/cpu%d/cpufreq/scaling_governor", i);
+		write_sys_file(file_name, "performance", 11);
+	}
+}
+#endif
+static void hdd_set_ixc_prio(void *priv)
+{
+    int i;
+    struct pid* pid;
+    struct task_struct* task;
+    char comm[128];
+    struct sched_param param = {.sched_priority = 99};
+    hdd_context_t *pHddCtx = (hdd_context_t *)priv;
+
+    if(pHddCtx->ixc_pid != 0) {
+        pid = find_get_pid(pHddCtx->ixc_pid);
+        if(pid) {
+            task = get_pid_task(pid, 0);
+            if(task){
+                memset(comm, 0, sizeof(comm));
+                strlcpy(comm, task->comm, sizeof(comm));
+                if(strstr(comm, "ixchariot") || strstr(comm, "iperf")) {
+                    vos_timer_start(&pHddCtx->set_ixc_prio_timer, 10);
+                    //we already set this task priority
+                    return;
+                }
+            }
+            task = NULL;
+        }
+    }
+    for(i = 2; i < 32767; i++) {
+        pid = find_get_pid(i);
+        if(pid) {
+            task = get_pid_task(pid, 0);
+            if(task){
+                memset(comm, 0, sizeof(comm));
+                strlcpy(comm, task->comm, sizeof(comm));
+                if(strstr(comm, "ixchariot") || strstr(comm, "iperf")) {
+                    sched_setscheduler(task, SCHED_FIFO, &param);
+#ifdef CONFIG_PERF_MODE
+                    enable_wlan_perf_mode();
+#endif
+                    pHddCtx->ixc_pid = i;
+                    printk("set ixc prio, pid is %d\n", pHddCtx->ixc_pid);
+                    vos_timer_start(&pHddCtx->set_ixc_prio_timer, 10);
+                    return;
+                }
+            }
+            task = NULL;
+        }
+    }
+    vos_timer_start(&pHddCtx->set_ixc_prio_timer, 10);
+}
+#endif
 
 #ifdef FEATURE_BUS_BANDWIDTH
 #ifdef QCA_SUPPORT_TXRX_HL_BUNDLE
@@ -16958,6 +17171,20 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          goto err_vosclose;
       }
 
+#ifdef CLD_REGDB
+      if ((wiphy) && country_code) {
+          regulatory_hint(wiphy, country_code);
+      }
+#endif
+
+      if (0 != vos_set_sleep_power_mode(dev,
+          pHddCtx->cfg_ini->sleep_power_mode)) {
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: set sleep power mode failed", __func__);
+         pHddCtx->cfg_ini->sleep_power_mode = 0;
+      }
+      ol_set_sleep_power_mode(pHddCtx->cfg_ini->sleep_power_mode);
+
       status = wlan_hdd_reg_init(pHddCtx);
       if (status != VOS_STATUS_SUCCESS) {
          hddLog(VOS_TRACE_LEVEL_FATAL,
@@ -17027,6 +17254,16 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
               "%s: WMI_PDEV_PARAM_ARP_AC_OVERRIDE failed AC: %d ret: %d",
               __func__, pHddCtx->cfg_ini->arp_ac_category, ret);
    }
+
+#ifdef CLD_REGDB
+   if (country_code)
+   {
+       pHddCtx->reg.alpha2[0] = country_code[0];
+       pHddCtx->reg.alpha2[1] = country_code[1];
+       pHddCtx->reg.cc_src = NL80211_REGDOM_SET_BY_DRIVER;
+       pHddCtx->reg.dfs_region = 0;
+   }
+#endif
 
    status = hdd_set_sme_chan_list(pHddCtx);
    if (status != VOS_STATUS_SUCCESS) {
@@ -17541,6 +17778,14 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    vos_timer_init(&pHddCtx->tdls_source_timer, VOS_TIMER_TYPE_SW,
                   wlan_hdd_change_tdls_mode, (void *)pHddCtx);
 
+#ifdef CONFIG_IXC_TIMER
+   pHddCtx->ixc_pid = 0;
+   vos_timer_init(&pHddCtx->set_ixc_prio_timer,
+                     VOS_TIMER_TYPE_SW,
+                     hdd_set_ixc_prio,
+                     (void *)pHddCtx);
+   vos_timer_start(&pHddCtx->set_ixc_prio_timer, 10);
+#endif
 #ifdef FEATURE_BUS_BANDWIDTH
    adf_os_spinlock_init(&pHddCtx->bus_bw_lock);
    vos_timer_init(&pHddCtx->bus_bw_timer,
@@ -20649,3 +20894,4 @@ module_param(enable_11d, int,
 
 module_param(country_code, charp,
              S_IRUSR | S_IRGRP | S_IROTH);
+

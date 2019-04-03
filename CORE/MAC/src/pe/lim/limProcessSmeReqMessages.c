@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1906,6 +1906,32 @@ static void __limProcessClearDfsChannelList(tpAniSirGlobal pMac,
                   sizeof(tSirDFSChannelList), 0);
 }
 
+#ifdef WLAN_FEATURE_SAE
+/**
+ * lim_update_sae_config()- This API update SAE session info to csr config
+ * from join request.
+ * @session: PE session
+ * @sme_join_req: pointer to join request
+ *
+ * Return: None
+ */
+static void lim_update_sae_config(tpPESession session,
+				tpSirSmeJoinReq sme_join_req)
+{
+	session->sae_pmk_cached = sme_join_req->sae_pmk_cached;
+
+	VOS_TRACE(VOS_MODULE_ID_PE,
+		VOS_TRACE_LEVEL_DEBUG,
+		FL("pmk_cached %d for BSSID=" MAC_ADDRESS_STR),
+		session->sae_pmk_cached,
+		MAC_ADDR_ARRAY(sme_join_req->bssDescription.bssId));
+}
+#else
+static inline void lim_update_sae_config(tpPESession session,
+				tpSirSmeJoinReq sme_join_req)
+{}
+#endif
+
 /**
  * __limProcessSmeJoinReq()
  *
@@ -2241,6 +2267,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif
         psessionEntry->txLdpcIniFeatureEnabled = pSmeJoinReq->txLdpcIniFeatureEnabled;
         lim_update_fils_config(psessionEntry, pSmeJoinReq);
+        lim_update_sae_config(psessionEntry, pSmeJoinReq);
         if (psessionEntry->bssType == eSIR_INFRASTRUCTURE_MODE)
         {
             psessionEntry->limSystemRole = eLIM_STA_ROLE;
