@@ -4985,6 +4985,7 @@ typedef enum {
 #define WMI_PDEV_PARAM_RTS_BL_WL_ENABLE_BIT             0x00000002
 #define WMI_PDEV_PARAM_HIGHER_MCS_XRETRY_RESTRICTION_S  2
 #define WMI_PDEV_PARAM_HIGHER_MCS_XRETRY_RESTRICTION    0x00000004
+
 #define WMI_PDEV_PARAM_XRETRY_THRESHOLD_S               3
 #define WMI_PDEV_PARAM_XRETRY_THRESHOLD                 0x00000038
 
@@ -5543,6 +5544,7 @@ typedef enum {
      *   0- Don't use NOL in firmware
      */
     WMI_PDEV_PARAM_USE_NOL,
+
     /*
      * Allow / Not Allow RU26 in any user's RU allocation field in UL OFDMA
      * trigger frames sent by AP
@@ -5583,6 +5585,17 @@ typedef enum {
      * BITS 3 - 31 Reserved, must be set to 0x0
      */
     WMI_PDEV_PARAM_SET_TBTT_CTRL,
+
+    /*
+     * BITS0 ~1 (refer to enum)
+     * 0 - default --> always update
+     * 1 - ignore to update
+     * 2 - update if larger than threshould
+     * 3 - update if less or equal than threshould
+     *
+     * BITS 2 ~ 31 Threshould
+     */
+    WMI_PDEV_PARAM_NAV_OVERRIDE_CONFIG,
 
 } WMI_PDEV_PARAM;
 
