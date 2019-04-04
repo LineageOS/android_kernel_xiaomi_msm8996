@@ -11490,6 +11490,7 @@ typedef struct {
 /* Note: WMI_ROAM_SCAN_MODE_ROAMOFFLOAD is one bit not conflict with LFR2.0 SCAN_MODE. */
 #define WMI_ROAM_SCAN_MODE_ROAMOFFLOAD 0x4
 
+
 typedef struct {
     A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_scan_cmd_fixed_param */
     A_UINT32 vdev_id;
@@ -17538,7 +17539,6 @@ typedef struct
 
 #define wmi_ndl_schedule_update_fixed_param wmi_ndl_schedule_update_fixed_param_PROTOTYPE
 
-
 typedef struct {
     A_UINT32 tlv_header;
     A_UINT32 num_data;
@@ -17622,7 +17622,6 @@ enum {
  * commit_limits = 1, at which point it will apply all the received
  * specifications.
 */
-
 typedef struct {
     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_sar_limits_cmd_param */
     A_UINT32 tlv_header;
@@ -17632,17 +17631,16 @@ typedef struct {
      * if set to WMI_SAR_FEATURE_OFF, disable feature;
      * if set to WMI_SAR_FEATURE_NO_CHANGE, do not alter state of feature;
      */
-
     A_UINT32 sar_enable;
 
     /** number of items in sar_limits[] */
     A_UINT32 num_limit_rows;
+
     /** once received and is set to 1, FW will calculate the power limits
      * and send set_power command to apply them.
      * Otherwise just update local values stored in FW until a future msg
      * with commit_limits=1 arrives.
     */
-
     A_UINT32 commit_limits;
 
     /**
@@ -22261,6 +22259,15 @@ typedef enum wmi_coex_config_type {
      *   arg5 - t_delay for high priority traffic (microsecond units)
      */
     WMI_COEX_CONFIG_THREE_WAY_DELAY_PARA   = 33,
+    /* WMI_COEX_CONFIG_THREE_WAY_COEX_START
+     * config to set coex parameters from WLAN host to adjust priorities
+     * among wlan/bt/zb
+     * arg1 - priority level 1, the serialized coex scenorio ID will be put here
+     * arg2 - priority level 2, same parameters rules as arg1
+     * arg3 - priority level 3, same parameters rules as arg1
+     * arg4 - priority level 4, same parameters rules as arg1
+     */
+    WMI_COEX_CONFIG_THREE_WAY_COEX_START   = 34,
 } WMI_COEX_CONFIG_TYPE;
 
 typedef struct {
