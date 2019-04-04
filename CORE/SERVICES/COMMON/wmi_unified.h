@@ -10916,6 +10916,12 @@ typedef struct {
 /* Enable 11r FT Roaming */
 #define  WMI_PEER_PARAM_ENABLE_FT                       0x1e
 
+#define  WMI_PEER_PARAM_NEED_PTK_4_WAY                  0x1f
+/* update peer flag for gtk 2 way handshake */
+#define  WMI_PEER_PARAM_NEED_GTK_2_WAY                  0x20
+/* update peer flag for M4 sent */
+#define  WMI_PEER_PARAM_M4_SENT                         0x21
+
 /** mimo ps values for the parameter WMI_PEER_MIMO_PS_STATE  */
 #define WMI_PEER_MIMO_PS_NONE                          0x0
 #define WMI_PEER_MIMO_PS_STATIC                        0x1
