@@ -473,6 +473,10 @@ typedef enum {
     WMI_SERVICE_EXT_PEER_TID_CONFIGS_SUPPORT = 194, /* Extended Peer Tid configuration support for QoS related settings */
     WMI_SERVICE_WPA3_FT_SAE_SUPPORT = 195, /* FW roaming support for WPA3_FT_SAE */
     WMI_SERVICE_WPA3_FT_SUITE_B_SUPPORT = 196, /* FW roaming support for WPA3_FT_SUITE_B */
+    WMI_SERVICE_VOW_ENABLE=197, /* FW supports a set of features to optimize VoW performance */
+    WMI_SERVICE_CFR_CAPTURE_IND_EVT_TYPE_1 = 198, /* support WMI_PEER_CFR_CAPTURE_EVENT msg */
+    WMI_SERVICE_BROADCAST_TWT = 199,  /* support of Broadcast TWT (Target Wake Time) for STA/AP */
+    WMI_SERVICE_RAP_DETECTION_SUPPORT = 200, /* indicate FW supports rogue AP detection */
 
 
     /******* ADD NEW SERVICES HERE *******/
@@ -486,10 +490,6 @@ typedef enum {
 #define WMI_NUM_EXT_SERVICES (WMI_MAX_EXT_SERVICE - WMI_MAX_SERVICE)
 #define WMI_SERVICE_EXT_BM_SIZE32 ((WMI_NUM_EXT_SERVICES + 31) / 32)
 
-/**
- * depreciated the name WMI_SERVICE_ROAM_OFFLOAD, but here to help
- * compiling with old host driver
- */
 #define WMI_SERVICE_ROAM_OFFLOAD WMI_SERVICE_ROAM_SCAN_OFFLOAD
 
 /*
@@ -506,6 +506,7 @@ typedef enum {
 #define WMI_SERVICE_IS_ENABLED(pwmi_svc_bmap,svc_id) \
     ( ((pwmi_svc_bmap)[(svc_id)/(sizeof(A_UINT32))] &  \
        (1 << ((svc_id)%(sizeof(A_UINT32)))) ) != 0)
+
 
 #define WMI_SERVICE_EXT_ENABLE(pwmi_svc_bmap, pwmi_svc_ext_bmap, svc_id) \
     do { \
