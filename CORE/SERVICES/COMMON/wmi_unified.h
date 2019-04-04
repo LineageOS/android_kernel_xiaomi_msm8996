@@ -11709,6 +11709,8 @@ enum {
     WMI_AUTH_RSNA_FILS_SHA384,
     WMI_AUTH_RSNA_SUITE_B_8021X_SHA256,
     WMI_AUTH_RSNA_SUITE_B_8021X_SHA384,
+    WMI_AUTH_FT_RSNA_SAE,
+    WMI_AUTH_FT_RSNA_SUITE_B_8021X_SHA384,
 };
 
 typedef enum {
@@ -12259,6 +12261,7 @@ typedef struct {
     ((flag) & (1 << WMI_ROAM_OFFLOAD_FLAG_PMK_CACHE_DISABLED))
 
 /* This TLV will be  filled only in case of wpa-psk/wpa2-psk */
+/* This TLV will be  filled only in case of wpa-psk/wpa2-psk */
 typedef struct {
     A_UINT32 tlv_header;     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_11i_offload_fixed_param */
     A_UINT32 flags;          /** flags. see WMI_ROAM_OFFLOAD_FLAG_ above */
@@ -12275,6 +12278,8 @@ typedef struct {
     A_UINT32 r0kh_id_len;
     A_UINT32 psk_msk[ROAM_OFFLOAD_PSK_MSK_BYTES>>2]; /* psk/msk offload. As this 4 byte aligned, we don't declare it as tlv array */
     A_UINT32 psk_msk_len; /**length of psk_msk*/
+    A_UINT32 psk_msk_ext_len; /**length of psk_msk_ext*/
+    A_UINT32 psk_msk_ext[ROAM_OFFLOAD_PSK_MSK_BYTES>>2];
 } wmi_roam_11r_offload_tlv_param;
 
 /* This TLV will be filled only in case of ESE */
@@ -12283,7 +12288,6 @@ typedef struct {
     A_UINT32 krk[ROAM_OFFLOAD_KRK_BYTES>>2]; /* KRK offload. As this 4 byte aligned, we don't declare it as tlv array */
     A_UINT32 btk[ROAM_OFFLOAD_BTK_BYTES>>2]; /* BTK offload. As this 4 byte aligned, we don't declare it as tlv array */
 } wmi_roam_ese_offload_tlv_param;
-
 
 typedef struct {
     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_blacklist_with_timeout_tlv_param */
@@ -17801,6 +17805,8 @@ typedef struct {
         (2) data/mgmt frame is received from roamed AP, which needs to return to host
 */
 
+#define GTK_OFFLOAD_KCK_EXTENDED_BYTES 32
+
 typedef struct {
     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_key_material */
     A_UINT32 tlv_header;
@@ -17809,6 +17815,12 @@ typedef struct {
     A_UINT8  kek[GTK_OFFLOAD_KEK_BYTES]; /* EAPOL-Key Key Encryption Key (KEK) */
     A_UINT8  replay_counter[GTK_REPLAY_COUNTER_BYTES];
 } wmi_key_material;
+
+typedef struct {
+    /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_key_material_ext */
+    A_UINT32 tlv_header;
+    A_UINT8  key_buffer[GTK_OFFLOAD_KEK_EXTENDED_BYTES+GTK_OFFLOAD_KCK_EXTENDED_BYTES+GTK_REPLAY_COUNTER_BYTES]; /*the split of kck, kek should be known to host based on akmp*/
+} wmi_key_material_ext;
 
 typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_roam_synch_event_fixed_param  */
@@ -17843,9 +17855,10 @@ typedef struct {
      *     A_UINT8 reassoc_rsp_frame[];  length identified by reassoc_rsp_len
      *     wmi_channel chan;
      *     wmi_key_material key;
-     *     A_UINT32 status; subnet changed status not being used
-     *     currently. will pass the information using roam_status.
+     *     A_UINT32 status; subnet changed status not being used currently.
+     *         will pass the information using roam_status.
      *     A_UINT8 reassoc_req_frame[];  length identified by reassoc_req_len
+     *     wmi_key_material_ext key_ext
      **/
 } wmi_roam_synch_event_fixed_param;
 
