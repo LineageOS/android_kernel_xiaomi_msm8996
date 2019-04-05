@@ -714,8 +714,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_peer_bwf_request_fixed_param,
     WMITLV_TAG_STRUC_wmi_bwf_peer_info,
     WMITLV_TAG_STRUC_wmi_dbglog_time_stamp_sync_cmd_fixed_param,
-    _place_holder_tlv_tag_1,
-    _place_holder_tlv_tag_2,
+    WMITLV_TAG_STRUC_wmi_rmc_set_leader_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_rmc_manual_leader_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_per_chain_rssi_stats,
     WMITLV_TAG_STRUC_wmi_rssi_stats,
     WMITLV_TAG_STRUC_wmi_p2p_lo_start_cmd_fixed_param,
@@ -970,6 +970,11 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_pdev_set_rap_config_fixed_param,
     WMITLV_TAG_STRUC_wmi_pdev_set_rap_config_on_sta_ps_tlv_param,
     WMITLV_TAG_STRUC_wmi_pdev_rap_info_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_sta_tdcc_config_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_deauth_config_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_idle_config_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_idle_trigger_monitor_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_stats_interference,
 } WMITLV_TAG_ID;
 
 /*
@@ -984,6 +989,7 @@ typedef enum {
     OP(WMI_PEER_SET_PARAM_CMDID) \
     OP(WMI_STA_POWERSAVE_MODE_CMDID) \
     OP(WMI_STA_POWERSAVE_PARAM_CMDID) \
+    OP(WMI_STA_TDCC_CONFIG_CMDID) \
     OP(WMI_STA_DTIM_PS_METHOD_CMDID) \
     OP(WMI_PDEV_SET_REGDOMAIN_CMDID) \
     OP(WMI_PEER_TID_ADDBA_CMDID) \
@@ -1257,6 +1263,7 @@ typedef enum {
     OP(WMI_WOW_SET_ACTION_WAKE_UP_CMDID) \
     OP(WMI_PEER_BWF_REQUEST_CMDID) \
     OP(WMI_DBGLOG_TIME_STAMP_SYNC_CMDID) \
+    OP(WMI_RMC_SET_MANUAL_LEADER_CMDID) \
     OP(WMI_P2P_LISTEN_OFFLOAD_START_CMDID) \
     OP(WMI_P2P_LISTEN_OFFLOAD_STOP_CMDID) \
     OP(WMI_PEER_REORDER_QUEUE_SETUP_CMDID) \
@@ -1363,8 +1370,11 @@ typedef enum {
     OP(WMI_VDEV_GET_MWS_COEX_INFO_CMDID) \
     OP(WMI_REQUEST_WLM_STATS_CMDID) \
     OP(WMI_PDEV_SET_RAP_CONFIG_CMDID) \
+    OP(WMI_ROAM_DEAUTH_CONFIG_CMDID) \
+    OP(WMI_ROAM_IDLE_CONFIG_CMDID) \
+    OP(WMI_IDLE_TRIGGER_MONITOR_CMDID) \
     /* add new CMD_LIST elements above this line */
-    /* add new CMD_LIST elements above this line */
+
 
 /*
  * IMPORTANT: Please add _ALL_ WMI Events Here.
@@ -1515,6 +1525,7 @@ typedef enum {
     OP(WMI_PDEV_HW_MODE_TRANSITION_EVENTID) \
     OP(WMI_PDEV_SET_MAC_CONFIG_RESP_EVENTID) \
     OP(WMI_RADIO_TX_POWER_LEVEL_STATS_EVENTID) \
+    OP(WMI_RMC_NEW_LEADER_EVENTID) \
     OP(WMI_P2P_LISTEN_OFFLOAD_STOPPED_EVENTID) \
     OP(WMI_MGMT_TX_BUNDLE_COMPLETION_EVENTID) \
     OP(WMI_READ_DATA_FROM_FLASH_EVENTID) \
@@ -1526,6 +1537,7 @@ typedef enum {
     OP(WMI_REPORT_STATS_EVENTID) \
     OP(WMI_REPORT_RX_AGGR_FAILURE_EVENTID) \
     OP(WMI_VDEV_ENCRYPT_DECRYPT_DATA_RESP_EVENTID) \
+    OP(WMI_TBTTOFFSET_EXT_UPDATE_EVENTID) \
     OP(WMI_PDEV_DFS_RADAR_DETECTION_EVENTID) \
     OP(WMI_VDEV_DFS_CAC_COMPLETE_EVENTID) \
     OP(WMI_VDEV_ADFS_OCAC_COMPLETE_EVENTID) \
@@ -1644,6 +1656,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_STA_POWERSAVE_MODE_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_STA_POWERSAVE_PARAM_CMDID);
 
+/* STA TDCC Param Config Cmd */
+#define WMITLV_TABLE_WMI_STA_TDCC_CONFIG_CMDID(id,op,buf,len) \
+            WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sta_tdcc_config_cmd_fixed_param, wmi_sta_tdcc_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_STA_TDCC_CONFIG_CMDID);
+
 /* STA DTIM PS METHOD Cmd */
 #define WMITLV_TABLE_WMI_STA_DTIM_PS_METHOD_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_sta_dtim_ps_method_cmd_fixed_param, wmi_sta_dtim_ps_method_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
@@ -1668,12 +1686,14 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PEER_TID_ADDBA_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_tid_delba_cmd_fixed_param, wmi_peer_tid_delba_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_PEER_TID_DELBA_CMDID);
+
 /* Peer Req Add BA Ssn for staId/tid pair Cmd */
 #define WMITLV_TABLE_WMI_BA_REQ_SSN_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_ba_req_ssn_cmd_fixed_param, wmi_ba_req_ssn_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len,WMITLV_TAG_ARRAY_STRUC, wmi_ba_req_ssn, ba_req_ssn_list, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_BA_REQ_SSN_CMDID);
+
 
 /* PDEV FTM integration Cmd */
 #define WMITLV_TABLE_WMI_PDEV_FTM_INTG_CMDID(id,op,buf,len) \
@@ -1754,6 +1774,7 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SCAN_PERIOD);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_scan_rssi_change_threshold_fixed_param, wmi_roam_scan_rssi_change_threshold_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SCAN_RSSI_CHANGE_THRESHOLD);
+
 /* Roam Scan Channel list Cmd */
 #define WMITLV_TABLE_WMI_ROAM_CHAN_LIST(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_chan_list_fixed_param, wmi_roam_chan_list_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
@@ -1777,6 +1798,7 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SCAN_CMD);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, non_prefer_ch_attr, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_SET_MBO_PARAM_CMDID);
+
 /* Roam PER configure cmd */
 #define WMITLV_TABLE_WMI_ROAM_PER_CONFIG_CMDID(id, op, buf, len) \
     WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_roam_per_config_fixed_param, wmi_roam_per_config_fixed_param, fixed_param, WMITLV_SIZE_FIX)
@@ -1888,6 +1910,7 @@ WMITLV_CREATE_PARAM_STRUC(WMI_EXTSCAN_CONFIGURE_HOTLIST_SSID_MONITOR_CMDID);
 #define WMITLV_TABLE_WMI_P2P_SET_VENDOR_IE_DATA_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_p2p_set_vendor_ie_data_cmd_fixed_param, wmi_p2p_set_vendor_ie_data_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_P2P_SET_VENDOR_IE_DATA_CMDID);
+
 /* P2P set OppPS parameters Cmd */
 #define WMITLV_TABLE_WMI_P2P_SET_OPPPS_PARAM_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_p2p_set_oppps_cmd_fixed_param, wmi_p2p_set_oppps_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
@@ -2012,6 +2035,7 @@ WMITLV_CREATE_PARAM_STRUC(WMI_BCN_TMPL_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, key_data, WMITLV_SIZE_VAR)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_INSTALL_KEY_CMDID);
+
 /* VDEV WNM SLEEP MODE Cmd */
 #define WMITLV_TABLE_WMI_VDEV_WNM_SLEEPMODE_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_WMI_VDEV_WNM_SLEEPMODE_CMD_fixed_param, WMI_VDEV_WNM_SLEEPMODE_CMD_fixed_param, fixed_param, WMITLV_SIZE_FIX)
@@ -2038,7 +2062,6 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PEER_ASSOC_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_set_rate_report_condition_fixed_param, wmi_peer_set_rate_report_condition_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_PEER_SET_RATE_REPORT_CONDITION_CMDID);
-
 
 /* Add Beacon filter Cmd */
 #define WMITLV_TABLE_WMI_ADD_BCN_FILTER_CMDID(id,op,buf,len) \
@@ -3002,6 +3025,21 @@ WMITLV_CREATE_PARAM_STRUC(WMI_REQUEST_ROAM_SCAN_STATS_CMDID);
 #define WMITLV_TABLE_WMI_ROAM_BSS_LOAD_CONFIG_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_bss_load_config_cmd_fixed_param, wmi_roam_bss_load_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_BSS_LOAD_CONFIG_CMDID);
+
+/* Deauth roam trigger parameters */
+#define WMITLV_TABLE_WMI_ROAM_DEAUTH_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_deauth_config_cmd_fixed_param, wmi_roam_deauth_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_DEAUTH_CONFIG_CMDID);
+
+/* Idle roam trigger parameters */
+#define WMITLV_TABLE_WMI_ROAM_IDLE_CONFIG_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_idle_config_cmd_fixed_param, wmi_roam_idle_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_IDLE_CONFIG_CMDID);
+
+/* Screen Status Command parameters */
+#define WMITLV_TABLE_WMI_IDLE_TRIGGER_MONITOR_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_idle_trigger_monitor_cmd_fixed_param, wmi_idle_trigger_monitor_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_IDLE_TRIGGER_MONITOR_CMDID);
 
 #define WMITLV_TABLE_WMI_ROAM_BLACKLIST_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_blacklist_event_fixed_param, wmi_roam_blacklist_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
@@ -5051,6 +5089,7 @@ WMITLV_CREATE_PARAM_STRUC(WMI_RMC_NEW_LEADER_EVENTID);
  *                                                       array index is (peer_index * WLAN_MAX_AC + ac_index) * rx_mcs_array_len + MCS index
  *                                                       Contains a count of rx PPDUs for each MCS of each AC of each peer.
  *    wmi_stats_period         stats_period[];           Array length is specified by stats_period_array_len
+ *    wmi_stats_interference   stats_interference[];     Array length is determied by dividing array level TLV header's length value by array-element TLV header's length value.
  *
  * For example, if there were 2 peers (X and Y) whose stats were being reported,
  * the message and its TLV arrays would look like this:
@@ -5141,7 +5180,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_RMC_NEW_LEADER_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_rx_stats, rx_stats, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, rx_mpdu_aggr, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, rx_mcs, WMITLV_SIZE_VAR) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_stats_period, stats_period, WMITLV_SIZE_VAR)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_stats_period, stats_period, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_stats_interference, stats_interference, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_REPORT_STATS_EVENTID);
 
 #define WMITLV_TABLE_WMI_VDEV_ENCRYPT_DECRYPT_DATA_RESP_EVENTID(id, op, buf, len) \
