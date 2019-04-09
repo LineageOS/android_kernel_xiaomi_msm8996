@@ -8989,6 +8989,7 @@ wma_chan_info_event_handler(void *handle, u_int8_t *event_buf,
 			return -EINVAL;
 		}
 		buf.tx_frame_count = event->tx_frame_cnt;
+		buf.rx_frame_count = event->rx_frame_count;
 		buf.clock_freq = event->mac_clk_mhz;
 		buf.cmd_flag = event->cmd_flags;
 		buf.freq = event->freq;

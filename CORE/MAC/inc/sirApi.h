@@ -8592,6 +8592,7 @@ struct sme_flush_pending {
  * @cycle_count: cycle count
  * @rx_clear_count: rx clear count
  * @tx_frame_count: TX frame count
+ * @rx_frame_count: RX frame count
  * @clock_freq: clock frequence MHZ
  */
 struct scan_chan_info {
@@ -8601,6 +8602,7 @@ struct scan_chan_info {
 	uint32_t cycle_count;
 	uint32_t rx_clear_count;
 	uint32_t tx_frame_count;
+	uint32_t rx_frame_count;
 	uint32_t clock_freq;
 };
 
