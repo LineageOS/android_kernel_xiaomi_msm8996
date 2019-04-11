@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015, 2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2015, 2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -259,7 +259,20 @@ int8_t
 htt_rx_ind_noise_floor_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
                              int8_t chain);
 
-void
+/**
+ * htt_rx_ind_sig() - Return SIG_A1 and SIG_A2
+ * @pdev:        the HTT instance the rx data was received on
+ * @rx_ind_msg:  the netbuf containing the rx indication message
+ * @sig_a1: SIG_A1
+ * @sig_a2: SIG_A2
+ * @type: preamble type
+ *
+ * return: 0 success, -1, SIG_A and preamble type is not avalible.
+ */
+int htt_rx_ind_sig(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
+		   uint32_t *sig_a1, uint32_t *sig_a2, uint8_t *type);
+
+int
 htt_rx_ind_legacy_rate(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
     uint8_t *legacy_rate, uint8_t *legacy_rate_sel);
 
