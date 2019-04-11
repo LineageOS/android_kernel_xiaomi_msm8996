@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2804,7 +2804,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                          pHostapdAdapter, &sub20_channelwidth))
                             WLANSAP_set_sub20_channelwidth_with_csa(
                                 WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter),
-                                sub20_channelwidth);
+                                sub20_channelwidth,
+                                WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter)->operatingChannel);
             }
             break;
         case eSAP_STA_DISASSOC_EVENT:
@@ -3438,7 +3439,8 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel)
  * Return:  true or false
  */
 int hdd_softap_set_channel_sub20_chanwidth_change(struct net_device *dev,
-						  uint32_t chan_width)
+						  uint32_t chan_width,
+						  int target_channel)
 {
 	VOS_STATUS status;
 	int ret;
@@ -3515,11 +3517,12 @@ int hdd_softap_set_channel_sub20_chanwidth_change(struct net_device *dev,
 
 	vos_ctx_ptr = WLAN_HDD_GET_SAP_CTX_PTR(hostapd_adapter);
 	status = WLANSAP_set_sub20_channelwidth_with_csa(vos_ctx_ptr,
-							 sub20_chan_width);
+							 sub20_chan_width,
+							 target_channel);
 	if (VOS_STATUS_SUCCESS != status) {
 		hddLog(LOGE,
-		       FL("sub20 chan width %d switch failed"),
-		       sub20_chan_width);
+		       FL("sub20 chan width %d target channel %d switch failed"),
+		       sub20_chan_width, target_channel);
 		/*
 		 * If channel change command fails then clear the
 		 * radar found flag and also restart the netif

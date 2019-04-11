@@ -20463,7 +20463,8 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
             if (hdd_hostapd_sub20_channelwidth_can_switch(pAdapter,
                                                           &sub20_chanwidth)) {
                     WLANSAP_set_sub20_channelwidth_with_csa(
-                        WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), sub20_chanwidth);
+                        WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), sub20_chanwidth,
+                        WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->operatingChannel);
             }
         }
     } else if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
@@ -31047,6 +31048,8 @@ static int __wlan_hdd_cfg80211_channel_switch(struct wiphy *wiphy,
 	v_U16_t freq;
 	int ret;
 	tsap_Config_t *sap_config;
+	uint32_t current_sub20_chan_width;
+	uint32_t target_sub20_chan_width;
 
 	hddLog(LOG1, FL("Set Freq %d sub20 chanwidth %d"),
 	       csa_params->chandef.chan->center_freq,
@@ -31068,12 +31071,40 @@ static int __wlan_hdd_cfg80211_channel_switch(struct wiphy *wiphy,
 
 	freq = csa_params->chandef.chan->center_freq;
 	channel = vos_freq_to_chan(freq);
+	target_sub20_chan_width = csa_params->chandef.width;
 
-	if (channel != current_channel) {
+	hdd_get_sub20_channelwidth(adapter, &current_sub20_chan_width);
+	switch (current_sub20_chan_width) {
+	case SUB20_MODE_5MHZ:
+		current_sub20_chan_width = NL80211_CHAN_WIDTH_5;
+		break;
+	case SUB20_MODE_10MHZ:
+		current_sub20_chan_width = NL80211_CHAN_WIDTH_10;
+		break;
+	case SUB20_MODE_NONE:
+		current_sub20_chan_width = NL80211_CHAN_WIDTH_20_NOHT;
+		break;
+	default:
+		hddLog(LOGE, FL("invalid val %d"), current_sub20_chan_width);
+		return -EINVAL;
+	}
+
+	if (target_sub20_chan_width != NL80211_CHAN_WIDTH_20_NOHT &&
+	    target_sub20_chan_width != NL80211_CHAN_WIDTH_5 &&
+	    target_sub20_chan_width != NL80211_CHAN_WIDTH_10) {
+		hddLog(LOGE, FL("not support switch to bandwidth %d via chan switch"),
+		       target_sub20_chan_width);
+		target_sub20_chan_width = current_sub20_chan_width;
+	}
+
+	if (channel != current_channel &&
+	    target_sub20_chan_width == current_sub20_chan_width) {
 		ret = hdd_softap_set_channel_change(dev, channel);
-	} else if (sap_config->sub20_switch_mode == SUB20_MANUAL) {
+	} else if (sap_config->sub20_switch_mode == SUB20_MANUAL &&
+		target_sub20_chan_width != current_sub20_chan_width) {
 		ret = hdd_softap_set_channel_sub20_chanwidth_change(
-					dev, csa_params->chandef.width);
+					dev, csa_params->chandef.width,
+					channel);
 	} else {
 		hddLog(LOGE, FL("nothing to do"));
 		return -EINVAL;
