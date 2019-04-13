@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -80,11 +80,13 @@ typedef enum eAniAuthType
 #if defined WLAN_FEATURE_VOWIFI_11R
     eSIR_FT_AUTH,
 #endif
+    eSIR_AUTH_TYPE_SAE = 3,
 #ifdef WLAN_FEATURE_FILS_SK
     eSIR_FILS_SK_WITHOUT_PFS = 4,
     eSIR_FILS_SK_WITH_PFS = 5,
     eSIR_FILS_PK_AUTH = 6,
 #endif
+    eSIR_AUTH_TYPE_OWE = 7,
 #if defined FEATURE_WLAN_ESE
     eSIR_LEAP_AUTH = 0x80,
 #endif

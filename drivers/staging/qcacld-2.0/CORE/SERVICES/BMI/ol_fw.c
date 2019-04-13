@@ -63,6 +63,10 @@
 static struct hash_fw fw_hash;
 #endif
 
+#ifdef FEATURE_DYNAMIC_POWER_CONTROL
+static uint32_t g_sleep_power_mode = 0;
+#endif
+
 #if defined(HIF_PCI) || defined(HIF_SDIO)
 static u_int32_t refclk_speed_to_hz[] = {
 	48000000, /* SOC_REFCLK_48_MHZ */
@@ -257,7 +261,7 @@ static int ol_transfer_single_bin_file(struct ol_softc *scn,
 				__func__));
 	}
 
-	if (request_firmware(&fw_entry, filename, scn->sc_osdev->device) != 0)
+	if (qca_request_firmware(&fw_entry, filename, scn->sc_osdev->device) != 0)
 	{
 		AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
 				("%s: Failed to get %s\n",
@@ -751,7 +755,7 @@ defined(CONFIG_NON_QC_PLATFORM_PCI)
 		break;
 	}
 
-       status = request_firmware(&fw_entry, filename, scn->sc_osdev->device);
+       status = qca_request_firmware(&fw_entry, filename, scn->sc_osdev->device);
 	if (status)
 	{
 		pr_err("%s: Failed to get %s:%d\n", __func__, filename, status);
@@ -772,7 +776,7 @@ defined(CONFIG_NON_QC_PLATFORM_PCI)
 			pr_info("%s: Trying to load default %s\n",
 							__func__, filename);
 
-			status = request_firmware(&fw_entry, filename,
+			status = qca_request_firmware(&fw_entry, filename,
 					scn->sc_osdev->device);
 			if (status) {
 				pr_err("%s: Failed to get %s:%d\n",
@@ -996,15 +1000,36 @@ release_fw:
 	return status;
 }
 
+#ifdef FEATURE_DYNAMIC_POWER_CONTROL
+void ol_set_sleep_power_mode(uint32_t mode)
+{
+	g_sleep_power_mode = mode;
+}
+
+uint32_t ol_get_sleep_power_mode(void)
+{
+	return g_sleep_power_mode;
+}
+#endif
+
 static int ol_transfer_bin_file(struct ol_softc *scn, ATH_BIN_FILE file,
 				u_int32_t address, bool compressed)
 {
 	int ret;
+	bool default_sleep_power_mode_changed = false;
 
-	/* Wait until suspend and resume are completed before loading FW */
-	vos_lock_pm_sem();
+	if (0 != ol_get_sleep_power_mode()) {
+		default_sleep_power_mode_changed = true;
+	}
+
+	if (!default_sleep_power_mode_changed) {
+		/* Wait until suspend and resume are completed before loading FW */
+		vos_lock_pm_sem();
+	}
 	ret = __ol_transfer_bin_file(scn, file, address, compressed);
-	vos_release_pm_sem();
+	if (!default_sleep_power_mode_changed) {
+		vos_release_pm_sem();
+	}
 
 	return ret;
 }
@@ -3166,12 +3191,41 @@ ol_target_ready(struct ol_softc *scn, void *cfg_ctx)
 }
 #endif
 
+#if (defined(HIF_USB)) && (defined(USB_RESET_RESUME_PERSISTENCE))
+static A_STATUS ol_usb_reset_resume_enable(struct ol_softc *scn)
+{
+	A_STATUS status;
+	u_int32_t value, addr;
+
+	addr = host_interest_item_address(scn->target_type,
+			offsetof(struct host_interest_s, hi_option_flag2));
+
+	status = BMIReadMemory(scn->hif_hdl, addr, (A_UCHAR *)&value, 4, scn);
+	if (status != A_OK)
+		return status;
+
+	value |= HI_OPTION_USB_RESET_RESUME;
+
+	status = BMIWriteMemory(scn->hif_hdl, addr, (A_UCHAR *)&value, 4, scn);
+	return status;
+}
+#else
+static inline A_STATUS ol_usb_reset_resume_enable(struct ol_softc *scn)
+{
+	return A_OK;
+}
+#endif
+
 #ifdef HIF_USB
 static A_STATUS
 ol_usb_extra_initialization(struct ol_softc *scn)
 {
 	A_STATUS status = !EOK;
 	u_int32_t param = 0;
+
+	status = ol_usb_reset_resume_enable(scn);
+	if (status != A_OK)
+		return status;
 
 	param |= HI_ACS_FLAGS_ALT_DATA_CREDIT_SIZE;
 	status = BMIWriteMemory(scn->hif_hdl,

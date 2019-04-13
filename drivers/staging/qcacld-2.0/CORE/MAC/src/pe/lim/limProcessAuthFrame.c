@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -105,6 +105,46 @@ isAuthValid(tpAniSirGlobal pMac, tpSirMacAuthFrameBody auth,
     return valid;
 }
 
+#ifdef WLAN_FEATURE_SAE
+/**
+ * lim_process_sae_auth_frame()-Process SAE authentication frame
+ * @mac_ctx: MAC context
+ * @rx_pkt_info: Rx packet
+ * @pe_session: PE session
+ *
+ * Return: None
+ */
+static void lim_process_sae_auth_frame(tpAniSirGlobal mac_ctx,
+				uint8_t *rx_pkt_info, tpPESession pe_session)
+{
+	tpSirMacMgmtHdr mac_hdr;
+	uint32_t frame_len;
+	uint8_t *body_ptr;
+
+	mac_hdr = WDA_GET_RX_MAC_HEADER(rx_pkt_info);
+	body_ptr = WDA_GET_RX_MPDU_DATA(rx_pkt_info);
+	frame_len = WDA_GET_RX_PAYLOAD_LEN(rx_pkt_info);
+
+	limLog(mac_ctx, LOG1,
+		FL("Received SAE Auth frame type %d subtype %d"),
+		mac_hdr->fc.type, mac_hdr->fc.subType);
+
+	if (pe_session->limMlmState != eLIM_MLM_WT_SAE_AUTH_STATE)
+		limLog(mac_ctx, LOGE,
+			FL("received SAE auth response in unexpected state %x"),
+			pe_session->limMlmState);
+
+	limSendSmeMgmtFrameInd(mac_ctx, mac_hdr->fc.subType,
+			(uint8_t *) mac_hdr,
+			frame_len + sizeof(tSirMacMgmtHdr), 0,
+			WDA_GET_RX_CH(rx_pkt_info), pe_session,
+			WDA_GET_RX_RSSI_NORMALIZED(rx_pkt_info));
+}
+#else
+static void lim_process_sae_auth_frame(tpAniSirGlobal mac_ctx,
+				uint8_t *rx_pkt_info, tpPESession pe_session)
+{}
+#endif
 
 /**
  * limProcessAuthFrame
@@ -165,6 +205,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     tpDphHashNode           pStaDs = NULL;
     tANI_U16                assocId = 0;
     tANI_U16                currSeqNum = 0;
+    tANI_U16                auth_alg = 0;
 
     // Get pointer to Authentication frame header and body
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
@@ -219,6 +260,8 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
 
+    auth_alg = *(uint16_t *)pBody;
+    limLog(pMac, LOG1, FL("auth_alg %d "), auth_alg);
     //Restore default failure timeout
     if (VOS_P2P_CLIENT_MODE == psessionEntry->pePersona && psessionEntry->defaultAuthFailureTimeout)
     {
@@ -590,6 +633,10 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                  eSIR_FALSE);
             goto free;
         } // else if (wlan_cfgGetInt(CFG_PRIVACY_OPTION_IMPLEMENTED))
+    } else if ((auth_alg ==
+        eSIR_AUTH_TYPE_SAE) && (LIM_IS_STA_ROLE(psessionEntry))) {
+        lim_process_sae_auth_frame(pMac, pRxPacketInfo, psessionEntry);
+        goto free;
     } // if (fc.wep)
     else
     {
@@ -1179,17 +1226,29 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             if (pRxAuthFrameBody->authAlgoNumber !=
                 pMac->lim.gpLimMlmAuthReq->authType)
             {
-                /**
-                 * Received Authentication frame with an auth
-                 * algorithm other than one requested.
-                 * Wait until Authentication Failure Timeout.
+                /*
+                 * Auth algo is open in rx auth frame when auth type is SAE and
+                 * PMK is cached as driver sent auth algo as open in tx frame
+                 * as well.
                  */
+                if ((pMac->lim.gpLimMlmAuthReq->authType ==
+                    eSIR_AUTH_TYPE_SAE) && psessionEntry->sae_pmk_cached) {
+                    limLog(pMac, LOGW,
+                        FL("rx Auth frame2 auth algo %d in SAE PMK case"),
+                        pRxAuthFrameBody->authAlgoNumber);
+                } else {
+                    /**
+                     * Received Authentication frame with an auth
+                     * algorithm other than one requested.
+                     * Wait until Authentication Failure Timeout.
+                     */
 
-                // Log error
-                PELOGW(limLog(pMac, LOGW,
-                       FL("received Auth frame2 for unexpected auth algo number %d "
-                       MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
-                       MAC_ADDR_ARRAY(pHdr->sa));)
+                    // Log error
+                    PELOGW(limLog(pMac, LOGW,
+                           FL("received Auth frame2 for unexpected auth algo number %d"
+                           MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
+                           MAC_ADDR_ARRAY(pHdr->sa));)
+                }
 
                 break;
             }

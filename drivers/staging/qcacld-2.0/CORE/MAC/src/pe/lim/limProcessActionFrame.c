@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014, 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, 2016-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1462,6 +1462,7 @@ static void __limProcessSAQueryRequestActionFrame(tpAniSirGlobal pMac, tANI_U8 *
     tpSirMacMgmtHdr     pHdr;
     tANI_U8             *pBody;
     tANI_U8             transId[2];
+    uint32_t            frame_len;
 
     /* Prima  --- Below Macro not available in prima
        pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
@@ -1469,6 +1470,13 @@ static void __limProcessSAQueryRequestActionFrame(tpAniSirGlobal pMac, tANI_U8 *
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+    frame_len = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+    if (frame_len < sizeof(struct sDot11fSaQueryReq)) {
+        limLog(pMac, LOGE,
+               FL("frame_len %d less than Action Frame Hdr size"),
+               frame_len);
+        return;
+    }
 
     /* If this is an unprotected SA Query Request, then ignore it. */
     if (pHdr->fc.wep == 0)
@@ -1525,7 +1533,12 @@ static void __limProcessSAQueryResponseActionFrame(tpAniSirGlobal pMac, tANI_U8 
     pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
     VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
                          ("SA Query Response received...")) ;
-
+    if (frameLen < sizeof(struct sDot11fSaQueryRsp)) {
+        limLog(pMac, LOGE,
+               FL("frame_len %d less than Action Frame Hdr size"),
+               frameLen);
+        return;
+    }
     /* When a station, supplicant handles SA Query Response.
      * Forward to SME to HDD to wpa_supplicant.
      */

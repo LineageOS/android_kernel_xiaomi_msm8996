@@ -2918,17 +2918,43 @@ static void hif_enable_tasklet_noclient(struct hif_pci_softc *sc, void *wma_hdl)
 static int
 __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
 {
-    struct hif_pci_softc *sc = pci_get_drvdata(pdev);
-    void *vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
-    ol_txrx_pdev_handle txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos);
-    struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
-    A_target_id_t targid = hif_state->targid;
+    struct hif_pci_softc *sc;
+    void *vos;
+    ol_txrx_pdev_handle txrx_pdev;
+    struct HIF_CE_state *hif_state;
+    A_target_id_t targid;
     u32 tx_drain_wait_cnt = 0;
     u32 val;
     u32 ce_drain_wait_cnt = 0;
     v_VOID_t * temp_module;
     u32 tmp;
     int ret = -EBUSY;
+
+    sc = pci_get_drvdata(pdev);
+    if (!sc) {
+       printk("%s: sc is NULL\n", __func__);
+       goto out;
+    }
+
+    hif_state = (struct HIF_CE_state *)sc->hif_device;
+    if (!hif_state){
+       printk("%s: hif_state is NULL\n", __func__);
+       goto out;
+    }
+
+    targid = hif_state->targid;
+
+    vos = vos_get_global_context(VOS_MODULE_ID_HIF, NULL);
+    if (!vos) {
+       printk("%s: vos is NULL\n", __func__);
+       goto out;
+    }
+
+    txrx_pdev = vos_get_context(VOS_MODULE_ID_TXRX, vos);
+    if (!txrx_pdev) {
+        printk("%s: txrx_pdev is NULL\n", __func__);
+        goto out;
+    }
 
     hif_irq_record(HIF_SUSPEND_START, sc);
 
@@ -2938,10 +2964,6 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
     if (vos_is_load_unload_in_progress(VOS_MODULE_ID_HIF, NULL))
         return ret;
 
-    if (!txrx_pdev) {
-        printk("%s: txrx_pdev is NULL\n", __func__);
-        goto out;
-    }
     /* Wait for pending tx completion */
     while (ol_txrx_get_tx_pending(txrx_pdev) ||
            ol_txrx_get_queue_status(txrx_pdev)) {

@@ -2699,6 +2699,12 @@ IE fils_nonce (EID_EXTN_ID_ELEMENT) OUI ( 0x0D )
     nonce[16];
 }
 
+IE dh_parameter_element (EID_EXTN_ID_ELEMENT) OUI ( 0x20 )
+{
+    group[2];
+    public_key[0..255];
+}
+
 /////////////////////////////////////////////////////////////////////////////
 //                                MULTIIEs                                 //
 /////////////////////////////////////////////////////////////////////////////
@@ -3379,6 +3385,7 @@ FRAME AssocRequest                        // 7.2.3.4
     OPTIE  QOSCapsStation;
     OPTIE  RRMEnabledCap;
     OPTIE  MobilityDomain;
+    OPTIE  dh_parameter_element;
     OPTIE  WPAOpaque;
     OPTIE  HTCaps;
     OPTIE  WMMCaps;

@@ -457,7 +457,7 @@ typedef struct sSirSupportedRates {
     * bits 0-15 and 32 should be set.
     */
     tANI_U8 supportedMCSSet[SIR_MAC_MAX_SUPPORTED_MCS_SET];
-
+    bool mcs_txforce2chain;
     /*
      * RX Highest Supported Data Rate defines the highest data
      * rate that the STA is able to receive, in unites of 1Mbps.
@@ -1211,6 +1211,7 @@ typedef struct sSirSmeJoinReq
 #ifdef WLAN_FEATURE_FILS_SK
     struct cds_fils_connection_info fils_con_info;
 #endif
+    bool sae_pmk_cached;
     tSirBssDescription  bssDescription;
     /*
      * WARNING: Pls make bssDescription as last variable in struct
@@ -6600,9 +6601,9 @@ struct sir_wifi_peer_signal_stats {
 	/* Background noise */
 	int32_t nf[WIFI_MAX_CHAINS];
 
-	int32_t per_ant_rx_mpdus[WIFI_MAX_CHAINS];
-	int32_t per_ant_tx_mpdus[WIFI_MAX_CHAINS];
-	int32_t num_chain;
+	uint32_t per_ant_rx_mpdus[WIFI_MAX_CHAINS];
+	uint32_t per_ant_tx_mpdus[WIFI_MAX_CHAINS];
+	uint32_t num_chain;
 };
 
 #define WIFI_VDEV_NUM		4
@@ -8633,11 +8634,6 @@ struct sme_change_country_code_ind {
 	uint8_t   country_code[WNI_CFG_COUNTRY_CODE_LEN];
 };
 
-struct update_pwr_timer_data {
-	void* mac_ptr;
-	void* session_ptr;
-};
-
 /**
  * struct sir_set_rx_reorder_timeout_val - rx reorder timeout
  * @rx_timeout_pri: reorder timeout for AC
@@ -8690,4 +8686,33 @@ struct action_frame_random_filter {
 	uint8_t mac_addr[VOS_MAC_ADDR_SIZE];
 };
 
+/**
+ * struct sae_info - SAE info used for commit/confirm messages
+ * @msg_type: Message type
+ * @msg_len: length of message
+ * @vdev_id: vdev id
+ * @peer_mac_addr: peer MAC address
+ * @ssid: SSID
+ */
+struct sir_sae_info {
+	uint16_t msg_type;
+	uint16_t msg_len;
+	uint32_t vdev_id;
+	v_MACADDR_t peer_mac_addr;
+	tSirMacSSid ssid;
+};
+
+/**
+ * struct sir_sae_msg - SAE msg used for message posting
+ * @message_type: message type
+ * @length: message length
+ * @session_id: SME session id
+ * @sae_status: SAE status, 0: Success, Non-zero: Failure.
+ */
+struct sir_sae_msg {
+	uint16_t message_type;
+	uint16_t length;
+	uint16_t session_id;
+	uint8_t sae_status;
+};
 #endif /* __SIR_API_H */

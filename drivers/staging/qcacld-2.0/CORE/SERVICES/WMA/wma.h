@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -369,6 +369,27 @@ typedef enum {
         WMA_ROAM_PREAUTH_CHAN_CANCEL_REQUESTED,
         WMA_ROAM_PREAUTH_CHAN_COMPLETED
 } t_wma_roam_preauth_chan_state_t;
+
+#ifdef FEATURE_PBM_MAGIC_WOW
+/**
+ * enum pbm_mp_reason - enum of parsed wow reason
+ * @PBM_MP_REASON_MAGIC: wakeup by magic packet
+ * @PBM_MP_REASON_IPV4_UDP: wakeup by matched dst port ipv4 udp packet
+ * @PBM_MP_REASON_IPV4_TCP: wakeup by matched dst port ipv4 tcp packet
+ * @PBM_MP_REASON_IPV6_UDP: wakeup by matched dst port ipv6 udp packet
+ * @PBM_MP_REASON_IPV6_TCP: wakeup by matched dst port ipv6 tcp packet
+ * @PBM_MP_REASON_UNKNOWN: other reason
+ */
+enum pbm_mp_reason {
+	PBM_MP_REASON_MAGIC = 0,
+	PBM_MP_REASON_IPV4_UDP = 9,
+	PBM_MP_REASON_IPV4_TCP = 10,
+	PBM_MP_REASON_IPV6_UDP = 11,
+	PBM_MP_REASON_IPV6_TCP = 12,
+	PBM_MP_REASON_UNKNOWN = 255,
+};
+#endif
+
 /*
  * memory chunck allocated by Host to be managed by FW
  * used only for low latency interfaces like pcie
@@ -955,6 +976,10 @@ typedef struct wma_handle {
 	uint16_t max_mgmt_tx_fail_count;
 	uint32_t ccmp_replays_attack_cnt;
 
+#ifdef FEATURE_PBM_MAGIC_WOW
+	bool is_parsed_reason_set;
+	enum pbm_mp_reason wow_parsed_reason;
+#endif
 	struct wma_runtime_pm_context runtime_context;
 	uint32_t fine_time_measurement_cap;
 	bool bpf_enabled;

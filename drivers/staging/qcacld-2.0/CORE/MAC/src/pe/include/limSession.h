@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -483,7 +483,6 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8  isKeyInstalled;
     /* timer for reseting protection fileds at regular intervals */
     vos_timer_t protection_fields_reset_timer;
-    vos_timer_t reg_update_pwr_timer;
     void *mac_ctx;
     /*
      * variable to store state of various protection struct like
@@ -534,6 +533,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     uint8_t disassocmsgcnt;
     /* previous auth frame's sequence number */
     uint16_t prev_auth_seq_num;
+    bool sae_pmk_cached;
 } tPESession, *tpPESession;
 
 /*-------------------------------------------------------------------------

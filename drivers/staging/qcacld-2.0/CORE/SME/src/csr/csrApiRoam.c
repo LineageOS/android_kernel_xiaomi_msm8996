@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -122,6 +122,52 @@ static tCsrRoamSession csrRoamRoamSession[CSR_ROAM_SESSION_MAX];
 /*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
+#ifdef WLAN_FEATURE_SAE
+/**
+ * csr_sae_callback - Update SAE info to CSR roam session
+ * @mac_ctx: MAC context
+ * @msg_ptr: pointer to SAE message
+ *
+ * API to update SAE info to roam csr session
+ *
+ * Return: QDF_STATUS
+ */
+static VOS_STATUS csr_sae_callback(tpAniSirGlobal mac_ctx,
+				tSirSmeRsp *msg_ptr)
+{
+	tCsrRoamInfo roam_info;
+	uint32_t session_id;
+	struct sir_sae_info *sae_info;
+
+	sae_info = (struct sir_sae_info *) msg_ptr;
+	if (!sae_info) {
+		smsLog(mac_ctx, LOGE, "SAE info is NULL");
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	smsLog(mac_ctx, LOG1, FL("vdev_id %d "MAC_ADDRESS_STR""),
+		sae_info->vdev_id,
+		MAC_ADDR_ARRAY(sae_info->peer_mac_addr.bytes));
+
+	session_id = sae_info->vdev_id;
+	if (session_id == CSR_SESSION_ID_INVALID)
+		return VOS_STATUS_E_FAILURE;
+
+	roam_info.sae_info = sae_info;
+	csrRoamCallCallback(mac_ctx, session_id, &roam_info,
+			0, eCSR_ROAM_SAE_COMPUTE,
+			eCSR_ROAM_RESULT_NONE);
+
+	return VOS_STATUS_SUCCESS;
+}
+#else
+static inline VOS_STATUS csr_sae_callback(tpAniSirGlobal mac_ctx,
+				tSirSmeRsp *msg_ptr)
+{
+	return VOS_STATUS_SUCCESS;
+}
+#endif
+
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
 int diagAuthTypeFromCSRType(eCsrAuthType authType)
 {
@@ -3539,8 +3585,10 @@ eHalStatus csrRoamPrepareBssConfig(tpAniSirGlobal pMac, tCsrRoamProfile *pProfil
                 pBssConfig->uCfgDot11Mode = eCSR_CFG_DOT11_MODE_11A;
             }
         }
-        smsLog(pMac, LOG1, FL("phyMode %d uCfgDot11Mode %d"),
-                              pProfile->phyMode, pBssConfig->uCfgDot11Mode);
+        smsLog(pMac, LOG1,
+               FL("phyMode %d uCfgDot11Mode %d negotiatedAuthType %d"),
+                              pProfile->phyMode, pBssConfig->uCfgDot11Mode,
+                              pProfile->negotiatedAuthType);
         //Qos
         if ((pBssConfig->uCfgDot11Mode != eCSR_CFG_DOT11_MODE_11N) &&
                 (pMac->roam.configParam.WMMSupportMode == eCsrRoamWmmNoQos))
@@ -3576,6 +3624,9 @@ eHalStatus csrRoamPrepareBssConfig(tpAniSirGlobal pMac, tCsrRoamProfile *pProfil
                 break;
             case eCSR_AUTH_TYPE_AUTOSWITCH:
                 pBssConfig->authType = eSIR_AUTO_SWITCH;
+                break;
+            case eCSR_AUTH_TYPE_SAE:
+                pBssConfig->authType = eSIR_AUTH_TYPE_SAE;
                 break;
         }
         //short slot time
@@ -3714,6 +3765,9 @@ eHalStatus csrRoamPrepareBssConfigFromProfile(tpAniSirGlobal pMac,
             break;
         case eCSR_AUTH_TYPE_AUTOSWITCH:
             pBssConfig->authType = eSIR_AUTO_SWITCH;
+            break;
+        case eCSR_AUTH_TYPE_SAE:
+            pBssConfig->authType = eSIR_AUTH_TYPE_SAE;
             break;
     }
     //short slot time
@@ -4710,6 +4764,11 @@ static void csrRoamAssignDefaultParam( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         case eCSR_AUTH_TYPE_AUTOSWITCH:
              pCommand->u.roamCmd.roamProfile.negotiatedAuthType = eCSR_AUTH_TYPE_AUTOSWITCH;
              break;
+
+        case eCSR_AUTH_TYPE_SAE:
+             pCommand->u.roamCmd.roamProfile.negotiatedAuthType =
+                                      eCSR_AUTH_TYPE_SAE;
+             break;
     }
     pCommand->u.roamCmd.roamProfile.negotiatedUCEncryptionType =
     pCommand->u.roamCmd.roamProfile.EncryptionType.encryptionType[0];
@@ -5476,7 +5535,7 @@ static eHalStatus csrRoamSaveSecurityRspIE(tpAniSirGlobal pMac, tANI_U32 session
        (eCSR_AUTH_TYPE_RSN_PSK_SHA256 == authType) ||
        (eCSR_AUTH_TYPE_RSN_8021X_SHA256 == authType)
 #endif /* FEATURE_WLAN_WAPI */
-        )
+        || (eCSR_AUTH_TYPE_SAE == authType))
     {
         if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal))) )
         {
@@ -9691,6 +9750,11 @@ void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
                     smsLog(pMac, LOGE, FL("pGetRssiReq->rssiCallback is NULL"));
                 }
             }
+            break;
+
+        case eWNI_SME_TRIGGER_SAE:
+            smsLog(pMac, LOG1, FL("Invoke SAE callback"));
+            csr_sae_callback(pMac, pSmeRsp);
             break;
 
         default:
@@ -14363,6 +14427,37 @@ static void csr_update_fils_connection_info(tCsrRoamProfile *profile,
 { }
 #endif
 
+#ifdef WLAN_FEATURE_SAE
+/*
+ * csr_update_sae_config: Copy SAE info to join request
+ * @profile: pointer to profile
+ * @csr_join_req: csr join request
+ *
+ * Return: None
+ */
+static void csr_update_sae_config(tSirSmeJoinReq *csr_join_req,
+			tpAniSirGlobal mac, tCsrRoamSession *session)
+{
+	tPmkidCacheInfo pmkid_cache;
+	uint32_t index;
+
+	vos_mem_copy(pmkid_cache.BSSID,
+		csr_join_req->bssDescription.bssId, VOS_MAC_ADDR_SIZE);
+
+	csr_join_req->sae_pmk_cached =
+	    csr_lookup_pmkid_using_bssid(mac, session, &pmkid_cache, &index);
+
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+		"pmk_cached %d for BSSID=" MAC_ADDRESS_STR,
+		csr_join_req->sae_pmk_cached,
+		MAC_ADDR_ARRAY(csr_join_req->bssDescription.bssId));
+}
+#else
+static void csr_update_sae_config(tSirSmeJoinReq *csr_join_req,
+			tpAniSirGlobal mac, tCsrRoamSession *session)
+{ }
+#endif
+
 
 ////////////////////Mail box
 
@@ -14440,7 +14535,6 @@ csrPrepareJoinReassocReqBuffer(tpAniSirGlobal pMac,
         *pBuf++ = pMac->sub20_channelwidth;
 
     csr_update_fils_connection_info(pProfile, &pBuf);
-
     *pBuf++ = uapsdMask;
 
     // move the entire BssDescription into the join request.
@@ -15180,6 +15274,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
             csrPrepareJoinReassocReqBuffer(pMac, pBssDescription, pBuf,
                                            (tANI_U8)pProfile->uapsd_mask,
                                            messageType, pProfile);
+        csr_update_sae_config(pMsg, pMac, pSession);
 
         pBuf += used_length;
         /*
@@ -18343,6 +18438,22 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
    {
      smsLog( pMac, LOGE,"Roam Scan Offload is already started");
      return eHAL_STATUS_FAILURE;
+   }
+
+   /* Roaming is not supported currently for OWE akm */
+   if (pSession->pCurRoamProfile &&
+       (pSession->pCurRoamProfile->AuthType.authType[0] ==
+       eCSR_AUTH_TYPE_OWE)) {
+     smsLog(pMac, LOGE, "Roaming not suppprted for OWE connection");
+     return eHAL_STATUS_SUCCESS;
+   }
+
+   /* Roaming is not supported currently for SAE authentication */
+   if (pSession->pCurRoamProfile &&
+       CSR_IS_AUTH_TYPE_SAE(
+     pSession->pCurRoamProfile->AuthType.authType[0])) {
+     smsLog(pMac, LOGE, "Roaming not suppprted for SAE connection");
+     return eHAL_STATUS_SUCCESS;
    }
    /*The Dynamic Config Items Update may happen even if the state is in INIT.
     * It is important to ensure that the command is passed down to the FW only
