@@ -11496,10 +11496,14 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         }
                         if(!HAL_STATUS_SUCCESS(status))
                         {
-                            if(pRoamInfo->pbFrames)
+                            if(pRoamInfo->pbFrames) {
                                 vos_mem_free(pRoamInfo->pbFrames);
-                            if(pRoamInfo->pBssDesc)
+                                pRoamInfo->pbFrames = NULL;
+                            }
+                            if(pRoamInfo->pBssDesc) {
                                 vos_mem_free(pRoamInfo->pBssDesc);
+                                pRoamInfo->pBssDesc = NULL;
+                            }
                         }
                     }
                     if ((eCSR_ENCRYPT_TYPE_NONE ==
