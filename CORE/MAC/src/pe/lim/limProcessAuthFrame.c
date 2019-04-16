@@ -1248,9 +1248,8 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                            FL("received Auth frame2 for unexpected auth algo number %d"
                            MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
                            MAC_ADDR_ARRAY(pHdr->sa));)
+                    break;
                 }
-
-                break;
             }
 
             if (pRxAuthFrameBody->authStatusCode ==

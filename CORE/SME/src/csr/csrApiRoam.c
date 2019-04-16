@@ -13844,20 +13844,19 @@ static void csr_update_pmk_cache(tCsrRoamSession *pSession,
     uint16_t cache_idx = pSession->curr_cache_idx;
 
     /* Add entry to the cache */
-    if (!pmksa->ssid_len) {
-        vos_copy_macaddr(
-                (v_MACADDR_t *)pSession->PmkidCacheInfo[cache_idx].BSSID,
-                (v_MACADDR_t *)pmksa->BSSID);
-        pSession->PmkidCacheInfo[cache_idx].ssid_len = 0;
-    } else {
+    pSession->PmkidCacheInfo[cache_idx].ssid_len = 0;
+    if (pmksa->ssid_len) {
         vos_mem_copy(pSession->PmkidCacheInfo[cache_idx].ssid,
                 pmksa->ssid, pmksa->ssid_len);
         pSession->PmkidCacheInfo[cache_idx].ssid_len =
             pmksa->ssid_len;
-        vos_mem_copy(pSession->PmkidCacheInfo[cache_idx].cache_id,
-                pmksa->cache_id, CACHE_ID_LEN);
-
     }
+    vos_copy_macaddr(
+            (v_MACADDR_t *)pSession->PmkidCacheInfo[cache_idx].BSSID,
+            (v_MACADDR_t *)pmksa->BSSID);
+    vos_mem_copy(pSession->PmkidCacheInfo[cache_idx].cache_id,
+                 pmksa->cache_id, CACHE_ID_LEN);
+
     vos_mem_copy(
             pSession->PmkidCacheInfo[cache_idx].PMKID,
             pmksa->PMKID, CSR_RSN_PMKID_SIZE);
@@ -14439,27 +14438,34 @@ static void csr_update_fils_connection_info(tCsrRoamProfile *profile,
  *
  * Return: None
  */
-static void csr_update_sae_config(tSirSmeJoinReq *csr_join_req,
-			tpAniSirGlobal mac, tCsrRoamSession *session)
+static bool csr_update_sae_config(tSirMacAddr bssid,
+				  tpAniSirGlobal mac,
+				  tCsrRoamSession *session)
 {
 	tPmkidCacheInfo pmkid_cache;
 	uint32_t index;
+	bool sae_pmk_cached;
 
 	vos_mem_copy(pmkid_cache.BSSID,
-		csr_join_req->bssDescription.bssId, VOS_MAC_ADDR_SIZE);
+		     bssid, VOS_MAC_ADDR_SIZE);
 
-	csr_join_req->sae_pmk_cached =
+	sae_pmk_cached =
 	    csr_lookup_pmkid_using_bssid(mac, session, &pmkid_cache, &index);
 
 	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
 		"pmk_cached %d for BSSID=" MAC_ADDRESS_STR,
-		csr_join_req->sae_pmk_cached,
-		MAC_ADDR_ARRAY(csr_join_req->bssDescription.bssId));
+		sae_pmk_cached,
+		MAC_ADDR_ARRAY(bssid));
+
+	return sae_pmk_cached;
 }
 #else
-static void csr_update_sae_config(tSirSmeJoinReq *csr_join_req,
-			tpAniSirGlobal mac, tCsrRoamSession *session)
-{ }
+static bool csr_update_sae_config(tSirMacAddr bssid,
+				  tpAniSirGlobal mac,
+				  tCsrRoamSession *session)
+{
+	return false;
+}
 #endif
 
 
@@ -14702,6 +14708,8 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
 #endif
         //Persona
         *pBuf = (tANI_U8)pProfile->csrPersona;
+        pBuf++;
+        *pBuf = csr_update_sae_config(pBssDescription->bssId, pMac, pSession);
         pBuf++;
         *pBuf = (tANI_U8)pProfile->bOSENAssociation;
         pBuf++;
@@ -15278,7 +15286,6 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
             csrPrepareJoinReassocReqBuffer(pMac, pBssDescription, pBuf,
                                            (tANI_U8)pProfile->uapsd_mask,
                                            messageType, pProfile);
-        csr_update_sae_config(pMsg, pMac, pSession);
 
         pBuf += used_length;
         /*
