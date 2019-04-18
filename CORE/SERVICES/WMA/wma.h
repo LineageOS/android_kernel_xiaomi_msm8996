@@ -1875,6 +1875,17 @@ bool wma_is_vdev_up(uint8_t vdev_id);
 int wma_btc_set_bt_wlan_interval(tp_wma_handle wma_handle,
 			WMI_COEX_CONFIG_CMD_fixed_param *interval);
 
+/**
+ * wma_ps_set_tx_duty_cycle_control() - API to set tx duty cycle control param
+ * @wma_handle: wma handle
+ * @enable: tdcc enable or disable
+ * @tx_cycle_percentage: percentage of tx duty cycle
+ *
+ * Return: error code if fail, 0 if success
+ */
+int wma_ps_set_tx_duty_cycle_control(tp_wma_handle wma_handle,
+				     uint32_t enable,
+				     uint32_t tx_cycle_percentage);
 
 int wma_crash_inject(tp_wma_handle wma_handle, uint32_t type,
 			uint32_t delay_time_ms);
