@@ -6453,6 +6453,82 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx, int indType,
     return;
 }
 
+static int wlan_hdd_set_primary_peer(hdd_adapter_t *adapter,
+				     v_MACADDR_t *mac_addr)
+{
+	uint8_t sta_id;
+	hdd_station_ctx_t *hdd_std_ctx;
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+
+	if (adapter->device_mode == WLAN_HDD_INFRA_STATION) {
+	    hdd_std_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+		if (hdd_std_ctx->conn_info.connState ==
+		    eConnectionState_NotConnected) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       "%s: Connection is not established",
+			       __func__);
+			return -EINVAL;
+		}
+
+		if (!vos_mem_compare(mac_addr->bytes,
+				     hdd_std_ctx->conn_info.bssId,
+				     VOS_MAC_ADDR_SIZE)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       "%s: BSSIS is "MAC_ADDRESS_STR" not "MAC_ADDRESS_STR,
+			       __func__,
+			       MAC_ADDR_ARRAY(hdd_std_ctx->conn_info.bssId),
+			       MAC_ADDR_ARRAY(mac_addr->bytes));
+			return -EINVAL;
+		}
+		goto set_mac;
+	}
+
+	if (adapter->device_mode != WLAN_HDD_SOFTAP) {
+		hddLog(VOS_TRACE_LEVEL_INFO,
+		       FL("invalid device_mode:%d"), adapter->device_mode);
+		return -EINVAL;
+	}
+
+	if (VOS_STATUS_SUCCESS !=
+		hdd_softap_GetStaId(adapter, mac_addr, &sta_id)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Failed to find the station id", __func__);
+		return -EINVAL;
+	}
+
+	if (sta_id == HDD_WLAN_INVALID_STA_ID ||
+	    sta_id >= WLAN_MAX_STA_COUNT) {
+	    hddLog(VOS_TRACE_LEVEL_ERROR,
+		   "%s: Failed to find right station", __func__);
+	    return -EINVAL;
+	}
+
+	if (FALSE == adapter->aStaInfo[sta_id].isUsed) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: STA %d is unregistered", __func__, sta_id);
+		return -EINVAL;
+	}
+
+	if ((adapter->aStaInfo[sta_id].tlSTAState !=
+	     WLANTL_STA_CONNECTED) &&
+            (adapter->aStaInfo[sta_id].tlSTAState !=
+	     WLANTL_STA_AUTHENTICATED)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+                       "%s: Station not connected yet", __func__);
+		return -EINVAL;
+	}
+set_mac:
+	hddLog(VOS_TRACE_LEVEL_INFO_LOW, FL("Send Primary MAC to target"));
+	if (eHAL_STATUS_SUCCESS != sme_ll_stats_set_primary_mac(hdd_ctx->hHal,
+								adapter->sessionId,
+								mac_addr->bytes)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("sme_ll_stats_set_thresh failed."));
+		return -EINVAL;
+	}
+	return 0;
+}
+
 static const struct nla_policy
 qca_wlan_vendor_ll_ext_policy[QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_MAX + 1] = {
 	[QCA_WLAN_VENDOR_ATTR_LL_STATS_CFG_PERIOD] = {
@@ -6632,6 +6708,25 @@ static int __wlan_hdd_cfg80211_ll_stats_ext_set_param(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
+	if (tb[QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS]) {
+		struct net_device *dev  = wdev->netdev;
+	        hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+		v_MACADDR_t mac_addr;
+		uint32_t atr_len;
+
+		/* Set primary peer MAC address */
+		atr_len = nla_len(tb[QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS]);
+		atr_len = atr_len > VOS_MAC_ADDR_SIZE ?
+					VOS_MAC_ADDR_SIZE : atr_len;
+		nla_memcpy(mac_addr.bytes,
+			tb[QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS],
+			atr_len);
+		hddLog(VOS_TRACE_LEVEL_INFO,
+		       FL("Primary MAC from user layer is " MAC_ADDRESS_STR),
+		       MAC_ADDR_ARRAY(mac_addr.bytes));
+		return wlan_hdd_set_primary_peer(adapter, &mac_addr);
+	}
+
 	if (tb[QCA_WLAN_VENDOR_ATTR_LL_STATS_CFG_PERIOD]) {
 		thresh.period = nla_get_u32(tb[
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_CFG_PERIOD]);
@@ -6657,27 +6752,6 @@ static int __wlan_hdd_cfg80211_ll_stats_ext_set_param(struct wiphy *wiphy,
 		    == eHAL_STATUS_FAILURE)
 			hddLog(LOGE, "can't pass WNI_CFG_ASSOC_STA_LIMIT_AP to CCM");
 		goto set_param;
-	} else {
-#define MAC_COUNTER_MAX_PEER 2
-		tpAniSirGlobal mac = (tpAniSirGlobal)hdd_ctx->hHal;
-		uint32_t cur_peer_num = peGetCurrentSTAsCount(mac);
-		if (cur_peer_num > MAC_COUNTER_MAX_PEER) {
-			hddLog(LOGE, ("MAC counter can only support %d peers, current peer number is %d"),
-			       MAC_COUNTER_MAX_PEER, cur_peer_num);
-			return -ENOMEM;
-		}
-
-		if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_ASSOC_STA_LIMIT_AP,
-				 MAC_COUNTER_MAX_PEER, NULL, eANI_BOOLEAN_FALSE)
-			== eHAL_STATUS_FAILURE)
-			hddLog(LOGE,"can't pass WNI_CFG_ASSOC_STA_LIMIT_AP to CCM");
-		else
-			hddLog(VOS_TRACE_LEVEL_INFO,
-			       FL("limit MAX peer count to %d"),
-			          MAC_COUNTER_MAX_PEER);
-
-		hddLog(VOS_TRACE_LEVEL_INFO,
-		       FL("MAC counter enabled"));
 	}
 
 	/* global thresh is not enabled */

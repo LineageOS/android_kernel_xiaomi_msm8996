@@ -6225,8 +6225,10 @@ static int wma_ll_stats_evt_handler(void *handle, u_int8_t *event,
 	peer_num = peer_num > fixed_param->num_peer_ac_rx_stats ?
 			peer_num : fixed_param->num_peer_ac_rx_stats;
 
-	if (peer_num == 0)
+	if (peer_num == 0) {
+		WMA_LOGE("%s: Peer number is zero", __func__);
 		return -EINVAL;
+	}
 
 	link_stats_results = __wma_get_ll_stats_ext_buf(&result_size,
 							peer_num,
@@ -6405,6 +6407,38 @@ void wma_tx_failure_cb(void *ctx, uint32_t num_msdu, uint8_t tid, uint32 status)
 		WMA_LOGP(FL("Failed to post tx failure msg!"));
 		vos_mem_free(results);
 	}
+}
+
+/**
+ * wma_config_stats_ext_primary_mac() - Set primary peer ID
+ * @wma: wma handle
+ * @params: MAC address for the primary peer
+ *
+ */
+static void wma_config_stats_primary_mac(struct wma_handle *wma,
+					 struct hal_primary_params *params)
+{
+	uint8_t peer_id;
+	ol_txrx_peer_handle peer;
+	ol_txrx_pdev_handle pdev;
+
+	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+
+	/* Get the peer ID */
+	peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
+
+	if (!peer) {
+		WMA_LOGD(FL(" Peer not exist for MAC addree " MAC_ADDRESS_STR),
+			 MAC_ADDR_ARRAY(params->bssid));
+		return;
+	}
+
+	WMA_LOGD(FL("MAC addree is " MAC_ADDRESS_STR " PeerID is %d"),
+		 MAC_ADDR_ARRAY(params->bssid), peer_id);
+
+	wma_set_peer_param(wma, params->bssid,
+			   WMI_PEER_PARAM_MISC_STATS_ENABLE, peer_id,
+			   params->session_id);
 }
 
 /**
@@ -35400,6 +35434,11 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_LINK_LAYER_STATS_SET_THRESHOLD:
 			wma_config_stats_ext_threshold(wma_handle,
 						       msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_LINK_LAYER_STATS_SET_PRIMARY_PEER:
+			wma_config_stats_primary_mac(wma_handle,
+						     msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif /* WLAN_FEATURE_LINK_LAYER_STATS */
