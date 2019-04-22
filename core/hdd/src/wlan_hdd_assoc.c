@@ -424,6 +424,24 @@ end:
 	return NULL;
 }
 
+void hdd_abort_ongoing_sta_connection(hdd_context_t *hdd_ctx)
+{
+	hdd_adapter_t *sta_adapter;
+	QDF_STATUS status;
+
+	sta_adapter = hdd_get_sta_connection_in_progress(hdd_ctx);
+	if (sta_adapter) {
+		hdd_debug("Disconnecting STA on vdev: %d",
+			  sta_adapter->sessionId);
+		status = wlan_hdd_disconnect(sta_adapter,
+					     eCSR_DISCONNECT_REASON_DEAUTH);
+		if (QDF_IS_STATUS_ERROR(status)) {
+			hdd_err("wlan_hdd_disconnect failed, status: %d",
+				status);
+		}
+	}
+}
+
 /**
  * hdd_remove_beacon_filter() - remove beacon filter
  * @adapter: Pointer to the hdd adapter

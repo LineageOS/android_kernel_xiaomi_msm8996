@@ -5061,6 +5061,17 @@ QDF_STATUS hdd_stop_adapter(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 #endif
 
 		/*
+		 * During vdev destroy, if any STA is in connecting state the
+		 * roam command will be in active queue and thus vdev destroy is
+		 * queued in pending queue. In case STA tries to connect to
+		 * multiple BSSID and fails to connect, due to auth/assoc
+		 * timeouts it may take more than vdev destroy time to get
+		 * completed. So before vdev destroy is queued abort any STA
+		 * ongoing connection to avoid vdev destroy timeout.
+		 */
+		if (test_bit(SME_SESSION_OPENED, &adapter->event_flags))
+			hdd_abort_ongoing_sta_connection(hdd_ctx);
+		/*
 		 * It is possible that the caller of this function does not
 		 * wish to close the session
 		 */
@@ -5102,6 +5113,18 @@ QDF_STATUS hdd_stop_adapter(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 			wlan_hdd_cleanup_remain_on_channel_ctx(adapter);
 
 		hdd_deregister_tx_flow_control(adapter);
+
+		/*
+		 * During vdev destroy, if any STA is in connecting state the
+		 * roam command will be in active queue and thus vdev destroy is
+		 * queued in pending queue. In case STA tries to connect to
+		 * multiple BSSID and fails to connect, due to auth/assoc
+		 * timeouts it may take more than vdev destroy time to get
+		 * complete. So before vdev destroy is queued abort any STA
+		 * ongoing connection to avoid vdev destroy timeout.
+		 */
+		if (test_bit(SME_SESSION_OPENED, &adapter->event_flags))
+			hdd_abort_ongoing_sta_connection(hdd_ctx);
 
 		mutex_lock(&hdd_ctx->sap_lock);
 		if (test_bit(SOFTAP_BSS_STARTED, &adapter->event_flags)) {
