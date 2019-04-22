@@ -4173,6 +4173,19 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_BTC_WLAN_COEX_TX_POWER_MAX       (63)
 #define CFG_BTC_WLAN_COEX_TX_POWER_DEFAULT   (63)
 
+/* Config to set WLAN on the uplink periodically pauses and unpauses its data queues */
+#ifdef WMI_COEX_BTC_DUTYCYCLE
+#define CFG_COEX_PAUSE_NAME             "gCoexWLANPauseDuration"
+#define CFG_COEX_PAUSE_MIN              (0)
+#define CFG_COEX_PAUSE_MAX              (100)
+#define CFG_COEX_PAUSE_DEFAULT          (30)
+
+#define CFG_COEX_UNPAUSE_NAME           "gCoexWLANUnpauseDuration"
+#define CFG_COEX_UNPAUSE_MIN            (0)
+#define CFG_COEX_UNPAUSE_MAX            (100)
+#define CFG_COEX_UNPAUSE_DEFAULT        (30)
+#endif
+
 /* Parameters for roaming scans performed at high RSSI */
 
 /* Maximum number of scans after RSSI change */
@@ -6417,6 +6430,11 @@ struct hdd_config {
 #ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
    uint8_t                     coex_pta_config_enable;
    uint32_t                    coex_pta_config_param;
+#endif
+
+#ifdef WMI_COEX_BTC_DUTYCYCLE
+   uint32_t               coex_btc_PauseDuration;
+   uint32_t               coex_btc_UnPauseDuration;
 #endif
 
    uint8_t                     inform_bss_rssi_raw;
