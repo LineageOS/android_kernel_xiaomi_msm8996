@@ -31027,8 +31027,8 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
     if (0 != status)
         return status;
 
-    if ((NULL == pHddCtx->chan_info) &&
-        (pHddCtx->cfg_ini->fEnableSNRMonitoring)) {
+    if ((NULL == pHddCtx->chan_info) ||
+        (0 == pHddCtx->cfg_ini->fEnableSNRMonitoring)) {
         hddLog(LOGE, FL("chan_info is NULL"));
         return -EINVAL;
     }
@@ -31038,19 +31038,18 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
         return -EINVAL;
     }
 
-    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+    if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) {
+        pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-    if (0 == pHddCtx->cfg_ini->fEnableSNRMonitoring ||
-        eConnectionState_Associated != pHddStaCtx->conn_info.connState)
-    {
-        return -ENONET;
-    }
+        if (eConnectionState_Associated != pHddStaCtx->conn_info.connState)
+            return -ENONET;
 
-    if (VOS_TRUE == pHddStaCtx->hdd_ReassocScenario)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                 "%s: Roaming in progress, hence return ", __func__);
-        return -ENONET;
+        if (VOS_TRUE == pHddStaCtx->hdd_ReassocScenario)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                     "%s: Roaming in progress, hence return ", __func__);
+            return -ENONET;
+        }
     }
 
     halHandle = WLAN_HDD_GET_HAL_CTX(pAdapter);
