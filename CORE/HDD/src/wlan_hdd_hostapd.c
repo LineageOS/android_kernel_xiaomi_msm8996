@@ -3715,6 +3715,9 @@ static int __iw_softap_set_two_ints_getnone(struct net_device *dev,
             pHddCtx->isLogpInProgress = true;
         break;
 #endif
+    case QCSAP_IOCTL_SET_PS_TDCC:
+        ret = wlan_hdd_process_tdcc_ps(pAdapter, value[1], value[2]);
+        break;
     case QCSAP_IOCTL_DUMP_DP_TRACE_LEVEL:
         hddLog(LOG1, "WE_DUMP_DP_TRACE: %d %d",
             value[1], value[2]);
@@ -7620,6 +7623,10 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "crash_inject" },
 #endif
+    {   QCSAP_IOCTL_SET_PS_TDCC,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+	0,
+	"set_ps_tdcc" },
 
     /* handlers for main ioctl */
     {   QCSAP_IOCTL_WOWL_CONFIG_PTRN,

@@ -17762,6 +17762,10 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		case GEN_PARAM_MODULATED_DTIM:
 			wma_set_modulated_dtim(wma, privcmd);
 			break;
+		case GEN_PARAM_PS_TDCC:
+			wma_ps_set_tx_duty_cycle_control(wma,
+				privcmd->param_value, privcmd->param_sec_value);
+			break;
 		case GEN_PDEV_MONITOR_MODE:
 			wma_send_pdev_monitor_mode_cmd(wma, privcmd);
 			break;
@@ -42202,6 +42206,50 @@ int wma_btc_set_bt_wlan_interval(tp_wma_handle wma_handle,
 				interval->config_type,
 				interval->config_arg1,
 				interval->config_arg2);
+	return 0;
+}
+
+int wma_ps_set_tx_duty_cycle_control(tp_wma_handle wma_handle,
+				     uint32_t enable,
+				     uint32_t tx_cycle_percentage)
+{
+	int ret;
+	uint32_t len;
+	wmi_buf_t buf;
+	wmi_sta_tdcc_config_cmd_fixed_param *cmd;
+
+	if (!WMI_SERVICE_EXT_IS_ENABLED(wma_handle->wmi_service_bitmap,
+					wma_handle->wmi_service_ext_bitmap,
+					WMI_SERVICE_PS_TDCC)) {
+		WMA_LOGE(FL("TDCC not support"));
+		return 0;
+	}
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		return -ENOMEM;
+	}
+
+	cmd = (wmi_sta_tdcc_config_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_sta_tdcc_config_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_sta_tdcc_config_cmd_fixed_param));
+
+	cmd->enabled = enable;
+	cmd->tx_cycle_percentage = tx_cycle_percentage;
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				   WMI_STA_TDCC_CONFIG_CMDID);
+	if (ret != EOK) {
+		WMA_LOGE(FL("Fail to set tx duty cycle control"));
+		wmi_buf_free(buf);
+		return -EIO;
+	}
+
+	WMA_LOGI("Set tx ducy cycle control: enable %d, percentage %d",
+		 enable, tx_cycle_percentage);
 	return 0;
 }
 
