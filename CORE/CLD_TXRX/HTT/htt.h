@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -5288,6 +5288,14 @@ struct htt_rx_ind_hl_rx_desc_t {
             udp: 1,
             reserved: 1;
     } flags;
+    /* sa_ant_matrix
+     * For cases where a single rx chain has options to be connected to
+     * different rx antennas, show which rx antennas were in use during
+     * receipt of a given PPDU.
+     * This sa_ant_matrix provides a bitmask of the antennas used while
+     * receiving this frame.
+     */
+    A_UINT8 sa_ant_matrix;
 };
 
 #define HTT_RX_IND_HL_RX_DESC_VER_OFFSET \
@@ -5302,6 +5310,10 @@ struct htt_rx_ind_hl_rx_desc_t {
 #define HTT_RX_IND_HL_FLAG_OFFSET \
     (HTT_RX_IND_HL_RX_DESC_BASE_OFFSET \
      + offsetof(struct htt_rx_ind_hl_rx_desc_t, flags))
+
+#define HTT_RX_IND_HL_SA_ANT_MATRIX_OFFSET \
+    (HTT_RX_IND_HL_RX_DESC_BASE_OFFSET \
+     + offsetof(struct htt_rx_ind_hl_rx_desc_t, sa_ant_matrix))
 
 #define HTT_RX_IND_HL_FLAG_FIRST_MSDU   (0x01 << 0)
 #define HTT_RX_IND_HL_FLAG_LAST_MSDU    (0x01 << 1)

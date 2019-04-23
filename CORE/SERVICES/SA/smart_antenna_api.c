@@ -47,7 +47,7 @@ int register_smart_ant_ops(struct smartantenna_ops *sa_ops)
 	sa_handle->sa_callbacks = sa_ops;
 	adf_os_atomic_init(&sa_handle->sa_init);
 	sa_handle->smart_ant_state |= SMART_ANT_STATE_CB_REGISTERED;
-
+	smart_antenna_init(false);
 	return SMART_ANT_STATUS_SUCCESS;
 }
 EXPORT_SYMBOL(register_smart_ant_ops);

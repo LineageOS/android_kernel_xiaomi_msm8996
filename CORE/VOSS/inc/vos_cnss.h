@@ -587,7 +587,24 @@ static inline int vos_cache_boarddata(unsigned int offset,
 #if defined(CONFIG_CNSS) && defined(FEATURE_DYNAMIC_POWER_CONTROL)
 static inline int vos_set_sleep_power_mode(struct device *dev, int mode)
 {
-	return cnss_common_set_sleep_power_mode(dev, mode);
+	enum cnss_sleep_power_mode power_mode = CNSS_SLEEP_POWER_MODE_NONE;
+
+	switch (mode) {
+	case 0: /* do not power down/up WLAN power */
+		power_mode = CNSS_SLEEP_POWER_MODE_NONE;
+		break;
+	case 1: /* need to power down/up WLAN_EN 1.8v */
+		power_mode = CNSS_SLEEP_POWER_MODE_RESET;
+		break;
+	case 2: /* need to power down/up both WLAN_EN 1.8v and WLAN_VDD 3.3v */
+		power_mode = CNSS_SLEEP_POWER_MODE_CUT_PWR;
+		break;
+	default: /* do not power down/up WLAN power as default */
+		power_mode = CNSS_SLEEP_POWER_MODE_NONE;
+		break;
+	}
+
+	return cnss_common_set_sleep_power_mode(dev, power_mode);
 }
 #else
 static inline int vos_set_sleep_power_mode(struct device *dev, int mode)
