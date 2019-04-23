@@ -18225,6 +18225,10 @@ static int hdd_driver_init( void)
    pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME,
            QWLAN_VERSIONSTR TIMER_MANAGER_STR MEMORY_DEBUG_STR);
 
+#ifdef CONFIG_VOS_MEM_PRE_ALLOC
+   wcnss_prealloc_reset();
+#endif /* CONFIG_VOS_MEM_PRE_ALLOC */
+
    do {
 
 #ifndef MODULE
@@ -18490,6 +18494,9 @@ static void hdd_driver_exit(void)
    smart_antenna_deattach();
 #ifdef TIMER_MANAGER
    vos_timer_exit();
+#endif
+#ifdef CONFIG_VOS_MEM_PRE_ALLOC
+   wcnss_prealloc_reset();
 #endif
 #ifdef MEMORY_DEBUG
    adf_net_buf_debug_exit();
