@@ -192,6 +192,9 @@ CONFIG_QCOM_ESE := y
 CONFIG_QCOM_ESE_UPLOAD := y
 endif
 
+# enable SAE by default
+CONFIG_WLAN_FEATURE_SAE := y
+
 # Feature flags which are not (currently) configurable via Kconfig
 
 #Whether to build debug version
