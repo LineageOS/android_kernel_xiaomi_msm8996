@@ -15,7 +15,7 @@ snd-soc-cpe-objs := msm-cpe-lsm.o
 obj-$(CONFIG_SND_SOC_CPE) += snd-soc-cpe.o
 
 # for MSM8996 sound card driver
-snd-soc-msm8996-objs := msm8996.o apq8096-auto.o
+snd-soc-msm8996-objs := msm8996.o
 obj-$(CONFIG_SND_SOC_MSM8996) += snd-soc-msm8996.o
 
 # for MSM8996 virtualization sound card driver
