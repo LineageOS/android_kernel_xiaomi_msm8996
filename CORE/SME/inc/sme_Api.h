@@ -5036,4 +5036,15 @@ static inline eHalStatus sme_handle_sae_msg(tHalHandle hal, uint8_t session_id,
 }
 #endif
 
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+eHalStatus sme_set_rx_antenna(tHalHandle hal,
+                              uint32_t matrix);
+#else
+static inline eHalStatus sme_set_rx_antenna(tHalHandle hal,
+					    uint32_t matrix)
+{
+	return eHAL_STATUS_SUCCESS;
+}
+#endif
+
 #endif //#if !defined( __SME_API_H )

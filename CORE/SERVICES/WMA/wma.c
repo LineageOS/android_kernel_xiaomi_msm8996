@@ -35805,6 +35805,9 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 						  (struct hal_hpcs_pulse_params*) msg->bodyptr);
 			vos_mem_free(msg->bodyptr);
 			break;
+		case WDA_SET_RX_ANTENNA:
+			wma_set_rx_antanna(wma_handle, 0, msg->bodyval);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -38470,6 +38473,13 @@ static void wma_update_hdd_cfg(tp_wma_handle wma_handle)
                 wma_handle->wlan_resource_config.num_multicast_filter_entries;
 	wma_handle->tgt_cfg_update_cb(hdd_ctx, &hdd_tgt_cfg);
 }
+
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+#define WMA_ENABLE_TX_PPDU_STATS(flag) \
+	WMI_RSRC_CFG_FLAG_SET((flag), TX_PPDU_STATS_ENABLE, 1)
+#else
+#define WMA_ENABLE_TX_PPDU_STATS(flag)
+#endif
 static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
 				wmi_service_ready_event_fixed_param *ev,
 				WMI_SERVICE_READY_EVENTID_param_tlvs *param_buf,
@@ -38510,7 +38520,7 @@ static wmi_buf_t wma_setup_wmi_init_msg(tp_wma_handle wma_handle,
 	WMITLV_SET_HDR(&resource_cfg->tlv_header,
 		       WMITLV_TAG_STRUC_wmi_resource_config,
 		       WMITLV_GET_STRUCT_TLVLEN(wmi_resource_config));
-
+	WMA_ENABLE_TX_PPDU_STATS(resource_cfg->flag1);
 	/* allocate memory requested by FW */
 	if (ev->num_mem_reqs > WMI_MAX_MEM_REQS) {
 		VOS_ASSERT(0);
@@ -42315,4 +42325,52 @@ VOS_STATUS wma_set_tx_power_scale_decr_db(uint8_t vdev_id, int value)
 		WMA_LOGE("Decrease tx power value failed");
 
 	return ret;
+}
+
+/**
+ * wma_set_rx_antanna() - Set matrix for smart antenna
+ * @wma_handle: pointer to WMA handle
+ * @pdev_id: PDEV ID
+ * @matrix: smart antenna matrix
+ *
+ * Return: VOS_STATUS_SUCCESS for success.
+ */
+VOS_STATUS wma_set_rx_antanna(void *handle,
+			      uint8_t pdev_id, uint32_t matrix)
+{
+	tp_wma_handle wma_handle;
+	wmi_buf_t buf;
+	wmi_pdev_smart_ant_set_rx_antenna_cmd_fixed_param *cmd;
+	int status;
+	int len = sizeof(*cmd);
+	uint32_t tag;
+
+	if (!handle) {
+		WMA_LOGP(FL("Invalid handle."));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	wma_handle = handle;
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s: failed to allocate memory for setting rx antenna cmd",
+			 __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_pdev_smart_ant_set_rx_antenna_cmd_fixed_param *)wmi_buf_data(buf);
+	tag = WMITLV_TAG_STRUC_wmi_pdev_smart_ant_set_rx_antenna_cmd_fixed_param;
+	len = WMITLV_GET_STRUCT_TLVLEN(wmi_pdev_smart_ant_set_rx_antenna_cmd_fixed_param);
+	WMITLV_SET_HDR(&cmd->tlv_header, tag, len);
+	cmd->pdev_id = pdev_id;
+	cmd->rx_antenna = matrix;
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+				      sizeof(*cmd),
+				      WMI_PDEV_SMART_ANT_SET_RX_ANTENNA_CMDID);
+	if (status) {
+		WMA_LOGE("Failed to send set_rx_antenna cmd");
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
 }

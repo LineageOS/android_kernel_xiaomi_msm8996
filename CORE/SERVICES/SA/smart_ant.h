@@ -38,7 +38,7 @@
     if (((smart_ant) == NULL) ||                               \
       ((smart_ant) != NULL &&                                  \
        ((_m) & (smart_ant)->sa_debug_mask))) {                \
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, _fmt, __VA_ARGS__);\
+        VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_DEBUG, _fmt, __VA_ARGS__);\
     }                                                    \
 } while (0)
 

@@ -145,18 +145,26 @@ struct sa_comb_stats {
  * struct sa_tx_stats_feedback - feedback for TX stats
  * @magic: magic number for deferent antenna settings
  * @tid: TID.
+ * @ack_rssi: RSSI for ACK frames
  * @pkt_nums: msdu number corresponding this TX feed back
  * @tx_rate:  msb is flag for legacy rate or mcs index
  *   if msb=0, legacy rate is reported, units of 500 kb/s
  *   if msb=1, MCS index is reported.
- * @msdu: stats for each msdu.
+ * @tx_success_msdus: successfully transfered MSDUs number
+ * @tx_retry_msdus: retried MSDUs number
+ * @tx_failed_msdus: failed MSDUs number
+ * @time_stamp: time stamp
  */
 struct sa_tx_stats_feedback {
-	uint32_t magic;
+	uint8_t  magic;
 	uint8_t  tid;
+	uint8_t  ack_rssi[SA_MAX_CHAIN_NUM];
 	uint16_t pkt_num;
 	uint16_t tx_rate;
-	struct sa_comb_stats msdu[0];
+	uint16_t tx_success_msdus;
+	uint16_t tx_retry_msdus;
+	uint16_t tx_failed_msdus;
+	uint32_t time_stamp;
 };
 
 /**

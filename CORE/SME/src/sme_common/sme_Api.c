@@ -21255,3 +21255,39 @@ uint8_t sae_status)
 	return hal_status;
 }
 #endif
+
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+/**
+ * sme_set_rx_antenna() - Set atenna matrix
+ * @hal: The handle returned by mac_open
+ * @matrix: smart antenaa matrix
+ *
+ * Return: HAL_STATUS
+ */
+eHalStatus sme_set_rx_antenna(tHalHandle hal,
+			      uint32_t matrix)
+{
+	vos_msg_t vos_message;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	eHalStatus hal_status = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status;
+
+	hal_status = sme_AcquireGlobalLock(&mac->sme);
+	if (HAL_STATUS_SUCCESS(hal_status)) {
+		vos_message.type = WDA_SET_RX_ANTENNA;
+		vos_message.bodyval = matrix;
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+			  FL("Smart Antenna Matrix=%d"),
+			  matrix);
+
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA,
+						 &vos_message);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status))
+			hal_status = eHAL_STATUS_FAILURE;
+
+		sme_ReleaseGlobalLock(&mac->sme);
+	}
+
+	return hal_status;
+}
+#endif

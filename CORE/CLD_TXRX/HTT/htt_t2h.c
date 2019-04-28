@@ -613,6 +613,9 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             adf_os_mem_free(report);
             break;
         }
+    case HTT_T2H_MSG_TYPE_PPDU_STATS_IND:
+        ol_ppdu_stats_ind_handler(pdev->txrx_pdev, htt_t2h_msg);
+        break;
     default:
         break;
     };

@@ -67,6 +67,7 @@
 #include "vos_cnss.h"
 #endif
 
+#include <htt_ppdu_stats.h>
 #include "if_smart_antenna.h"
 
 #ifdef OSIF_NEED_RX_PEER_ID
@@ -1891,3 +1892,109 @@ void ol_ath_add_vow_extstats(htt_pdev_handle pdev, adf_nbuf_t msdu)
 }
 
 #endif
+
+#define HTT_TLV_HDR_LEN HTT_T2H_EXT_STATS_CONF_TLV_HDR_SIZE
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+/**
+ * ol_pop_user_common_array_tlv() - populate user common array tlv
+ * @pdev: ol pdev handle
+ * @tag_buf: tlv buffer
+ */
+static void ol_pop_user_common_array_tlv(ol_txrx_pdev_handle pdev,
+					 uint32_t *tag_buf,
+					 uint32_t buf_len)
+{
+	uint8_t *ppdu_info;
+	uint32_t i, len, tlv_len, peer_id, ppdu_num;
+	struct ol_txrx_peer_t *peer;
+	struct sa_tx_stats_feedback ppdu_stats;
+
+	tag_buf++;
+	ppdu_num = *tag_buf;
+	tag_buf++;
+	ppdu_info = (uint8_t *)tag_buf;
+	len = sizeof(htt_ppdu_stats_usr_common_array_tlv_v);
+
+	for (i = 0; i < ppdu_num && len < buf_len; i++) {
+		tlv_len = HTT_STATS_TLV_LENGTH_GET(*tag_buf) +
+			  sizeof(htt_tlv_hdr_t);
+		ppdu_info += tlv_len;
+		len += tlv_len;
+
+		tag_buf += 4;
+		peer_id = HTT_PPDU_STATS_ARRAY_ITEM_TLV_PEERID_GET(*tag_buf);
+		peer = ol_txrx_peer_find_by_id(pdev, peer_id);
+		if (!peer) {
+			VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+				  "Invalid peer. Current word 0x%08x",
+				  *tag_buf);
+			/* next tlv */
+			tag_buf = (uint32_t *)ppdu_info;
+			continue;
+		}
+		ppdu_stats.tx_rate =
+			HTT_PPDU_STATS_ARRAY_ITEM_TLV_TX_RATE_GET(*tag_buf);
+		tag_buf++;
+		ppdu_stats.tx_success_msdus =
+			HTT_PPDU_STATS_ARRAY_ITEM_TLV_TX_SUCC_MSDUS_GET(*tag_buf);
+		ppdu_stats.tx_retry_msdus =
+			HTT_PPDU_STATS_ARRAY_ITEM_TLV_TX_RETRY_MSDUS_GET(*tag_buf);
+		tag_buf++;
+		ppdu_stats.tx_failed_msdus =
+			HTT_PPDU_STATS_ARRAY_ITEM_TLV_TX_FAILED_MSDUS_GET(*tag_buf);
+		tag_buf += 2;
+		ppdu_stats.ack_rssi[0] = (*tag_buf) & 0xff;
+		ppdu_stats.ack_rssi[1] = ((*tag_buf) & 0xff00) >> 8;
+		tag_buf += 2;
+		ppdu_stats.time_stamp = *tag_buf;
+		tag_buf++;
+		ppdu_stats.magic = (*tag_buf) & 0xff;
+		ppdu_stats.tid = ((*tag_buf) & 0xff00) >> 8;
+		ppdu_stats.pkt_num = ppdu_stats.tx_success_msdus +
+					ppdu_stats.tx_retry_msdus +
+					ppdu_stats.tx_failed_msdus;
+		smart_antenna_update_tx_stats(peer->mac_addr.raw, &ppdu_stats);
+
+		/* next tlv */
+		tag_buf = (uint32_t *)ppdu_info;
+	}
+}
+#else
+static inline
+void ol_pop_user_common_array_tlv(ol_txrx_pdev_handle pdev,
+				  uint32_t *tag_buf,
+				  uint32_t buf_len)
+{
+}
+#endif
+
+/**
+ * ol_ppdu_stats_ind_handler() - Handler for HTT_T2H_MSG_TYPE_PPDU_STATS_IND
+ * @pdev: ol pdev handle
+ * @rx_msg: htt message
+ *
+ */
+void ol_ppdu_stats_ind_handler(ol_txrx_pdev_handle pdev, adf_nbuf_t rx_msg)
+{
+        uint32_t *msg_word;
+	uint8_t tlv_type;
+	uint32_t length;
+
+	msg_word = (uint32_t *) adf_nbuf_data(rx_msg);
+
+	/* Point to the htt ppdu stats tlv */
+	msg_word = msg_word + 1;
+	length = HTT_STATS_TLV_LENGTH_GET(*msg_word);
+	tlv_type = HTT_STATS_TLV_TAG_GET(*msg_word);
+	VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_INFO,
+		  "received HTT_T2H_MSG_TYPE_PPDU_STATS_IND tag=%d, len=%d",
+		  tlv_type, length);
+
+        switch (tlv_type) {
+	case HTT_PPDU_STATS_USR_COMMON_ARRAY_TLV:
+		ol_pop_user_common_array_tlv(pdev, msg_word, length);
+		break;
+	default:
+		break;
+	}
+}
