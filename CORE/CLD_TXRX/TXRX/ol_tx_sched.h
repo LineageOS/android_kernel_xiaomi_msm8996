@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -76,6 +76,7 @@ void
 ol_tx_sched_detach(struct ol_txrx_pdev_t *pdev);
 
 void ol_tx_sched_stats_display(struct ol_txrx_pdev_t *pdev);
+void ol_tx_sched_stats_get(struct ol_txrx_pdev_t *pdev, void *data_ptr);
 
 void ol_tx_sched_cur_state_display(struct ol_txrx_pdev_t *pdev);
 
@@ -89,6 +90,7 @@ void ol_tx_sched_stats_clear(struct ol_txrx_pdev_t *pdev);
 #define ol_tx_sched_attach(pdev) NULL
 #define ol_tx_sched_detach(pdev) /* no-op */
 #define ol_tx_sched_stats_display(pdev) /* no-op */
+#define ol_tx_sched_stats_get(pdev, data_ptr) /* no-op */
 #define ol_tx_sched_cur_state_display(pdev) /* no-op */
 #define ol_tx_sched_stats_clear(pdev) /* no-op */
 
