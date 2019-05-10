@@ -17354,6 +17354,8 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     tsap_Config_t *pConfig;
     tSirUpdateIE   updateIE;
     beacon_data_t *pBeacon = NULL;
+    v_U16_t proberesp_ies_len;
+    v_U8_t *proberesp_ies = NULL;
 
     pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
     pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
@@ -17455,28 +17457,36 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     }
 
     /* Added for Probe Response IE */
-    total_ielen = 0;
-    if (pBeacon->proberesp_ies_len > 0 &&
-        pBeacon->proberesp_ies_len <= MAX_GENIE_LEN) {
-        vos_mem_copy(genie, pBeacon->proberesp_ies, pBeacon->proberesp_ies_len);
-        total_ielen = pBeacon->proberesp_ies_len;
+    proberesp_ies = vos_mem_malloc(pBeacon->proberesp_ies_len +
+                                   MAX_GENIE_LEN);
+    if (proberesp_ies == NULL) {
+        hddLog(LOGE, FL("mem alloc failed for probe resp ies, size: %d"),
+               pBeacon->proberesp_ies_len + MAX_GENIE_LEN);
+            ret = -EINVAL;
+            goto done;
     }
-    wlan_hdd_add_sap_obss_scan_ie(pHostapdAdapter, genie, &total_ielen);
+    vos_mem_copy(proberesp_ies, pBeacon->proberesp_ies,
+                 pBeacon->proberesp_ies_len);
+    proberesp_ies_len = pBeacon->proberesp_ies_len;
+
+    hddLog(LOGE, FL("qcdbg, probe resp ie len:%d"), proberesp_ies_len);
+    wlan_hdd_add_sap_obss_scan_ie(pHostapdAdapter, proberesp_ies,
+                                  &proberesp_ies_len);
 
     if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) {
-        updateIE.ieBufferlength = total_ielen;
-        updateIE.pAdditionIEBuffer = genie;
+        updateIE.ieBufferlength = proberesp_ies_len;
+        updateIE.pAdditionIEBuffer = proberesp_ies;
         updateIE.append = VOS_FALSE;
         updateIE.notify = VOS_FALSE;
         if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
                   &updateIE, eUPDATE_IE_PROBE_RESP) == eHAL_STATUS_FAILURE) {
             hddLog(LOGE, FL("Could not pass on PROBE_RESP add Ie data"));
             ret = -EINVAL;
-            goto done;
+            goto free_probe_resp_ie;
         }
         WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_PROBE_RESP);
     } else {
-        WLANSAP_UpdateSapConfigAddIE(pConfig, genie, total_ielen,
+        WLANSAP_UpdateSapConfigAddIE(pConfig, proberesp_ies, proberesp_ies_len,
                              eUPDATE_IE_PROBE_RESP);
     }
 
@@ -17490,7 +17500,7 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
                 &updateIE, eUPDATE_IE_ASSOC_RESP) == eHAL_STATUS_FAILURE) {
             hddLog(LOGE, FL("Could not pass on Add Ie Assoc Response data"));
             ret = -EINVAL;
-            goto done;
+            goto free_probe_resp_ie;
         }
         WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ASSOC_RESP);
     } else {
@@ -17500,6 +17510,8 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
                          eUPDATE_IE_ASSOC_RESP);
     }
 
+free_probe_resp_ie:
+    vos_mem_free(proberesp_ies);
 done:
     vos_mem_free(genie);
     return ret;
