@@ -5047,4 +5047,12 @@ static inline eHalStatus sme_set_rx_antenna(tHalHandle hal,
 }
 #endif
 
+eHalStatus sme_set_gpio_cfg(tHalHandle hal, uint32_t gpio_num,
+			    uint32_t input, uint32_t pull_type,
+			    uint32_t intr_mode, uint32_t mux_config_val);
+
+
+eHalStatus sme_set_gpio_output(tHalHandle hal,
+			       uint32_t gpio_num,
+			       uint32_t set);
 #endif //#if !defined( __SME_API_H )

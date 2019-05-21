@@ -35839,6 +35839,16 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 		case WDA_SET_RX_ANTENNA:
 			wma_set_rx_antanna(wma_handle, 0, msg->bodyval);
 			break;
+		case WDA_SET_GPIO_CFG:
+			wma_set_gpio_cfg(wma_handle,
+					 (struct hal_gpio_cfg *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SET_GPIO_OUTPUT:
+			wma_set_gpio_output(wma_handle,
+				(struct hal_gpio_output *)msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -42400,6 +42410,100 @@ VOS_STATUS wma_set_rx_antanna(void *handle,
 				      WMI_PDEV_SMART_ANT_SET_RX_ANTENNA_CMDID);
 	if (status) {
 		WMA_LOGE("Failed to send set_rx_antenna cmd");
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wma_set_gpio_cfg() - Set GPIO config
+ * @handle: pointer to wma handle
+ * @gpio_cfg: parameters for GPIO config
+ *
+ * Return: VOS_STATUS_SUCCESS for success.
+ */
+VOS_STATUS wma_set_gpio_cfg(void *handle, struct hal_gpio_cfg *gpio_cfg)
+{
+	tp_wma_handle wma_handle;
+	wmi_buf_t buf;
+	int status;
+	uint32_t tag;
+	wmi_gpio_config_cmd_fixed_param *cmd;
+	int len = sizeof(*cmd);
+
+	if (!handle) {
+		WMA_LOGP(FL("Invalid handle."));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	wma_handle = handle;
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s: failed to allocate memory for WMI_GPIO_CONFIG_CMDID",
+			 __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_gpio_config_cmd_fixed_param *)wmi_buf_data(buf);
+	tag = WMITLV_TAG_STRUC_wmi_gpio_config_cmd_fixed_param;
+	len = WMITLV_GET_STRUCT_TLVLEN(wmi_gpio_config_cmd_fixed_param);
+	WMITLV_SET_HDR(&cmd->tlv_header, tag, len);
+	cmd->gpio_num = gpio_cfg->gpio_num;
+	cmd->input = gpio_cfg->input;
+	cmd->intr_mode = gpio_cfg->intr_mode;
+	cmd->mux_config_val = gpio_cfg->mux_config_val;
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+				      sizeof(*cmd),
+				      WMI_GPIO_CONFIG_CMDID);
+	if (status) {
+		WMA_LOGE("Failed to send WMI_GPIO_CONFIG_CMDID");
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+/**
+ * wma_set_gpio_cfg() - Set GPIO config
+ * @handle: pointer to wma handle
+ * @output: parameters for GPIO output
+ *
+ * Return: VOS_STATUS_SUCCESS for success.
+ */
+VOS_STATUS wma_set_gpio_output(void *handle, struct hal_gpio_output *output)
+{
+	tp_wma_handle wma_handle;
+	wmi_buf_t buf;
+	int status;
+	uint32_t tag;
+	wmi_gpio_output_cmd_fixed_param *cmd;
+	int len = sizeof(*cmd);
+
+	if (!handle) {
+		WMA_LOGP(FL("Invalid handle."));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	wma_handle = handle;
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGP("%s: failed to allocate memory for WMI_GPIO_OUTPUT_CMDID",
+			 __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	cmd = (wmi_gpio_output_cmd_fixed_param *)wmi_buf_data(buf);
+	tag = WMITLV_TAG_STRUC_wmi_gpio_output_cmd_fixed_param;
+	len = WMITLV_GET_STRUCT_TLVLEN(wmi_gpio_output_cmd_fixed_param);
+	WMITLV_SET_HDR(&cmd->tlv_header, tag, len);
+	cmd->gpio_num = output->gpio_num;
+	cmd->set = output->set;
+	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
+				      sizeof(*cmd),
+				      WMI_GPIO_OUTPUT_CMDID);
+	if (status) {
+		WMA_LOGE("Failed to send WMI_GPIO_OUTPUT_CMDID");
 		wmi_buf_free(buf);
 		return VOS_STATUS_E_FAILURE;
 	}
