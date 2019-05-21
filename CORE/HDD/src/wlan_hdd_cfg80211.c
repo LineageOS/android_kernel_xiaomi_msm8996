@@ -31228,10 +31228,10 @@ static int __wlan_hdd_cfg80211_channel_switch(struct wiphy *wiphy,
 	}
 
 	if (channel != current_channel &&
-	    target_sub20_chan_width == current_sub20_chan_width) {
+	    target_sub20_chan_width == current_sub20_chan_width &&
+	    current_sub20_chan_width == NL80211_CHAN_WIDTH_20_NOHT) {
 		ret = hdd_softap_set_channel_change(dev, channel);
-	} else if (sap_config->sub20_switch_mode == SUB20_MANUAL &&
-		target_sub20_chan_width != current_sub20_chan_width) {
+	} else if (sap_config->sub20_switch_mode == SUB20_MANUAL) {
 		ret = hdd_softap_set_channel_sub20_chanwidth_change(
 					dev, csa_params->chandef.width,
 					channel);
