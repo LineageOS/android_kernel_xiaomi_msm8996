@@ -26005,6 +26005,7 @@ static int __wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
     hdd_adapter_t *pAdapter;
     hdd_context_t *pHddCtx = (hdd_context_t*) wiphy_priv(wiphy);
     int status;
+    hdd_station_ctx_t *sta_ctx;
 
     ENTER();
 
@@ -26023,6 +26024,14 @@ static int __wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
     if (NULL == pAdapter) {
         hddLog(VOS_TRACE_LEVEL_FATAL, FL("pAdapter is NULL"));
         return -ENOENT;
+    }
+    sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+
+    if (sta_ctx->conn_info.connState != eConnectionState_Associated) {
+        hddLog(LOG1, FL("Not associated"));
+        /*To keep GUI happy */
+        *dbm = 0;
+        return 0;
     }
 
     MTRACE(vos_trace(VOS_MODULE_ID_HDD, TRACE_CODE_HDD_CFG80211_GET_TXPOWER,
