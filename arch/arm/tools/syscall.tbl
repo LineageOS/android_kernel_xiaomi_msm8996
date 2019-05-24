@@ -405,3 +405,4 @@
 388	common	userfaultfd		sys_userfaultfd
 389	common	membarrier		sys_membarrier
 390	common	mlock2			sys_mlock2
+434	common	pidfd_open		sys_pidfd_open

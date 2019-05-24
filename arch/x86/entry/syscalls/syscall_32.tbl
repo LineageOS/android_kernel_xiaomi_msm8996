@@ -384,3 +384,4 @@
 375	i386	membarrier		sys_membarrier
 376	i386	mlock2			sys_mlock2
 424	i386	pidfd_send_signal	sys_pidfd_send_signal
+434	i386	pidfd_open		sys_pidfd_open
