@@ -115,6 +115,19 @@ static int __smart_ant_deinit(struct smart_ant *sa)
 	return SMART_ANT_STATUS_SUCCESS;
 }
 
+union sa_mac {
+	uint8_t raw[6];
+	struct {
+		uint32_t bytes_abcd;
+		uint16_t bytes_ef;
+	} align4;
+};
+
+static inline bool sa_mac_compare(union sa_mac *addr1, union sa_mac *addr2)
+{
+	return ((addr1->align4.bytes_abcd == addr2->align4.bytes_abcd) &
+		 (addr1->align4.bytes_ef == addr2->align4.bytes_ef));
+}
 /**
  * sa_get_node() - Get one node from the node list and increase the ref count
  * @sa: smart antenna handle
@@ -127,26 +140,29 @@ static struct sa_node * sa_get_node(struct smart_ant *sa,
 				    uint8_t *mac_addr,
 				    bool inc)
 {
-	struct sa_node *node, *tmp_node;
+	struct sa_node *node;
 
 	if (!sa || !mac_addr)
 		return NULL;
 
-	adf_os_spin_lock(&sa->sa_lock);
-	TAILQ_FOREACH_SAFE(node, &sa->node_list, sa_elm, tmp_node) {
-		adf_os_spin_unlock(&sa->sa_lock);
-		if (vos_mem_compare(node->node_info.mac_addr, mac_addr, 6)) {
-			SA_DPRINTK(sa, SMART_ANTENNA_DEBUG,
-				   "%s: Node found "MAC_ADDRESS_STR,
-				   __func__, MAC_ADDR_ARRAY(mac_addr));
-			if (inc == true)
-				adf_os_atomic_inc(&node->ref_count);
-			return node;
+	if (!read_trylock(&sa->node_ref_lock))
+		return NULL;
+
+	node = NULL;
+	TAILQ_FOREACH(node, &sa->node_list, sa_elm) {
+		if (sa_mac_compare((union sa_mac *)node->node_info.mac_addr,
+				   (union sa_mac *)mac_addr)) {
+			if (adf_os_atomic_inc_return(&node->ref_count) <= 1)
+				node = NULL;
+			break;
 		}
-		adf_os_spin_lock(&sa->sa_lock);
 	}
-	adf_os_spin_unlock(&sa->sa_lock);
-	return NULL;
+	read_unlock(&sa->node_ref_lock);
+
+	SA_DPRINTK(sa, SMART_ANTENNA_DEBUG,
+		   "%s: Node%p found "MAC_ADDRESS_STR,
+		   __func__, node, MAC_ADDR_ARRAY(mac_addr));
+	return node;
 }
 
 /**
@@ -162,12 +178,12 @@ static void sa_put_node(struct smart_ant *sa, struct sa_node *node)
 		return;
 
 	if (adf_os_atomic_dec_and_test(&node->ref_count)) {
+		write_lock(&sa->node_ref_lock);
+		TAILQ_REMOVE(&sa->node_list, node, sa_elm);
+		write_unlock(&sa->node_ref_lock);
 		SA_DPRINTK(sa, SMART_ANTENNA_DEBUG,
 			   "%s: Node "MAC_ADDRESS_STR" is released",
 			   __func__, MAC_ADDR_ARRAY(node->node_info.mac_addr));
-		adf_os_spin_lock(&sa->sa_lock);
-		TAILQ_REMOVE(&sa->node_list, node, sa_elm);
-		adf_os_spin_unlock(&sa->sa_lock);
 		vos_mem_free(node);
 	}
 }
@@ -183,7 +199,7 @@ static void __smart_ant_node_connect(struct smart_ant *sa,
 {
 	void *node_ccp;
 	struct smartantenna_ops *sa_ops;
-	struct sa_node *new_node, *old_node, *tmp_node;
+	struct sa_node *new_node, *old_node;
 
 	if (sa == NULL) {
 		SA_DPRINTK(sa, SMART_ANTENNA_FATAL,
@@ -236,22 +252,21 @@ static void __smart_ant_node_connect(struct smart_ant *sa,
 	new_node->node_ccp = node_ccp;
 
 	/* insert the SA node to list */
-	adf_os_spin_lock(&sa->sa_lock);
-	TAILQ_FOREACH_SAFE(old_node, &sa->node_list, sa_elm, tmp_node) {
-		adf_os_spin_unlock(&sa->sa_lock);
+	write_lock(&sa->node_ref_lock);
+	TAILQ_FOREACH(old_node, &sa->node_list, sa_elm) {
 		if (vos_mem_compare(old_node->node_info.mac_addr,
 					node_info->mac_addr, 6)) {
+			old_node->node_ccp = node_ccp;
+			write_unlock(&sa->node_ref_lock);
 			SA_DPRINTK(sa, SMART_ANTENNA_DEBUG,
 				   "%s: Node already exists in the connected list.",
 				   __func__);
-			old_node->node_ccp = node_ccp;
 			goto error;
 		}
-		adf_os_spin_lock(&sa->sa_lock);
 	}
 	adf_os_atomic_set(&new_node->ref_count, 1);
 	TAILQ_INSERT_TAIL(&sa->node_list, new_node, sa_elm);
-	adf_os_spin_unlock(&sa->sa_lock);
+	write_unlock(&sa->node_ref_lock);
 
 	return;
 error:
@@ -481,7 +496,8 @@ struct smart_ant *sa_get_handle(void)
 		return &g_smart_ant_handle;
 	} else {
 		SA_DPRINTK((struct smart_ant *)NULL, SMART_ANTENNA_DEBUG,
-			   "%s: Smart Antenna Module is attached.", __func__);
+			   "%s: Smart Antenna Module is not attached.",
+			   __func__);
 		return NULL;
 	}
 }
@@ -502,10 +518,20 @@ struct sa_ops *sa_get_ops(void)
  */
 void smart_antenna_attach(void)
 {
-	SA_DPRINTK((struct smart_ant *)NULL, SMART_ANTENNA_DEBUG,
-		   "%s: Smart Antenna Module is attached.", __func__);
+	uint32_t cfg;
 	vos_mem_zero(&g_smart_ant_handle, sizeof(struct smart_ant));
-	g_smart_ant_handle.sa_debug_mask = SMART_ANTENNA_DEFAULT_LEVEL;
+
+	cfg = vos_get_smart_ant_cfg();
+	SA_DPRINTK((struct smart_ant *)NULL, SMART_ANTENNA_DEBUG,
+		   "%s: Smart Antenna default config is %d", __func__, cfg);
+	if (!SMART_ANTENNA_ENABLED(cfg))
+		return;
+
+	SA_DPRINTK((struct smart_ant *)NULL, SMART_ANTENNA_DEBUG,
+		   "%s: Smart Antenna Module is attached, Debug level 0x%x",
+		   __func__, SMART_ANTENNA_DEBUG_LEVEL(cfg));
+	g_smart_ant_handle.sa_debug_mask =
+		SMART_ANTENNA_DEBUG_LEVEL(cfg);
 	g_smart_ant_handle.smart_ant_enabled = false;
 	g_smart_ant_handle.smart_ant_state |= SMART_ANT_STATE_ATTACHED;
 	g_smart_ant_handle.curchan = SMART_ANT_UNSUPPORTED_CHANNEL;
@@ -523,7 +549,7 @@ void smart_antenna_attach(void)
 	g_smart_ant_handle.sap_ops.sa_get_config =
 					__smart_ant_get_config;
 	TAILQ_INIT(&g_smart_ant_handle.node_list);
-	adf_os_spinlock_init(&g_smart_ant_handle.sa_lock);
+	rwlock_init(&g_smart_ant_handle.node_ref_lock);
 }
 
 /**
@@ -535,5 +561,4 @@ void smart_antenna_deattach(void)
 	SA_DPRINTK((struct smart_ant *)NULL, SMART_ANTENNA_DEBUG,
 		   "%s: Smart Antenna Module is deattached.", __func__);
 	g_smart_ant_handle.smart_ant_state &= ~SMART_ANT_STATE_ATTACHED;
-	adf_os_spinlock_destroy(&g_smart_ant_handle.sa_lock);
 }

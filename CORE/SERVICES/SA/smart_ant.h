@@ -42,10 +42,10 @@
     }                                                    \
 } while (0)
 
-#define SMART_ANTENNA_FATAL             0x0001
-#define SMART_ANTENNA_ERROR             0x0010
-#define SMART_ANTENNA_DEBUG             0x0100
-#define SMART_ANTENNA_INFO              0x1000
+#define SMART_ANTENNA_FATAL             BIT(0)
+#define SMART_ANTENNA_ERROR             BIT(1)
+#define SMART_ANTENNA_DEBUG             BIT(2)
+#define SMART_ANTENNA_INFO              BIT(3)
 #define SMART_ANTENNA_DEFAULT_LEVEL    \
 		SMART_ANTENNA_FATAL | SMART_ANTENNA_ERROR | \
 		SMART_ANTENNA_DEBUG | SMART_ANTENNA_INFO
@@ -53,6 +53,18 @@
 #define SMART_ANT_DEFAULT_ID            1
 #define SA_MAX_SUPPORTED_RATES          128
 #define SMART_ANTENNA_DEFAULT_INTERFACE "dft"
+
+#define SMART_ANTENNA_ENABLED_MASK       0x1
+#define SMART_ANTENNA_ENABLED_SHIFT      0
+
+#define SMART_ANTENNA_DEBUG_LEVEL_MASK   0x1e
+#define SMART_ANTENNA_DEBUG_LEVEL_SHIFT  0x1
+
+#define SMART_ANTENNA(cfg, field)        \
+		(((cfg) & SMART_ANTENNA_##field##_MASK) >> \
+			SMART_ANTENNA_##field##_SHIFT)
+#define SMART_ANTENNA_ENABLED(cfg)      SMART_ANTENNA(cfg, ENABLED)
+#define SMART_ANTENNA_DEBUG_LEVEL(cfg)  SMART_ANTENNA(cfg, DEBUG_LEVEL)
 
 /* State of this module */
 #define SMART_ANT_STATE_ATTACHED              BIT(0)
@@ -88,7 +100,7 @@ struct smart_ant {
 	adf_os_atomic_t sa_init;
 	struct sa_ops sap_ops;
 	struct smartantenna_ops *sa_callbacks;
-	adf_os_spinlock_t sa_lock;
+	rwlock_t node_ref_lock;
 	TAILQ_HEAD(, sa_node) node_list;
 };
 #endif
