@@ -405,6 +405,7 @@ v_U64_t vos_get_monotonic_boottime_ns(void);
 
 v_U64_t vos_get_bootbased_boottime_ns(void);
 
+bool vos_is_self_recovery_enabled(void);
 void vos_trigger_recovery(bool);
 
 #ifdef FEATURE_WLAN_D0WOW

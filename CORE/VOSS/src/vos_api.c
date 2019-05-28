@@ -2669,6 +2669,31 @@ bool vos_is_ocb_tx_per_pkt_stats_enabled(void)
 }
 #endif
 
+/**
+ * vos_is_self_recovery_enabled() - API to get self recovery enabled
+ *
+ * Return: true if self recovery enabled, false otherwise
+ */
+bool vos_is_self_recovery_enabled(void)
+{
+	hdd_context_t *hdd_ctx;
+
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			  "%s: global voss context is NULL", __func__);
+		return false;
+	}
+
+	hdd_ctx = (hdd_context_t *)(gpVosContext->pHDDContext);
+	if ((NULL == hdd_ctx) || (NULL == hdd_ctx->cfg_ini)) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+			  "%s: Hdd Context is Null", __func__);
+		return false;
+	}
+
+	return hdd_ctx->cfg_ini->enableSelfRecovery;
+}
+
 VOS_STATUS vos_config_silent_recovery(pVosContextType vos_context)
 {
 	struct ol_softc *scn;
