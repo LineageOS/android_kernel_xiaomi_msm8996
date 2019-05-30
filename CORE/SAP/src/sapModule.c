@@ -1953,7 +1953,7 @@ WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width, 
 		 */
 		mac_ptr->sap.SapDfsInfo.sap_radar_found_status =
 			 VOS_TRUE;
-		mac_ptr->sap.SapDfsInfo.cac_state = eSAP_DFS_SKIP_CAC;
+		mac_ptr->sap.SapDfsInfo.cac_state = eSAP_DFS_DO_NOT_SKIP_CAC;
 		sap_CacResetNotify(hal_ptr);
 
 		/*
