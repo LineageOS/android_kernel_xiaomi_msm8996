@@ -17665,7 +17665,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 
    if ((pHddCtx->cfg_ini->enable_ac_txq_optimize >> 4) & 0x01)
       sme_set_ac_txq_optimize(pHddCtx->hHal,
-                              &pHddCtx->cfg_ini->enable_ac_txq_optimize);
+                              pHddCtx->cfg_ini->enable_ac_txq_optimize);
 
    if (pHddCtx->cfg_ini->enable_go_cts2self_for_sta)
        sme_set_cts2self_for_p2p_go(pHddCtx->hHal);
