@@ -136,7 +136,7 @@ extern int hdd_hostapd_stop (struct net_device *dev);
 #include "tl_shim.h"
 #include "wlan_hdd_oemdata.h"
 #include "sirApi.h"
-
+#include "if_smart_antenna.h"
 #ifdef CNSS_GENL
 #include <net/cnss_nl.h>
 #endif
@@ -17342,6 +17342,9 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
    }
 
+   /* Register Smart Antenna Module */
+   smart_antenna_attach();
+
 #ifdef FEATURE_WLAN_CH_AVOID
 #ifdef CONFIG_CNSS
    vos_get_wlan_unsafe_channel(pHddCtx->unsafe_channel_list,
@@ -18222,6 +18225,10 @@ static int hdd_driver_init( void)
    pr_info("%s: loading driver v%s\n", WLAN_MODULE_NAME,
            QWLAN_VERSIONSTR TIMER_MANAGER_STR MEMORY_DEBUG_STR);
 
+#ifdef CONFIG_VOS_MEM_PRE_ALLOC
+   wcnss_prealloc_reset();
+#endif /* CONFIG_VOS_MEM_PRE_ALLOC */
+
    do {
 
 #ifndef MODULE
@@ -18483,8 +18490,13 @@ static void hdd_driver_exit(void)
 
    vos_preClose( &pVosContext );
 
+   /* deregister Smart Antenna Module */
+   smart_antenna_deattach();
 #ifdef TIMER_MANAGER
    vos_timer_exit();
+#endif
+#ifdef CONFIG_VOS_MEM_PRE_ALLOC
+   wcnss_prealloc_reset();
 #endif
 #ifdef MEMORY_DEBUG
    adf_net_buf_debug_exit();

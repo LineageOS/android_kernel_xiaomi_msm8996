@@ -1133,6 +1133,7 @@ typedef struct sSirSmeJoinReq
     tANI_U8             cc_switch_mode;
 #endif
     tVOS_CON_MODE       staPersona;             //Persona
+    bool sae_pmk_cached;
     bool                osen_association;
     bool                wps_registration;
     ePhyChanBondState   cbMode;                 // Pass CB mode value in Join.
@@ -1211,7 +1212,6 @@ typedef struct sSirSmeJoinReq
 #ifdef WLAN_FEATURE_FILS_SK
     struct cds_fils_connection_info fils_con_info;
 #endif
-    bool sae_pmk_cached;
     tSirBssDescription  bssDescription;
     /*
      * WARNING: Pls make bssDescription as last variable in struct
@@ -6753,6 +6753,9 @@ struct sir_wifi_ll_ext_period {
  * @rx_mcs_array_len: length of RX mcs stats buffer
  * @peer_stats: peer stats
  * @cca: physical channel CCA stats
+ * @maxtrix: bitmask for antenna used while receiving this stats
+ * @phyerr_count: phy error times
+ * @timestamp: timestamp on target side for this event
  * @stats: pointer to stats data buffer.
  *
  * Structure of the whole statictics is like this:
@@ -6835,6 +6838,9 @@ struct sir_wifi_ll_ext_stats {
 	uint32_t rx_mcs_array_len;
 	struct sir_wifi_ll_ext_peer_stats *peer_stats;
 	struct sir_wifi_chan_cca_stats *cca;
+	uint32_t maxtrix;
+	uint32_t phyerr_count;
+	uint32_t timestamp;
 	uint8_t stats[];
 };
 

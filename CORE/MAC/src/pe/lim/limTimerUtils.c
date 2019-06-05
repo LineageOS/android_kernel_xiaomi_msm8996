@@ -159,7 +159,8 @@ limCreateTimers(tpAniSirGlobal pMac)
     cfgValue = SYS_MS_TO_TICKS(cfgValue);
 
     /* Limiting max number of probe req for each channel scan */
-    pMac->lim.maxProbe = (cfgValue/cfgValue1);
+    if (cfgValue1)
+        pMac->lim.maxProbe = (cfgValue/cfgValue1);
 
     if (tx_timer_create(&pMac->lim.limTimers.gLimMaxChannelTimer,
                         "MAX CHANNEL TIMEOUT",

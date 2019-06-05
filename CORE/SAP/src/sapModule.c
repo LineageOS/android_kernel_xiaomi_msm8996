@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1812,17 +1812,22 @@ WLANSAP_SetChannelChangeWithCsa(v_PVOID_t pvosGCtx, v_U32_t targetChannel)
  *	This api function does a channel width change
  * @vos_ctx_ptr: Pointer to vos global context structure
  * @chan_width:  New channel width to change to
+ * @target_channel:  New channel will change to
  *
  * Return: The VOS_STATUS code associated with performing
  *	the operation
  */
 VOS_STATUS
-WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width)
+WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width, uint32_t target_channel)
 {
 	ptSapContext sap_context_ptr = NULL;
 	tWLAN_SAPEvent sap_event;
 	tpAniSirGlobal mac_ptr = NULL;
 	void *hal_ptr = NULL;
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+	bool valid;
+#endif
+	tSmeConfigParams  sme_config;
 
 	sap_context_ptr = VOS_GET_SAP_CB(vos_ctx_ptr);
 	if (NULL == sap_context_ptr) {
@@ -1841,16 +1846,34 @@ WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width)
 	}
 	mac_ptr = PMAC_STRUCT(hal_ptr);
 
-	/*
-	 * Now, validate if the passed channel is valid in the
-	 * current regulatory domain.
-	 */
-	if (sap_context_ptr->sub20_channelwidth != chan_width &&
-	    ((vos_nv_getChannelEnabledState(sap_context_ptr->channel) ==
-	    NV_CHANNEL_ENABLE) ||
-	    (vos_nv_getChannelEnabledState(sap_context_ptr->channel) ==
-	    NV_CHANNEL_DFS &&
-	    !vos_concurrent_open_sessions_running()))) {
+	if (sap_context_ptr->channel != target_channel &&
+	    ((vos_nv_getChannelEnabledState(target_channel) ==
+	      NV_CHANNEL_ENABLE) ||
+	     (vos_nv_getChannelEnabledState(target_channel) ==
+	      NV_CHANNEL_DFS && !vos_concurrent_open_sessions_running()))) {
+#ifdef FEATURE_WLAN_MCC_TO_SCC_SWITCH
+		/*
+		 * validate target channel switch w.r.t various concurrency rules set.
+		 */
+		valid = sap_channel_switch_validate(sap_context_ptr,
+			  VOS_GET_HAL_CB(sap_context_ptr->pvosGCtx),
+			  target_channel, sap_context_ptr->csrRoamProfile.phyMode,
+			  sap_context_ptr->cc_switch_mode, sap_context_ptr->sessionId);
+		if (!valid) {
+			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+				  FL("Channel switch to %u is not allowed due to concurrent channel interference"),
+				  target_channel);
+			return VOS_STATUS_E_FAULT;
+		}
+#endif
+#ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
+		if (VOS_FALSE == vos_is_chan_ok_for_dnbs((uint8_t)target_channel)) {
+			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+				  FL("Channel switch to %u is not allowed due to dnbs"),
+				  target_channel);
+			return VOS_STATUS_E_FAULT;
+		}
+#endif
 		/*
 		 * Post a CSA IE request to SAP state machine with
 		 * target channel information and also CSA IE required
@@ -1858,65 +1881,104 @@ WLANSAP_set_sub20_channelwidth_with_csa(void *vos_ctx_ptr, uint32_t chan_width)
 		 * state.
 		 */
 		if (eSAP_STARTED == sap_context_ptr->sapsMachine) {
-			mac_ptr->sap.SapDfsInfo.target_channel =
-				 sap_context_ptr->channel;
-			mac_ptr->sap.SapDfsInfo.new_chanWidth =
-				sap_context_ptr->ch_width_orig;
-			mac_ptr->sap.SapDfsInfo.new_sub20_channelwidth =
-				 chan_width;
-			mac_ptr->sub20_channelwidth = chan_width;
-			mac_ptr->sap.SapDfsInfo.csaIERequired =
-				 VOS_TRUE;
-
 			/*
-			 * Set the radar found status to allow the channel
-			 * change to happen same as in the case of a radar
-			 * detection. Since, this will allow SAP to be in
-			 * correct state and also resume the netif queues
-			 * that were suspended in HDD before the channel
-			 * request was issued.
+			 * Copy the requested target channel
+			 * to sap context.
 			 */
-			mac_ptr->sap.SapDfsInfo.sap_radar_found_status =
-				 VOS_TRUE;
-			mac_ptr->sap.SapDfsInfo.cac_state = eSAP_DFS_SKIP_CAC;
-			sap_CacResetNotify(hal_ptr);
-
-			/*
-			 * Post the eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START
-			 * to SAP state machine to process the channel
-			 * request with CSA IE set in the beacons.
-			 */
-			sap_event.event =
-				 eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START;
-			sap_event.params = 0;
-			sap_event.u1 = 0;
-			sap_event.u2 = 0;
-
-			sapFsm(sap_context_ptr, &sap_event);
-
+			mac_ptr->sap.SapDfsInfo.target_channel = target_channel;
 		} else {
-			VOS_TRACE(VOS_MODULE_ID_SAP,
-				  VOS_TRACE_LEVEL_ERROR,
-				  "%s: orgl chan_width=%d new chan_width=%d",
-				  __func__,
-				  sap_context_ptr->sub20_channelwidth,
-				  chan_width);
+			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+				  "%s: Failed to request Channel Change, since"
+				  "SAP is not in eSAP_STARTED state", __func__);
 			return VOS_STATUS_E_FAULT;
 		}
-
+	} else if (sap_context_ptr->channel == target_channel) {
+		mac_ptr->sap.SapDfsInfo.target_channel =
+		    sap_context_ptr->channel;
 	} else {
-		VOS_TRACE(VOS_MODULE_ID_SAP,
-			  VOS_TRACE_LEVEL_ERROR,
-			  "%s: curr ChWidth = %d, %d is invalid",
-			  __func__, sap_context_ptr->sub20_channelwidth,
-			  chan_width);
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Channel = %d is not valid in the current"
+			  "regulatory domain",
+			  __func__, target_channel);
+		return VOS_STATUS_E_FAULT;
+	}
 
+	if (sap_context_ptr->sub20_channelwidth != chan_width ) {
+		/*
+		* Post a CSA IE request to SAP state machine with
+		* target channel information and also CSA IE required
+		* flag set in sapContext only, if SAP is in eSAP_STARTED
+		* state.
+		*/
+		if (eSAP_STARTED == sap_context_ptr->sapsMachine) {
+			mac_ptr->sap.SapDfsInfo.new_sub20_channelwidth =
+				     chan_width;
+			mac_ptr->sub20_channelwidth = chan_width;
+		} else {
+			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+				  "%s: Failed to request sub20 chanwidth Change, since"
+				  "SAP is not in eSAP_STARTED state", __func__);
+			return VOS_STATUS_E_FAULT;
+		}
+	}
+
+	if (sap_context_ptr->sub20_channelwidth != chan_width ||
+	    sap_context_ptr->channel != target_channel) {
+		/*
+		 * currently OBSS scan is done in hostapd, so to avoid
+		 * SAP coming up in HT40 on channel switch we are
+		 * disabling channel bonding in 2.4ghz.
+		 */
+		if (target_channel <= RF_CHAN_14)
+		{
+		    sme_GetConfigParam(mac_ptr, &sme_config);
+		    sme_config.csrConfig.channelBondingMode24GHz =
+					    eCSR_INI_SINGLE_CHANNEL_CENTERED;
+		    sme_UpdateConfig(mac_ptr, &sme_config);
+		}
+
+		mac_ptr->sap.SapDfsInfo.new_chanWidth =
+			sap_context_ptr->ch_width_orig;
+
+		mac_ptr->sap.SapDfsInfo.csaIERequired =
+			 VOS_TRUE;
+
+		/*
+		 * Set the radar found status to allow the channel
+		 * change to happen same as in the case of a radar
+		 * detection. Since, this will allow SAP to be in
+		 * correct state and also resume the netif queues
+		 * that were suspended in HDD before the channel
+		 * request was issued.
+		 */
+		mac_ptr->sap.SapDfsInfo.sap_radar_found_status =
+			 VOS_TRUE;
+		mac_ptr->sap.SapDfsInfo.cac_state = eSAP_DFS_SKIP_CAC;
+		sap_CacResetNotify(hal_ptr);
+
+		/*
+		 * Post the eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START
+		 * to SAP state machine to process the channel
+		 * request with CSA IE set in the beacons.
+		 */
+		sap_event.event =
+			 eSAP_DFS_CHNL_SWITCH_ANNOUNCEMENT_START;
+		sap_event.params = 0;
+		sap_event.u1 = 0;
+		sap_event.u2 = 0;
+
+		sapFsm(sap_context_ptr, &sap_event);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			  "%s: curr chan num %d sub20 ChWidth = %d, nothing to do",
+			  __func__, sap_context_ptr->channel,
+			  sap_context_ptr->sub20_channelwidth);
 		return VOS_STATUS_E_FAULT;
 	}
 
 	VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-		  "%s: Posted CSA start evt for ChannelWidth = %d",
-		  __func__, chan_width);
+		  "%s: Posted CSA start evt for ChannelWidth = %d channel %d",
+		  __func__, chan_width, target_channel);
 
 	return VOS_STATUS_SUCCESS;
 }

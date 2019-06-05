@@ -38,7 +38,7 @@
     if (((smart_ant) == NULL) ||                               \
       ((smart_ant) != NULL &&                                  \
        ((_m) & (smart_ant)->sa_debug_mask))) {                \
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, _fmt, __VA_ARGS__);\
+        VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_DEBUG, _fmt, __VA_ARGS__);\
     }                                                    \
 } while (0)
 
@@ -74,9 +74,8 @@
 #define SMART_ANT_UNSUPPORTED_CHANNEL   (-1)
 struct sa_node {
 	TAILQ_ENTRY(sa_node) sa_elm;
-
-	struct sa_node_info node_info;
 	adf_os_atomic_t ref_count;
+	struct sa_node_info node_info;
 	void *node_ccp;
 };
 

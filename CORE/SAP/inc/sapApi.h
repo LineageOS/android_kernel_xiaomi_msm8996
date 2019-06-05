@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2506,16 +2506,16 @@ VOS_STATUS wlansap_set_invalid_session(v_PVOID_t pctx);
 #ifdef FEATURE_WLAN_SUB_20_MHZ
 VOS_STATUS
 WLANSAP_set_sub20_channelwidth_with_csa(
-	void *vos_ctx_ptr, uint32_t chan_width);
+	void *vos_ctx_ptr, uint32_t chan_width, uint32_t target_channel);
 VOS_STATUS
 WLANSAP_get_sub20_channelwidth(void *vos_ctx_ptr, uint32_t *chan_width);
 
 #else
 static inline VOS_STATUS
 WLANSAP_set_sub20_channelwidth_with_csa(
-	void *vos_ctx_ptr, uint32_t chan_width)
+	void *vos_ctx_ptr, uint32_t chan_width, uint32_t target_channel)
 {
-	return VOS_STATUS_SUCCESS;
+	return VOS_STATUS_E_INVAL;
 }
 
 static inline VOS_STATUS
