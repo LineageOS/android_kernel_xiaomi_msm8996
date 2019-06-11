@@ -25012,7 +25012,11 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                             req->bssid, req->ssid,
                             req->ssid_len);
                 if (bss) {
-                    cfg80211_assoc_timeout(ndev, bss);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
+                    cfg80211_assoc_timeout(ndev,bss);
+#else
+                    cfg80211_send_assoc_timeout(ndev, bss->bssid);
+#endif
                     return -ETIMEDOUT;
                 }
             }
