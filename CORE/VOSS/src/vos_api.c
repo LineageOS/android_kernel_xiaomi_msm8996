@@ -3735,3 +3735,16 @@ int qca_request_firmware(const struct firmware **firmware_p,
 #endif
 }
 
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+uint32_t vos_get_smart_ant_cfg(void)
+{
+	hdd_context_t *hdd_ctx;
+	v_CONTEXT_t vos_context = vos_get_global_context(0, NULL);
+
+	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_context);
+	if (!hdd_ctx)
+		return 0;
+	else
+		return hdd_ctx->cfg_ini->smart_antenna_cfg;
+}
+#endif

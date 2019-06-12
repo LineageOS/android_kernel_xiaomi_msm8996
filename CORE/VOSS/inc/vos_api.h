@@ -470,4 +470,12 @@ int qca_request_firmware(const struct firmware **firmware_p,
                 const char *name,
                 struct device *device);
 
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+uint32_t vos_get_smart_ant_cfg(void);
+#else
+static inline uint32_t vos_get_smart_ant_cfg(void)
+{
+	return 0;
+}
+#endif
 #endif // if !defined __VOS_API_H

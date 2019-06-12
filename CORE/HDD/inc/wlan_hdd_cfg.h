@@ -5673,6 +5673,42 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_IS_PER_CHAIN_STATS_ENABLED_MIN     (0)
 #define CFG_IS_PER_CHAIN_STATS_ENABLED_MAX     (1)
 
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+/*
+ * <ini>
+ * smart_antenna_cfg - Config parameters for smart antenna
+ * @Min: 0
+ * @Max: 0xFF
+ * @Default: 0
+ *
+ * This ini is used for smart antenna config. Subfields of the
+ * parameter looks like this:
+ *
+ * |31                 10|9           1|   0   |
+ * |---------------------+-------------+-------|
+ * |         rsvd        | debug level | Enable|
+ * |---------------------+-------------+-------|
+ * b'0: - enable/disable: 1 enable/ 0 disable
+ * b'1:9 - debug level. 0001: fatal error
+ *                      0010: error
+ *                      0100: debug
+ *                      1000: info
+ * Relate: None
+ *
+ * Supported Feature: Smart Antenna
+ * Usage: External
+ *
+ * </ini>
+ */
+#define CFG_SMART_ANTENNA_PARAM              "smart_antenna_cfg"
+#define CFG_SMART_ANTENNA_PARAM_DEFAULT      (0)
+#define CFG_SMART_ANTENNA_PARAM_MIN          (0)
+#define CFG_SMART_ANTENNA_PARAM_MAX          (0xFF)
+
+#define SMART_ANT_ENABLED                    1
+#else
+#define SMART_ANT_ENABLED                    0
+#endif
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -6611,6 +6647,10 @@ struct hdd_config {
    bool is_sae_enabled;
 #endif
    bool per_chain_stats_enabled;
+
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+    uint32_t smart_antenna_cfg;
+#endif
 };
 
 typedef struct hdd_config hdd_config_t;
