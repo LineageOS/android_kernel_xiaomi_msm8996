@@ -14376,6 +14376,9 @@ static int32_t hdd_add_tx_bitrate(struct sk_buff *skb,
 	txrate.mcs = hdd_sta_ctx->cache_conn_info.txrate.mcs;
 	txrate.legacy = hdd_sta_ctx->cache_conn_info.txrate.legacy;
 	txrate.nss = hdd_sta_ctx->cache_conn_info.txrate.nss;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	txrate.bw = hdd_sta_ctx->cache_conn_info.txrate.bw;
+#endif
 
 	bitrate = cfg80211_calculate_bitrate(&txrate);
 
@@ -14383,6 +14386,9 @@ static int32_t hdd_add_tx_bitrate(struct sk_buff *skb,
 	hdd_sta_ctx->cache_conn_info.txrate.mcs = txrate.mcs;
 	hdd_sta_ctx->cache_conn_info.txrate.legacy = txrate.legacy;
 	hdd_sta_ctx->cache_conn_info.txrate.nss = txrate.nss;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	hdd_sta_ctx->cache_conn_info.txrate.bw = txrate.bw;
+#endif
 
 	/* report 16-bit bitrate only if we can */
 	bitrate_compat = bitrate < (1UL << 16) ? bitrate : 0;
@@ -27738,6 +27744,9 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
     pHddStaCtx->conn_info.txrate.mcs = sinfo->txrate.mcs;
     pHddStaCtx->conn_info.txrate.legacy = sinfo->txrate.legacy;
     pHddStaCtx->conn_info.txrate.nss = sinfo->txrate.nss;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+    pHddStaCtx->conn_info.txrate.bw = sinfo->txrate.bw;
+#endif
     vos_mem_copy(&pHddStaCtx->cache_conn_info.txrate,
                  &pHddStaCtx->conn_info.txrate,
                  sizeof(pHddStaCtx->conn_info.txrate));
