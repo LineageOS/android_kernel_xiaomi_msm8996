@@ -367,7 +367,7 @@
 
 &labibb {
 	status = "ok";
-	qpnp,qpnp-labibb-mode = "lcd";
+	qcom,qpnp-labibb-mode = "lcd";
 };
 
 &dsi_dual_sharp_video {
@@ -844,7 +844,7 @@
 				"msm-dai-q6-dev.32770", "msm-dai-q6-dev.16394",
 				"msm-dai-q6-dev.16396";
 
-		/*qcom,hdmi-audio-rx;*/
+		/delete-property/ qcom,hdmi-audio-rx;
 		asoc-codec = <&stub_codec>;
 		asoc-codec-names = "msm-stub-codec.1", "msm-hdmi-audio-codec-rx";
 	};
@@ -1831,9 +1831,8 @@
 			label = "ocimem_log";
 		};
 
-		ramoops_mem: ramoops_region@92900000 {
-			compatible = "removed-dma-pool";
-			no-map;
+		ramoops_mem: ramoops_mem@92900000 {
+			label = "ramoops_mem";
 			reg = <0x0 0x92900000 0x0 0x00100000>;
 		};
 	};
@@ -1965,15 +1964,12 @@
 	ramoops {
 		compatible = "ramoops";
 		status = "ok";
+		memory-region = <&ramoops_mem>;
 
-		android,ramoops-buffer-start = <0x92900000>;
-		android,ramoops-buffer-size = <0x00100000>;
-		android,ramoops-console-size = <0x00080000>;
-		android,ramoops-pmsg-size = <0x00040000>;
-		android,ramoops-record-size = <0x00008000>;
-		android,ramoops-ftrace-size = <0x00020000>;
-		android,ramoops-dump-oops = <0x1>;
-		linux,contiguous-region = <&ramoops_mem>;
+		console-size = <0x0 0x00080000>;
+		pmsg-size    = <0x0 0x00040000>;
+		record-size  = <0x0 0x00008000>;
+		ftrace-size  = <0x0 0x00020000>;
 	};
 };
 
