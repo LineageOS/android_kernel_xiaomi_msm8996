@@ -4206,7 +4206,15 @@ sapFsm
                      v_U8_t ch;
 
                      /* find a new available channel */
-                     ch = sapRandomChannelSel(sapContext);
+                     if (sapContext->candidate_ch &&
+                         !VOS_IS_DFS_CH(sapContext->candidate_ch) &&
+                         sapContext->candidate_ch != sapContext->channel) {
+                         ch = sapContext->candidate_ch;
+                         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG,
+                                   FL("Candidate channel exist, ch= %d"), ch);
+                     } else {
+                         ch = sapRandomChannelSel(sapContext);
+                     }
                      if (ch == 0) {
                          /* No available channel found */
                          VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -5409,7 +5417,16 @@ v_U8_t sapIndicateRadar(ptSapContext sapContext, tSirSmeDfsEventInd *dfs_event)
      * (5) Create the available channel list with the above rules
      */
 
-    target_channel = sapRandomChannelSel(sapContext);
+    if (sapContext->candidate_ch &&
+        !VOS_IS_DFS_CH(sapContext->candidate_ch) &&
+        sapContext->candidate_ch != sapContext->channel) {
+        target_channel = sapContext->candidate_ch;
+        VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_DEBUG,
+                  FL("Candidate channel exist, ch= %d"), target_channel);
+    } else {
+        target_channel = sapRandomChannelSel(sapContext);
+    }
+
     if (0 == target_channel)
     {
         sapSignalHDDevent(sapContext, NULL, eSAP_DFS_NO_AVAILABLE_CHANNEL,

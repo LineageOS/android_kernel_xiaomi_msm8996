@@ -272,6 +272,7 @@ enum {
     QCSAP_ENABLE_RTS_BURSTING,
     QCSAP_ENABLE_DYNAMIC_BW,
     QCSAP_GET_DYNAMIC_BW,
+    QCSAP_SET_CANDIDATE_CH,
 };
 
 int iw_get_channel_list(struct net_device *dev,
