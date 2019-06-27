@@ -1800,8 +1800,17 @@ endif
 ifeq ($(CONFIG_VOS_MEM_PRE_ALLOC),y)
 ifneq ($(CONFIG_WCNSS_MEM_PRE_ALLOC), y)
 CDEFINES += -DCONFIG_VOS_MEM_PRE_ALLOC
+
+ifeq ($(CONFIG_FEATURE_LARGE_PREALLOC),y)
+CDEFINES += -DFEATURE_LARGE_PREALLOC
+obj-m += $(MODNAME).o
+$(MODNAME)-y += $(HDD_SRC_DIR)/wlan_hdd_main_module.o
+OBJS +=$(VOSS_SRC_DIR)/vos_memory_prealloc.o
+else
 obj-m += wlan_prealloc.o
 wlan_prealloc-y += $(VOSS_SRC_DIR)/vos_memory_prealloc.o
+endif
+
 endif
 endif
 
@@ -1872,5 +1881,10 @@ CDEFINES += -DWLAN_SMART_ANTENNA_FEATURE
 endif
 
 # Module information used by KBuild framework
+ifeq ($(CONFIG_FEATURE_LARGE_PREALLOC),y)
+obj-$(CONFIG_QCA_CLD_WLAN) += wlan_prealloc.o
+wlan_prealloc-y := $(OBJS)
+else
 obj-$(CONFIG_QCA_CLD_WLAN) += $(MODNAME).o
 $(MODNAME)-y := $(OBJS)
+endif
