@@ -647,7 +647,7 @@ ol_tx_get_txpowers(u_int32_t *msg_word, int num_msdus)
 static inline void
 ol_tx_power_handler(u_int16_t desc_id, u_int16_t tx_power)
 {
-	if (DSRC_INVALID_TX_POWER == tx_power)
+	if (!ol_per_pkt_tx_stats_enabled())
 		return;
 
 	ol_tx_stats_ring_enque_comp(desc_id, tx_power);

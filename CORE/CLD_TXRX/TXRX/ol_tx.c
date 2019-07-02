@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -98,8 +98,9 @@ struct ol_tx_stats_ring_head {
 	uint8_t num_comp_stat;
 };
 
-#define TX_STATS_RING_SZ 32
+#define TX_STATS_RING_SZ 128
 #define INVALID_TX_MSDU_ID (-1)
+#define INVALID_TX_POWER   (0xffff)
 
 static struct ol_tx_stats_ring_head *tx_stats_ring_head;
 static struct ol_tx_stats_ring_item *tx_stats_ring;
@@ -206,15 +207,14 @@ static inline struct ol_tx_stats_ring_item *__get_ring_item(void)
 		item = TAILQ_FIRST(&h->free_list);
 		TAILQ_REMOVE(&h->free_list, item, list);
 		h->num_free--;
-	} else if (!__comp_list_empty()) {
-		/* Discard the oldest one. */
-		item = TAILQ_LAST(&h->comp_list, comp_list);
-		TAILQ_REMOVE(&h->comp_list, item, list);
-		h->num_comp_stat--;
 	} else if (!__host_list_empty()) {
 		item = TAILQ_LAST(&h->host_list, host_list);
 		TAILQ_REMOVE(&h->host_list, item, list);
 		h->num_host_stat--;
+	} else if (!__comp_list_empty()) {
+		item = TAILQ_LAST(&h->comp_list, comp_list);
+		TAILQ_REMOVE(&h->comp_list, item, list);
+		h->num_comp_stat--;
 	}
 
 	return item;
@@ -346,8 +346,13 @@ void ol_tx_stats_ring_enque_comp(uint32_t msdu_id, uint32_t tx_power)
 	if (!item)
 		goto exit;
 
-	item->stats.tx_power = (uint8_t)tx_power;
-	__put_ring_item_comp(item);
+	if (adf_os_unlikely(INVALID_TX_POWER == tx_power)) {
+		item->msdu_id = INVALID_TX_MSDU_ID;
+		__free_ring_item(item);
+	} else {
+		item->stats.tx_power = (uint8_t)tx_power;
+		__put_ring_item_comp(item);
+	}
 
 exit:
 	adf_os_spin_unlock(&h->mutex);
@@ -376,10 +381,10 @@ int ol_tx_stats_ring_deque(struct ol_tx_per_pkt_stats *stats)
 	if (!item)
 		goto exit;
 
-	__free_ring_item(item);
-
 	vos_mem_copy(stats, &item->stats, sizeof(*stats));
 	item->msdu_id = INVALID_TX_MSDU_ID;
+
+	__free_ring_item(item);
 	ret = 1;
 
 exit:
