@@ -135,36 +135,22 @@ static v_VOID_t wcnss_prealloc_deinit(v_VOID_t)
 	}
 }
 
-static v_VOID_t wcnss_trace_prealloc_occupied(v_VOID_t)
-{
-	int i;
-	printk("Memory allocs occupied:");
-
-	for (i = 0; i < ARRAY_SIZE(wcnss_allocs); i++) {
-		printk(" %d", wcnss_allocs[i].occupied);
-	}
-	printk("\n");
-}
-
 v_VOID_t *wcnss_prealloc_get(v_UINT_t size)
 {
 	v_UINT_t i = 0;
 	unsigned long flags;
 
 	spin_lock_irqsave(&alloc_lock, flags);
-	wcnss_trace_prealloc_occupied();
 	for (i = 0; i < ARRAY_SIZE(wcnss_allocs); i++) {
 		if (wcnss_allocs[i].occupied)
 			continue;
 		if (wcnss_allocs[i].size >= size) {
 			/* we found the slot */
 			wcnss_allocs[i].occupied = 1;
-			wcnss_trace_prealloc_occupied();
 			spin_unlock_irqrestore(&alloc_lock, flags);
 			return wcnss_allocs[i].ptr;
 		}
 	}
-	wcnss_trace_prealloc_occupied();
 	spin_unlock_irqrestore(&alloc_lock, flags);
 
 	pr_err("wcnss_pre: %s: prealloc not available at size %d\n", __func__, size);

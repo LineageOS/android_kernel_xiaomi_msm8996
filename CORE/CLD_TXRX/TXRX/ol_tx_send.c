@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -887,20 +887,20 @@ ol_tx_dump_group_credit_stats(ol_txrx_pdev_handle pdev)
         for (j = 0; j < OL_TX_MAX_TXQ_GROUPS; j++) {
             adf_os_spin_lock_bh(&pdev->grp_stat_spinlock);
             curr_credit = pdev->grp_stats.stats[curr_index].grp[j].credit;
-            if (!is_break)
-                old_credit = pdev->grp_stats.stats[old_index].grp[j].credit;
             mem_vdevs = pdev->grp_stats.stats[curr_index].grp[j].member_vdevs;
             adf_os_spin_unlock_bh(&pdev->grp_stat_spinlock);
 
-            if (!is_break)
+            if (!is_break) {
+                old_credit = pdev->grp_stats.stats[old_index].grp[j].credit;
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
                       "%4d: %5d: %6d %6d %8x",curr_index, j,
                       curr_credit, (curr_credit - old_credit),
                       mem_vdevs);
-            else
+            } else {
                 VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
                       "%4d: %5d: %6d %6s %8x",curr_index, j,
                       curr_credit, "NA", mem_vdevs);
+            }
        }
 
        if (is_break)

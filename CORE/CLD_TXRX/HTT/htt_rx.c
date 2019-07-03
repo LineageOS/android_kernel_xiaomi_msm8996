@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -3354,7 +3354,10 @@ htt_rx_hash_list_lookup(struct htt_pdev_t *pdev, u_int32_t paddr)
     if (netbuf == NULL) {
         adf_os_print("rx hash: %s: no entry found for 0x%x!!!\n",
                      __FUNCTION__, paddr);
-        HTT_ASSERT_ALWAYS(0);
+        if (vos_is_self_recovery_enabled())
+                vos_trigger_recovery(false);
+        else
+                HTT_ASSERT_ALWAYS(0);
     }
 
     return netbuf;

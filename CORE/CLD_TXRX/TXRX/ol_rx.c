@@ -433,6 +433,10 @@ static void ol_pop_rx_stats(htt_pdev_handle htt_pdev,
 static struct sa_rx_stats_feedback *ol_rx_feedback_alloc(uint32_t mpdu_num)
 {
 	struct sa_rx_stats_feedback *fb;
+
+	if (!sa_get_handle())
+		return NULL;
+
 	fb = adf_os_mem_alloc(NULL,
 			      sizeof(struct sa_rx_stats_feedback) +
 			      mpdu_num * sizeof(struct sa_rx_mpdu_stats));
@@ -1908,6 +1912,9 @@ static void ol_pop_user_common_array_tlv(ol_txrx_pdev_handle pdev,
 	uint32_t i, len, tlv_len, peer_id, ppdu_num;
 	struct ol_txrx_peer_t *peer;
 	struct sa_tx_stats_feedback ppdu_stats;
+
+	if (!sa_get_handle())
+		return;
 
 	tag_buf++;
 	ppdu_num = *tag_buf;

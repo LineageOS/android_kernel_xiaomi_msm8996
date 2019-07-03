@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -850,6 +850,7 @@ static int tlshim_mgmt_rx_process(void *context, u_int8_t *data,
 					if (efrm - (uint8_t *)wh <
 					    sizeof(*wh) + vos_get_mmie_size()) {
 						TLSHIM_LOGE("Invalid frame length");
+						vos_pkt_return_packet(rx_pkt);
 						return 0;
 					}
 					key_id = (u_int16_t)*(efrm - vos_get_mmie_size() + 2);

@@ -405,6 +405,7 @@ v_U64_t vos_get_monotonic_boottime_ns(void);
 
 v_U64_t vos_get_bootbased_boottime_ns(void);
 
+bool vos_is_self_recovery_enabled(void);
 void vos_trigger_recovery(bool);
 
 #ifdef FEATURE_WLAN_D0WOW
@@ -469,4 +470,12 @@ int qca_request_firmware(const struct firmware **firmware_p,
                 const char *name,
                 struct device *device);
 
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+uint32_t vos_get_smart_ant_cfg(void);
+#else
+static inline uint32_t vos_get_smart_ant_cfg(void)
+{
+	return 0;
+}
+#endif
 #endif // if !defined __VOS_API_H
