@@ -6127,7 +6127,7 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                    pHddCtx->cfg_ini->isRoamOffloadEnabled);
 #endif
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
            "Name = [gEnableHostapdEdcaLocal] Value = [%u]",
                    pHddCtx->cfg_ini->enable_hostapd_edca_local);
 
