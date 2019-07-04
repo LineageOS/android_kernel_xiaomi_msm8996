@@ -2107,6 +2107,15 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                   "BandCapability is set to 2G only");
 
+    if (pnvEFSTable == NULL)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "error: pnvEFSTable is NULL, probably not parsed nv.bin yet");
+        return -1;
+    }
+    vos_mem_zero(pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels,
+		 NUM_RF_CHANNELS * sizeof(sRegulatoryChannel));
+
     for (i = 0, m = 0; i<IEEE80211_NUM_BANDS; i++)
     {
         if (wiphy->bands[i] == NULL)
@@ -2119,13 +2128,6 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
             m = 0;
         else
             m = wiphy->bands[i-1]->n_channels + m;
-
-        if (pnvEFSTable == NULL)
-        {
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                      "error: pnvEFSTable is NULL, probably not parsed nv.bin yet");
-            return -1;
-        }
 
         for (j = 0; j < wiphy->bands[i]->n_channels; j++)
         {
