@@ -6395,7 +6395,7 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
          CFG_SUB_20_CHANNEL_WIDTH_NAME,
          pHddCtx->cfg_ini->sub_20_channel_width);
 
-  hddLog(LOGE, "Name = [%s] Value = [%u]",
+  hddLog(LOG2, "Name = [%s] Value = [%u]",
          CFG_STA_CHANGE_COUNTRYCODE_DYN_NAME ,
          pHddCtx->cfg_ini->sta_change_cc_via_beacon);
 
