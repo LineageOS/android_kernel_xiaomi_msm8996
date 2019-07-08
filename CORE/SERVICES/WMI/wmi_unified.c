@@ -1274,8 +1274,8 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 
 		idx = wmi_unified_get_event_handler_ix(wmi_handle, id) ;
 		if (idx == -1) {
-			pr_err("%s : event handler is not registered: event id 0x%x\n",
-			       __func__, id);
+			WMA_LOGE("%s : event handler is not registered: event id 0x%x\n",
+				 __func__, id);
 			goto end;
 		}
 
@@ -1293,21 +1293,21 @@ void __wmi_control_rx(struct wmi_unified *wmi_handle, wmi_buf_t evt_buf)
 
 	switch (id) {
 	default:
-		pr_info("%s: Unhandled WMI event %d\n", __func__, id);
+		WMA_LOGE("%s: Unhandled WMI event %d\n", __func__, id);
 		break;
 	case WMI_SERVICE_AVAILABLE_EVENTID:
-		pr_info("%s: WMI UNIFIED SERVICE AVAILABLE event\n", __func__);
+		WMA_LOGD("%s: WMI UNIFIED SERVICE AVAILABLE event\n", __func__);
 		wma_rx_service_available_event(wmi_handle->scn_handle,
 					   wmi_cmd_struct_ptr);
 		break;
 
 	case WMI_SERVICE_READY_EVENTID:
-		pr_info("%s: WMI UNIFIED SERVICE READY event\n", __func__);
+		WMA_LOGD("%s: WMI UNIFIED SERVICE READY event\n", __func__);
 		wma_rx_service_ready_event(wmi_handle->scn_handle,
 					   wmi_cmd_struct_ptr);
 		break;
 	case WMI_READY_EVENTID:
-		pr_info("%s:  WMI UNIFIED READY event\n", __func__);
+		WMA_LOGD("%s:  WMI UNIFIED READY event\n", __func__);
 		wma_rx_ready_event(wmi_handle->scn_handle, wmi_cmd_struct_ptr);
 		break;
 	}
