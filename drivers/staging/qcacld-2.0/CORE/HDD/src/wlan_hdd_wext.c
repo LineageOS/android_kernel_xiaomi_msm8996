@@ -502,6 +502,7 @@ typedef enum eMonFilterType{
 #define WLAN_STATS_TX_UC_BYTE_CNT                 19
 #define WLAN_STATS_TX_MC_BYTE_CNT                 20
 #define WLAN_STATS_TX_BC_BYTE_CNT                 21
+#define WE_SET_PS_TDCC                            22
 
 #define FILL_TLV(__p, __type, __size, __val, __tlen) do {           \
         if ((__tlen + __size + 2) < WE_MAX_STR_LEN)                 \
@@ -11464,6 +11465,27 @@ VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *i
   return VOS_STATUS_SUCCESS;
 }/*iw_set_power_params*/
 
+int wlan_hdd_process_tdcc_ps(hdd_adapter_t *adapter, int enable, int percentage)
+{
+	static int32_t ps_tdcc_enabled = 0;
+
+	if (enable !=0 && enable != 1) {
+		hddLog(LOGE, "Invalid tdcc enable/disable");
+		return -EINVAL;
+	}
+	if (percentage < 0 || percentage > 100) {
+		hddLog(LOGE, "Invalid tdcc duty cycle percentage");
+		return -EINVAL;
+	}
+	if (enable == ps_tdcc_enabled)
+		return 0;
+
+	ps_tdcc_enabled = enable;
+	return process_wma_set_command_twoargs((int)adapter->sessionId,
+					       (int)GEN_PARAM_PS_TDCC,
+					       enable, percentage, GEN_CMD);
+}
+
 static int __iw_set_two_ints_getnone(struct net_device *dev,
                                      struct iw_request_info *info,
                                      union iwreq_data *wrqu, char *extra)
@@ -11504,6 +11526,9 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
 
         break;
 #endif
+    case WE_SET_PS_TDCC:
+	ret = wlan_hdd_process_tdcc_ps(pAdapter, value[1], value[2]);
+	break;
     case WE_SET_MON_MODE_CHAN:
         /*
          * TODO: Remove this private implementation use standard
@@ -12839,6 +12864,9 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_DUMP_DP_TRACE_LEVEL,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
         0, "dump_dp_trace"},
+    {   WE_SET_PS_TDCC,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+	0, "set_ps_tdcc" },
 #ifdef FEATURE_PBM_MAGIC_WOW
     {
         WE_SET_WOW_START,

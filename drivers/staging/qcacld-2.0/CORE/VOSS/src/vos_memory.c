@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -412,7 +412,7 @@ v_VOID_t *vos_mem_malloc_debug(v_SIZE_t size, const char *fileName,
        flags = GFP_ATOMIC;
    }
 
-#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+#if defined(CONFIG_WCNSS_MEM_PRE_ALLOC) || defined(CONFIG_VOS_MEM_PRE_ALLOC)
    if (size > WCNSS_PRE_ALLOC_GET_THRESHOLD)
    {
       v_VOID_t *pmem;
@@ -474,7 +474,7 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
         VOS_STATUS vosStatus;
         struct s_vos_mem_struct* memStruct = ((struct s_vos_mem_struct*)ptr) - 1;
 
-#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+#if defined(CONFIG_WCNSS_MEM_PRE_ALLOC) || defined(CONFIG_VOS_MEM_PRE_ALLOC)
         if (wcnss_prealloc_put(ptr))
             return;
 #endif
@@ -515,7 +515,7 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
 v_VOID_t * vos_mem_malloc( v_SIZE_t size )
 {
    int flags = GFP_KERNEL;
-#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+#if defined(CONFIG_WCNSS_MEM_PRE_ALLOC) || defined(CONFIG_VOS_MEM_PRE_ALLOC)
     v_VOID_t* pmem;
 #endif
    v_VOID_t* memPtr = NULL;
@@ -532,7 +532,7 @@ v_VOID_t * vos_mem_malloc( v_SIZE_t size )
    {
       flags = GFP_ATOMIC;
    }
-#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+#if defined(CONFIG_WCNSS_MEM_PRE_ALLOC) || defined(CONFIG_VOS_MEM_PRE_ALLOC)
    if(size > WCNSS_PRE_ALLOC_GET_THRESHOLD)
    {
        pmem = wcnss_prealloc_get(size);
@@ -563,7 +563,7 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
     if (ptr == NULL)
       return;
 
-#ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+#if defined(CONFIG_WCNSS_MEM_PRE_ALLOC) || defined(CONFIG_VOS_MEM_PRE_ALLOC)
     if(wcnss_prealloc_put(ptr))
         return;
 #endif

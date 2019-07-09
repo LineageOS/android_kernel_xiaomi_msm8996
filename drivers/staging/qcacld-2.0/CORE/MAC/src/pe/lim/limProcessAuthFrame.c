@@ -1047,7 +1047,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                             vos_mem_copy(pChallenge,
                                         (tANI_U8 *) challengeTextArray,
-                                         sizeof(challengeTextArray));
+                                        SIR_MAC_SAP_AUTH_CHALLENGE_LENGTH);
 
                             /**
                              * Sending Authenticaton frame with challenge.
@@ -1248,9 +1248,8 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                            FL("received Auth frame2 for unexpected auth algo number %d"
                            MAC_ADDRESS_STR), pRxAuthFrameBody->authAlgoNumber,
                            MAC_ADDR_ARRAY(pHdr->sa));)
+                    break;
                 }
-
-                break;
             }
 
             if (pRxAuthFrameBody->authStatusCode ==

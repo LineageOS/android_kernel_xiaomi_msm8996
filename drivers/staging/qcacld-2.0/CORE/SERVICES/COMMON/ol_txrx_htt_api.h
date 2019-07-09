@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -849,4 +849,6 @@ ol_tx_failure_indication(struct ol_txrx_pdev_t *pdev, uint8_t tid,
  */
 void
 ol_rx_mon_mac_header_handler(ol_txrx_pdev_handle pdev, adf_nbuf_t rx_ind_msg);
+
+void ol_ppdu_stats_ind_handler(ol_txrx_pdev_handle pdev, adf_nbuf_t rx_msg);
 #endif /* _OL_TXRX_HTT_API__H_ */

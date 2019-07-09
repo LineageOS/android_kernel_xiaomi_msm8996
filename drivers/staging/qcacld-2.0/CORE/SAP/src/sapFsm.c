@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2357,20 +2357,32 @@ static VOS_STATUS sap_check_mcc_valid(
 	/*
 	 * 3. Don't support MCC on DFS channel.
 	 */
-	if (chan_cnt > 0) {
-		for (j = 0; j < chan_cnt; j++) {
-			if (channels[j] != 0
-			    && vos_nv_getChannelEnabledState(channels[j])
-			    == NV_CHANNEL_DFS) {
-				VOS_TRACE( VOS_MODULE_ID_SAP,
-				    VOS_TRACE_LEVEL_ERROR,
-				    "%s: dfs not support in MCC dfs chan %d"
-				    "(chan %d band %d)",
-				    __func__, channels[j], chan, band);
+	for (i = 0; i < session_count; i++) {
+		info = &sessions[i];
+		if (info->och != 0 &&
+		    vos_nv_getChannelEnabledState(info->och) ==
+		    NV_CHANNEL_DFS) {
+			if ((info->con_mode == VOS_STA_SAP_MODE ||
+			    info->con_mode == VOS_P2P_GO_MODE) &&
+			    info->och != chan) {
+				VOS_TRACE(VOS_MODULE_ID_SAP,
+					  VOS_TRACE_LEVEL_ERROR,
+					  "SAP+SAP MCC DFS not support");
+				return VOS_STATUS_E_FAILURE;
+			}
+			if ((info->con_mode == VOS_STA_MODE ||
+			    info->con_mode == VOS_P2P_CLIENT_MODE) &&
+			    vos_nv_getChannelEnabledState(chan) ==
+			    NV_CHANNEL_DFS
+			    ) {
+				VOS_TRACE(VOS_MODULE_ID_SAP,
+					  VOS_TRACE_LEVEL_ERROR,
+					  "STA+SAP SAP can't start in DFS ch");
 				return VOS_STATUS_E_FAILURE;
 			}
 		}
 	}
+
 	return VOS_STATUS_SUCCESS;
 }
 

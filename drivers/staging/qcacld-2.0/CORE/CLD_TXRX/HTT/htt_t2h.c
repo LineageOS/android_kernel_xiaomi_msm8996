@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -613,6 +613,9 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
             adf_os_mem_free(report);
             break;
         }
+    case HTT_T2H_MSG_TYPE_PPDU_STATS_IND:
+        ol_ppdu_stats_ind_handler(pdev->txrx_pdev, htt_t2h_msg);
+        break;
     default:
         break;
     };
@@ -1123,6 +1126,28 @@ htt_rx_ind_noise_floor_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
 	return noise_floor;
 }
 
+int htt_rx_ind_sig(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
+		   uint32_t *sig_a1, uint32_t *sig_a2, uint8_t *type)
+{
+	u_int32_t *msg_word;
+
+        msg_word = (u_int32_t *)
+           (adf_nbuf_data(rx_ind_msg) + HTT_RX_IND_FW_RX_PPDU_DESC_BYTE_OFFSET);
+
+	/* check if the RX_IND message contains valid rx PPDU start info */
+	if (!HTT_RX_IND_START_VALID_GET(*msg_word)) {
+		*sig_a1 = -1;
+		*sig_a2 = -1;
+		*type = -1;
+		return -1;
+	}
+
+	*sig_a1 = *(msg_word + 7);
+	*sig_a2 = *(msg_word + 8);
+	*type = HTT_RX_IND_PREAMBLE_TYPE_GET(*sig_a1);
+	return 0;
+}
+
 /**
  * htt_rx_ind_legacy_rate() - Return the data rate
  * @pdev:        the HTT instance the rx data was received on
@@ -1153,7 +1178,7 @@ htt_rx_ind_noise_floor_chain(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
  *
  * Return the data rate provided in a rx indication message.
  */
-void
+int
 htt_rx_ind_legacy_rate(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
     uint8_t *legacy_rate, uint8_t *legacy_rate_sel)
 {
@@ -1166,11 +1191,12 @@ htt_rx_ind_legacy_rate(htt_pdev_handle pdev, adf_nbuf_t rx_ind_msg,
     if (!HTT_RX_IND_START_VALID_GET(*msg_word)) {
         *legacy_rate = -1;
         *legacy_rate_sel = -1;
-        return;
+        return -1;
     }
 
     *legacy_rate = HTT_RX_IND_LEGACY_RATE_GET(*msg_word);
     *legacy_rate_sel = HTT_RX_IND_LEGACY_RATE_SEL_GET(*msg_word);
+    return 0;
 }
 
 /**

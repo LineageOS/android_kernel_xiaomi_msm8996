@@ -5177,6 +5177,7 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tSmeConfigParams *pParam)
               pMac->roam.configParam.sta_roam_policy.dfs_mode;
       pParam->csrConfig.sta_roam_policy_params.skip_unsafe_channels =
               pMac->roam.configParam.sta_roam_policy.skip_unsafe_channels;
+      pParam->snr_monitor_enabled = pMac->snr_monitor_enabled;
       pParam->sub20_config_info = pMac->sub20_config_info;
       pParam->sub20_channelwidth = pMac->sub20_channelwidth;
       pParam->sub20_dynamic_channelwidth = pMac->sub20_dynamic_channelwidth;
@@ -17135,6 +17136,49 @@ eHalStatus sme_power_debug_stats_req(tHalHandle hal, void (*callback_fn)
 }
 #endif
 
+eHalStatus sme_ll_stats_set_primary_mac(tHalHandle hal,
+					uint8_t session_id,
+					tSirMacAddr mac_addr)
+{
+	eHalStatus status    = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal mac  = PMAC_STRUCT(hal);
+	vos_msg_t message;
+	struct hal_primary_params *primary_peer;
+
+	primary_peer = vos_mem_malloc(sizeof(*primary_peer));
+	if (!primary_peer) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Fail to alloc mem", __func__);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	vos_mem_copy(primary_peer->bssid, mac_addr, sizeof(tSirMacAddr));
+	primary_peer->session_id = session_id;
+
+	if (eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock(&mac->sme)) {
+		/* Serialize the req through MC thread */
+		message.bodyptr = primary_peer;
+		message.type    = WDA_LINK_LAYER_STATS_SET_PRIMARY_PEER;
+		MTRACE(vos_trace(VOS_MODULE_ID_SME, TRACE_CODE_SME_TX_WDA_MSG,
+				 NO_SESSION, message.type));
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &message);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				  "%s: not able to post WDA_LINK_LAYER_STATS_SET_PRIMARY_PEER",
+				  __func__);
+			vos_mem_free(primary_peer);
+			status = eHAL_STATUS_FAILURE;
+		}
+		sme_ReleaseGlobalLock(&mac->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock error"));
+		status = eHAL_STATUS_FAILURE;
+	}
+	return status;
+}
+
 /**
  * eHalStatus sme_ll_stats_set_thresh - set threshold for mac counters
  * @hal, hal layer handle
@@ -20059,6 +20103,42 @@ VOS_STATUS sme_set_btc_wlan_coex_tx_power(uint32_t coex_tx_power)
 	return vos_status;
 }
 
+#ifdef WMI_COEX_BTC_DUTYCYCLE
+VOS_STATUS sme_set_btc_coex_dutycycle(uint32_t coex_btc_PauseDuration,uint32_t coex_btc_UnPauseDuration)
+{
+	vos_msg_t msg = {0};
+	VOS_STATUS vos_status;
+	WMI_COEX_CONFIG_CMD_fixed_param *sme_interval;
+
+	sme_interval = vos_mem_malloc(sizeof(*sme_interval));
+	if (!sme_interval) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Malloc failed"));
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	sme_interval->config_type = WMI_COEX_CONFIG_BTC_DUTYCYCLE;
+	sme_interval->config_arg1 = coex_btc_PauseDuration;
+	sme_interval->config_arg2 = coex_btc_UnPauseDuration;
+	printk(KERN_ERR "ENTER sme_set_btc_coex_dutycycle = %d",coex_btc_PauseDuration);
+	printk(KERN_ERR "ENTER sme_set_btc_coex_dutycycle =%d",coex_btc_UnPauseDuration);
+
+	msg.type = WDA_BTC_BT_WLAN_INTERVAL_CMD;
+	msg.reserved = 0;
+	msg.bodyptr = sme_interval;
+
+	vos_status = vos_mq_post_message(VOS_MODULE_ID_WDA,&msg);
+	if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Not able to post message to WDA"));
+		vos_mem_free(sme_interval);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return vos_status;
+}
+#endif
+
 /**
  * sme_send_disassoc_req_frame - send disassoc req
  * @hal: handler to hal
@@ -21169,6 +21249,42 @@ uint8_t sae_status)
 				hal_status = eHAL_STATUS_FAILURE;
 			}
 		}
+		sme_ReleaseGlobalLock(&mac->sme);
+	}
+
+	return hal_status;
+}
+#endif
+
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+/**
+ * sme_set_rx_antenna() - Set atenna matrix
+ * @hal: The handle returned by mac_open
+ * @matrix: smart antenaa matrix
+ *
+ * Return: HAL_STATUS
+ */
+eHalStatus sme_set_rx_antenna(tHalHandle hal,
+			      uint32_t matrix)
+{
+	vos_msg_t vos_message;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	eHalStatus hal_status = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status;
+
+	hal_status = sme_AcquireGlobalLock(&mac->sme);
+	if (HAL_STATUS_SUCCESS(hal_status)) {
+		vos_message.type = WDA_SET_RX_ANTENNA;
+		vos_message.bodyval = matrix;
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+			  FL("Smart Antenna Matrix=%d"),
+			  matrix);
+
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA,
+						 &vos_message);
+		if (!VOS_IS_STATUS_SUCCESS(vos_status))
+			hal_status = eHAL_STATUS_FAILURE;
+
 		sme_ReleaseGlobalLock(&mac->sme);
 	}
 

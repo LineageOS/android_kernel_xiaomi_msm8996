@@ -20,6 +20,7 @@
 /*
  * DOC: contains smart antenna APIs.
  */
+#include "wlan_hdd_main.h"
 #include "smart_ant.h"
 #include "if_smart_antenna.h"
 
@@ -62,16 +63,42 @@ int deregister_smart_ant_ops(char *dev_name)
 			   __func__);
 		return SMART_ANT_STATUS_FAILURE;
 	}
-	if (adf_os_atomic_read(&sa_handle->sa_init) == 0 ) {
-		sa_handle->sa_callbacks = NULL;
-		sa_handle->smart_ant_state &= ~SMART_ANT_STATE_CB_REGISTERED;
-	}
+
+	sa_handle->sa_callbacks = NULL;
+	sa_handle->smart_ant_state &= ~SMART_ANT_STATE_CB_REGISTERED;
 	return SMART_ANT_STATUS_SUCCESS;
 }
 EXPORT_SYMBOL(deregister_smart_ant_ops);
 
 int set_smart_ant_control(uint32_t magic)
 {
+	struct hdd_context_s *hdd_ctx;
+	v_CONTEXT_t vos_ctx;
+	struct smart_ant *sa_handle;
+
+	sa_handle = sa_get_handle();
+	if (!sa_handle) {
+		SA_DPRINTK(sa_handle, SMART_ANTENNA_FATAL,
+			   "%s: Smart antenna module is not attached.",
+			   __func__);
+		return SMART_ANT_STATUS_FAILURE;
+	}
+
+	vos_ctx = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+	if (!vos_ctx) {
+		SA_DPRINTK(sa_handle, SMART_ANTENNA_FATAL,
+			   "%s:Invalid global VOSS context", __func__);
+		return SMART_ANT_STATUS_FAILURE;
+	}
+
+	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_ctx);
+
+	if (!hdd_ctx) {
+		SA_DPRINTK(sa_handle, SMART_ANTENNA_FATAL,
+			   "%s:Invalid HDD Context", __func__);
+		return SMART_ANT_STATUS_FAILURE;
+	}
+	sme_set_rx_antenna(hdd_ctx->hHal, magic);
 	return SMART_ANT_STATUS_SUCCESS;
 }
 EXPORT_SYMBOL(set_smart_ant_control);

@@ -113,6 +113,7 @@
 
 #include "wmi_unified_priv.h"
 #include "limSessionUtils.h"
+#include "if_smart_antenna.h"
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -6452,6 +6453,82 @@ static void wlan_hdd_cfg80211_link_layer_stats_callback(void *ctx, int indType,
     return;
 }
 
+static int wlan_hdd_set_primary_peer(hdd_adapter_t *adapter,
+				     v_MACADDR_t *mac_addr)
+{
+	uint8_t sta_id;
+	hdd_station_ctx_t *hdd_std_ctx;
+	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
+
+	if (adapter->device_mode == WLAN_HDD_INFRA_STATION) {
+	    hdd_std_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+		if (hdd_std_ctx->conn_info.connState ==
+		    eConnectionState_NotConnected) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       "%s: Connection is not established",
+			       __func__);
+			return -EINVAL;
+		}
+
+		if (!vos_mem_compare(mac_addr->bytes,
+				     hdd_std_ctx->conn_info.bssId,
+				     VOS_MAC_ADDR_SIZE)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+			       "%s: BSSIS is "MAC_ADDRESS_STR" not "MAC_ADDRESS_STR,
+			       __func__,
+			       MAC_ADDR_ARRAY(hdd_std_ctx->conn_info.bssId),
+			       MAC_ADDR_ARRAY(mac_addr->bytes));
+			return -EINVAL;
+		}
+		goto set_mac;
+	}
+
+	if (adapter->device_mode != WLAN_HDD_SOFTAP) {
+		hddLog(VOS_TRACE_LEVEL_INFO,
+		       FL("invalid device_mode:%d"), adapter->device_mode);
+		return -EINVAL;
+	}
+
+	if (VOS_STATUS_SUCCESS !=
+		hdd_softap_GetStaId(adapter, mac_addr, &sta_id)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: Failed to find the station id", __func__);
+		return -EINVAL;
+	}
+
+	if (sta_id == HDD_WLAN_INVALID_STA_ID ||
+	    sta_id >= WLAN_MAX_STA_COUNT) {
+	    hddLog(VOS_TRACE_LEVEL_ERROR,
+		   "%s: Failed to find right station", __func__);
+	    return -EINVAL;
+	}
+
+	if (FALSE == adapter->aStaInfo[sta_id].isUsed) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       "%s: STA %d is unregistered", __func__, sta_id);
+		return -EINVAL;
+	}
+
+	if ((adapter->aStaInfo[sta_id].tlSTAState !=
+	     WLANTL_STA_CONNECTED) &&
+            (adapter->aStaInfo[sta_id].tlSTAState !=
+	     WLANTL_STA_AUTHENTICATED)) {
+			hddLog(VOS_TRACE_LEVEL_ERROR,
+                       "%s: Station not connected yet", __func__);
+		return -EINVAL;
+	}
+set_mac:
+	hddLog(VOS_TRACE_LEVEL_INFO_LOW, FL("Send Primary MAC to target"));
+	if (eHAL_STATUS_SUCCESS != sme_ll_stats_set_primary_mac(hdd_ctx->hHal,
+								adapter->sessionId,
+								mac_addr->bytes)) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("sme_ll_stats_set_thresh failed."));
+		return -EINVAL;
+	}
+	return 0;
+}
+
 static const struct nla_policy
 qca_wlan_vendor_ll_ext_policy[QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_MAX + 1] = {
 	[QCA_WLAN_VENDOR_ATTR_LL_STATS_CFG_PERIOD] = {
@@ -6631,6 +6708,25 @@ static int __wlan_hdd_cfg80211_ll_stats_ext_set_param(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
+	if (tb[QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS]) {
+		struct net_device *dev  = wdev->netdev;
+	        hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
+		v_MACADDR_t mac_addr;
+		uint32_t atr_len;
+
+		/* Set primary peer MAC address */
+		atr_len = nla_len(tb[QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS]);
+		atr_len = atr_len > VOS_MAC_ADDR_SIZE ?
+					VOS_MAC_ADDR_SIZE : atr_len;
+		nla_memcpy(mac_addr.bytes,
+			tb[QCA_WLAN_VENDOR_ATTR_LL_STATS_EXT_PEER_MAC_ADDRESS],
+			atr_len);
+		hddLog(VOS_TRACE_LEVEL_INFO,
+		       FL("Primary MAC from user layer is " MAC_ADDRESS_STR),
+		       MAC_ADDR_ARRAY(mac_addr.bytes));
+		return wlan_hdd_set_primary_peer(adapter, &mac_addr);
+	}
+
 	if (tb[QCA_WLAN_VENDOR_ATTR_LL_STATS_CFG_PERIOD]) {
 		thresh.period = nla_get_u32(tb[
 			QCA_WLAN_VENDOR_ATTR_LL_STATS_CFG_PERIOD]);
@@ -6656,27 +6752,6 @@ static int __wlan_hdd_cfg80211_ll_stats_ext_set_param(struct wiphy *wiphy,
 		    == eHAL_STATUS_FAILURE)
 			hddLog(LOGE, "can't pass WNI_CFG_ASSOC_STA_LIMIT_AP to CCM");
 		goto set_param;
-	} else {
-#define MAC_COUNTER_MAX_PEER 2
-		tpAniSirGlobal mac = (tpAniSirGlobal)hdd_ctx->hHal;
-		uint32_t cur_peer_num = peGetCurrentSTAsCount(mac);
-		if (cur_peer_num > MAC_COUNTER_MAX_PEER) {
-			hddLog(LOGE, ("MAC counter can only support %d peers, current peer number is %d"),
-			       MAC_COUNTER_MAX_PEER, cur_peer_num);
-			return -ENOMEM;
-		}
-
-		if (ccmCfgSetInt(hdd_ctx->hHal, WNI_CFG_ASSOC_STA_LIMIT_AP,
-				 MAC_COUNTER_MAX_PEER, NULL, eANI_BOOLEAN_FALSE)
-			== eHAL_STATUS_FAILURE)
-			hddLog(LOGE,"can't pass WNI_CFG_ASSOC_STA_LIMIT_AP to CCM");
-		else
-			hddLog(VOS_TRACE_LEVEL_INFO,
-			       FL("limit MAX peer count to %d"),
-			          MAC_COUNTER_MAX_PEER);
-
-		hddLog(VOS_TRACE_LEVEL_INFO,
-		       FL("MAC counter enabled"));
 	}
 
 	/* global thresh is not enabled */
@@ -7530,6 +7605,45 @@ put_attr_fail:
 	return -EINVAL;
 }
 
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+
+/**
+ * hdd_ind_counter2sa() - indicate interference stats to SA module
+ * @stats: interference stats
+ *
+ */
+static void hdd_ind_counter2sa(struct sir_wifi_ll_ext_stats *stats)
+{
+	tSirMacAddr mac_addr;
+	struct sa_int_stats_feedback fb;
+	struct sir_wifi_chan_cca_stats *cca;
+
+	vos_mem_copy(&mac_addr,
+		     &stats->peer_stats[0].mac_address,
+		     sizeof(tSirMacAddr));
+	cca = stats->cca;
+	fb.rx_time = cca->rx_in_bss_time + cca->rx_out_bss_time;
+	fb.rx_bad_time = cca->rx_in_bad_cond_time;
+	fb.tx_time = cca->tx_time;
+	fb.tx_bad_time = cca->tx_in_bad_cond_time;
+	fb.idle_time = cca->idle_time;
+	fb.on_bss_time = cca->rx_in_bss_time;
+	fb.out_bss_time = cca->rx_out_bss_time;
+	fb.magic = stats->maxtrix;
+	fb.phyerr_count = stats->phyerr_count;
+	fb.timestamp = stats->timestamp;
+
+	/* Get the primory peer MAC address */
+	hddLog(VOS_TRACE_LEVEL_ERROR,
+	       FL("Indicate counter for PEER " MAC_ADDRESS_STR),
+	       MAC_ADDR_ARRAY(mac_addr));
+	smart_antenna_update_int_stats(mac_addr, &fb);
+}
+#else
+static __inline__ void hdd_ind_counter2sa(struct sir_wifi_ll_ext_stats *stats)
+{
+}
+#endif
 /**
  * wlan_hdd_cfg80211_ll_stats_ext_callback() - LL stats callback
  * @rsp - msg from FW
@@ -7595,6 +7709,9 @@ static void wlan_hdd_cfg80211_ll_stats_ext_callback(tSirLLStatsResults *rsp)
 		hddLog(LOGE, FL("MAC counters stats"));
 		status = put_wifi_ll_ext_stats((struct sir_wifi_ll_ext_stats *)
 					       rsp->results, skb);
+
+		/* indicate counts to SA */
+		hdd_ind_counter2sa((struct sir_wifi_ll_ext_stats *)rsp->results);
 	} else {
 		hddLog(LOGE, FL("Unknown link layer stats"));
 		status = -1;
@@ -17237,6 +17354,8 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     tsap_Config_t *pConfig;
     tSirUpdateIE   updateIE;
     beacon_data_t *pBeacon = NULL;
+    v_U16_t proberesp_ies_len;
+    v_U8_t *proberesp_ies = NULL;
 
     pConfig = &pHostapdAdapter->sessionCtx.ap.sapConfig;
     pBeacon = pHostapdAdapter->sessionCtx.ap.beacon;
@@ -17338,28 +17457,36 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
     }
 
     /* Added for Probe Response IE */
-    total_ielen = 0;
-    if (pBeacon->proberesp_ies_len > 0 &&
-        pBeacon->proberesp_ies_len <= MAX_GENIE_LEN) {
-        vos_mem_copy(genie, pBeacon->proberesp_ies, pBeacon->proberesp_ies_len);
-        total_ielen = pBeacon->proberesp_ies_len;
+    proberesp_ies = vos_mem_malloc(pBeacon->proberesp_ies_len +
+                                   MAX_GENIE_LEN);
+    if (proberesp_ies == NULL) {
+        hddLog(LOGE, FL("mem alloc failed for probe resp ies, size: %d"),
+               pBeacon->proberesp_ies_len + MAX_GENIE_LEN);
+            ret = -EINVAL;
+            goto done;
     }
-    wlan_hdd_add_sap_obss_scan_ie(pHostapdAdapter, genie, &total_ielen);
+    vos_mem_copy(proberesp_ies, pBeacon->proberesp_ies,
+                 pBeacon->proberesp_ies_len);
+    proberesp_ies_len = pBeacon->proberesp_ies_len;
+
+    hddLog(LOGE, FL("qcdbg, probe resp ie len:%d"), proberesp_ies_len);
+    wlan_hdd_add_sap_obss_scan_ie(pHostapdAdapter, proberesp_ies,
+                                  &proberesp_ies_len);
 
     if (test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) {
-        updateIE.ieBufferlength = total_ielen;
-        updateIE.pAdditionIEBuffer = genie;
+        updateIE.ieBufferlength = proberesp_ies_len;
+        updateIE.pAdditionIEBuffer = proberesp_ies;
         updateIE.append = VOS_FALSE;
         updateIE.notify = VOS_FALSE;
         if (sme_UpdateAddIE(WLAN_HDD_GET_HAL_CTX(pHostapdAdapter),
                   &updateIE, eUPDATE_IE_PROBE_RESP) == eHAL_STATUS_FAILURE) {
             hddLog(LOGE, FL("Could not pass on PROBE_RESP add Ie data"));
             ret = -EINVAL;
-            goto done;
+            goto free_probe_resp_ie;
         }
         WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_PROBE_RESP);
     } else {
-        WLANSAP_UpdateSapConfigAddIE(pConfig, genie, total_ielen,
+        WLANSAP_UpdateSapConfigAddIE(pConfig, proberesp_ies, proberesp_ies_len,
                              eUPDATE_IE_PROBE_RESP);
     }
 
@@ -17373,7 +17500,7 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
                 &updateIE, eUPDATE_IE_ASSOC_RESP) == eHAL_STATUS_FAILURE) {
             hddLog(LOGE, FL("Could not pass on Add Ie Assoc Response data"));
             ret = -EINVAL;
-            goto done;
+            goto free_probe_resp_ie;
         }
         WLANSAP_ResetSapConfigAddIE(pConfig, eUPDATE_IE_ASSOC_RESP);
     } else {
@@ -17383,6 +17510,8 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
                          eUPDATE_IE_ASSOC_RESP);
     }
 
+free_probe_resp_ie:
+    vos_mem_free(proberesp_ies);
 done:
     vos_mem_free(genie);
     return ret;
@@ -18511,6 +18640,11 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                 pBeacon->head_len, WLAN_EID_SUPP_RATES);
         if (pIe != NULL) {
             pIe++;
+            if (pIe[0] > SIR_MAC_RATESET_EID_MAX) {
+                hddLog(LOGE, FL("Invalid supported rates %d"), pIe[0]);
+                ret = -EINVAL;
+                goto error;
+            }
             pConfig->supported_rates.numRates = pIe[0];
             pIe++;
             for (i = 0; i < pConfig->supported_rates.numRates; i++)
@@ -18524,6 +18658,11 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
                 WLAN_EID_EXT_SUPP_RATES);
         if (pIe != NULL) {
             pIe++;
+            if (pIe[0] > SIR_MAC_RATESET_EID_MAX) {
+                hddLog(LOGE, FL("Invalid supported rates %d"), pIe[0]);
+                ret = -EINVAL;
+                goto error;
+            }
             pConfig->extended_rates.numRates = pIe[0];
             pIe++;
             for (i = 0; i < pConfig->extended_rates.numRates; i++)
@@ -19008,6 +19147,7 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     hddLog(LOG1, FL("Device_mode %s(%d)"),
            hdd_device_mode_to_string(pAdapter->device_mode),
            pAdapter->device_mode);
+    smart_antenna_deinit(false);
 
     /*
      * if a sta connection is in progress in another adapter, disconnect
@@ -19548,6 +19688,7 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
             }
         }
         hdd_change_ch_avoidance_status(pHddCtx, false);
+	smart_antenna_init(true);
 #ifdef FEATURE_WLAN_DISABLE_CHANNEL_SWITCH
         /*
          * If Do_Not_Break_Stream enabled send avoid channel list
@@ -20453,7 +20594,8 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
             if (hdd_hostapd_sub20_channelwidth_can_switch(pAdapter,
                                                           &sub20_chanwidth)) {
                     WLANSAP_set_sub20_channelwidth_with_csa(
-                        WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), sub20_chanwidth);
+                        WLAN_HDD_GET_SAP_CTX_PTR(pAdapter), sub20_chanwidth,
+                        WLAN_HDD_GET_AP_CTX_PTR(pAdapter)->operatingChannel);
             }
         }
     } else if ((pAdapter->device_mode == WLAN_HDD_INFRA_STATION) ||
@@ -30897,8 +31039,8 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
     if (0 != status)
         return status;
 
-    if ((NULL == pHddCtx->chan_info) &&
-        (pHddCtx->cfg_ini->fEnableSNRMonitoring)) {
+    if ((NULL == pHddCtx->chan_info) ||
+        (0 == pHddCtx->cfg_ini->fEnableSNRMonitoring)) {
         hddLog(LOGE, FL("chan_info is NULL"));
         return -EINVAL;
     }
@@ -30908,19 +31050,18 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
         return -EINVAL;
     }
 
-    pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+    if (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) {
+        pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
-    if (0 == pHddCtx->cfg_ini->fEnableSNRMonitoring ||
-        eConnectionState_Associated != pHddStaCtx->conn_info.connState)
-    {
-        return -ENONET;
-    }
+        if (eConnectionState_Associated != pHddStaCtx->conn_info.connState)
+            return -ENONET;
 
-    if (VOS_TRUE == pHddStaCtx->hdd_ReassocScenario)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                 "%s: Roaming in progress, hence return ", __func__);
-        return -ENONET;
+        if (VOS_TRUE == pHddStaCtx->hdd_ReassocScenario)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                     "%s: Roaming in progress, hence return ", __func__);
+            return -ENONET;
+        }
     }
 
     halHandle = WLAN_HDD_GET_HAL_CTX(pAdapter);
@@ -31037,6 +31178,8 @@ static int __wlan_hdd_cfg80211_channel_switch(struct wiphy *wiphy,
 	v_U16_t freq;
 	int ret;
 	tsap_Config_t *sap_config;
+	uint32_t current_sub20_chan_width;
+	uint32_t target_sub20_chan_width;
 
 	hddLog(LOG1, FL("Set Freq %d sub20 chanwidth %d"),
 	       csa_params->chandef.chan->center_freq,
@@ -31058,12 +31201,40 @@ static int __wlan_hdd_cfg80211_channel_switch(struct wiphy *wiphy,
 
 	freq = csa_params->chandef.chan->center_freq;
 	channel = vos_freq_to_chan(freq);
+	target_sub20_chan_width = csa_params->chandef.width;
 
-	if (channel != current_channel) {
+	hdd_get_sub20_channelwidth(adapter, &current_sub20_chan_width);
+	switch (current_sub20_chan_width) {
+	case SUB20_MODE_5MHZ:
+		current_sub20_chan_width = NL80211_CHAN_WIDTH_5;
+		break;
+	case SUB20_MODE_10MHZ:
+		current_sub20_chan_width = NL80211_CHAN_WIDTH_10;
+		break;
+	case SUB20_MODE_NONE:
+		current_sub20_chan_width = NL80211_CHAN_WIDTH_20_NOHT;
+		break;
+	default:
+		hddLog(LOGE, FL("invalid val %d"), current_sub20_chan_width);
+		return -EINVAL;
+	}
+
+	if (target_sub20_chan_width != NL80211_CHAN_WIDTH_20_NOHT &&
+	    target_sub20_chan_width != NL80211_CHAN_WIDTH_5 &&
+	    target_sub20_chan_width != NL80211_CHAN_WIDTH_10) {
+		hddLog(LOGE, FL("not support switch to bandwidth %d via chan switch"),
+		       target_sub20_chan_width);
+		target_sub20_chan_width = current_sub20_chan_width;
+	}
+
+	if (channel != current_channel &&
+	    target_sub20_chan_width == current_sub20_chan_width) {
 		ret = hdd_softap_set_channel_change(dev, channel);
-	} else if (sap_config->sub20_switch_mode == SUB20_MANUAL) {
+	} else if (sap_config->sub20_switch_mode == SUB20_MANUAL &&
+		target_sub20_chan_width != current_sub20_chan_width) {
 		ret = hdd_softap_set_channel_sub20_chanwidth_change(
-					dev, csa_params->chandef.width);
+					dev, csa_params->chandef.width,
+					channel);
 	} else {
 		hddLog(LOGE, FL("nothing to do"));
 		return -EINVAL;

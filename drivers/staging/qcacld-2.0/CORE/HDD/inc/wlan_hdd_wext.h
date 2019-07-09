@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -471,6 +471,17 @@ int wlan_hdd_set_mc_addr_list(hdd_adapter_t *pAdapter, v_U8_t set);
 void* wlan_hdd_change_country_code_callback(void *pAdapter);
 
 VOS_STATUS  wlan_hdd_set_powersave(hdd_adapter_t *pAdapter, int mode);
+
+/**
+ * wlan_hdd_process_tdcc_ps() - To process set_ps_tdcc command
+ * @adapter: adapter handle
+ * @enable: 1 enable, 0 disable
+ * @percentage: percentage of tx duty cycle control
+ *
+ * Return: 0 if success, otherwise error code
+ */
+int
+wlan_hdd_process_tdcc_ps(hdd_adapter_t *adapter, int enable, int percentage);
 
 int hdd_setBand(struct net_device *dev, u8 ui_band);
 int hdd_setBand_helper(struct net_device *dev, const char *command);

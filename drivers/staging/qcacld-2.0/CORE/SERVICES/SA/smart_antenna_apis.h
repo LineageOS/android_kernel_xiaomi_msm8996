@@ -58,6 +58,29 @@ enum radio_id {
 };
 
 /**
+ * enum legacy_rate
+ */
+enum legacy_rate {
+	CCK_1M_LONG_PREAMBLE = 0,
+	CCK_2M_LONG_PREAMBLE,
+	CCK_2M_SHORT_PREAMBLE,
+	CCK_5_5M_LONG_PREAMBLE,
+	CCK_5_5M_SHORT_PREAMBLE,
+	CCK_11M_LONG_PREAMBLE,
+	CCK_11M_SHORT_PREAMBLE,
+	OFDM_6M,
+	OFDM_9M,
+	OFDM_12M,
+	OFDM_18M,
+	OFDM_24M,
+	OFDM_36M,
+	OFDM_48M,
+	OFDM_54M,
+	INVALID_LEGACY_RATE    =  -1
+};
+
+
+/**
  * struct sa_config - Smart Antenna config info
  * @channel_num: SAP home channel number
  */
@@ -77,6 +100,14 @@ struct sa_rate_cap {
 	uint8_t ratecount[MAX_RATE_COUNTERS];
 };
 
+#define SMART_ANT_BW_5MHZ                        BIT(0)
+#define SMART_ANT_BW_10MHZ                       BIT(1)
+#define SMART_ANT_BW_20MHZ                       BIT(2)
+#define SMART_ANT_BW_40MHZ                       BIT(3)
+#define SMART_ANT_BW_80MHZ                       BIT(4)
+#define SMART_ANT_NODE_HT                        BIT(8)
+#define SMART_ANT_NODE_VHT                       BIT(9)
+
 /**
  * struct sa_node_info - Detailed info about the connected peer
  * @mac_addr: MAC address of the connected peer
@@ -89,13 +120,6 @@ struct sa_node_info {
 	uint8_t channel_num;
 	uint8_t nss;
 
-#define SMART_ANT_BW_5MHZ                        BIT(0)
-#define SMART_ANT_BW_10MHZ                       BIT(1)
-#define SMART_ANT_BW_20MHZ                       BIT(2)
-#define SMART_ANT_BW_40MHZ                       BIT(3)
-#define SMART_ANT_BW_80MHZ                       BIT(4)
-#define SMART_ANT_NODE_HT                        BIT(8)
-#define SMART_ANT_NODE_VHT                       BIT(9)
 	uint32_t node_caps;
 	struct sa_rate_cap rate_cap;
 };
@@ -121,38 +145,81 @@ struct sa_comb_stats {
  * struct sa_tx_stats_feedback - feedback for TX stats
  * @magic: magic number for deferent antenna settings
  * @tid: TID.
+ * @ack_rssi: RSSI for ACK frames
  * @pkt_nums: msdu number corresponding this TX feed back
  * @tx_rate:  msb is flag for legacy rate or mcs index
  *   if msb=0, legacy rate is reported, units of 500 kb/s
  *   if msb=1, MCS index is reported.
- * @msdu: stats for each msdu.
+ * @tx_success_msdus: successfully transfered MSDUs number
+ * @tx_retry_msdus: retried MSDUs number
+ * @tx_failed_msdus: failed MSDUs number
+ * @time_stamp: time stamp
  */
 struct sa_tx_stats_feedback {
-	uint32_t magic;
+	uint8_t  magic;
 	uint8_t  tid;
+	uint8_t  ack_rssi[SA_MAX_CHAIN_NUM];
 	uint16_t pkt_num;
 	uint16_t tx_rate;
-	struct sa_comb_stats msdu[0];
+	uint16_t tx_success_msdus;
+	uint16_t tx_retry_msdus;
+	uint16_t tx_failed_msdus;
+	uint32_t time_stamp;
 };
 
 /**
- * struct  sa_rx_stats_feedback - feedback for RX stats
+ * struct sa_rx_rate - RX rate
+ */
+struct sa_rx_rate {
+#define  LEGACY_RATE         0
+#define  HT_VHT_RATE         1
+	uint8_t type;
+	union {
+		enum legacy_rate legacy_rate;
+		struct {
+			uint8_t mcs_index;
+			uint8_t nss;
+			uint8_t bw;
+		} mcs;
+	} rate;
+};
+
+/**
+ * struct sa_rx_mpdu_stats - RX stats for MPDU
  * @magic: magic number for deferent antenna settings
  * @tid: TID
- * @rx_rate:  msb is flag for legacy rate or mcs index
- *   if msb=0, legacy rate is reported, units of 500 kb/s
- *   if msb=1, MCS index is reported.
+ * @mcs: mcs index
+ *    only valid when legacy_rate ==  INVALID_LEGACY_RATE
+ * @legacy_rate: legay rate
  * @pkt_num: received packets nmber
  * @rx_rssi: percchain rssi
- * @timestamp: timestap
+ * @rx_sn: perchain noise floor
+ * @timestamp_microsec:    (output) the timestamp to microsecond resolution.
+ *                         -1 on error.
+ * @timestamp_submicrosec: the submicrosecond portion of the
+ *                         timestamp. -1 on error.
  */
-struct  sa_rx_stats_feedback {
+struct sa_rx_mpdu_stats {
 	uint32_t magic;
 	uint8_t  tid;
-	uint16_t rx_rate;
+	uint8_t mcs;
+	struct sa_rx_rate rate;
 	uint16_t pkt_num;
 	uint8_t rx_rssi[SA_MAX_CHAIN_NUM];
-	uint32_t timestamp;
+	uint8_t rx_nf[SA_MAX_CHAIN_NUM];
+	uint32_t timestamp_microsec;
+	uint32_t timestamp_submicrosec;
+};
+
+/**
+ * struct sa_rx_stats_feedback - RX stats Feedback
+ * @mpdu_count: mpdu count in this feedback
+ * @mpdu_stats: MPDU stats buffer
+ */
+struct sa_rx_stats_feedback
+{
+	uint32_t mpdu_count;
+	struct  sa_rx_mpdu_stats mpdu_stats[0];
 };
 
 /**
