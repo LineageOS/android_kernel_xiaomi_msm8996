@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2016, 2019 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -195,6 +195,10 @@ static int set_num_clusters(const char *buf, const struct kernel_param *kp)
 
 	if (sscanf(buf, "%u\n", &val) != 1)
 		return -EINVAL;
+
+	if (val == 0)
+		return -EINVAL;
+
 	if (num_clusters)
 		return -EINVAL;
 
@@ -259,7 +263,7 @@ static int get_max_cpus(char *buf, const struct kernel_param *kp)
 {
 	int i, cnt = 0;
 
-	if (!clusters_inited)
+	if (!clusters_inited || (num_clusters == 0))
 		return cnt;
 
 	for (i = 0; i < num_clusters; i++)
