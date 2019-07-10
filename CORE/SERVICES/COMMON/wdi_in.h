@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2013-2014, 2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2017, 2019 The Linux Foundation. All rights
+ * reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -568,6 +569,14 @@ wdi_in_mgmt_send(
 void
 wdi_in_display_stats(struct ol_txrx_pdev_t *pdev, uint16_t value);
 
+/**
+ * wdi_in_get_stats - get txrx stats
+ * @pdev: txrx pdev context
+ * @value: value
+ * @data_ptr: stats data will store here
+ */
+void
+wdi_in_get_stats(struct ol_txrx_pdev_t *pdev, uint16_t value, void *data_ptr);
 
 /**
  * wdi_in_clear_stats - clear txrx stats
@@ -1214,6 +1223,7 @@ ol_tx_queue_log_display(ol_txrx_pdev_handle pdev);
 #define wdi_in_mgmt_tx_cb_set ol_txrx_mgmt_tx_cb_set
 #define wdi_in_mgmt_send ol_txrx_mgmt_send
 #define wdi_in_display_stats ol_txrx_display_stats
+#define wdi_in_get_stats ol_txrx_get_stats
 #define wdi_in_clear_stats ol_txrx_clear_stats
 #define wdi_in_set_monitor_mode_vap ol_txrx_set_monitor_mode_vap
 #define wdi_in_set_curchan ol_txrx_set_curchan

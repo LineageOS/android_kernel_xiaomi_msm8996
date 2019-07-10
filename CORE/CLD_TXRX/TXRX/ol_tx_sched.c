@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -437,6 +437,17 @@ void ol_tx_sched_stats_display(struct ol_txrx_pdev_t *pdev)
 }
 
 /**
+ * ol_tx_sched_stats_get() - get tx queue stats
+ * @pdev: Pointer to the PDEV structure.
+ * @data_ptr: tx queue stats will write in this buffer
+ *
+ * Return: none.
+ */
+void ol_tx_sched_stats_get(struct ol_txrx_pdev_t *pdev, void *data_ptr)
+{
+}
+
+/**
  * ol_tx_sched_cur_state_display() - tx sched cur stat display
  * @pdev: Pointer to the PDEV structure.
  *
@@ -487,6 +498,17 @@ struct ol_tx_sched_wrr_adv_category_info_t {
         unsigned int discard;
     } stat;
 #endif
+};
+
+/*this struct members define must same with struct driver_txq_states */
+struct driver_ol_txq_states {
+	char *cat_name;
+	int wrr_count;
+	int pending_frms;
+	int pending_bytes;
+	bool active;
+	int discard_frms;
+	int dispatched_frms;
 };
 
 #define OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(cat, \
@@ -562,6 +584,8 @@ OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_MGMT,   1,      1,     4,     0,  1);
         ol_tx_sched_wrr_adv_cat_cur_state_dump(scheduler)
 #define OL_TX_SCHED_WRR_ADV_CAT_STAT_CLEAR(scheduler)                       \
         ol_tx_sched_wrr_adv_cat_stat_clear(scheduler)
+#define OL_TX_SCHED_WRR_ADV_CAT_STAT(scheduler, data_ptr)                   \
+		ol_tx_sched_wrr_adv_cat_stat(scheduler, data_ptr)
 
 #else   /* DEBUG_HL_LOGGING */
 
@@ -572,6 +596,8 @@ OL_TX_SCHED_WRR_ADV_CAT_CFG_SPEC(MCAST_MGMT,   1,      1,     4,     0,  1);
 #define OL_TX_SCHED_WRR_ADV_CAT_STAT_DUMP(scheduler)
 #define OL_TX_SCHED_WRR_ADV_CAT_CUR_STATE_DUMP(scheduler)
 #define OL_TX_SCHED_WRR_ADV_CAT_STAT_CLEAR(scheduler)
+#define OL_TX_SCHED_WRR_ADV_CAT_STAT(scheduler, data_ptr)
+
 
 #endif  /* DEBUG_HL_LOGGING */
 
@@ -634,6 +660,41 @@ static void ol_tx_sched_wrr_adv_cat_stat_dump
                 scheduler->categories[i].state.frms,
                 scheduler->categories[i].state.wrr_count);
     }
+}
+
+static void ol_tx_sched_wrr_adv_cat_stat
+		(struct ol_tx_sched_wrr_adv_t *scheduler,
+		 struct driver_ol_txq_states *data_ptr)
+{
+	int i;
+
+	VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+		  "Scheduler Stats:");
+	VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+		  "category(CRR,CRT,WSW): Queued Discard Dequeued frms wrr");
+	for (i = 0; i < OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES; ++i) {
+		VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+			  "%12s(%2d, %2d, %2d):  %6d  %7d  %8d  %4d  %3d",
+		scheduler->categories[i].stat.cat_name,
+		scheduler->categories[i].specs.credit_reserve,
+		scheduler->categories[i].specs.credit_threshold,
+		scheduler->categories[i].specs.wrr_skip_weight,
+		scheduler->categories[i].stat.queued,
+		scheduler->categories[i].stat.discard,
+		scheduler->categories[i].stat.dispatched,
+		scheduler->categories[i].state.frms,
+		scheduler->categories[i].state.wrr_count);
+
+		data_ptr->cat_name = scheduler->categories[i].stat.cat_name;
+		data_ptr->wrr_count = scheduler->categories[i].state.wrr_count;
+		data_ptr->pending_frms = scheduler->categories[i].state.frms;
+		data_ptr->pending_bytes = scheduler->categories[i].state.bytes;
+		data_ptr->active = scheduler->categories[i].state.active;
+		data_ptr->discard_frms = scheduler->categories[i].stat.discard;
+		data_ptr->dispatched_frms =
+				scheduler->categories[i].stat.dispatched;
+		data_ptr++;
+	}
 }
 
 static void ol_tx_sched_wrr_adv_cat_cur_state_dump
@@ -1150,6 +1211,18 @@ ol_txrx_set_wmm_param(ol_txrx_pdev_handle data_pdev, struct ol_tx_wmm_param_t wm
 void ol_tx_sched_stats_display(struct ol_txrx_pdev_t *pdev)
 {
     OL_TX_SCHED_WRR_ADV_CAT_STAT_DUMP(pdev->tx_sched.scheduler);
+}
+
+/**
+ * ol_tx_sched_stats_get() - get tx queue stats
+ * @pdev: Pointer to the PDEV structure.
+ * @data_ptr: tx queue stats will write in this buffer
+ *
+ * Return: none.
+ */
+void ol_tx_sched_stats_get(struct ol_txrx_pdev_t *pdev, void *data_ptr)
+{
+	OL_TX_SCHED_WRR_ADV_CAT_STAT(pdev->tx_sched.scheduler, data_ptr);
 }
 
 /**
