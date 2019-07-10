@@ -3368,7 +3368,7 @@ int vos_set_radio_index(int radio_index)
 }
 
 /**
- * vos_svc_fw_shutdown_ind() - API to send userspace about FW crash
+ * vos_svc_fw_shutdown_ind() - API to send userspace about FW shutdown
  *
  * @data: Device Pointer
  *
@@ -3377,6 +3377,18 @@ int vos_set_radio_index(int radio_index)
 void vos_svc_fw_shutdown_ind(struct device *dev)
 {
 	hdd_svc_fw_shutdown_ind(dev);
+}
+
+/**
+ * vos_svc_fw_shutdown_ind() - API to send userspace about FW crashed
+ *
+ * @data: Device Pointer
+ *
+ * Return: None
+*/
+void vos_svc_fw_crashed_ind(struct device *dev)
+{
+	hdd_svc_fw_crashed_ind(dev);
 }
 
 v_U64_t vos_get_monotonic_boottime_ns(void)
