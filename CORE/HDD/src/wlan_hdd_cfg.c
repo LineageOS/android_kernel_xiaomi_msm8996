@@ -5232,7 +5232,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_5G_MAX_RSSI_BOOST_MIN,
                 CFG_5G_MAX_RSSI_BOOST_MAX),
 
-   REG_VARIABLE(CFG_5G_RSSI_PENALIZE_THRESHOLD_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE(CFG_5G_RSSI_PENALIZE_THRESHOLD_NAME, WLAN_PARAM_SignedInteger,
                 hdd_config_t, rssi_penalize_threshold_5g,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                 CFG_5G_RSSI_PENALIZE_THRESHOLD_DEFAULT,
