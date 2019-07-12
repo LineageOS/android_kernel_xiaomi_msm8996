@@ -5211,7 +5211,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ENABLE_5G_BAND_PREF_MIN,
                 CFG_ENABLE_5G_BAND_PREF_MAX),
 
-   REG_VARIABLE(CFG_5G_RSSI_BOOST_THRESHOLD_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE(CFG_5G_RSSI_BOOST_THRESHOLD_NAME, WLAN_PARAM_SignedInteger,
                 hdd_config_t, rssi_boost_threshold_5g,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                 CFG_5G_RSSI_BOOST_THRESHOLD_DEFAULT,
