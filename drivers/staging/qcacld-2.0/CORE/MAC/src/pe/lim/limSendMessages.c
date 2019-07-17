@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016, 2017, 2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -231,6 +231,17 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
     limLog(pMac, LOG1, FL("Set sub20 channel width %d"),
            pSessionEntry->sub20_channelwidth);
 
+    if (pSessionEntry->ssidHidden)
+        pChnlParams->ssidHidden = pSessionEntry->ssidHidden;
+
+    if (pSessionEntry->ssId.length) {
+        vos_mem_copy((uint8_t*)pChnlParams->ssid.ssId,
+		     (uint8_t*)pSessionEntry->ssId.ssId,
+		     pSessionEntry->ssId.length);
+        pChnlParams->ssid.length = pSessionEntry->ssId.length;
+        limLog(pMac, LOGE, FL("ssid name: %s length %d"),
+	       pChnlParams->ssid.ssId, pChnlParams->ssid.length);
+    }
     //we need to defer the message until we get the response back from WDA.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
     msgQ.type = WDA_CHNL_SWITCH_REQ;

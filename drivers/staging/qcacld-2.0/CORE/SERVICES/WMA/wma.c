@@ -5321,6 +5321,15 @@ static int wma_unified_radio_tx_power_level_stats_event_handler(void *handle,
 	rs_results = (tSirWifiRadioStat *) &link_stats_results->results[0];
 	tx_power_level_values = (uint8 *) param_tlvs->tx_time_per_power_level;
 
+	if (rs_results->total_num_tx_power_levels &&
+	    fixed_param->total_num_tx_power_levels >
+		rs_results->total_num_tx_power_levels) {
+		WMA_LOGE("%s: excess tx_power buffers:%d, total_num_tx_power_levels:%d",
+			 __func__, fixed_param->total_num_tx_power_levels,
+			 rs_results->total_num_tx_power_levels);
+		return -EINVAL;
+	}
+
 	rs_results->total_num_tx_power_levels =
 				fixed_param->total_num_tx_power_levels;
 	if (!rs_results->total_num_tx_power_levels)
@@ -15373,22 +15382,22 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 	   cmd->beacon_interval = req->beacon_intval;
 		cmd->dtim_period = req->dtim_period;
 
-      /* Copy the SSID */
-      if (req->ssid.length) {
-         if (req->ssid.length < sizeof(cmd->ssid.ssid))
-            cmd->ssid.ssid_len = req->ssid.length;
-         else
-            cmd->ssid.ssid_len = sizeof(cmd->ssid.ssid);
-         vos_mem_copy(cmd->ssid.ssid, req->ssid.ssId,
-                      cmd->ssid.ssid_len);
-      }
-
-      if (req->hidden_ssid)
-         cmd->flags |= WMI_UNIFIED_VDEV_START_HIDDEN_SSID;
-
       if (req->pmf_enabled)
          cmd->flags |= WMI_UNIFIED_VDEV_START_PMF_ENABLED;
    }
+
+	if (req->hidden_ssid)
+		cmd->flags |= WMI_UNIFIED_VDEV_START_HIDDEN_SSID;
+
+	/* Copy the SSID */
+	if (req->ssid.length) {
+		if (req->ssid.length < sizeof(cmd->ssid.ssid))
+			cmd->ssid.ssid_len = req->ssid.length;
+		else
+			cmd->ssid.ssid_len = sizeof(cmd->ssid.ssid);
+		vos_mem_copy(cmd->ssid.ssid, req->ssid.ssId,
+			     cmd->ssid.ssid_len);
+	}
 
 	cmd->num_noa_descriptors = 0;
 	buf_ptr = (u_int8_t *)(((uintptr_t) cmd) + sizeof(*cmd) +
@@ -15398,11 +15407,14 @@ VOS_STATUS wma_vdev_start(tp_wma_handle wma,
 		       sizeof(wmi_p2p_noa_descriptor));
 	WMA_LOGD("%s: vdev_id %d freq %d channel %d chanmode %d is_dfs %d "
 		 "beacon interval %d dtim %d center_chan %d center_freq2 %d "
-		 "reg_info_1: 0x%x reg_info_2: 0x%x, req->max_txpow: 0x%x",
+		 "reg_info_1: 0x%x reg_info_2: 0x%x, req->max_txpow: 0x%x"
+		 "cmd flags 0x%x ssid len %d",
 		 __func__, req->vdev_id, chan->mhz, req->chan, chanmode, req->is_dfs,
 		 req->beacon_intval, cmd->dtim_period, chan->band_center_freq1,
 		 chan->band_center_freq2, chan->reg_info_1, chan->reg_info_2,
-		 req->max_txpow);
+		 req->max_txpow, cmd->flags, cmd->ssid.ssid_len);
+
+
 
 	/* Store vdev params in SAP mode which can be used in vdev restart */
 	if (intr[req->vdev_id].type == WMI_VDEV_TYPE_AP &&
@@ -16094,7 +16106,12 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 #endif
 	req.beacon_intval = 100;
 	req.dtim_period = 1;
-   req.is_dfs = params->isDfsChannel;
+	req.is_dfs = params->isDfsChannel;
+	req.hidden_ssid = params->ssidHidden;
+	req.ssid.length = params->ssid.length;
+	if (req.ssid.length > 0)
+		vos_mem_copy(req.ssid.ssId, params->ssid.ssId,
+			     params->ssid.length);
 
 	/* In case of AP mode, once radar is detected, we need to
 	 * issuse VDEV RESTART, so we making is_channel_switch as

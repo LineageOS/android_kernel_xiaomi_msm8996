@@ -2669,6 +2669,31 @@ bool vos_is_ocb_tx_per_pkt_stats_enabled(void)
 }
 #endif
 
+/**
+ * vos_is_self_recovery_enabled() - API to get self recovery enabled
+ *
+ * Return: true if self recovery enabled, false otherwise
+ */
+bool vos_is_self_recovery_enabled(void)
+{
+	hdd_context_t *hdd_ctx;
+
+	if (gpVosContext == NULL) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			  "%s: global voss context is NULL", __func__);
+		return false;
+	}
+
+	hdd_ctx = (hdd_context_t *)(gpVosContext->pHDDContext);
+	if ((NULL == hdd_ctx) || (NULL == hdd_ctx->cfg_ini)) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+			  "%s: Hdd Context is Null", __func__);
+		return false;
+	}
+
+	return hdd_ctx->cfg_ini->enableSelfRecovery;
+}
+
 VOS_STATUS vos_config_silent_recovery(pVosContextType vos_context)
 {
 	struct ol_softc *scn;
@@ -3362,7 +3387,7 @@ v_U64_t vos_get_monotonic_boottime_ns(void)
 	return timespec_to_ns(&ts);
 }
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 10, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
 v_U64_t vos_get_bootbased_boottime_ns(void)
 {
 	return ktime_get_boot_ns();
@@ -3710,3 +3735,16 @@ int qca_request_firmware(const struct firmware **firmware_p,
 #endif
 }
 
+#ifdef WLAN_SMART_ANTENNA_FEATURE
+uint32_t vos_get_smart_ant_cfg(void)
+{
+	hdd_context_t *hdd_ctx;
+	v_CONTEXT_t vos_context = vos_get_global_context(0, NULL);
+
+	hdd_ctx = vos_get_context(VOS_MODULE_ID_HDD, vos_context);
+	if (!hdd_ctx)
+		return 0;
+	else
+		return hdd_ctx->cfg_ini->smart_antenna_cfg;
+}
+#endif
