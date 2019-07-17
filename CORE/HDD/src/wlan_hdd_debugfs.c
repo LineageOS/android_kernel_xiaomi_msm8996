@@ -910,7 +910,7 @@ static ssize_t __wlan_hdd_write_txqueue_stats_debugfs(struct file *file,
 	struct ol_txrx_pdev_t *pdev = vos_get_context(VOS_MODULE_ID_TXRX,
 							 vos_context);
 	if (count > 2) {
-		hddLog(VOS_TRACE_LEVEL_ERROR, FL("error input data len %d"),
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("error input data len %zu"),
 		       count);
 		return -EINVAL;
 	}
