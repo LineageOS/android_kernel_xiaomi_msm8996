@@ -5951,6 +5951,7 @@ void lim_send_mgmt_frame_tx(tpAniSirGlobal mac_ctx,
 	limLog(mac_ctx, LOG1, FL("sending fc->type: %d fc->subType: %d"),
 		fc->type, fc->subType);
 	sme_session_id = mb_msg->session_id;
+	limAddMgmtSeqNum(mac_ctx, (tpSirMacMgmtHdr)fc);
 	halstatus = palPktAlloc(mac_ctx->hHdd, HAL_TXRX_FRM_802_11_MGMT,
 				(uint16_t)msg_len, (void **)&frame,
 				(void **)&packet);
