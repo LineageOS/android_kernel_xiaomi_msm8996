@@ -2007,7 +2007,8 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
      * Where as wlan_cfg80211_mgmt_tx requires roc and requires approval
      * from policy manager
      */
-    if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+    if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode ||
+	WLAN_HDD_SOFTAP == pAdapter->device_mode) &&
         (type == SIR_MAC_MGMT_FRAME &&
         subType == SIR_MAC_MGMT_AUTH)) {
         hal_status = sme_send_mgmt_tx(WLAN_HDD_GET_HAL_CTX(pAdapter),
