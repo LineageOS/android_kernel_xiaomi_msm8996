@@ -633,9 +633,10 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                  eSIR_FALSE);
             goto free;
         } // else if (wlan_cfgGetInt(CFG_PRIVACY_OPTION_IMPLEMENTED))
-    } else if ((auth_alg ==
-        eSIR_AUTH_TYPE_SAE) && (LIM_IS_STA_ROLE(psessionEntry))) {
-        lim_process_sae_auth_frame(pMac, pRxPacketInfo, psessionEntry);
+    } else if (auth_alg == eSIR_AUTH_TYPE_SAE) {
+        if(LIM_IS_STA_ROLE(psessionEntry) ||
+           LIM_IS_AP_ROLE(psessionEntry))
+            lim_process_sae_auth_frame(pMac, pRxPacketInfo, psessionEntry);
         goto free;
     } // if (fc.wep)
     else
