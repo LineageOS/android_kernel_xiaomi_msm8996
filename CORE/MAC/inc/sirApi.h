@@ -8776,11 +8776,13 @@ struct sir_sae_info {
  * @length: message length
  * @session_id: SME session id
  * @sae_status: SAE status, 0: Success, Non-zero: Failure.
+ * @peer_mac_addr: peer MAC address
  */
 struct sir_sae_msg {
 	uint16_t message_type;
 	uint16_t length;
 	uint16_t session_id;
 	uint8_t sae_status;
+	tSirMacAddr peer_mac_addr;
 };
 #endif /* __SIR_API_H */
