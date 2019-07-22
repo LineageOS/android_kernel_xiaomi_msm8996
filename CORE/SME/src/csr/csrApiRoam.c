@@ -73,6 +73,9 @@
 #include "sme_nan_datapath.h"
 #include "cfgApi.h"
 #include "qdf_crypto.h"
+#include  <ieee80211_common.h>
+
+#define RSN_AUTH_KEY_MGMT_SAE           RSN_SEL(AKM_SUITE_TYPE_SAE)
 #define MAX_PWR_FCC_CHAN_12 8
 #define MAX_PWR_FCC_CHAN_13 2
 
@@ -10881,6 +10884,57 @@ static void csr_roam_chk_swt_ch_ind(tpAniSirGlobal mac, tSirSmeRsp *msg)
 	}
 }
 
+static bool csr_is_sae_akm_present(tpAniSirGlobal mac,
+				   tDot11fIERSN * const rsn_ie)
+{
+	uint16_t i;
+
+	if (rsn_ie->akm_suite_cnt > 6) {
+		smsLog(mac, LOGE, FL("Invalid akm_suite_cnt in Rx RSN IE"));
+		return false;
+	}
+
+	for (i = 0; i < rsn_ie->akm_suite_cnt; i++) {
+		if (LE_READ_4(rsn_ie->akm_suite[i]) == RSN_AUTH_KEY_MGMT_SAE) {
+			smsLog(mac, LOG1, FL("SAE AKM present"));
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static bool csr_is_sae_peer_allowed(tpAniSirGlobal mac,
+				    tSirSmeAssocInd *assoc_ind,
+				    tCsrRoamSession *session,
+				    tSirMacAddr peer_mac_addr,
+				    tDot11fIERSN *rsn_ie,
+				    tSirMacStatusCodes *mac_status_code)
+{
+	bool is_allowed = false;
+
+	/* Allow the peer if it's SAE authenticated */
+	if (assoc_ind->is_sae_authenticated)
+		return true;
+
+	/* Allow the peer with valid PMKID */
+	if (!rsn_ie->pmkid_count) {
+		*mac_status_code = eSIR_MAC_AUTH_ALGO_NOT_SUPPORTED_STATUS;
+		smsLog(mac, LOGE,
+		       FL("No PMKID present in RSNIE; Tried to use SAE AKM after non-SAE authentication"));
+	} else if (csr_is_pmkid_found_for_peer(mac, session, peer_mac_addr,
+			&rsn_ie->pmkid[0][0],
+			rsn_ie->pmkid_count)) {
+		smsLog(mac, LOG1, FL("Valid PMKID found for SAE peer"));
+		is_allowed = true;
+	} else {
+		*mac_status_code = eSIR_MAC_INVALID_PMKID;
+		smsLog(mac, LOG1, FL("No valid PMKID found for SAE peer"));
+	}
+
+	return is_allowed;
+}
+
 void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 {
 
@@ -10901,6 +10955,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
     tCsrRoamSession *pSession = NULL;
     tSmeMaxAssocInd *pSmeMaxAssocInd;
     tSmeCmd *pCommand = NULL;
+    tSirMacStatusCodes mac_status_code = eSIR_MAC_SUCCESS_STATUS;
 
     if (NULL == pSirMsg)
     {   smsLog(pMac, LOGE, FL("pSirMsg is NULL"));
@@ -10980,11 +11035,33 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                             pRoamInfo->fAuthRequired = TRUE;
                         }
                         status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_INFRA_ASSOCIATION_IND);
-                        if (!HAL_STATUS_SUCCESS(status))
+                        if (!HAL_STATUS_SUCCESS(status)) {
                             pRoamInfo->statusCode = eSIR_SME_ASSOC_REFUSED;// Refused due to Mac filtering
+                        } else if (pAssocInd->rsnIE.length) {
+                            tDot11fIERSN rsn_ie = {0};
+
+                            if (dot11fUnpackIeRSN(
+                                pMac,
+                                pAssocInd->rsnIE.rsnIEdata + 2,
+                                pAssocInd->rsnIE.length - 2,
+                                &rsn_ie)
+                                != DOT11F_PARSE_SUCCESS ||
+                                (csr_is_sae_akm_present(pMac, &rsn_ie) &&
+                                !csr_is_sae_peer_allowed(pMac, pAssocInd,
+                                pSession, pAssocInd->peerMacAddr, &rsn_ie,
+                                &mac_status_code))) {
+                                    status = eHAL_STATUS_INVALID_PARAMETER;
+                                    pRoamInfo->statusCode =
+                                       eSIR_SME_ASSOC_REFUSED;
+                                    smsLog(pMac, LOGE,
+                                        FL("SAE peer not allowed: Status: %d"),
+                                        mac_status_code);
+                                }
+                        }
                     }
                     /* Send Association completion message to PE */
-                    status = csrSendAssocCnfMsg( pMac, pAssocInd, status );//Sta
+                    status = csrSendAssocCnfMsg(pMac, pAssocInd, status,
+                                                mac_status_code);//Sta
 
                     /* send a message to CSR itself just to avoid the EAPOL frames going
                      * OTA before association response */
@@ -15835,7 +15912,9 @@ eHalStatus csrSendMBDeauthCnfMsg( tpAniSirGlobal pMac, tpSirSmeDeauthInd pDeauth
     } while( 0 );
     return( status );
 }
-eHalStatus csrSendAssocCnfMsg( tpAniSirGlobal pMac, tpSirSmeAssocInd pAssocInd, eHalStatus Halstatus )
+eHalStatus csrSendAssocCnfMsg(tpAniSirGlobal pMac, tpSirSmeAssocInd pAssocInd,
+			      eHalStatus Halstatus,
+			      tSirMacStatusCodes mac_status_code)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirSmeAssocCnf *pMsg;
@@ -15856,10 +15935,12 @@ eHalStatus csrSendAssocCnfMsg( tpAniSirGlobal pMac, tpSirSmeAssocInd pAssocInd, 
                 pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_ASSOC_CNF);
                 pMsg->length = pal_cpu_to_be16((tANI_U16)sizeof( tSirSmeAssocCnf ));
         pBuf = (tANI_U8 *)&pMsg->statusCode;
-        if(HAL_STATUS_SUCCESS(Halstatus))
+        if(HAL_STATUS_SUCCESS(Halstatus)) {
             statusCode = (tSirResultCodes)pal_cpu_to_be32(eSIR_SME_SUCCESS);
-        else
+        } else {
             statusCode = (tSirResultCodes)pal_cpu_to_be32(eSIR_SME_ASSOC_REFUSED);
+            pMsg->mac_status_code = mac_status_code;
+        }
         vos_mem_copy(pBuf, &statusCode, sizeof(tSirResultCodes));
         pBuf += sizeof(tSirResultCodes);
         // bssId

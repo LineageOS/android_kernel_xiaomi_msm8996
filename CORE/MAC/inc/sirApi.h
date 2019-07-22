@@ -1384,6 +1384,7 @@ typedef struct sSirSmeAssocInd
     uint8_t              max_mcs_idx;
     uint8_t              rx_mcs_map;
     uint8_t              tx_mcs_map;
+    bool                 is_sae_authenticated;
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
 
@@ -1399,6 +1400,7 @@ typedef struct sSirSmeAssocCnf
     tANI_U16             aid;
     tSirMacAddr          alternateBssId;
     tANI_U8              alternateChannelId;
+    tSirMacStatusCodes   mac_status_code;
 } tSirSmeAssocCnf, *tpSirSmeAssocCnf;
 
 /// Definition for Reassociation indication from peer
