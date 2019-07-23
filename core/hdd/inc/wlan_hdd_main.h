@@ -3270,6 +3270,16 @@ int hdd_driver_memdump_init(void);
 void hdd_driver_memdump_deinit(void);
 
 /**
+ * hdd_driver_mem_cleanup() - Frees memory allocated for
+ * driver dump
+ *
+ * This function  frees driver dump memory.
+ *
+ * Return: None
+ */
+void hdd_driver_mem_cleanup(void);
+
+/**
  * wlan_hdd_free_cache_channels() - Free the cache channels list
  * @hdd_ctx: Pointer to HDD context
  *
