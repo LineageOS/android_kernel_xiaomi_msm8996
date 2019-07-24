@@ -5709,6 +5709,13 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #else
 #define SMART_ANT_ENABLED                    0
 #endif
+
+#ifdef MULTI_IF_LOG
+#define CFG_HOST_LOG_CUSTOM_NETLINK_PROTO        "host_log_custom_nl_proto"
+#define CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_DEFAULT (2)
+#define CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_MIN     (0)
+#define CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_MAX     (32)
+#endif
 /*---------------------------------------------------------------------------
   Type declarations
   -------------------------------------------------------------------------*/
@@ -6650,6 +6657,10 @@ struct hdd_config {
 
 #ifdef WLAN_SMART_ANTENNA_FEATURE
     uint32_t smart_antenna_cfg;
+#endif
+
+#ifdef MULTI_IF_LOG
+   uint32_t host_log_custom_nl_proto;
 #endif
 };
 
