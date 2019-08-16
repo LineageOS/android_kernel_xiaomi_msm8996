@@ -6479,6 +6479,10 @@ static void wma_config_stats_primary_mac(struct wma_handle *wma,
 	ol_txrx_pdev_handle pdev;
 
 	pdev = vos_get_context(VOS_MODULE_ID_TXRX, wma->vos_context);
+	if(!pdev) {
+		WMA_LOGD(FL("Context data is not allocated for VOS TXRX module"));
+		return;
+	}
 
 	/* Get the peer ID */
 	peer = ol_txrx_find_peer_by_addr(pdev, params->bssid, &peer_id);
