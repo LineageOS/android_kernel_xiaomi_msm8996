@@ -1608,6 +1608,55 @@ typedef enum
 
 /*
  * <ini>
+ * gMaskForTxLegacyRate - mask legacy rate
+ * @Min: 0
+ * @Max: 0xFFFF
+ * @Default: 0
+ *
+ * This ini is used to mask legacy data rate
+ * for tx data.
+ *
+ * Usage: External
+ *
+ * 1:mask 0:unmask
+ * bits 0-3:  maskbit for CCK rate(1,2,5.5,11)
+ * bits 4-7:  Reserved
+ * bits 8-15:  maskbit for 11A rate(6,9,12,18,24,36,48,54)
+ * bits 16-31:  Reserved
+ *
+ * </ini>
+ */
+#define CFG_MASK_FOR_TX_LEGACY_RATE                 "gMaskForTxLegacyRate"
+#define CFG_MASK_FOR_TX_LEGACY_RATE_MIN             (WNI_CFG_MASK_LEGACY_RATE_STAMIN)
+#define CFG_MASK_FOR_TX_LEGACY_RATE_MAX             (WNI_CFG_MASK_LEGACY_RATE_STAMAX)
+#define CFG_MASK_FOR_TX_LEGACY_RATE_DEFAULT         (WNI_CFG_MASK_LEGACY_RATE_STADEF)
+
+/*
+ * <ini>
+ * gMaskForTxHtRate - mask HT rate
+ * @Min: 0
+ * @Max: 0xFFFF
+ * @Default: 0
+ *
+ * This ini is used to mask HT data rate
+ * for tx data.
+ *
+ * Usage: External
+ *
+ * 1:mask 0:unmask
+ * bits 0-7:  maskbit for MCS0~MCS7 for nss1
+ * bits 8-15:  maskbit for MCS0~MCS7 for nss2
+ * bits 16-31:  Reserved
+ *
+ * </ini>
+ */
+#define CFG_MASK_FOR_TX_HT_RATE                 "gMaskForTxHtRate"
+#define CFG_MASK_FOR_TX_HT_RATE_MIN             (WNI_CFG_MASK_HT_RATE_STAMIN)
+#define CFG_MASK_FOR_TX_HT_RATE_MAX             (WNI_CFG_MASK_HT_RATE_STAMAX)
+#define CFG_MASK_FOR_TX_HT_RATE_DEFAULT         (WNI_CFG_MASK_HT_RATE_STADEF)
+
+/*
+ * <ini>
  * gSapGetPeerInfo - Enable/Disable remote peer info query support
  * @Min: 0 - Disable remote peer info query support
  * @Max: 1 - Enable remote peer info query support
@@ -6662,6 +6711,9 @@ struct hdd_config {
 #ifdef MULTI_IF_LOG
    uint32_t host_log_custom_nl_proto;
 #endif
+
+   uint32_t  mask_tx_legacy_rate;
+   uint32_t  mask_tx_ht_rate;
 };
 
 typedef struct hdd_config hdd_config_t;
