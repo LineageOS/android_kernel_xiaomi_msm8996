@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015,2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2015,2017,2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -63,6 +63,24 @@ typedef void (*adf_dummy_timer_func_t)(unsigned long arg);
 /*
  * Initialize a timer
  */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+static inline a_status_t
+__adf_os_timer_init(adf_os_handle_t hdl,
+		    struct timer_list *timer,
+		    adf_os_timer_func_t func,
+		    void *arg,
+		    uint8_t type)
+{
+	uint32_t flags = 0;
+
+	if (ADF_DEFERRABLE_TIMER == type)
+		flags |= TIMER_DEFERRABLE;
+
+	timer_setup(timer, func, flags);
+
+	return A_STATUS_OK;
+}
+#else
 static inline a_status_t
 __adf_os_timer_init(adf_os_handle_t      hdl,
                     struct timer_list   *timer,
@@ -79,6 +97,7 @@ __adf_os_timer_init(adf_os_handle_t      hdl,
 
     return A_STATUS_OK;
 }
+#endif
 
 /*
  * Initialize a timer
