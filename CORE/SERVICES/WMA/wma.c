@@ -42463,6 +42463,7 @@ VOS_STATUS wma_set_rx_antanna(void *handle,
 	WMITLV_SET_HDR(&cmd->tlv_header, tag, len);
 	cmd->pdev_id = pdev_id;
 	cmd->rx_antenna = matrix;
+	WMA_LOGD("Send rx antenna(0x%8x)", matrix);
 	status = wmi_unified_cmd_send(wma_handle->wmi_handle, buf,
 				      sizeof(*cmd),
 				      WMI_PDEV_SMART_ANT_SET_RX_ANTENNA_CMDID);

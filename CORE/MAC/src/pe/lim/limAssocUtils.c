@@ -2281,14 +2281,16 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
 #ifdef WLAN_SMART_ANTENNA_FEATURE
 /**
  * lim_sa_assoc_ind() - Indicate node connection to SA module
+ * @channel: current operation channel
  * @stads: Node description
  */
-void lim_sa_assoc_ind(tpDphHashNode stads)
+void lim_sa_assoc_ind(uint8_t channel, tpDphHashNode stads)
 {
 	uint32_t i, rate_num;
 	tpSirSupportedRates rate_cap;
 	struct sa_node_info node_info;
 
+	node_info.channel_num = channel;
 	vos_mem_copy(node_info.mac_addr, stads->staAddr, sizeof(stads->staAddr));
 	rate_cap = &stads->supportedRates;
 	rate_num = 0;
@@ -2318,7 +2320,7 @@ void lim_sa_assoc_ind(tpDphHashNode stads)
 	node_info.rate_cap.ratecount[RATE_INDEX_MCS] = rate_num;
 
 	/* 20M bandwidth is the default mode */
-	node_info.node_caps |= SMART_ANT_BW_20MHZ;
+	node_info.node_caps = SMART_ANT_BW_20MHZ;
 
 	if (stads->htSupportedChannelWidthSet)
 		node_info.node_caps |= SMART_ANT_NODE_HT | SMART_ANT_BW_40MHZ;
@@ -2347,7 +2349,7 @@ void lim_sa_disassoc_ind(tpDphHashNode stads)
 	smart_antenna_node_disconnected(stads->staAddr);
 }
 #else
-static inline void lim_sa_assoc_ind(tpDphHashNode stads)
+static inline void lim_sa_assoc_ind(uint8_t channel, tpDphHashNode stads)
 {
 }
 
@@ -2812,7 +2814,7 @@ limAddSta(
         vos_mem_free(pAddStaParams);
     }
 
-    lim_sa_assoc_ind(pStaDs);
+    lim_sa_assoc_ind(psessionEntry->currentOperChannel, pStaDs);
   return retCode;
 }
 
