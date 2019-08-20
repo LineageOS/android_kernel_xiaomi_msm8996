@@ -142,6 +142,7 @@ static void lim_external_auth_add_pre_auth_node(tpAniSirGlobal mac_ctx,
 	auth_node->timestamp = vos_timer_get_system_ticks();
 	auth_node->seqNum = ((mac_hdr->seqControl.seqNumHi << 4) |
 		 (mac_hdr->seqControl.seqNumLo));
+	auth_node->assoc_req.present = false;
 	limAddPreAuthNode(mac_ctx, auth_node);
 }
 

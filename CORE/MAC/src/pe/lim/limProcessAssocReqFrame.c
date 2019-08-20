@@ -203,9 +203,50 @@ void lim_check_sta_in_pe_entries(tpAniSirGlobal pMac, tpSirMacMgmtHdr pHdr,
         }
     }
 }
+
+void lim_process_assoc_cleanup(
+		tpAniSirGlobal pMac,
+		tpPESession psessionEntry,
+		tpSirAssocReq pAssocReq,
+		tpDphHashNode pStaDs,
+		bool assoc_req_copied)
+{
+	tpSirAssocReq           pTempAssocReq;
+
+	if (pAssocReq != NULL) {
+		if (pAssocReq->assocReqFrame) {
+			vos_mem_free(pAssocReq->assocReqFrame);
+			pAssocReq->assocReqFrame = NULL;
+			pAssocReq->assocReqFrameLength = 0;
+		}
+		vos_mem_free(pAssocReq);
+		if (assoc_req_copied) /* to avoid double free */
+			if(psessionEntry->parsedAssocReq)
+				psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
+	}
+
+	/* If it is not duplicate Assoc request then only free the memory */
+	if ((pStaDs != NULL) &&
+	    (pStaDs->mlmStaContext.mlmState != eLIM_MLM_WT_ADD_STA_RSP_STATE)) {
+		if (psessionEntry->parsedAssocReq != NULL) {
+			pTempAssocReq =
+				psessionEntry->parsedAssocReq[pStaDs->assocId];
+			if (pTempAssocReq != NULL) {
+				if (pTempAssocReq->assocReqFrame) {
+					vos_mem_free(
+						pTempAssocReq->assocReqFrame);
+					pTempAssocReq->assocReqFrame = NULL;
+					pTempAssocReq->assocReqFrameLength = 0;
+				}
+				vos_mem_free(pTempAssocReq);
+				psessionEntry->parsedAssocReq[pStaDs->assocId] =
+					NULL;
+			}
+		}
+	}
+}
 /**
- * lim_send_assoc_ind_to_sme() - Initialize PE data structures and send assoc
- *				 indication to SME.
+ * lim_defer_sme_indication() - Defer assoc indication to SME
  * @mac_ctx: Pointer to Global MAC structure
  * @session: pe session entry
  * @sub_type: Indicates whether it is Association Request(=0) or Reassociation
@@ -215,11 +256,37 @@ void lim_check_sta_in_pe_entries(tpAniSirGlobal pMac, tpSirMacMgmtHdr pHdr,
  * @pmf_connection: flag indicating pmf connection
  * @assoc_req_copied: boolean to indicate if assoc req was copied to tmp above
  *
- * This function is called to process RE/ASSOC Request frame.
+ * Defer Initialization of PE data structures and wait for an external event.
+ * lim_send_assoc_ind_to_sme() will be called to initialize PE data structures
+ * when the expected event is received.
  *
  * @Return: void
  */
-static bool lim_send_assoc_ind_to_sme(tpAniSirGlobal pMac,
+static void lim_defer_sme_indication(
+				tpAniSirGlobal mac_ctx,
+				tpPESession session,
+				uint8_t sub_type,
+				tpSirMacMgmtHdr hdr,
+				tpSirAssocReq assoc_req,
+				bool pmf_connection,
+				bool assoc_req_copied,
+				tpDphHashNode sta_ds)
+{
+	struct tLimPreAuthNode  *sta_pre_auth_ctx;
+
+	/// Extract pre-auth context for the STA, if any.
+	sta_pre_auth_ctx = limSearchPreAuthList(mac_ctx, hdr->sa);
+	sta_pre_auth_ctx->assoc_req.present = true;
+	sta_pre_auth_ctx->assoc_req.sub_type = sub_type;
+	vos_mem_copy(&sta_pre_auth_ctx->assoc_req.hdr, hdr,
+		     sizeof(tSirMacMgmtHdr));
+	sta_pre_auth_ctx->assoc_req.assoc_req = assoc_req;
+	sta_pre_auth_ctx->assoc_req.pmf_connection = pmf_connection;
+	sta_pre_auth_ctx->assoc_req.assoc_req_copied = assoc_req_copied;
+	sta_pre_auth_ctx->assoc_req.sta_ds = sta_ds;
+}
+
+bool lim_send_assoc_ind_to_sme(tpAniSirGlobal pMac,
 				      tpPESession psessionEntry,
 				      uint8_t subType,
 				      tpSirMacMgmtHdr pHdr,
@@ -940,9 +1007,10 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
     tANI_S32                framelen;
     tSirRetStatus           status;
     tpSirMacMgmtHdr         pHdr;
+    struct tLimPreAuthNode  *pStaPreAuthContext;
     tSirMacCapabilityInfo   localCapabilities;
     tpDphHashNode           pStaDs = NULL;
-    tpSirAssocReq           pAssocReq, pTempAssocReq;
+    tpSirAssocReq           pAssocReq;
     tDot11fIERSN            Dot11fIERSN;
     tDot11fIEWPA            Dot11fIEWPA;
     tANI_U32 phyMode;
@@ -1589,6 +1657,28 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
           limLog(pMac, LOG1, FL("Assoc req WSE IE is present"));
     }
 
+    /* Extract pre-auth context for the STA, if any. */
+    pStaPreAuthContext = limSearchPreAuthList(pMac, pHdr->sa);
+    /* SAE authentication is offloaded to hostapd. Hostapd sends
+     * authentication status to driver after completing SAE
+     * authentication (after sending out 4/4 SAE auth frame).
+     * There is a possible race condition where driver gets
+     * assoc request from SAE station before getting authentication
+     * status from hostapd. Don't reject the association in such
+     * cases and defer the processing of assoc request frame by caching
+     * the frame and process it when the auth status is received.
+     */
+    if (pStaPreAuthContext &&
+        pStaPreAuthContext->authType == eSIR_AUTH_TYPE_SAE &&
+        pStaPreAuthContext->mlmState == eLIM_MLM_WT_SAE_AUTH_STATE) {
+        limLog(pMac, LOG1,
+               FL("Received assoc request frame while SAE authentication is in progress; Defer association request handling till SAE auth status is received"));
+        lim_defer_sme_indication(pMac, psessionEntry, subType, pHdr,
+                                 pAssocReq, pmfConnection,
+                                 assoc_req_copied, pStaDs);
+        return;
+    }
+
     if (!lim_send_assoc_ind_to_sme(pMac, psessionEntry, subType, pHdr,
                                    pAssocReq, pmfConnection,
                                    &assoc_req_copied))
@@ -1596,34 +1686,8 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
 
     return;
 error:
-    if (pAssocReq != NULL) {
-        if (pAssocReq->assocReqFrame) {
-            vos_mem_free(pAssocReq->assocReqFrame);
-            pAssocReq->assocReqFrame = NULL;
-            pAssocReq->assocReqFrameLength = 0;
-        }
-        vos_mem_free(pAssocReq);
-        if (assoc_req_copied) /* to avoid double free */
-            if(psessionEntry->parsedAssocReq)
-                psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
-    }
-
-    /* If it is not duplicate Assoc request then only free the memory */
-    if ((pStaDs != NULL) &&
-          (pStaDs->mlmStaContext.mlmState != eLIM_MLM_WT_ADD_STA_RSP_STATE)) {
-            if (psessionEntry->parsedAssocReq != NULL) {
-                pTempAssocReq = psessionEntry->parsedAssocReq[pStaDs->assocId];
-                if (pTempAssocReq != NULL) {
-                    if (pTempAssocReq->assocReqFrame) {
-                        vos_mem_free(pTempAssocReq->assocReqFrame);
-                        pTempAssocReq->assocReqFrame = NULL;
-                        pTempAssocReq->assocReqFrameLength = 0;
-                    }
-                    vos_mem_free(pTempAssocReq);
-                    psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
-                }
-            }
-    }
+    lim_process_assoc_cleanup(pMac, psessionEntry, pAssocReq, pStaDs,
+                              assoc_req_copied);
 
     return;
 
