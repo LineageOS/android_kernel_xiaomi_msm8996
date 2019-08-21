@@ -16346,17 +16346,37 @@ static void wma_update_txrx_chainmask(int num_rf_chains, int *cmd_value)
 #define CFG_DATA_MASK              0x00FF
 
 /**
- * wma_mask_tx_ht_rate() - mask tx ht rate based on config
+ * wma_mask_tx_rate() - mask tx rate based on config
  * @wma:     wma handle
- * @mcs_set  mcs set buffer
+ * @supportedRates:   supported rate
  *
  * Return: None
  */
-static void wma_mask_tx_ht_rate(tp_wma_handle wma, uint8_t *mcs_set)
+static void wma_mask_tx_rate(tp_wma_handle wma,
+							tpSirSupportedRates supportedRates)
 {
-	uint32_t mcs_limit, i, j;
-	uint8_t *rate_pos = mcs_set;
+	uint32_t legacy_rate_mask, ht_rate_mask, mcs_limit, i, j;
+	uint8_t * mcs_rates = supportedRates->supportedMCSSet;
+	uint16_t * llb_rates = supportedRates->llbRates;
+	uint16_t * lla_rates = supportedRates->llaRates;
 
+	/* mask for Legacy rate */
+	if (wlan_cfgGetInt(wma->mac_context, WNI_CFG_MASK_TX_LEGACY_RATE,
+			   &legacy_rate_mask) != eSIR_SUCCESS) {
+		legacy_rate_mask = WNI_CFG_MASK_LEGACY_RATE_STADEF;
+	}
+
+	if (legacy_rate_mask) {
+		WMA_LOGD("%s: set legacy_rate_mask %x", __func__, legacy_rate_mask);
+		for (i = 0; i < SIR_NUM_11B_RATES; i++) {
+			if (legacy_rate_mask & (0x1<<i))
+				llb_rates[i] = 0;
+		}
+		for (i = 0; i < SIR_NUM_11A_RATES; i++) {
+			if ((legacy_rate_mask>>8) & (0x1<<i))
+				lla_rates[i] = 0;
+		}
+	}
 	/*
 	 * Get MCS limit from ini configure, and map it to rate parameters
 	 * This will limit HT rate upper bound. CFG_CTRL_MASK is used to
@@ -16370,26 +16390,39 @@ static void wma_mask_tx_ht_rate(tp_wma_handle wma, uint8_t *mcs_set)
 
 	if (mcs_limit & CFG_CTRL_MASK) {
 		WMA_LOGD("%s: set mcs_limit %x", __func__, mcs_limit);
-
 		mcs_limit &= CFG_DATA_MASK;
 		for (i = 0, j = 0; i < MAX_SUPPORTED_RATES;) {
 			if (j < mcs_limit / 8) {
-				rate_pos[j] = 0xff;
+				mcs_rates[j] = 0xff;
 				j++;
 				i += 8;
 			} else if (j < mcs_limit / 8 + 1) {
 				if (i <= mcs_limit)
-					rate_pos[i / 8] |= 1 << (i % 8);
+					mcs_rates[i / 8] |= 1 << (i % 8);
 				else
-					rate_pos[i / 8] &= ~(1 << (i % 8));
+					mcs_rates[i / 8] &= ~(1 << (i % 8));
 				i++;
 
 				if (i >= (j + 1) * 8)
 					j++;
 			} else {
-				rate_pos[j++] = 0;
+				mcs_rates[j++] = 0;
 				i += 8;
 			}
+		}
+	}
+
+	/* mask for HT rate */
+	if (wlan_cfgGetInt(wma->mac_context, WNI_CFG_MASK_TX_HT_RATE,
+			   &ht_rate_mask) != eSIR_SUCCESS) {
+		ht_rate_mask = WNI_CFG_MASK_HT_RATE_STADEF;
+	}
+
+	if (ht_rate_mask) {
+		WMA_LOGD("%s: set ht_rate_mask %x", __func__, ht_rate_mask);
+		for (i = 0; i< SIR_MAC_MAX_SUPPORTED_MCS_SET; i++) {
+			if (ht_rate_mask & (0x1 << i))
+				mcs_rates[i/8] &= ~(1<<(i%8));
 		}
 	}
 }
@@ -16444,7 +16477,7 @@ static int32_t wmi_unified_send_peer_assoc(tp_wma_handle wma,
 		}
 	}
 
-	wma_mask_tx_ht_rate(wma, params->supportedRates.supportedMCSSet);
+	wma_mask_tx_rate(wma, &params->supportedRates);
 
 	vos_mem_zero(&peer_legacy_rates, sizeof(wmi_rate_set));
 	vos_mem_zero(&peer_ht_rates, sizeof(wmi_rate_set));

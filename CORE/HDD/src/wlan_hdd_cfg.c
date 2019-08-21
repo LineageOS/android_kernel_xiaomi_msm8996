@@ -2435,6 +2435,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_MCS_TX_FORCE2CHAIN_DISABLE,
                 CFG_MCS_TX_FORCE2CHAIN_ENABLE),
 
+   REG_VARIABLE(CFG_MASK_FOR_TX_LEGACY_RATE, WLAN_PARAM_HexInteger,
+                 hdd_config_t, mask_tx_legacy_rate,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MASK_FOR_TX_LEGACY_RATE_DEFAULT,
+                 CFG_MASK_FOR_TX_LEGACY_RATE_MIN,
+                 CFG_MASK_FOR_TX_LEGACY_RATE_MAX),
+
+   REG_VARIABLE(CFG_MASK_FOR_TX_HT_RATE, WLAN_PARAM_HexInteger,
+                 hdd_config_t, mask_tx_ht_rate,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MASK_FOR_TX_HT_RATE_DEFAULT,
+                 CFG_MASK_FOR_TX_HT_RATE_MIN,
+                 CFG_MASK_FOR_TX_HT_RATE_MAX),
+
    REG_VARIABLE(CFG_SAP_GET_PEER_INFO, WLAN_PARAM_Integer,
                  hdd_config_t, sap_get_peer_info,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -8134,6 +8148,20 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
                     eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
        fStatus = FALSE;
        hddLog(LOGE, "Could not pass on WNI_CFG_MAX_HT_MCS_TX_DATA to CCM");
+   }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MASK_TX_HT_RATE,
+                    pConfig->mask_tx_ht_rate, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_MASK_TX_HT_RATE to CCM");
+   }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MASK_TX_LEGACY_RATE,
+                    pConfig->mask_tx_legacy_rate, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_MASK_TX_LEGACY_RATE to CCM");
    }
 
    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA,
