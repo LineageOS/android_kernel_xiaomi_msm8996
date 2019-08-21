@@ -495,4 +495,10 @@ int process_wma_set_command_twoargs(int sessid, int paramid,
 void hdd_GetTemperatureCB(int temperature, void *cookie);
 VOS_STATUS wlan_hdd_get_temperature(hdd_adapter_t *adapter_ptr,
         union iwreq_data *wrqu, char *extra);
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+int wlan_hdd_set_multicast_retry_limit(hdd_adapter_t *adapter,
+			int group_id,int retry_limit);
+int wlan_hdd_multicast_aggr_enable(hdd_adapter_t *adapter,
+						int aggr_enable, int tbd_enable);
+#endif
 #endif // __WEXT_IW_H__

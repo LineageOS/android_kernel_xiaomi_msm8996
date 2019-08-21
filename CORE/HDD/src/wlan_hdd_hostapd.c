@@ -3730,6 +3730,18 @@ static int __iw_softap_set_two_ints_getnone(struct net_device *dev,
         else
             hddLog(LOGE, "unexpected value for dump_dp_trace");
         break;
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+    case QCSAP_AUDIO_AGGR_SET_GROUP_RETRY:
+                hddLog(LOG1, "au_set_retry: %d %d",
+                        value[1], value[2]);
+                ret = wlan_hdd_set_multicast_retry_limit(pAdapter, value[1], value[2]);
+                break;
+    case QCSAP_AUDIO_AGGR_ENABLE:
+                hddLog(LOG1, "au_aggr_enable: %d %d",
+                        value[1], value[2]);
+                ret = wlan_hdd_multicast_aggr_enable(pAdapter, value[1], value[2]);
+                break;
+#endif
     default:
         hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd);
         break;
@@ -3906,6 +3918,82 @@ static VOS_STATUS hdd_print_acl(hdd_adapter_t *pHostapdAdapter)
     }
     return VOS_STATUS_SUCCESS;
 }
+
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+static int
+wlan_hdd_multicast_del_group(hdd_adapter_t * adapter, int group_id)
+{
+	int ret;
+	struct audio_multicast_aggr *pMultiAggr = &adapter->multicast_aggr;
+	struct audio_multicast_group *pMultiGroup;
+
+	if (group_id < 0 || group_id >= MAX_GROUP_NUM) {
+		hddLog(LOGW, FL("Invalid group id %d"), group_id);
+		return -EINVAL;
+	}
+
+	ret = process_wma_set_command((int)adapter->sessionId,
+		(int)GEN_PARAM_MULTICAST_DEL_GROUP,
+		group_id, GEN_CMD);
+
+	if (!ret) {
+		pMultiGroup = &pMultiAggr->multicast_group[group_id];
+		pMultiGroup->in_use = 0;
+		pMultiAggr->group_num--;
+	}
+	return ret;
+}
+
+static int
+wlan_hdd_get_all_group_info(hdd_adapter_t * adapter,
+		union iwreq_data *wrqu, char *extra)
+{
+	int i, length = 0;
+	struct audio_multicast_aggr *pMultiAggr = &adapter->multicast_aggr;
+	struct audio_multicast_group *pMultiGroup;
+	int in_use = 0;
+	int j;
+
+	for (i = 0; i < MAX_GROUP_NUM; i++) {
+		pMultiGroup = &pMultiAggr->multicast_group[i];
+		if (pMultiGroup->in_use == 0)
+			continue;
+		in_use++;
+
+		length += scnprintf(extra+length, WE_MAX_STR_LEN - length,
+		"\nGroup id: %d\n"
+		"Group mac addr: [0x%x, 0x%x]\n"
+		"Retry limit: %d\n"
+		"Num client: %d\n"
+		"Rate set num: %d\n",
+		i,
+		pMultiGroup->multicast_addr.mac_addr31to0,
+		pMultiGroup->multicast_addr.mac_addr47to32,
+		pMultiGroup->retry_limit,
+		pMultiGroup->client_num,
+		pMultiGroup->num_rate_set);
+
+		for (j = 0; j<pMultiGroup->client_num; j++) {
+			length += scnprintf(extra+length, WE_MAX_STR_LEN - length,
+				"Client%d addr: [0x%x, 0x%x]\n", j,
+				pMultiGroup->client_addr[j].mac_addr31to0,
+				pMultiGroup->client_addr[j].mac_addr47to32);
+		}
+
+		for (j = 0; j<pMultiGroup->num_rate_set; j++) {
+			length += scnprintf(extra+length, WE_MAX_STR_LEN - length,
+			"Rate set%d: [mcs%d, bandwith%d]\n", j,
+			pMultiGroup->rate_set[j].mcs,
+			pMultiGroup->rate_set[j].bandwith);
+		}
+
+	}
+	wrqu->data.length = length + 1;
+	if (in_use == 0)
+		hddLog(LOGE, "No Multicast Group was found");
+	return 0;
+ }
+#endif
 
 int
 static __iw_softap_setparam(struct net_device *dev,
@@ -4641,6 +4729,13 @@ static __iw_softap_setparam(struct net_device *dev,
                sap_ctx->candidate_ch = set_value;
                break;
            }
+
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+        case QCSAP_MULTICAST_DEL_GROUP:
+                hddLog(LOG1, "QCSAP_MULTICAST_DEL_GROUP val %d", set_value);
+                ret = wlan_hdd_multicast_del_group(pHostapdAdapter,set_value);
+                break;
+#endif
 
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
@@ -5510,6 +5605,12 @@ static __iw_get_char_setnone(struct net_device *dev,
         {
             return hdd_wlan_get_stats(pAdapter, &(wrqu->data.length),
                                extra, WE_MAX_STR_LEN);
+        }
+
+        case QCSAP_GET_ALL_GROUP_INFO:
+        {
+            return wlan_hdd_get_all_group_info(pAdapter, wrqu,
+                               extra);
         }
     }
     return 0;
@@ -7674,6 +7775,36 @@ static const struct iw_priv_args hostapd_private_args[] = {
     {   WE_SET_HPCS_PULSE_PARAMS_CONFIG,
         IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
         0, "setHpcsParams" },
+
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+    {   QCSAP_AUDIO_AGGR_ENABLE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+        0, "au_aggr_enable"},
+
+    {   WE_AUDIO_AGGR_ADD_GROUP,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, "au_add_group" },
+
+    {   WE_AUDIO_AGGR_SET_GROUP_RATE,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, "au_set_rate" },
+
+    {   QCSAP_AUDIO_AGGR_SET_GROUP_RETRY,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
+        0,
+        "au_set_retry" },
+
+    {   QCSAP_MULTICAST_DEL_GROUP,
+        IW_PRIV_TYPE_INT| IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "au_del_group" },
+
+    {   QCSAP_GET_ALL_GROUP_INFO,
+         0,
+        IW_PRIV_TYPE_CHAR | WE_MAX_STR_LEN,
+        "au_show_all_grp" },
+
+#endif
 };
 
 static const iw_handler hostapd_private[] = {

@@ -1602,4 +1602,44 @@ struct hal_gpio_output {
 	uint32_t gpio_num;
 	uint32_t set;
 };
+
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+#define MAX_GROUP_NUM        5
+#define MAX_CLIENT_NUM       10
+#define MAX_NUM_RATE_SET     4
+#define MAX_RETRY_LIMIT      MAX_NUM_RATE_SET-1
+
+struct audio_multicast_rate
+{
+    uint32_t mcs;
+    uint32_t bandwith;
+};
+
+/** 2 word representation of MAC addr */
+struct mac_addr_s {
+    uint32_t mac_addr31to0;
+    uint32_t mac_addr47to32;
+};
+
+struct audio_multicast_group
+{
+    uint8_t group_id;
+    uint8_t in_use;
+    uint32_t client_num;
+    uint32_t retry_limit;
+    uint32_t num_rate_set;
+    struct audio_multicast_rate rate_set[MAX_NUM_RATE_SET];
+    struct mac_addr_s multicast_addr;
+    struct mac_addr_s client_addr[MAX_CLIENT_NUM];
+};
+
+struct audio_multicast_aggr
+{
+    uint32_t aggr_enable;
+    uint32_t tbd_enable;
+    uint8_t group_num;
+    struct audio_multicast_group multicast_group[MAX_GROUP_NUM];
+};
+#endif
+
 #endif /* _HALMSGAPI_H_ */
