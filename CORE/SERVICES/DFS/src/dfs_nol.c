@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2014,2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -75,13 +75,20 @@ dfs_nol_delete(struct ath_dfs *dfs, u_int16_t delfreq, u_int16_t delchwidth);
 static
 OS_TIMER_FUNC(dfs_remove_from_nol)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+    struct dfs_nolelem *elem = from_timer(elem, t, nol_timer);
+    struct dfs_nol_timer_arg *nol_arg = elem->dfs_timer_arg;
+#else
     struct dfs_nol_timer_arg *nol_arg;
+#endif
     struct ath_dfs *dfs;
     struct ieee80211com *ic;
     u_int16_t delfreq;
     u_int16_t delchwidth;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
     OS_GET_TIMER_ARG(nol_arg, struct dfs_nol_timer_arg *);
+#endif
 
     dfs = nol_arg->dfs;
     ic = dfs->ic;
@@ -237,6 +244,10 @@ dfs_nol_addchan(struct ath_dfs *dfs, struct ieee80211_channel *chan,
     dfs_nol_arg->dfs = dfs;
     dfs_nol_arg->delfreq = elem->nol_freq;
     dfs_nol_arg->delchwidth = elem->nol_chwidth;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+    elem->dfs_timer_arg = dfs_nol_arg;
+#endif
 
     OS_INIT_TIMER(NULL, &elem->nol_timer, dfs_remove_from_nol,
       dfs_nol_arg, ADF_DEFERRABLE_TIMER);

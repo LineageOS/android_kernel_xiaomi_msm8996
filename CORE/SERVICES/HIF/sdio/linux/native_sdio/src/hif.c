@@ -1485,10 +1485,18 @@ static void hif_oob_irq_handler(void *dev_para)
 }
 
 #ifdef HIF_MBOX_SLEEP_WAR
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+static void
+HIF_sleep_entry(struct timer_list *t)
+{
+    HIF_DEVICE *device = from_timer(device, t, sleep_timer);
+#else
 static void
 HIF_sleep_entry(void *arg)
 {
     HIF_DEVICE *device = (HIF_DEVICE *)arg;
+#endif
+
     A_UINT32 idle_ms;
 
     idle_ms = adf_os_ticks_to_msecs(adf_os_ticks()
