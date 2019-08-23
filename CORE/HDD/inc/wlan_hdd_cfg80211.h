@@ -2860,6 +2860,9 @@ struct cfg80211_bss* wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter,
 
 int wlan_hdd_cfg80211_update_bss(struct wiphy *wiphy,
 			hdd_adapter_t *pAdapter);
+VOS_STATUS
+hdd_get_sub20_channelwidth(hdd_adapter_t *adapter,
+			   uint32_t *sub20_channelwidth);
 
 #ifdef FEATURE_WLAN_LFR
 int wlan_hdd_cfg80211_pmksa_candidate_notify(
