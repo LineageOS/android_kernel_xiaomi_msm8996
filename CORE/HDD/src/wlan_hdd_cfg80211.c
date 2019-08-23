@@ -19160,6 +19160,7 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     hdd_scaninfo_t *pScanInfo  = NULL;
     hdd_adapter_t  *staAdapter = NULL;
     VOS_STATUS      status     = VOS_STATUS_E_FAILURE;
+    eHalStatus      halstatus;
     tSirUpdateIE    updateIE;
     beacon_data_t  *old;
     int             ret = 0;
@@ -19212,8 +19213,14 @@ static int __wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
 	wlan_hdd_disconnect(staAdapter, eCSR_DISCONNECT_REASON_DEAUTH);
     }
 
-    if (WLAN_HDD_SOFTAP == pAdapter->device_mode)
+    if (WLAN_HDD_SOFTAP == pAdapter->device_mode) {
         hdd_wlan_green_ap_stop_bss(pHddCtx);
+        halstatus = sme_RoamDelPMKIDfromCache(
+                        hal_ptr, pAdapter->sessionId,
+                        NULL, true);
+        if (!HAL_STATUS_SUCCESS(halstatus))
+            hddLog(LOG1, FL("Cannot flush PMKIDCache"));
+    }
 
     if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) &&
         (pHddCtx->cfg_ini->enable_hostapd_edca_local)) {
