@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -5166,7 +5166,7 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac,
     eHalStatus  status = eHAL_STATUS_SUCCESS;
     VOS_STATUS  vstatus;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
-    tCsrRoamInfo roamInfo;
+    tCsrRoamInfo *roam_info;
     tCsrRoamSession *pSession = &pMac->roam.roamSession[sessionId];
 #endif
     tpFTRoamCallbackUsrCtx  pUsrCtx;
@@ -5241,12 +5241,17 @@ eHalStatus csrNeighborRoamIndicateConnect(tpAniSirGlobal pMac,
            status = palSendMBMessage(pMac->hHdd, pMsg );
         }
 #endif
-        vos_mem_copy(&roamInfo.peerMac,
+        roam_info = vos_mem_malloc(sizeof(*roam_info));
+        if (!roam_info)
+            return eHAL_STATUS_FAILED_ALLOC;
+
+        vos_mem_copy(&roam_info->peerMac,
                    pMac->roam.roamSession[sessionId].connectedProfile.bssid,6);
-        roamInfo.roamSynchInProgress =
+        roam_info->roamSynchInProgress =
                    pSession->roamOffloadSynchParams.bRoamSynchInProgress;
-        csrRoamCallCallback(pMac, sessionId, &roamInfo, 0,
+        csrRoamCallCallback(pMac, sessionId, roam_info, 0,
                    eCSR_ROAM_SET_KEY_COMPLETE, eCSR_ROAM_RESULT_AUTHENTICATED);
+        vos_mem_free(roam_info);
     }
 #endif
 
@@ -5782,7 +5787,7 @@ void csrNeighborRoamClose(tpAniSirGlobal pMac, tANI_U8 sessionId)
 ---------------------------------------------------------------------------*/
 void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac, tANI_U8 sessionId)
 {
-    tCsrRoamInfo roamInfo;
+    tCsrRoamInfo *roam_info;
     tpCsrNeighborRoamControlInfo pNeighborRoamInfo =
                                     &pMac->roam.neighborRoamInfo[sessionId];
     tCsrNeighborRoamBSSInfo      handoffNode;
@@ -5815,11 +5820,13 @@ void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac, tANI_U8 sessionId)
                FL("HANDOFF CANDIDATE BSSID "MAC_ADDRESS_STR),
                MAC_ADDR_ARRAY(handoffNode.pBssDescription->bssId));
 
-    vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
-    csrRoamCallCallback(pMac, sessionId, &roamInfo, roamId, eCSR_ROAM_FT_START,
+    roam_info = vos_mem_malloc(sizeof(*roam_info));
+    if (!roam_info)
+        return;
+    csrRoamCallCallback(pMac, sessionId, roam_info, roamId, eCSR_ROAM_FT_START,
                         eSIR_SME_SUCCESS);
 
-    vos_mem_zero(&roamInfo, sizeof(tCsrRoamInfo));
+    vos_mem_zero(roam_info, sizeof(tCsrRoamInfo));
     csr_neighbor_roam_state_transition(pMac,
                                        eCSR_NEIGHBOR_ROAM_STATE_REASSOCIATING,
                                        sessionId);
@@ -5854,6 +5861,7 @@ void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac, tANI_U8 sessionId)
     if (eHAL_STATUS_SUCCESS != status) {
         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
                FL("csrRoamCopyConnectedProfile returned failed %d"), status);
+        vos_mem_free(roam_info);
         return;
     }
     vos_mem_copy(pNeighborRoamInfo->csrNeighborRoamProfile.BSSIDs.bssid, handoffNode.pBssDescription->bssId, sizeof(tSirMacAddr));
@@ -5864,18 +5872,20 @@ void csrNeighborRoamRequestHandoff(tpAniSirGlobal pMac, tANI_U8 sessionId)
     if(!HAL_STATUS_SUCCESS(csrRoamIssueDisassociateCmd(pMac, sessionId, eCSR_DISCONNECT_REASON_HANDOFF)))
     {
         smsLog(pMac, LOGW, "csrRoamHandoffRequested:  fail to issue disassociate");
+        vos_mem_free(roam_info);
         return;
     }
 
     /* Notify HDD for handoff, providing the BSSID too */
-    roamInfo.reasonCode = eCsrRoamReasonBetterAP;
+    roam_info->reasonCode = eCsrRoamReasonBetterAP;
 
-    vos_mem_copy(roamInfo.bssid,
+    vos_mem_copy(roam_info->bssid,
                  handoffNode.pBssDescription->bssId,
                  sizeof( tCsrBssid ));
 
-    csrRoamCallCallback(pMac, sessionId, &roamInfo, 0,
+    csrRoamCallCallback(pMac, sessionId, roam_info, 0,
                         eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_NONE);
+    vos_mem_free(roam_info);
 
     return;
 }
