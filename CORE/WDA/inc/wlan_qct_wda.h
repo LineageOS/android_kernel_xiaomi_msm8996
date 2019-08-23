@@ -1122,6 +1122,11 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_SET_RX_ANTENNA                    SIR_HAL_SET_RX_SMART_ANTENNA
 #define WDA_SET_GPIO_CFG                      SIR_HAL_SET_GPIO_CFG
 #define WDA_SET_GPIO_OUTPUT                   SIR_HAL_SET_GPIO_OUTPUT
+
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+#define WDA_ADD_MULTICAST_GROUP              SIR_HAL_ADD_MULTICAST_GROUP
+#define WDA_SET_MULTICAST_RATE              SIR_HAL_SET_MULTICAST_RATE
+#endif
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
