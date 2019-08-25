@@ -11,11 +11,11 @@
  * GNU General Public License for more details.
  */
 
-#include "msm8996-pinctrl.dtsi"
+#include <dt-bindings/clock/msm-clocks-8996.h>
 
 // *** Xiaomi's msm8996-based devices skeleton (exploded msm8996-mtp.dtsi) ***
 
-/ {
+&vendor {
 	bluetooth: bt_qca6174 {
 		compatible = "qca,qca6174";
 		qca,bt-reset-gpio = <&pm8994_gpios 19 0>; /* BT_EN */
@@ -52,45 +52,10 @@
 };
 
 &sdhc_1 {
-	vdd-supply = <&pm8994_l20>;
-	qcom,vdd-voltage-level = <2950000 2950000>;
-	qcom,vdd-current-level = <200 570000>;
-
-	vdd-io-supply = <&pm8994_s4>;
-	qcom,vdd-io-always-on;
-	qcom,vdd-io-voltage-level = <1800000 1800000>;
-	qcom,vdd-io-current-level = <110 325000>;
-
-	pinctrl-names = "active", "sleep";
-	pinctrl-0 = <&sdc1_clk_on &sdc1_cmd_on &sdc1_data_on &sdc1_rclk_on>;
-	pinctrl-1 = <&sdc1_clk_off &sdc1_cmd_off &sdc1_data_off &sdc1_rclk_off>;
-
-	qcom,clk-rates = <400000 20000000 25000000 50000000 96000000 192000000 384000000>;
-	qcom,ice-clk-rates = <300000000 150000000>;
-	qcom,nonremovable;
-	qcom,bus-speed-mode = "HS400_1p8v", "HS200_1p8v", "DDR_1p8v";
-
 	status = "disabled";
 };
 
 &sdhc_2 {
-	vdd-supply = <&pm8994_l21>;
-	qcom,vdd-voltage-level = <2950000 2950000>;
-	qcom,vdd-current-level = <200 800000>;
-
-	vdd-io-supply = <&pm8994_l13>;
-	qcom,vdd-io-voltage-level = <1800000 2950000>;
-	qcom,vdd-io-current-level = <200 22000>;
-
-	pinctrl-names = "active", "sleep";
-	pinctrl-0 = <&sdc2_clk_on  &sdc2_cmd_on &sdc2_data_on &sdc2_cd_on>;
-	pinctrl-1 = <&sdc2_clk_off &sdc2_cmd_off &sdc2_data_off &sdc2_cd_off>;
-
-	qcom,clk-rates = <400000 20000000 25000000 50000000 100000000 200000000>;
-	qcom,bus-speed-mode = "SDR12", "SDR25", "SDR50", "DDR50", "SDR104";
-
-	cd-gpios = <&tlmm 95 0x1>;
-
 	status = "disabled";
 };
 
@@ -168,17 +133,6 @@
 		qcom,pre-div-channel-scaling = <0>;
 		qcom,calibration-type = "ratiometric";
 		qcom,scale-function = <2>;
-		qcom,hw-settle-time = <2>;
-		qcom,fast-avg-setup = <0>;
-	};
-
-	chan@7c {
-		label = "xo_therm_buf";
-		reg = <0x7c>;
-		qcom,decimation = <0>;
-		qcom,pre-div-channel-scaling = <0>;
-		qcom,calibration-type = "ratiometric";
-		qcom,scale-function = <4>;
 		qcom,hw-settle-time = <2>;
 		qcom,fast-avg-setup = <0>;
 	};
@@ -276,23 +230,15 @@
 };
 
 &mdss_hdmi_tx {
-	pinctrl-names = "hdmi_hpd_active", "hdmi_ddc_active", "hdmi_cec_active",
-				"hdmi_active", "hdmi_sleep";
-	pinctrl-0 = <&mdss_hdmi_hpd_active &mdss_hdmi_ddc_suspend
-						&mdss_hdmi_cec_suspend>;
-	pinctrl-1 = <&mdss_hdmi_hpd_active &mdss_hdmi_ddc_active
-						&mdss_hdmi_cec_suspend>;
-	pinctrl-2 = <&mdss_hdmi_hpd_active &mdss_hdmi_cec_active
-						&mdss_hdmi_ddc_suspend>;
-	pinctrl-3 = <&mdss_hdmi_hpd_active &mdss_hdmi_ddc_active
-						&mdss_hdmi_cec_active>;
-	pinctrl-4 = <&mdss_hdmi_hpd_suspend &mdss_hdmi_ddc_suspend
-						&mdss_hdmi_cec_suspend>;
 	status = "disabled";
 };
 
 &mdss_hdmi_pll {
 	status = "disabled";
+};
+
+&mdss_fb2 {
+	/delete-node/ qcom,cont-splash-memory;
 };
 
 &pmi8994_vadc {
@@ -362,8 +308,6 @@
 	qcom,platform-bklight-en-gpio = <&tlmm 48 0>;
 };
 
-&mdss_dsi1 {
-};
 
 &labibb {
 	status = "ok";
@@ -396,7 +340,7 @@
 	qcom,mdss-dsi-bl-min-level = <1>;
 	qcom,mdss-dsi-bl-max-level = <4095>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,partial-update-enabled;
+	qcom,partial-update-enabled = "single_roi";
 	qcom,panel-roi-alignment = <720 128 720 64 720 64>;
 };
 
@@ -450,7 +394,7 @@
 	qcom,mdss-dsi-bl-max-level = <4095>;
 	qcom,5v-boost-gpio = <&pmi8994_gpios 8 0>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	qcom,partial-update-enabled;
+	qcom,partial-update-enabled = "single_roi";
 	qcom,panel-roi-alignment = <4 4 2 2 20 20>;
 };
 
@@ -548,7 +492,7 @@
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
 
-/ {
+&vendor {
 	mtp_batterydata: qcom,battery-data {
 		qcom,batt-id-range-pct = <15>;
 		#include "batterydata-itech-3020mah.dtsi"
@@ -556,23 +500,13 @@
 };
 
 &pmi8994_charger {
-	qcom,dc-psy-type = "Wipower";
-	qcom,dcin-vadc = <&pmi8994_vadc>;
-	qcom,wipower-default-ilim-map = <4000000 20000000 550 700 300>;
-	qcom,wipower-pt-ilim-map = <4000000 7140000 550 700 300>,
-			<7140000 8140000 550 700 300>,
-			<8140000 9140000 500 700 300>,
-			<9140000 9950000 500 700 300>;
-	qcom,wipower-div2-ilim-map = <4000000 4820000 550 700 300>,
-			<4820000 5820000 550 700 300>,
-			<5820000 6820000 550 650 650>,
-			<6820000 7820000 550 700 600>,
-			<7820000 8500000 550 700 550>;
 	qcom,override-usb-current;
 	qcom,stage-charge-threshold-mv = <4200>;
 	qcom,stage-charge-delta-mv = <50>;
 	qcom,float-voltage-comp = <16>;
 	qcom,float-voltage-comp-stage = <6>;
+	dpdm-supply = <&qusb_phy0>;
+	qcom,usbin-vadc = <&pmi8994_vadc>;
 };
 
 &i2c_7 {
@@ -591,12 +525,15 @@
 	qcom,resume-soc-raw = <253>;
 };
 
+// TODO: do we need this?
 &usb_otg_switch {
 	status = "okay";
 };
 
 &usb3 {
-	qcom,detect-dpdm-floating;
+
+	extcon = <&pmi8994_charger>;
+	qcom,check-for-float;
 };
 
 &pm8994_mpps {
@@ -1152,7 +1089,6 @@
 
 &lab_regulator {
 	qcom,qpnp-lab-soft-start = <400>;
-
 	qcom,qpnp-lab-ps-threshold = <30>;
 };
 
@@ -1876,15 +1812,12 @@
 			reg = <0x0 0x89c00000 0x0 0x6200000>;
 		};
 
-		ocimem_log: ocimem_log@0xb4000000 {
-			reg = <0 0xB4000000 0 0x100000>;
-			label = "ocimem_log";
-		};
-
 		ramoops_mem: ramoops_mem@92900000 {
 			label = "ramoops_mem";
 			reg = <0x0 0x92900000 0x0 0x00100000>;
 		};
+
+		/delete-node/ cont_splash_mem_hdmi@bdd00000;
 	};
 };
 
@@ -2049,18 +1982,9 @@
 	reg = <0x86600000 0x3600000>;
 };
 
-&qusb_phy0 {
-	reg = <0x07411000 0x180>,
-		<0x00388018 0x4>;
-};
-
-&qusb_phy1 {
-	reg = <0x07412000 0x180>,
-		<0x00388014 0x4>;
-};
-
 &firmware {
 	android {
+		/delete-node/ vbmeta;
 		fstab {
 			vendor {
 				dev = "/dev/block/platform/soc/624000.ufshc/by-name/cust";
