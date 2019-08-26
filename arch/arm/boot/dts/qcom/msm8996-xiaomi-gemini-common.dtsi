@@ -46,7 +46,7 @@
 			compatible = "ti,lp5562";
 			reg = <0x30>;
 			enable-gpio = <&pm8994_gpios 7 1>;
-			clock-mode = /bits/8 <2>;
+			clock-mode = /bits/ 8 <2>;
 			label = "button-backlight";
 			chan0 {
 				chan-name = "button-backlight";
@@ -323,15 +323,12 @@
 };
 
 &mtp_batterydata {
-		qcom,batt-id-range-pct = <15>;
 		#include "batterydata-a1-atl-3000mah.dtsi"
 		#include "batterydata-a1-sdi-3000mah.dtsi"
-		#include "batterydata-itech-3020mah.dtsi"
 };
 
 &pmi8994_charger {
 		qcom,fastchg-current-comp = <700>;
 		qcom,fastchg-current-ma = <3000>;
 		qcom,stage-charge-ma = <2000>;
-		qcom,hvdcp-pmi8994;
 };
