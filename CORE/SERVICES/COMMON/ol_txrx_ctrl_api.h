@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1541,6 +1541,9 @@ bool ol_txrx_set_ocb_def_tx_param(ol_txrx_vdev_handle vdev,
 
 void ol_txrx_display_stats(struct ol_txrx_pdev_t *pdev, uint16_t bitmap);
 void ol_txrx_clear_stats(struct ol_txrx_pdev_t *pdev, uint16_t bitmap);
+
+void ol_txrx_get_stats(struct ol_txrx_pdev_t *pdev, uint16_t value,
+		       void *data_ptr);
 
 void ol_rx_reset_pn_replay_counter(struct ol_txrx_pdev_t *pdev);
 uint32_t ol_rx_get_tkip_replay_counter(struct ol_txrx_pdev_t *pdev);

@@ -11047,6 +11047,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     if (!pCommand)
                     {
                         smsLog(pMac, LOGE, FL("cannot allocate memory"));
+                        if (pRoamInfo)
+                            vos_mem_free(pRoamInfo);
                         return;
                     }
                     vos_mem_set(pCommand, sizeof(tSmeCmd), 0);
@@ -11901,7 +11903,7 @@ tANI_BOOLEAN csrRoamCompleteRoaming(tpAniSirGlobal pMac, tANI_U32 sessionId,
                                     tANI_BOOLEAN fForce, eCsrRoamResult roamResult)
 {
     tANI_BOOLEAN fCompleted = eANI_BOOLEAN_TRUE;
-    tANI_TIMESTAMP roamTime = (tANI_TIMESTAMP)(pMac->roam.configParam.nRoamingTime * PAL_TICKS_PER_SECOND);
+    tANI_TIMESTAMP roamTime = (tANI_TIMESTAMP)(pMac->roam.configParam.nRoamingTime) * PAL_TICKS_PER_SECOND;
     tANI_TIMESTAMP curTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     if(!pSession)

@@ -1162,7 +1162,7 @@ int hdd_stop_tsf_sync(hdd_adapter_t *adapter)
 	return 0;
 }
 
-int hdd_tx_timestamp(adf_nbuf_t netbuf, uint64_t target_time)
+int hdd_tx_timestamp(int32_t status, adf_nbuf_t netbuf, uint64_t target_time)
 {
 	struct sock *sk = NULL;
 
@@ -1191,7 +1191,23 @@ int hdd_tx_timestamp(adf_nbuf_t netbuf, uint64_t target_time)
 
 		serr = SKB_EXT_ERR(new_netbuf);
 		memset(serr, 0, sizeof(*serr));
-		serr->ee.ee_errno = ENOMSG;
+		switch (status) {
+		case htt_tx_status_ok:
+			serr->ee.ee_errno = ENOMSG;
+			break;
+		case htt_tx_status_discard:
+			serr->ee.ee_errno = ENOBUFS;
+			break;
+		case htt_tx_status_no_ack:
+			serr->ee.ee_errno = EREMOTEIO;
+			break;
+		default:
+			serr->ee.ee_errno = ENOMSG;
+			break;
+		}
+		hddLog(VOS_TRACE_LEVEL_INFO,
+			FL("pkt status %d, sock ee_errno %d"),
+			status, serr->ee.ee_errno);
 		serr->ee.ee_origin = SO_EE_ORIGIN_TIMESTAMPING;
 
 		err = sock_queue_err_skb(sk, new_netbuf);

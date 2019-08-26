@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -57,8 +57,8 @@ typedef int (* nl_srv_msg_callback)(struct sk_buff * skb);
  * diagnostics netlink socket can only be exposed by one instance of the driver.
  */
 
-#if defined(CONFIG_CNSS_LOGGER) || !defined(MULTI_IF_NAME)
-
+#if defined(CONFIG_CNSS_LOGGER) || !defined(MULTI_IF_NAME) || \
+					defined(MULTI_IF_LOG)
 int nl_srv_init(void *wiphy);
 void nl_srv_exit(void);
 int nl_srv_register(tWlanNlModTypes msg_type,

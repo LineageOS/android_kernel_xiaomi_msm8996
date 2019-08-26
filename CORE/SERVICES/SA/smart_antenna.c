@@ -236,6 +236,7 @@ static void __smart_ant_node_connect(struct smart_ant *sa,
 	vos_mem_copy(new_node->node_info.mac_addr, node_info->mac_addr, 6);
 	new_node->node_info.channel_num = node_info->channel_num;
 	new_node->node_info.nss = node_info->nss;
+	new_node->node_info.node_caps = node_info->node_caps;
 	new_node->node_info.rate_cap.ratecount[RATE_INDEX_CCK_OFDM] =
 			node_info->rate_cap.ratecount[RATE_INDEX_CCK_OFDM];
 	vos_mem_copy(new_node->node_info.rate_cap.ratecode_legacy,

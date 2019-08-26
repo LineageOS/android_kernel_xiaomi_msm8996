@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -723,6 +723,12 @@ static int wma_ndp_confirm_event_handler(void *handle, uint8_t *event_info,
 				   ndp_confirm->peer_ndi_mac_addr.bytes);
 
 	ndp_confirm->ndp_info.ndp_app_info_len = fixed_params->ndp_app_info_len;
+	if (ndp_confirm->ndp_info.ndp_app_info_len > event->num_ndp_app_info) {
+		WMA_LOGE(FL("Invalid ndp_app_info_len: %d"),
+			ndp_confirm->ndp_info.ndp_app_info_len);
+		return -EINVAL;
+	}
+
 	if (ndp_confirm->ndp_info.ndp_app_info_len) {
 		ndp_confirm->ndp_info.ndp_app_info =
 				vos_mem_malloc(fixed_params->ndp_app_info_len);

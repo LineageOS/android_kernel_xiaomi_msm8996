@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -138,12 +138,16 @@ struct hdd_conn_flag {
  * @mcs: mcs index if struct describes a 802.11n bitrate
  * @legacy: bitrate in 100kbit/s for 802.11abg
  * @nss: number of streams (VHT only)
+ * @bw: bandwidth (from &enum rate_info_bw)
  */
 struct rate_info_ex {
 	uint8_t flags;
 	uint8_t mcs;
 	uint16_t legacy;
 	uint8_t nss;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	uint8_t bw;
+#endif
 };
 
 /**This structure stores the connection information */

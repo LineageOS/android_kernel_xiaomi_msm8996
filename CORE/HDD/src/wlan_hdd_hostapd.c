@@ -4633,6 +4633,15 @@ static __iw_softap_setparam(struct net_device *dev,
                                          set_value, PDEV_CMD);
             break;
 
+        case QCSAP_SET_CANDIDATE_CH:
+           {
+               ptSapContext sap_ctx = WLAN_HDD_GET_SAP_CTX_PTR(pHostapdAdapter);
+
+               hddLog(LOG1, "QCSAP_SET_CANDIDATE_CH val %d", set_value);
+               sap_ctx->candidate_ch = set_value;
+               break;
+           }
+
         default:
             hddLog(LOGE, FL("Invalid setparam command %d value %d"),
                     sub_cmd, set_value);
@@ -7414,6 +7423,10 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "cwmenable" },
 
+    {   QCSAP_SET_CANDIDATE_CH,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        0,
+        "candidate_ch" },
 
   { QCSAP_IOCTL_GETPARAM, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getparam" },
