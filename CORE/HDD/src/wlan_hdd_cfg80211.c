@@ -10632,7 +10632,7 @@ hdd_sta_set_sub20_channelwidth(hdd_adapter_t *adapter, uint32_t chan_width)
  * Return: The VOS_STATUS code associated with performing
  * the operation
  */
-static VOS_STATUS
+VOS_STATUS
 hdd_get_sub20_channelwidth(hdd_adapter_t *adapter, uint32_t *sub20_channelwidth)
 {
 	tHalHandle hal_ptr = WLAN_HDD_GET_HAL_CTX(adapter);

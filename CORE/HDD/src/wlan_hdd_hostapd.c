@@ -1476,6 +1476,7 @@ VOS_STATUS hdd_chan_change_notify(hdd_adapter_t *hostapd_adapter,
 	ePhyChanBondState cb_mode;
 	uint32_t freq;
 	tHalHandle  hal = WLAN_HDD_GET_HAL_CTX(hostapd_adapter);
+	uint32_t sub20_chan_width = 0;
 
 	if (NULL == hal) {
 		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -1532,6 +1533,30 @@ VOS_STATUS hdd_chan_change_notify(hdd_adapter_t *hostapd_adapter,
 	if ((phy_mode == eCSR_DOT11_MODE_11ac) ||
 	    (phy_mode == eCSR_DOT11_MODE_11ac_ONLY))
 		hdd_update_chandef(hostapd_adapter, &chandef, cb_mode);
+
+	hdd_get_sub20_channelwidth(hostapd_adapter, &sub20_chan_width);
+
+	switch (sub20_chan_width) {
+	case SUB20_MODE_5MHZ:
+		sub20_chan_width = NL80211_CHAN_WIDTH_5;
+		break;
+	case SUB20_MODE_10MHZ:
+		sub20_chan_width = NL80211_CHAN_WIDTH_10;
+		break;
+	case SUB20_MODE_NONE:
+		sub20_chan_width = NL80211_CHAN_WIDTH_20_NOHT;
+		break;
+	default:
+		hddLog(LOGE, FL("invalid sub20 val %d"), sub20_chan_width);
+	}
+
+	if (sub20_chan_width == NL80211_CHAN_WIDTH_5 ||
+	    sub20_chan_width == NL80211_CHAN_WIDTH_10) {
+		chandef.width = sub20_chan_width;
+		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+			  "%s: notify sub20 ch_width %d", __func__,
+			  chandef.width);
+	}
 
 	cfg80211_ch_switch_notify(dev, &chandef);
 
