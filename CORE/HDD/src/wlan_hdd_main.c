@@ -1105,9 +1105,9 @@ static int __hdd_netdev_notifier_call(struct notifier_block * nb,
    hdd_context_t *pHddCtx;
 
    //Make sure that this callback corresponds to our device.
-   if ((strncmp(dev->name, "wlan", 4)) &&
+   if ((strncmp(dev->name, "wlan" IFNAME_SUFFIX, 4 + IFNAME_SUFFIX_SIZE)) &&
       (strncmp(dev->name, "softAP", 6)) &&
-      (strncmp(dev->name, "p2p", 3)))
+      (strncmp(dev->name, "p2p" IFNAME_SUFFIX, 3 + IFNAME_SUFFIX_SIZE)))
       return NOTIFY_DONE;
 
    if ((pAdapter->magic != WLAN_HDD_ADAPTER_MAGIC) ||
@@ -17412,7 +17412,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                                   rtnl_lock_enable);
    } else {
 #ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
-      pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
+      pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan" IFNAME_SUFFIX "%d",
                                   wlan_hdd_get_intf_addr(pHddCtx),
                                   NET_NAME_UNKNOWN,
                                   rtnl_lock_enable);
@@ -17450,7 +17450,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          }
 
 #ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
-         pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p%d",
+         pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p" IFNAME_SUFFIX "%d",
 #else
          pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
 #endif
