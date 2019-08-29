@@ -42920,3 +42920,69 @@ VOS_STATUS wma_set_gpio_output(void *handle, struct hal_gpio_output *output)
 	}
 	return VOS_STATUS_SUCCESS;
 }
+
+/**
+ * wma_set_wlm_latency_level() - set latency level
+ * @vdev_id: vdev id
+ * @value: value
+ *
+ * Return: CDF_STATUS_SUCCESS for success or error code.
+ */
+VOS_STATUS wma_set_wlm_latency_level(uint8_t vdev_id, uint16_t latency_level)
+{
+	void *vos_context = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+	VOS_STATUS ret;
+	wmi_buf_t buf;
+	wmi_wlm_config_cmd_fixed_param *cmd;
+	uint32_t len = sizeof(*cmd);
+	static uint32_t ll[4] = {100, 60, 40, 20};
+	tp_wma_handle wma_handle = (tp_wma_handle) vos_get_context(
+					VOS_MODULE_ID_WDA, vos_context);
+	tpAniSirGlobal mac_ctx;
+	if (NULL == wma_handle) {
+		WMA_LOGE("%s: wma_handle is NULL", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	mac_ctx = (tpAniSirGlobal)vos_get_context(
+			VOS_MODULE_ID_PE, wma_handle->vos_context);
+
+	if (!mac_ctx) {
+		WMA_LOGE("%s: Failed to get mac_ctx", __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (!(wma_handle->interfaces[vdev_id].vdev_up)) {
+		WMA_LOGE("%s: vdev id %d is not up", __func__, vdev_id);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	if (!mac_ctx->roam.configParam.wlm_latency_enable) {
+		WMA_LOGE("%s: WLM latency level setting is disabled",
+			   __func__);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: wmi_buf_alloc failed", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+	cmd = (wmi_wlm_config_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_wlm_config_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN
+		       (wmi_wlm_config_cmd_fixed_param));
+	cmd->vdev_id = vdev_id;
+	cmd->latency_level = latency_level;
+	cmd->ul_latency = ll[latency_level];
+	cmd->dl_latency = ll[latency_level];
+	cmd->flags = mac_ctx->roam.configParam.wlm_latency_flags[latency_level];
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+					WMI_WLM_CONFIG_CMDID);
+	if (ret != VOS_STATUS_SUCCESS)
+		WMA_LOGE("Decrease tx power value failed");
+
+	return ret;
+}
