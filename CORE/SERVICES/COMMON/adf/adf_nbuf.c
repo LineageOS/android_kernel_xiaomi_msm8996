@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -897,6 +897,7 @@ __adf_nbuf_unmap(
     __adf_nbuf_unmap_single(osdev, skb, dir);
 }
 
+#if defined(HIF_PCI)
 a_status_t
 __adf_nbuf_map_single(
     adf_os_device_t osdev, adf_nbuf_t buf, adf_os_dma_dir_t dir)
@@ -926,7 +927,19 @@ __adf_nbuf_unmap_single(
                      skb_end_pointer(buf) - buf->data, dir);
 #endif	/* #if !defined(A_SIMOS_DEVHOST) */
 }
-
+#else
+a_status_t
+__adf_nbuf_map_single(
+    adf_os_device_t osdev, adf_nbuf_t buf, adf_os_dma_dir_t dir)
+{
+	return A_STATUS_OK;
+}
+void
+__adf_nbuf_unmap_single(
+    adf_os_device_t osdev, adf_nbuf_t buf, adf_os_dma_dir_t dir)
+{
+}
+#endif
 /**
  * @brief return the dma map info
  *
