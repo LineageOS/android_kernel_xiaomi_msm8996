@@ -2652,6 +2652,8 @@ QDF_STATUS wma_tx_packet(void *wma_context, void *tx_frame, uint16_t frmLen,
 	ol_pdev_handle ctrl_pdev;
 	bool is_5g = false;
 
+	ol_txrx_pdev_handle pdev = cds_get_context(QDF_MODULE_ID_TXRX);
+
 	if (NULL == wma_handle) {
 		WMA_LOGE("wma_handle is NULL");
 		cds_packet_free((void *)tx_frame);
@@ -3043,6 +3045,16 @@ QDF_STATUS wma_tx_packet(void *wma_context, void *tx_frame, uint16_t frmLen,
 			wmi_desc->nbuf = tx_frame;
 			wmi_desc->tx_cmpl_cb = tx_frm_download_comp_cb;
 			wmi_desc->ota_post_proc_cb = tx_frm_ota_comp_cb;
+
+			if (pdev && cds_get_pktcap_mode_enable() &&
+			    (ol_cfg_pktcapture_mode(pdev->ctrl_pdev) &
+			    PKT_CAPTURE_MODE_MGMT_ONLY) &&
+			    pdev->mon_cb) {
+				chanfreq = wma_handle->interfaces[vdev_id].mhz;
+				wma_process_mon_mgmt_tx(tx_frame,
+							qdf_nbuf_len(tx_frame),
+							&mgmt_param, chanfreq);
+			}
 			status = wmi_mgmt_unified_cmd_send(
 					wma_handle->wmi_handle,
 					&mgmt_param);

@@ -2423,6 +2423,9 @@ int wmi_desc_pool_init(tp_wma_handle wma_handle, uint32_t pool_size);
 void wmi_desc_pool_deinit(tp_wma_handle wma_handle);
 struct wmi_desc_t *wmi_desc_get(tp_wma_handle wma_handle);
 void wmi_desc_put(tp_wma_handle wma_handle, struct wmi_desc_t *wmi_desc);
+int wma_process_mon_mgmt_tx(qdf_nbuf_t nbuf, uint32_t nbuf_len,
+			    struct wmi_mgmt_params *mgmt_param,
+			    uint16_t chanfreq);
 int wma_mgmt_tx_completion_handler(void *handle, uint8_t *cmpl_event_params,
 				   uint32_t len);
 int wma_mgmt_tx_bundle_completion_handler(void *handle,

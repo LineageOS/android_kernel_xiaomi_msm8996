@@ -2948,6 +2948,57 @@ static int wma_process_mon_mgmt_tx_completion(tp_wma_handle wma_handle,
 }
 
 /**
+ * wma_process_mon_mgmt_tx() - process tx mgmt packets for mon interface
+ * without waiting for tx completion
+ * @nbuf: netbuf
+ * @nbuf_len: nbuf length
+ *
+ * Return: 0 for success or error code
+ */
+int wma_process_mon_mgmt_tx(qdf_nbuf_t nbuf, uint32_t nbuf_len,
+			    struct wmi_mgmt_params *mgmt_param,
+			    uint16_t chanfreq)
+{
+	qdf_nbuf_t wbuf;
+	wmi_mgmt_hdr mgmt_hdr = {0};
+
+	wbuf = qdf_nbuf_alloc(NULL, roundup(nbuf_len + RESERVE_BYTES, 4),
+			      RESERVE_BYTES, 4, false);
+
+	if (!wbuf) {
+		WMA_LOGE("%s: Failed to allocate wbuf for mgmt len(%u)",
+			 __func__, nbuf_len);
+		return -ENOMEM;
+	}
+
+	qdf_nbuf_put_tail(wbuf, nbuf_len);
+
+	qdf_mem_copy(qdf_nbuf_data(wbuf), qdf_nbuf_data(nbuf), nbuf_len);
+
+	mgmt_hdr.chan_freq = chanfreq;
+	/* Filling Tpc in rssi field.
+	 * As Tpc is not available, filling with default value of tpc
+	 */
+	mgmt_hdr.rssi = 0;
+	/* Assigning the local timestamp as TSF timestamp is not available*/
+	mgmt_hdr.tsf_l32 = (uint32_t)jiffies;
+
+	if (mgmt_param->tx_param.preamble_type == (1 << WMI_RATE_PREAMBLE_CCK))
+		mgmt_hdr.rate_kbps = 1000; /* Rate is 1 Mbps for CCK */
+	else
+		mgmt_hdr.rate_kbps = 6000; /* Rate is 6 Mbps for OFDM */
+
+	/* The mgmt tx packet is send to mon interface before tx completion.
+	 * we do not have status for this packet, using magic number(0xFF)
+	 * as status for mgmt tx packet
+	 */
+	if (!wma_process_mon_mgmt_tx_data(&mgmt_hdr, wbuf, 0xFF))
+		qdf_nbuf_free(wbuf);
+
+	return 0;
+}
+
+/**
  * wma_process_mgmt_tx_completion() - process mgmt completion
  * @wma_handle: wma handle
  * @desc_id: descriptor id
