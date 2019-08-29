@@ -2893,6 +2893,8 @@ wma_process_mon_mgmt_tx_data(wmi_mgmt_hdr *hdr,
 		IEEE80211_CHAN_2GHZ : IEEE80211_CHAN_5GHZ);
 	txrx_status.chan_flags = channel_flags;
 	txrx_status.rate = ((txrx_status.rate == 6 /* Mbps */) ? 0x0c : 0x02);
+	txrx_status.tx_status = status;
+	txrx_status.add_rtap_ext = true;
 
 	wh = (struct ieee80211_frame *)qdf_nbuf_data(nbuf);
 	wh->i_fc[1] &= ~IEEE80211_FC1_WEP;
@@ -2941,7 +2943,9 @@ static int wma_process_mon_mgmt_tx_completion(tp_wma_handle wma_handle,
 
 	qdf_mem_copy(qdf_nbuf_data(wbuf), qdf_nbuf_data(nbuf), nbuf_len);
 
-	if (!wma_process_mon_mgmt_tx_data(mgmt_hdr, wbuf, status))
+	if (!wma_process_mon_mgmt_tx_data(
+		mgmt_hdr, wbuf,
+		wma_mgmt_pktcapture_status_map(status)))
 		qdf_nbuf_free(wbuf);
 
 	return 0;
@@ -3802,6 +3806,7 @@ wma_process_mon_mgmt_rx_data(wmi_mgmt_rx_hdr *hdr,
 		IEEE80211_CHAN_2GHZ : IEEE80211_CHAN_5GHZ);
 	txrx_status.chan_flags = channel_flags;
 	txrx_status.rate = ((txrx_status.rate == 6 /* Mbps */) ? 0x0c : 0x02);
+	txrx_status.add_rtap_ext = true;
 
 	wh = (struct ieee80211_frame *)qdf_nbuf_data(nbuf);
 	wh->i_fc[1] &= ~IEEE80211_FC1_WEP;
@@ -3998,7 +4003,7 @@ wma_mgmt_offload_data_event_handler(void *handle, uint8_t *data,
 	qdf_nbuf_set_protocol(wbuf, ETH_P_CONTROL);
 	qdf_mem_copy(qdf_nbuf_data(wbuf), param_tlvs->bufp, hdr->buf_len);
 
-	status = hdr->tx_status;
+	status = wma_mgmt_pktcapture_status_map(hdr->tx_status);
 	if (!wma_process_mon_mgmt_tx_data(hdr, wbuf, status))
 		qdf_nbuf_free(wbuf);
 
