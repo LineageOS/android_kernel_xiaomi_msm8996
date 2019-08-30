@@ -8559,8 +8559,9 @@ static int msm8996_init_wsa_dev(struct platform_device *pdev,
 	int found = 0;
 	int i;
 	int ret;
+
 #ifndef CONFIG_SND_SOC_WSA881X
-	return -EINVAL;
+	return 0;
 #endif
 	/* Get maximum WSA device count for this platform */
 	ret = of_property_read_u32(pdev->dev.of_node,
