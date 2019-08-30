@@ -3208,7 +3208,6 @@ void hif_pci_runtime_pm_warn(struct hif_pci_softc *sc, const char *msg)
 	}
 
 	pr_warn("\n");
-	WARN_ON(1);
 }
 
 int hif_pm_runtime_get(HIF_DEVICE *hif_device)
