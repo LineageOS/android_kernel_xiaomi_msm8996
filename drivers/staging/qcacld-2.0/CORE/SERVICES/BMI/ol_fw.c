@@ -1194,6 +1194,11 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 #if !defined(HIF_SDIO)
 		ol_copy_ramdump(ramdump_scn);
 		vos_device_crashed(dev);
+#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+		vos_svc_fw_crashed_ind(dev);
+#endif
+		vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+
 		return;
 #endif
 		goto out_fail;
@@ -1273,6 +1278,9 @@ out_fail:
 #endif
 #endif
 
+#ifdef TARGET_DUMP_FOR_NON_QC_PLATFORM
+	vos_svc_fw_crashed_ind(dev);
+#endif
 	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 	return;
 }
@@ -1299,6 +1307,11 @@ static void fw_indication_work_handler(struct work_struct *fw_indication)
 	}
 
 	vos_device_self_recovery(dev);
+
+#ifdef CONFIG_NON_QC_PLATFORM
+	vos_svc_fw_crashed_ind(dev);
+#endif
+	vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 }
 
 static DECLARE_WORK(fw_indication_work, fw_indication_work_handler);

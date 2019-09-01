@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -206,28 +206,16 @@ static int dot11p_validate_channel_static_channels(struct wiphy *wiphy,
 
 	return -EINVAL;
 }
-#else
-/**
- * dot11p_validate_channel_static_channels() - validate a DSRC channel
- * @center_freq: the channel's center frequency
- * @bandwidth: the channel's bandwidth
- * @tx_power: transmit power
- * @reg_power: (output) the max tx power from the regulatory domain
- * @antenna_max: (output) the max antenna gain from the regulatory domain
- *
- * This function of the function checks the channel parameters against a
- * hardcoded list of valid channels based on the FCC rules.
- *
- * Return: 0 if the channel is valid, error code otherwise.
- */
-static int dot11p_validate_channel_static_channels(struct wiphy *wiphy,
-	uint32_t channel_freq, uint32_t bandwidth, uint32_t tx_power,
-	uint8_t *reg_power, uint8_t *antenna_max)
-{
-	return -EINVAL;
-}
-#endif /* FEATURE_STATICALLY_ADD_11P_CHANNELS */
 
+static int dot11p_validate_channel(struct wiphy *wiphy,
+				   uint32_t channel_freq, uint32_t bandwidth,
+				   uint32_t tx_power, uint8_t *reg_power,
+				   uint8_t *antenna_max)
+{
+	return dot11p_validate_channel_static_channels(wiphy, channel_freq,
+		bandwidth, tx_power, reg_power, antenna_max);
+}
+#else
 /**
  * dot11p_validate_channel() - validates a DSRC channel
  * @center_freq: the channel's center frequency
@@ -303,9 +291,9 @@ static int dot11p_validate_channel(struct wiphy *wiphy,
 		}
 	}
 
-	return dot11p_validate_channel_static_channels(wiphy, channel_freq,
-		bandwidth, tx_power, reg_power, antenna_max);
+	return -EINVAL;
 }
+#endif
 
 /**
  * hdd_ocb_validate_config() - Validates the config data

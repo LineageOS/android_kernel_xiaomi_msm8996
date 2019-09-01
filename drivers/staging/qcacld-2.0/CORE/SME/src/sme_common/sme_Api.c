@@ -21287,3 +21287,102 @@ eHalStatus sme_set_rx_antenna(tHalHandle hal,
 	return hal_status;
 }
 #endif
+
+/**
+ * sme_set_gpio_cfg() - Set GPIO config
+ * @gpio_num: GPIO number to be setup
+ * @input: 0 - Output/ 1 - Input
+ * @pull_type: Pull type
+ * @intr_mode: Interrupt mode
+ * @mux_config_val: mux_config_val
+ *
+ * Return: HAL_STATUS
+ */
+eHalStatus sme_set_gpio_cfg(tHalHandle hal, uint32_t gpio_num,
+			    uint32_t input, uint32_t pull_type,
+			    uint32_t intr_mode, uint32_t mux_config_val)
+{
+	vos_msg_t vos_message;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	eHalStatus hal_status = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status;
+	struct hal_gpio_cfg *gpio_cfg;
+
+	hal_status = sme_AcquireGlobalLock(&mac->sme);
+	if (HAL_STATUS_SUCCESS(hal_status)) {
+		gpio_cfg = vos_mem_malloc(sizeof(*gpio_cfg));
+		if (!gpio_cfg) {
+			hal_status = eHAL_STATUS_FAILED_ALLOC;
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"SAE: memory allocation failed");
+		} else {
+			gpio_cfg->gpio_num = gpio_num;
+			gpio_cfg->input = input;
+			gpio_cfg->pull_type = pull_type;
+			gpio_cfg->intr_mode = intr_mode;
+			gpio_cfg->mux_config_val = mux_config_val;
+			vos_message.type = WDA_SET_GPIO_CFG;
+			vos_message.bodyptr = gpio_cfg;
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+				  "Post GPIO config message. gpio_num=%d, input=%d, pull_type=%d, intr_mode=%d, mux_config_val=%d",
+				  gpio_num, input, pull_type,
+				  intr_mode, mux_config_val);
+
+			vos_status = vos_mq_post_message(VOS_MQ_ID_WDA,
+							 &vos_message);
+			if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+				hal_status = eHAL_STATUS_FAILURE;
+				vos_mem_free(gpio_cfg);
+			}
+		}
+		sme_ReleaseGlobalLock(&mac->sme);
+	}
+
+	return hal_status;
+}
+
+/**
+ * sme_set_gpio_output() - Set GPIO ouput
+ * @gpio_num: GPIO number to be setup
+ * @set: Set the GPIO pin
+ *
+ * Return: HAL_STATUS
+ */
+eHalStatus sme_set_gpio_output(tHalHandle hal,
+			       uint32_t gpio_num,
+			       uint32_t set)
+{
+	vos_msg_t vos_message;
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	eHalStatus hal_status = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status;
+	struct hal_gpio_output *gpio_output;
+
+	hal_status = sme_AcquireGlobalLock(&mac->sme);
+	if (HAL_STATUS_SUCCESS(hal_status)) {
+		gpio_output = vos_mem_malloc(sizeof(*gpio_output));
+		if (!gpio_output) {
+			hal_status = eHAL_STATUS_FAILED_ALLOC;
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				"SAE: memory allocation failed");
+		} else {
+			gpio_output->gpio_num = gpio_num;
+			gpio_output->set = set;
+			vos_message.type = WDA_SET_GPIO_OUTPUT;
+			vos_message.bodyptr = gpio_output;
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+				  "Post GPIO output messagee. gpio_num=%d, set=%d",
+				  gpio_num, set);
+
+			vos_status = vos_mq_post_message(VOS_MQ_ID_WDA,
+							 &vos_message);
+			if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+				hal_status = eHAL_STATUS_FAILURE;
+				vos_mem_free(gpio_output);
+			}
+		}
+		sme_ReleaseGlobalLock(&mac->sme);
+	}
+
+	return hal_status;
+}

@@ -1949,7 +1949,7 @@ static void ol_pop_user_common_array_tlv(ol_txrx_pdev_handle pdev,
 		tag_buf++;
 		ppdu_stats.tx_failed_msdus =
 			HTT_PPDU_STATS_ARRAY_ITEM_TLV_TX_FAILED_MSDUS_GET(*tag_buf);
-		tag_buf += 2;
+		tag_buf += 3;
 		ppdu_stats.ack_rssi[0] = (*tag_buf) & 0xff;
 		ppdu_stats.ack_rssi[1] = ((*tag_buf) & 0xff00) >> 8;
 		tag_buf += 2;

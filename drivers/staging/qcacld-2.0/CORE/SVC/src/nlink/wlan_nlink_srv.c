@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -42,6 +42,8 @@
 #include <net/sock.h>
 #include <wlan_nlink_srv.h>
 #include <vos_trace.h>
+#include "wlan_hdd_main.h"
+#include <net/cfg80211.h>
 
 #ifdef CNSS_GENL
 #include <vos_memory.h>
@@ -250,7 +252,7 @@ inline int nl_srv_is_initialized(void)
 		return -EPERM;
 }
 
-#elif !defined(MULTI_IF_NAME)
+#elif !defined(MULTI_IF_NAME) || defined(MULTI_IF_LOG)
 /* Global variables */
 static DEFINE_MUTEX(nl_srv_sem);
 static struct sock *nl_srv_sock;
@@ -268,6 +270,7 @@ static void nl_srv_rcv_msg (struct sk_buff *skb, struct nlmsghdr *nlh);
 int nl_srv_init(void *wiphy)
 {
    int retcode = 0;
+   int proto;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
    struct netlink_kernel_cfg cfg = {
       .groups = WLAN_NLINK_MCAST_GRP_ID,
@@ -275,14 +278,26 @@ int nl_srv_init(void *wiphy)
    };
 #endif
 
+#ifndef MULTI_IF_NAME
+   proto = WLAN_NLINK_PROTO_FAMILY;
+#elif defined MULTI_IF_LOG
+   hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
+   if (!hdd_ctx) {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+         "NLINK: hdd_ctx is null");
+      retcode = -EINVAL;
+   }
+   proto = hdd_ctx->cfg_ini->host_log_custom_nl_proto;
+#endif
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-   nl_srv_sock = netlink_kernel_create(&init_net, WLAN_NLINK_PROTO_FAMILY,
+   nl_srv_sock = netlink_kernel_create(&init_net, proto,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0))
                                        THIS_MODULE,
 #endif
                                        &cfg);
 #else
-   nl_srv_sock = netlink_kernel_create(&init_net, WLAN_NLINK_PROTO_FAMILY,
+   nl_srv_sock = netlink_kernel_create(&init_net, proto,
       WLAN_NLINK_MCAST_GRP_ID, nl_srv_rcv, NULL, THIS_MODULE);
 #endif
 

@@ -5211,7 +5211,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_ENABLE_5G_BAND_PREF_MIN,
                 CFG_ENABLE_5G_BAND_PREF_MAX),
 
-   REG_VARIABLE(CFG_5G_RSSI_BOOST_THRESHOLD_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE(CFG_5G_RSSI_BOOST_THRESHOLD_NAME, WLAN_PARAM_SignedInteger,
                 hdd_config_t, rssi_boost_threshold_5g,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                 CFG_5G_RSSI_BOOST_THRESHOLD_DEFAULT,
@@ -5232,7 +5232,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_5G_MAX_RSSI_BOOST_MIN,
                 CFG_5G_MAX_RSSI_BOOST_MAX),
 
-   REG_VARIABLE(CFG_5G_RSSI_PENALIZE_THRESHOLD_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE(CFG_5G_RSSI_PENALIZE_THRESHOLD_NAME, WLAN_PARAM_SignedInteger,
                 hdd_config_t, rssi_penalize_threshold_5g,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                 CFG_5G_RSSI_PENALIZE_THRESHOLD_DEFAULT,
@@ -5493,6 +5493,15 @@ REG_TABLE_ENTRY g_registry_table[] =
 		CFG_SMART_ANTENNA_PARAM_DEFAULT,
 		CFG_SMART_ANTENNA_PARAM_MIN,
 		CFG_SMART_ANTENNA_PARAM_MAX),
+#endif
+
+#ifdef MULTI_IF_LOG
+       REG_VARIABLE(CFG_HOST_LOG_CUSTOM_NETLINK_PROTO, WLAN_PARAM_Integer,
+		hdd_config_t, host_log_custom_nl_proto,
+		VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_DEFAULT,
+		CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_MIN,
+		CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_MAX),
 #endif
 };
 
@@ -6127,7 +6136,7 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                    pHddCtx->cfg_ini->isRoamOffloadEnabled);
 #endif
 
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
            "Name = [gEnableHostapdEdcaLocal] Value = [%u]",
                    pHddCtx->cfg_ini->enable_hostapd_edca_local);
 
@@ -6395,7 +6404,7 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
          CFG_SUB_20_CHANNEL_WIDTH_NAME,
          pHddCtx->cfg_ini->sub_20_channel_width);
 
-  hddLog(LOGE, "Name = [%s] Value = [%u]",
+  hddLog(LOG2, "Name = [%s] Value = [%u]",
          CFG_STA_CHANGE_COUNTRYCODE_DYN_NAME ,
          pHddCtx->cfg_ini->sta_change_cc_via_beacon);
 

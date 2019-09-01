@@ -8359,6 +8359,7 @@ __wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
 	struct nlattr *tb_vendor[QCA_WLAN_VENDOR_ATTR_WIFI_INFO_GET_MAX + 1];
 	tSirVersionString driver_version;
 	tSirVersionString firmware_version;
+	const char *hw_version;
 	uint32_t major_spid = 0, minor_spid = 0, siid = 0, crmid = 0;
 	int status;
 	struct sk_buff *reply_skb;
@@ -8394,8 +8395,10 @@ __wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
 		hddLog(LOG1, FL("Rcvd req for FW version"));
 		hdd_get_fw_version(hdd_ctx, &major_spid, &minor_spid, &siid,
 				   &crmid);
+		hw_version = hdd_ctx->target_hw_name;
 		snprintf(firmware_version, sizeof(firmware_version),
-			 "%d:%d:%d:%d", major_spid, minor_spid, siid, crmid);
+			 "FW:%d:%d:%d:%d HW:%s", major_spid, minor_spid, siid,
+			 crmid, hw_version);
 		skb_len += strlen(firmware_version) + 1;
 		count++;
 	}
@@ -14376,6 +14379,9 @@ static int32_t hdd_add_tx_bitrate(struct sk_buff *skb,
 	txrate.mcs = hdd_sta_ctx->cache_conn_info.txrate.mcs;
 	txrate.legacy = hdd_sta_ctx->cache_conn_info.txrate.legacy;
 	txrate.nss = hdd_sta_ctx->cache_conn_info.txrate.nss;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	txrate.bw = hdd_sta_ctx->cache_conn_info.txrate.bw;
+#endif
 
 	bitrate = cfg80211_calculate_bitrate(&txrate);
 
@@ -14383,6 +14389,9 @@ static int32_t hdd_add_tx_bitrate(struct sk_buff *skb,
 	hdd_sta_ctx->cache_conn_info.txrate.mcs = txrate.mcs;
 	hdd_sta_ctx->cache_conn_info.txrate.legacy = txrate.legacy;
 	hdd_sta_ctx->cache_conn_info.txrate.nss = txrate.nss;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	hdd_sta_ctx->cache_conn_info.txrate.bw = txrate.bw;
+#endif
 
 	/* report 16-bit bitrate only if we can */
 	bitrate_compat = bitrate < (1UL << 16) ? bitrate : 0;
@@ -17386,11 +17395,6 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
 
     wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
                           WLAN_EID_VHT_TX_POWER_ENVELOPE);
-
-    if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
-        wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
-                              WLAN_EID_RSN);
-
     if (0 != wlan_hdd_add_ie(pHostapdAdapter, genie,
                               &total_ielen, WPS_OUI_TYPE, WPS_OUI_TYPE_SIZE))
     {
@@ -27738,6 +27742,9 @@ static int __wlan_hdd_cfg80211_get_station(struct wiphy *wiphy,
     pHddStaCtx->conn_info.txrate.mcs = sinfo->txrate.mcs;
     pHddStaCtx->conn_info.txrate.legacy = sinfo->txrate.legacy;
     pHddStaCtx->conn_info.txrate.nss = sinfo->txrate.nss;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+    pHddStaCtx->conn_info.txrate.bw = sinfo->txrate.bw;
+#endif
     vos_mem_copy(&pHddStaCtx->cache_conn_info.txrate,
                  &pHddStaCtx->conn_info.txrate,
                  sizeof(pHddStaCtx->conn_info.txrate));
@@ -30939,6 +30946,7 @@ static void wlan_hdd_chan_info_cb(struct scan_chan_info *info)
 				chan[idx].noise_floor = info->noise_floor;
 				chan[idx].cycle_count = info->cycle_count;
 				chan[idx].rx_clear_count = info->rx_clear_count;
+				chan[idx].rx_frame_count = info->rx_frame_count;
 				chan[idx].tx_frame_count = info->tx_frame_count;
 				chan[idx].clock_freq = info->clock_freq;
 				break;
@@ -30950,6 +30958,10 @@ static void wlan_hdd_chan_info_cb(struct scan_chan_info *info)
 				chan[idx].delta_rx_clear_count =
 						info->rx_clear_count -
 						chan[idx].rx_clear_count;
+
+				chan[idx].delta_rx_frame_count =
+						info->rx_frame_count -
+						chan[idx].rx_frame_count;
 
 				chan[idx].delta_tx_frame_count =
 						info->tx_frame_count -
@@ -31009,8 +31021,7 @@ void wlan_hdd_init_chan_info(hdd_context_t *hdd_ctx)
 		}
 		sme_set_chan_info_callback(
 			hdd_ctx->hHal,
-			&wlan_hdd_chan_info_cb
-			);
+			wlan_hdd_chan_info_cb);
 	}
 }
 
@@ -31117,13 +31128,17 @@ static int __wlan_hdd_cfg80211_dump_survey(struct wiphy *wiphy,
                     survey->time_busy =
                               pHddCtx->chan_info[idx].delta_rx_clear_count /
                                   (pHddCtx->chan_info[idx].clock_freq * 1000);
+                    survey->time_rx =
+                              pHddCtx->chan_info[idx].delta_rx_frame_count /
+                                  (pHddCtx->chan_info[idx].clock_freq * 1000);
                     survey->time_tx =
                               pHddCtx->chan_info[idx].delta_tx_frame_count /
                                   (pHddCtx->chan_info[idx].clock_freq * 1000);
 
                     survey->filled |= SURVEY_INFO_TIME |
                                       SURVEY_INFO_TIME_BUSY |
-                                      SURVEY_INFO_TIME_TX;
+                                      SURVEY_INFO_TIME_TX |
+                                      SURVEY_INFO_TIME_RX;
 #else
                     survey->channel_time =
                               pHddCtx->chan_info[idx].delta_cycle_count /

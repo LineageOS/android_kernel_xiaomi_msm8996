@@ -235,7 +235,7 @@ hif_pci_interrupt_handler(int irq, void *arg)
 {
     struct hif_pci_softc *sc = (struct hif_pci_softc *) arg;
     struct HIF_CE_state *hif_state = (struct HIF_CE_state *)sc->hif_device;
-    volatile int tmp;
+    volatile unsigned int tmp;
 
     if (sc->hif_init_done == TRUE) {
         adf_os_spin_lock_irqsave(&hif_state->suspend_lock);

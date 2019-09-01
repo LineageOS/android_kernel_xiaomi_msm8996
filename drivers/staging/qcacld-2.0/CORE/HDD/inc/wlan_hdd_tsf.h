@@ -33,6 +33,7 @@
   -------------------------------------------------------------------------*/
 #include <wlan_hdd_includes.h>
 #include "wlan_hdd_cfg.h"
+#include <ol_txrx_htt_api.h>
 
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -221,7 +222,7 @@ void hdd_tsf_notify_wlan_state_change(hdd_adapter_t *adapter,
  *
  * Return: Describe the execute result of this routine
  */
-int hdd_tx_timestamp(adf_nbuf_t netbuf, uint64_t target_time);
+int hdd_tx_timestamp(int32_t status, adf_nbuf_t netbuf, uint64_t target_time);
 
 /**
  * hdd_rx_timestamp() - time stamp RX netbuf
@@ -278,7 +279,7 @@ void hdd_tsf_notify_wlan_state_change(hdd_adapter_t *adapter,
 }
 
 static inline
-int hdd_tx_timestamp(adf_nbuf_t netbuf, uint64_t target_time)
+int hdd_tx_timestamp(int32_t status, adf_nbuf_t netbuf, uint64_t target_time)
 {
 	return -ENOTSUPP;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -487,7 +487,7 @@ ol_txrx_pdev_attach(
         desc_per_page = desc_per_page >> 1;
     }
     pdev->tx_desc.page_divider = (sig_bit - 1);
-    TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
+    TXRX_PRINT(TXRX_PRINT_LEVEL_INFO1,
         "page_divider 0x%x, offset_filter 0x%x num elem %d, ol desc num page %d, ol desc per page %d",
         pdev->tx_desc.page_divider, pdev->tx_desc.offset_filter,
         desc_pool_size, pdev->tx_desc.desc_pages.num_pages,
@@ -3227,6 +3227,29 @@ void ol_txrx_display_stats(struct ol_txrx_pdev_t *pdev, uint16_t value)
             break;
     }
 }
+
+#ifdef CONFIG_HL_SUPPORT
+void ol_txrx_get_stats(struct ol_txrx_pdev_t *pdev, uint16_t value,
+		       void *data_ptr)
+{
+	switch (value) {
+	case WLAN_SCHEDULER_STATS:
+		ol_tx_sched_stats_get(pdev, data_ptr);
+		break;
+
+	default:
+		VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Unknown value %d", __func__, value);
+		break;
+	}
+}
+#else
+void ol_txrx_get_stats(struct ol_txrx_pdev_t *pdev, uint16_t value,
+		       void *data_ptr)
+{
+	return;
+}
+#endif
 
 void ol_txrx_clear_stats(struct ol_txrx_pdev_t *pdev, uint16_t value)
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -180,6 +180,9 @@ typedef struct sSapContext {
     // Include the current channel of AP
     v_U32_t             channel;
     v_U32_t             secondary_ch;
+
+    // Include the candidate channel of AP
+    v_U32_t             candidate_ch;
 
     // Include the SME(CSR) sessionId here
     v_U8_t              sessionId;

@@ -826,6 +826,9 @@ struct sir_mgmt_msg {
 
 #define SIR_HAL_SET_LL_STAT_PRIMARY_PEER    (SIR_HAL_ITC_MSG_TYPES_BEGIN + 388)
 #define SIR_HAL_SET_RX_SMART_ANTENNA        (SIR_HAL_ITC_MSG_TYPES_BEGIN + 389)
+#define SIR_HAL_SET_GPIO_CFG                (SIR_HAL_ITC_MSG_TYPES_BEGIN + 390)
+#define SIR_HAL_SET_GPIO_OUTPUT             (SIR_HAL_ITC_MSG_TYPES_BEGIN + 391)
+
 #define SIR_HAL_MSG_TYPES_END               (SIR_HAL_MSG_TYPES_BEGIN + 0x1FF)
 
 // CFG message types

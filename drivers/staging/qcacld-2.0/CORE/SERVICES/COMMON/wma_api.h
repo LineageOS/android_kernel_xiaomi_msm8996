@@ -193,4 +193,6 @@ void wma_tx_failure_cb(void *ctx, uint32_t num_msdu,
 VOS_STATUS wma_set_ac_txq_optimize(void *wda_handle, uint8_t value);
 VOS_STATUS wma_set_rx_antanna(void *wma_handle, uint8_t pdev_id,
 			      uint32_t matrix);
+VOS_STATUS wma_set_gpio_cfg(void *handle, struct hal_gpio_cfg *gpio_cfg);
+VOS_STATUS wma_set_gpio_output(void *handle, struct hal_gpio_output *output);
 #endif

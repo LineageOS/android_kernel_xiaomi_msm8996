@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -2026,6 +2026,31 @@ void hdd_svc_fw_shutdown_ind(struct device *dev)
 
 	hdd_ctx ? wlan_hdd_send_svc_nlink_msg(hdd_ctx->radio_index,
 					      WLAN_SVC_FW_SHUTDOWN_IND,
+					      NULL, 0) : 0;
+}
+
+/**
+ * hdd_svc_fw_crashed_ind() - API to send FW CRASHED IND to Userspace
+ *
+ * @dev: Device Pointer
+ *
+ * Return: None
+ */
+void hdd_svc_fw_crashed_ind(struct device *dev)
+{
+	v_CONTEXT_t g_context;
+	hdd_context_t *hdd_ctx;
+
+	g_context = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+
+	if(!g_context)
+		return;
+
+	hdd_ctx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD,
+						   g_context);
+
+	hdd_ctx ? wlan_hdd_send_svc_nlink_msg(hdd_ctx->radio_index,
+					      WLAN_SVC_FW_CRASHED_IND,
 					      NULL, 0) : 0;
 }
 

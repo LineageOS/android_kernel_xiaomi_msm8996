@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -32,6 +32,10 @@
 #include "wlan_hdd_debugfs.h"
 #include "wlan_hdd_debugfs_ocb.h"
 #include "wlan_hdd_request_manager.h"
+#include "wdi_in.h"
+#include "ol_txrx_types.h"
+#include "vos_types.h"
+
 
 #define MAX_USER_COMMAND_SIZE_WOWL_ENABLE 8
 #define MAX_USER_COMMAND_SIZE_WOWL_PATTERN 512
@@ -891,6 +895,189 @@ static void wlan_hdd_deinit_power_stats_debugfs(hdd_context_t *hdd_ctx)
 }
 #endif
 
+#ifdef DEBUG_HL_LOGGING
+vos_lock_t txqueue_stats_lock = {0};
+static ssize_t __wlan_hdd_write_txqueue_stats_debugfs(struct file *file,
+						      const char __user *buf,
+						      size_t count,
+						      loff_t *ppos)
+{
+	char cmd[5];
+	char pattern_idx;
+	int ret = 0;
+	v_CONTEXT_t vos_context = vos_get_global_context(VOS_MODULE_ID_TXRX,
+							 NULL);
+	struct ol_txrx_pdev_t *pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+							 vos_context);
+	if (count > 2) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("error input data len %zu"),
+		       count);
+		return -EINVAL;
+	}
+
+	if (copy_from_user(cmd, buf, count))
+		return -EFAULT;
+	cmd[count] = '\0';
+
+	ret = kstrtou8(cmd, 0, &pattern_idx);
+	if (ret < 0) {
+		hddLog(LOGE, FL("kstrtou8 failed"));
+		return ret;
+	}
+
+	switch (pattern_idx) {
+	case 1:
+		wdi_in_clear_stats(pdev, WLAN_SCHEDULER_STATS);
+		break;
+	default:
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("unsupport parameter %d"),
+		       pattern_idx);
+		return -EINVAL;
+	}
+
+	return count;
+}
+
+static ssize_t wlan_hdd_write_txqueue_stats_debugfs(struct file *file,
+						    const char __user *buf,
+						    size_t count,
+						    loff_t *ppos)
+{
+	int ret = 0;
+
+	vos_lock_acquire(&txqueue_stats_lock);
+	vos_ssr_protect(__func__);
+
+	ret = __wlan_hdd_write_txqueue_stats_debugfs(file, buf, count, ppos);
+
+	vos_ssr_unprotect(__func__);
+	vos_lock_release(&txqueue_stats_lock);
+
+	return ret;
+}
+
+static ssize_t __wlan_hdd_read_txqueue_stats_debugfs(struct file *file,
+						     char __user *buf,
+						     size_t count,
+						     loff_t *pos)
+{
+	int i = 0;
+	int len = 0;
+	int to_user_data_len = 0;
+	char *tx_stats_buf = NULL;
+	struct driver_txq_states *tx_stats = NULL;
+	v_CONTEXT_t vos_context = vos_get_global_context(VOS_MODULE_ID_TXRX,
+							 NULL);
+	struct ol_txrx_pdev_t *pdev = vos_get_context(VOS_MODULE_ID_TXRX,
+							 vos_context);
+
+	if (*pos != 0)
+		return 0;
+	tx_stats  = vos_mem_malloc(sizeof(*tx_stats) *
+				   (OL_TX_SCHED_WRR_ADV_NUM_CATEGORIES + 1));
+	if (!tx_stats) {
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("could not allocate mem for driver_txq_states"));
+		return -ENOMEM;
+	}
+
+	tx_stats_buf  = vos_mem_malloc(sizeof(*tx_stats_buf) * 512);
+	if (!tx_stats_buf) {
+		vos_mem_free(tx_stats);
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("alloc tx_stats_buf mem failed"));
+		return -ENOMEM;
+	}
+
+	wdi_in_get_stats(pdev, WLAN_SCHEDULER_STATS, (void *)tx_stats);
+
+	for (i = 0; i < 4; i++) {
+		hddLog(VOS_TRACE_LEVEL_INFO,
+		       FL("host driver %s queue wrr_count %d frms %d bytes %d"
+			  " active %d discard_frms %d tx pkt %d"),
+		       (tx_stats + i)->cat_name,
+		       (tx_stats + i)->wrr_count,
+		       (tx_stats + i)->pending_frms,
+		       (tx_stats + i)->pending_bytes,
+		       (tx_stats + i)->active,
+		       (tx_stats + i)->discard_frms,
+		       (tx_stats + i)->dispatched_frms);
+	}
+
+	for (i = 0; i < 4; i++) {
+		len += scnprintf(tx_stats_buf + len, 512,
+				 "host_driver_queue %s tx_msdu %d"
+				 " lost_msdu %d pending_msdu %d\n",
+				 (tx_stats + i)->cat_name,
+				 (tx_stats + i)->dispatched_frms,
+				 (tx_stats + i)->discard_frms,
+				 (tx_stats + i)->pending_frms);
+	}
+	to_user_data_len = simple_read_from_buffer(buf, count, pos,
+						   tx_stats_buf, len);
+	vos_mem_free(tx_stats);
+	vos_mem_free(tx_stats_buf);
+	return to_user_data_len;
+}
+
+static ssize_t wlan_hdd_read_txqueue_stats_debugfs(struct file *file,
+						   char __user *buf,
+						   size_t count, loff_t *pos)
+{
+	int ret;
+
+	vos_lock_acquire(&txqueue_stats_lock);
+	vos_ssr_protect(__func__);
+
+	ret = __wlan_hdd_read_txqueue_stats_debugfs(file, buf, count, pos);
+
+	vos_ssr_unprotect(__func__);
+	vos_lock_release(&txqueue_stats_lock);
+
+	return ret;
+}
+
+static const struct file_operations fops_txqueue_stats_debugs = {
+	.write = wlan_hdd_write_txqueue_stats_debugfs,
+	.read = wlan_hdd_read_txqueue_stats_debugfs,
+	.open = wlan_hdd_debugfs_open,
+	.owner = THIS_MODULE,
+	.llseek = default_llseek,
+};
+
+static VOS_STATUS wlan_hdd_init_txqueue_stats_debugfs(hdd_adapter_t *adapter,
+						      hdd_context_t *hdd_ctx)
+{
+	if (NULL == debugfs_create_file("txqueue_stats",
+					S_IRUSR | S_IWUSR,
+					hdd_ctx->debugfs_phy, adapter,
+					&fops_txqueue_stats_debugs))
+		return VOS_STATUS_E_FAILURE;
+
+	if (!VOS_IS_STATUS_SUCCESS(vos_lock_init(&txqueue_stats_lock)))
+		hddLog(VOS_TRACE_LEVEL_ERROR,
+		       FL("txqueue_stats_lock init failed"));
+
+	return VOS_STATUS_SUCCESS;
+}
+
+static VOS_STATUS wlan_hdd_deinit_txqueue_stats_debugfs(void)
+{
+	vos_lock_destroy(&txqueue_stats_lock);
+	return VOS_STATUS_SUCCESS;
+}
+#else
+static VOS_STATUS wlan_hdd_init_txqueue_stats_debugfs(hdd_adapter_t *adapter,
+						      hdd_context_t *hdd_ctx)
+{
+	return VOS_STATUS_SUCCESS;
+}
+
+static VOS_STATUS wlan_hdd_deinit_txqueue_stats_debugfs(void)
+{
+	return VOS_STATUS_SUCCESS;
+}
+#endif
 VOS_STATUS hdd_debugfs_init(hdd_adapter_t *pAdapter)
 {
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
@@ -921,12 +1108,17 @@ VOS_STATUS hdd_debugfs_init(hdd_adapter_t *pAdapter)
     if (wlan_hdd_create_dsrc_chan_stats_file(pAdapter, pHddCtx))
         return VOS_STATUS_E_FAILURE;
 
+    if (VOS_STATUS_SUCCESS !=
+	wlan_hdd_init_txqueue_stats_debugfs(pAdapter, pHddCtx))
+        return VOS_STATUS_E_FAILURE;
+
     return VOS_STATUS_SUCCESS;
 }
 
 void hdd_debugfs_exit(hdd_context_t *pHddCtx)
 {
     wlan_hdd_deinit_power_stats_debugfs(pHddCtx);
+    wlan_hdd_deinit_txqueue_stats_debugfs();
     debugfs_remove_recursive(pHddCtx->debugfs_phy);
 }
 #endif /* #ifdef WLAN_OPEN_SOURCE */
