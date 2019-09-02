@@ -123,25 +123,25 @@ unsigned int debugcccr = 1;
 module_param(debugcccr, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(debugcccr, "Output this cccr values");
 
-unsigned int writecccr1 = 0;
+unsigned int writecccr1 = CCCR1;
 module_param(writecccr1, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-unsigned int writecccr1value = 0;
+unsigned int writecccr1value = CCCR1_VALUE;
 module_param(writecccr1value, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-unsigned int writecccr2 = 0;
+unsigned int writecccr2 = CCCR2;
 module_param(writecccr2, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-unsigned int writecccr2value = 0;
+unsigned int writecccr2value = CCCR2_VALUE;
 module_param(writecccr2value, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-unsigned int writecccr3 = 0;
+unsigned int writecccr3 = CCCR3;
 module_param(writecccr3, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-unsigned int writecccr3value = 0;
+unsigned int writecccr3value = CCCR3_VALUE;
 module_param(writecccr3value, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-unsigned int writecccr4 = 0;
+unsigned int writecccr4 = CCCR4;
 module_param(writecccr4, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-unsigned int writecccr4value = 0;
+unsigned int writecccr4value = CCCR4_VALUE;
 module_param(writecccr4value, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 unsigned int modstrength = 0;
