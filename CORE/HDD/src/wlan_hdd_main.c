@@ -18343,18 +18343,6 @@ static bool unload_timer_started;
 #endif
 
 /**
- * hdd_unload_timer_init() - API to initialize unload timer
- *
- * initialize unload timer
- *
- * Return: None
- */
-static void hdd_unload_timer_init(void)
-{
-	init_timer(&unload_timer);
-}
-
-/**
  * hdd_unload_timer_del() - API to Delete unload timer
  *
  * Delete unload timer
@@ -18363,7 +18351,7 @@ static void hdd_unload_timer_init(void)
  */
 static void hdd_unload_timer_del(void)
 {
-	del_timer(&unload_timer);
+	adf_os_timer_cancel(&unload_timer);
 	unload_timer_started = false;
 }
 
@@ -18374,7 +18362,11 @@ static void hdd_unload_timer_del(void)
  *
  * Return: None
  */
-static void hdd_unload_timer_cb(unsigned long data)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+static void hdd_unload_timer_cb(struct timer_list *t)
+#else
+static void hdd_unload_timer_cb(void *data)
+#endif
 {
 	v_CONTEXT_t vos_context = NULL;
 	hdd_context_t *hdd_ctx = NULL;
@@ -18400,6 +18392,19 @@ static void hdd_unload_timer_cb(unsigned long data)
 }
 
 /**
+ * hdd_unload_timer_init() - API to initialize unload timer
+ *
+ * initialize unload timer
+ *
+ * Return: None
+ */
+static void hdd_unload_timer_init(void)
+{
+	adf_os_timer_init(NULL, &unload_timer,
+			  hdd_unload_timer_cb, NULL, ADF_NON_DEFERRABLE_TIMER);
+}
+
+/**
  * hdd_unload_timer_start() - API to start unload timer
  * @msec: timer interval in msec units
  *
@@ -18413,9 +18418,7 @@ static void hdd_unload_timer_start(int msec)
 		hddLog(VOS_TRACE_LEVEL_FATAL,
 			"%s: Starting unload timer when it's running!",
 			__func__);
-	unload_timer.expires = jiffies + msecs_to_jiffies(msec);
-	unload_timer.function = hdd_unload_timer_cb;
-	add_timer(&unload_timer);
+	adf_os_timer_start(&unload_timer, msec);
 	unload_timer_started = true;
 }
 /**---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014,2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014,2016-2017,2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1304,10 +1304,17 @@ more_watermarks:
     A_TARGET_ACCESS_END(targid);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+static void
+CE_poll_timeout(struct timer_list *t)
+{
+   struct CE_state *CE_state = from_timer(CE_state, t, poll_timer);
+#else
 static void
 CE_poll_timeout(void *arg)
 {
     struct CE_state *CE_state = (struct CE_state *) arg;
+#endif
     if (CE_state->timer_inited) {
         CE_per_engine_service(CE_state->sc, CE_state->id);
         adf_os_timer_mod(&CE_state->poll_timer, CE_POLL_TIMEOUT);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2014, 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2014, 2016-2017,2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -183,11 +183,16 @@ static void dfs_radar_delay(void *data)
 
 static OS_TIMER_FUNC(dfs_task)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+	struct ath_dfs *dfs = from_timer(dfs, t, ath_dfs_task_timer);
+	struct ieee80211com *ic = dfs->ic;
+#else
 	struct ieee80211com *ic;
 	struct ath_dfs *dfs = NULL;
 
 	OS_GET_TIMER_ARG(ic, struct ieee80211com *);
 	dfs = (struct ath_dfs *)ic->ic_dfs;
+#endif
 
 	if (dfs_process_radarevent(dfs, ic->ic_curchan)) {
 		if (!dfs->dfs_enable_radar_war) {
@@ -235,11 +240,16 @@ static OS_TIMER_FUNC(dfs_task)
 static
 OS_TIMER_FUNC(dfs_testtimer_task)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+    struct ath_dfs *dfs = from_timer(dfs, t, ath_dfs_task_timer);
+    struct ieee80211com *ic = dfs->ic;
+#else
     struct ieee80211com *ic;
     struct ath_dfs *dfs = NULL;
 
     OS_GET_TIMER_ARG(ic, struct ieee80211com *);
     dfs = (struct ath_dfs *)ic->ic_dfs;
+#endif
 
     /* XXX no locking? */
     dfs->ath_dfstest = 0;

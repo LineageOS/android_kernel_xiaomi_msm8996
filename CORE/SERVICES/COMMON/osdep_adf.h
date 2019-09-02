@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, 2017-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2017-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -637,8 +637,13 @@ typedef dma_addr_t * dma_context_t;
 
 #define OS_DECLARE_TIMER(_fn)                  void _fn(void *)
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#define OS_TIMER_FUNC(_fn)                     \
+    void _fn(struct timer_list *t)
+#else
 #define OS_TIMER_FUNC(_fn)                     \
     void _fn(void *timer_arg)
+#endif
 
 #define OS_GET_TIMER_ARG(_arg, _type)          \
     (_arg) = (_type)(timer_arg)
@@ -680,9 +685,17 @@ typedef enum _mesgq_event_delivery_type {
  */
 
 static INLINE void
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+os_mesgq_handler(struct timer_list *t)
+#else
 os_mesgq_handler(void *timer_arg)
+#endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+    os_mesg_queue_t    *queue = from_timer(queue, t, _timer);
+#else
     os_mesg_queue_t    *queue = (os_mesg_queue_t*)timer_arg;
+#endif
     os_mesg_t          *mesg = NULL;
     void               *msg;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -64,6 +64,21 @@
 static int epping_start_adapter(epping_adapter_t *pAdapter);
 static void epping_stop_adapter(epping_adapter_t *pAdapter);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+static void epping_timer_expire(struct timer_list *t)
+{
+	epping_adapter_t *pAdapter = from_timer(pAdapter, t, epping_timer);
+
+	if (pAdapter == NULL) {
+		EPPING_LOG(VOS_TRACE_LEVEL_FATAL,
+			   "%s: adapter = NULL", __func__);
+		return;
+	}
+
+	pAdapter->epping_timer_state = EPPING_TX_TIMER_STOPPED;
+	epping_tx_timer_expire(pAdapter);
+}
+#else
 static void epping_timer_expire(void *data)
 {
    struct net_device *dev = (struct net_device *) data;
@@ -84,6 +99,7 @@ static void epping_timer_expire(void *data)
    pAdapter->epping_timer_state = EPPING_TX_TIMER_STOPPED;
    epping_tx_timer_expire(pAdapter);
 }
+#endif
 
 static int epping_ndev_open(struct net_device *dev)
 {

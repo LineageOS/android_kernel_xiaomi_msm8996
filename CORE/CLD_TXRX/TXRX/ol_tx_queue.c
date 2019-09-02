@@ -965,11 +965,20 @@ ol_txrx_bad_peer_txctl_update_threshold(struct ol_txrx_pdev_t *pdev,
 			tx_limit;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+void
+ol_tx_pdev_peer_bal_timer(struct timer_list *t)
+{
+	int i;
+	struct ol_txrx_pdev_t *pdev =
+			from_timer(pdev, t, tx_peer_bal.peer_bal_timer);
+#else
 void
 ol_tx_pdev_peer_bal_timer(void *context)
 {
 	int i;
 	struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)context;
+#endif
 
 	adf_os_spin_lock_bh(&pdev->tx_peer_bal.mutex);
 
@@ -1235,7 +1244,11 @@ ol_txrx_vdev_unpause(ol_txrx_vdev_handle vdev, u_int32_t reason)
 #endif
             if (!vdev->ll_pause.paused_reason) {
                 adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+                ol_tx_vdev_ll_pause_queue_send(&vdev->ll_pause.timer);
+#else
                 ol_tx_vdev_ll_pause_queue_send(vdev);
+#endif
             } else {
                 adf_os_spin_unlock_bh(&vdev->ll_pause.mutex);
             }
@@ -1284,9 +1297,15 @@ u_int8_t ol_tx_pdev_is_target_empty(void)
     return 1;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+void ol_tx_pdev_throttle_phase_timer(struct timer_list *t)
+{
+   struct ol_txrx_pdev_t *pdev = from_timer(pdev, t, tx_throttle.phase_timer);
+#else
 void ol_tx_pdev_throttle_phase_timer(void *context)
 {
     struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)context;
+#endif
     int ms = 0;
     throttle_level cur_level;
     throttle_phase cur_phase;
@@ -1337,11 +1356,20 @@ void ol_tx_pdev_throttle_phase_timer(void *context)
 }
 
 #ifdef QCA_SUPPORT_TXRX_VDEV_LL_TXQ
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+void ol_tx_pdev_throttle_tx_timer(struct timer_list *t)
+{
+	struct ol_txrx_pdev_t *pdev =
+			from_timer(pdev, t, tx_throttle.tx_timer);
+	ol_tx_pdev_ll_pause_queue_send_all(pdev);
+}
+#else
 void ol_tx_pdev_throttle_tx_timer(void *context)
 {
     struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)context;
     ol_tx_pdev_ll_pause_queue_send_all(pdev);
 }
+#endif
 #endif
 
 void ol_tx_throttle_set_level(struct ol_txrx_pdev_t *pdev, int level)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -159,13 +159,21 @@ static void SendPacketCompletion(HTC_TARGET *target, HTC_PACKET *pPacket)
     DoSendCompletion(pEndpoint,&container);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+void
+HTCSendCompleteCheckCleanup(struct timer_list *t)
+{
+	HTC_ENDPOINT *pEndpoint = from_timer(pEndpoint, t, ul_poll_timer);
+	HTCSendCompleteCheck(pEndpoint, 1);
+}
+#else
 void
 HTCSendCompleteCheckCleanup(void *context)
 {
     HTC_ENDPOINT *pEndpoint = (HTC_ENDPOINT *) context;
     HTCSendCompleteCheck(pEndpoint, 1);
 }
-
+#endif
 
 HTC_PACKET *AllocateHTCBundleTxPacket(HTC_TARGET *target)
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2013, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2013, 2016, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -162,12 +162,16 @@ void dfs_print_activity(struct ath_dfs *dfs)
 #ifndef ATH_DFS_RADAR_DETECTION_ONLY
 OS_TIMER_FUNC(dfs_debug_timeout)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+    struct ath_dfs *dfs = from_timer(dfs, t, ath_dfs_task_timer);
+#else
     struct ieee80211com *ic;
     struct ath_dfs* dfs;
 
     OS_GET_TIMER_ARG(ic, struct ieee80211com *);
 
     dfs = (struct ath_dfs *)ic->ic_dfs;
+#endif
 
     dfs_print_activity(dfs);
 
