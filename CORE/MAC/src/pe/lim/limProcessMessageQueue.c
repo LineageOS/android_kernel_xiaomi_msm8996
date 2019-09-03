@@ -180,6 +180,7 @@ static void lim_process_sae_msg_ap(tpAniSirGlobal mac,
 					      assoc_req->sub_type,
 					      &assoc_req->hdr,
 					      assoc_req->assoc_req,
+					      ANI_AKM_TYPE_SAE,
 					      assoc_req->pmf_connection,
 					      &assoc_req_copied) == false)
 			lim_process_assoc_cleanup(mac, session,

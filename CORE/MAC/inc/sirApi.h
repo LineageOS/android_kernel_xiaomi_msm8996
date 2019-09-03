@@ -1350,6 +1350,7 @@ typedef struct sSirSmeAssocInd
     tANI_U8              uniSig;  // DPU signature for unicast packets
     tANI_U8              bcastSig; // DPU signature for broadcast packets
     tAniAuthType         authType;
+    enum ani_akm_type    akm_type;
     tAniSSID             ssId; // SSID used by STA to associate
     tSirWAPIie           wapiIE;//WAPI IE received from peer
     tSirRSNie            rsnIE;// RSN IE received from peer

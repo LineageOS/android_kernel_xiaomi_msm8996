@@ -1213,6 +1213,8 @@ limFillAssocIndParams(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd,
     vos_mem_copy(pSirSmeAssocInd->bssId, psessionEntry->bssId, sizeof(tSirMacAddr));
     // Fill in authType
     pSirSmeAssocInd->authType = pAssocInd->authType;
+    /* Fill in rsn_akm_type */
+    pSirSmeAssocInd->akm_type = pAssocInd->akm_type;
     // Fill in ssId
     vos_mem_copy((tANI_U8*)&pSirSmeAssocInd->ssId,
                  (tANI_U8 *) &(pAssocInd->ssId), pAssocInd->ssId.length + 1);
