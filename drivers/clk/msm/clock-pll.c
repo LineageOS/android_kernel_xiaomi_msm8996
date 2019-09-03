@@ -507,8 +507,8 @@ static int variable_rate_pll_clk_enable_hwfsm(struct clk *c)
 		writel_relaxed(regval, PLL_TEST_CTL_LO_REG(pll));
 	}
 
-	/* Wait for 50us explicitly to avoid transient locks */
-	udelay(50);
+	/* Wait for 100us explicitly to avoid transient locks */
+	udelay(100);
 
 	for (count = ENABLE_WAIT_MAX_LOOPS; count > 0; count--) {
 		if (readl_relaxed(PLL_STATUS_REG(pll)) & lockmask)
