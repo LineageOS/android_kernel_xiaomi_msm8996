@@ -411,6 +411,8 @@ struct drv2604_data {
 	struct timed_output_dev to_dev;
 
 	struct drv2604_fw_header fw_header;
+
+	atomic_t disable_refcnt;
 };
 
 #endif
