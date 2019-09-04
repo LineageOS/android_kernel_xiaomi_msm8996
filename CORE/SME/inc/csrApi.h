@@ -1585,6 +1585,7 @@ typedef struct tagCsrRoamInfo
 #ifdef WLAN_FEATURE_SAE
     struct sir_sae_info *sae_info;
 #endif
+    struct sSirSmeAssocInd *owe_pending_assoc_ind;
 }tCsrRoamInfo;
 
 

@@ -147,6 +147,69 @@ v_PVOID_t WLANSAP_Open(v_PVOID_t  pvosGCtx)
     return pSapCtx;
 }// WLANSAP_Open
 
+static VOS_STATUS wlansap_owe_init(ptSapContext sap_ctx)
+{
+	vos_list_init(&sap_ctx->owe_pending_assoc_ind_list);
+
+	return VOS_STATUS_SUCCESS;
+}
+
+static void wlansap_owe_cleanup(ptSapContext sap_ctx)
+{
+	tHalHandle hHal;
+	struct owe_assoc_ind *owe_assoc_ind;
+	struct sSirSmeAssocInd *assoc_ind = NULL;
+	vos_list_node_t *node = NULL, *next_node = NULL;
+	VOS_STATUS status;
+
+	if (!sap_ctx) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			  "Invalid SAP context");
+		return;
+	}
+
+	hHal = (tHalHandle)VOS_GET_HAL_CB(sap_ctx->pvosGCtx);
+	if (!hHal) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Invalid MAC context from pvosGCtx", __func__);
+		return;
+	}
+
+	if (VOS_STATUS_SUCCESS !=
+	    vos_list_peek_front(&sap_ctx->owe_pending_assoc_ind_list,
+				&node)) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			  "Failed to find assoc ind list");
+		return;
+	}
+
+	while (node) {
+		vos_list_peek_next(&sap_ctx->owe_pending_assoc_ind_list,
+				   node, &next_node);
+		owe_assoc_ind = container_of(node, struct owe_assoc_ind,
+					     node);
+		status = vos_list_remove_node(
+					   &sap_ctx->owe_pending_assoc_ind_list,
+					   node);
+		if (status == VOS_STATUS_SUCCESS) {
+			assoc_ind = owe_assoc_ind->assoc_ind;
+			vos_mem_free(owe_assoc_ind);
+			/* TODO: disassoc OWE STA */
+			vos_mem_free(assoc_ind);
+		} else {
+			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+				  "Failed to remove assoc ind");
+		}
+		node = next_node;
+		next_node = NULL;
+	}
+}
+
+static void wlansap_owe_deinit(ptSapContext sap_ctx)
+{
+	vos_list_destroy(&sap_ctx->owe_pending_assoc_ind_list);
+}
+
 /**
  * WLANSAP_Start() - wlan start SAP.
  * @pCtx: Pointer to the global cds context; a handle to SAP's
@@ -171,7 +234,8 @@ WLANSAP_Start
     v_PVOID_t pCtx,
     tVOS_CON_MODE mode,
     uint8_t *addr,
-    uint32_t *session_id
+    uint32_t *session_id,
+    bool reinit
 )
 {
     ptSapContext pSapCtx = NULL;
@@ -217,6 +281,14 @@ WLANSAP_Start
     vos_mem_copy(pSapCtx->self_mac_addr, addr, VOS_MAC_ADDR_SIZE);
     vos_event_init(&pSapCtx->sap_session_opened_evt);
     vos_event_init(&pSapCtx->sap_session_closed_evt);
+
+    if (!reinit) {
+        if (!VOS_IS_STATUS_SUCCESS(wlansap_owe_init(pSapCtx))) {
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+                      "SAP OWE init fail");
+            return VOS_STATUS_E_FAULT;
+        }
+    }
 
     // Now configure the auth type in the roaming profile. To open.
     pSapCtx->csrRoamProfile.negotiatedAuthType = eCSR_AUTH_TYPE_OPEN_SYSTEM; // open is the default
@@ -349,6 +421,8 @@ WLANSAP_Close
                    "%s: Invalid SAP pointer from pCtx", __func__);
         return VOS_STATUS_E_FAULT;
     }
+    wlansap_owe_cleanup(pSapCtx);
+    wlansap_owe_deinit(pSapCtx);
 
     /* Cleanup SAP control block. */
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANSAP_Close");

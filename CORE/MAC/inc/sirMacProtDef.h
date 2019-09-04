@@ -385,6 +385,7 @@
 #define SIR_MAC_WPA_EID_MAX                255
 
 #define SIR_MAC_EID_VENDOR                221
+#define SIR_MAC_EID_EXT                   255
 
 #define SIR_MAC_WAPI_EID                68
 

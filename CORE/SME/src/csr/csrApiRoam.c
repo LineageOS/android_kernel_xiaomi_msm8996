@@ -11155,6 +11155,13 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         {
                             pRoamInfo->fAuthRequired = TRUE;
                         }
+                        if (csr_akm_type == eCSR_AUTH_TYPE_OWE) {
+                            pRoamInfo->owe_pending_assoc_ind =
+                                vos_mem_malloc(sizeof(*pAssocInd));
+                            if (pRoamInfo->owe_pending_assoc_ind)
+                                vos_mem_copy(pRoamInfo->owe_pending_assoc_ind,
+                                             pAssocInd, sizeof(*pAssocInd));
+                        }
                         status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_INFRA_ASSOCIATION_IND);
                         if (!HAL_STATUS_SUCCESS(status)) {
                             pRoamInfo->statusCode = eSIR_SME_ASSOC_REFUSED;// Refused due to Mac filtering
@@ -11180,6 +11187,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                                 }
                         }
                     }
+                    if (csr_akm_type != eCSR_AUTH_TYPE_OWE) {
                     /* Send Association completion message to PE */
                     status = csrSendAssocCnfMsg(pMac, pAssocInd, status,
                                                 mac_status_code);//Sta
@@ -11195,6 +11203,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     pRoamInfo->fReassocReq = pAssocInd->reassocReq;
                     //status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_INFRA_ASSOCIATION_CNF);
                     status = csrSendAssocIndToUpperLayerCnfMsg(pMac, pAssocInd, status, sessionId);
+                }
                 }
                 }
             }

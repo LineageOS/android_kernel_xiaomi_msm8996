@@ -3042,6 +3042,16 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             hddLog(LOG1,"%s", maxAssocExceededEvent);
             break;
         case eSAP_STA_ASSOC_IND:
+            if (pSapEvent->sapevt.sapAssocIndication.owe_ie) {
+                hdd_send_update_owe_info_event(pHostapdAdapter,
+                       pSapEvent->sapevt.sapAssocIndication.staMac.bytes,
+                       pSapEvent->sapevt.sapAssocIndication.owe_ie,
+                       pSapEvent->sapevt.sapAssocIndication.owe_ie_len);
+                       vos_mem_free(
+                          pSapEvent->sapevt.sapAssocIndication.owe_ie);
+                       pSapEvent->sapevt.sapAssocIndication.owe_ie = NULL;
+                       pSapEvent->sapevt.sapAssocIndication.owe_ie_len = 0;
+            }
             return VOS_STATUS_SUCCESS;
 
         case eSAP_DISCONNECT_ALL_P2P_CLIENT:
@@ -8432,7 +8442,7 @@ VOS_STATUS hdd_init_ap_mode(hdd_adapter_t *pAdapter, bool reinit)
 
     status = WLANSAP_Start(sapContext, device_mode,
             pAdapter->macAddressCurrent.bytes,
-            &session_id);
+            &session_id, reinit);
     if ( ! VOS_IS_STATUS_SUCCESS( status ) )
     {
           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: WLANSAP_Start failed!!"));

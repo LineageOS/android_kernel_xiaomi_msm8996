@@ -33327,6 +33327,27 @@ void wlan_hdd_cfg80211_chainrssi_callback(void *ctx, void *pmsg)
 	return;
 }
 
+#ifdef CFG80211_EXTERNAL_DH_UPDATE_SUPPORT
+void hdd_send_update_owe_info_event(hdd_adapter_t *adapter,
+				    uint8_t sta_addr[],
+				    uint8_t *owe_ie,
+				    uint32_t owe_ie_len)
+{
+	struct cfg80211_update_owe_info owe_info;
+	struct net_device *dev = adapter->dev;
+
+	ENTER();
+
+	vos_mem_copy(owe_info.peer, sta_addr, ETH_ALEN);
+	owe_info.ie = owe_ie;
+	owe_info.ie_len = owe_ie_len;
+
+	cfg80211_update_owe_info_event(dev, &owe_info, GFP_KERNEL);
+
+	EXIT();
+}
+#endif
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,5,0)) || \
     defined(CFG80211_ABORT_SCAN)
 /**
