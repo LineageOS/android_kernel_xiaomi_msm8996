@@ -9847,9 +9847,6 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             tANI_U32 sessionId;
             eHalStatus status;
             smsLog( pMac, LOG1, FL("ASSOCIATION confirmation can be given to upper layer "));
-            roam_info = vos_mem_malloc(sizeof(*roam_info));
-            if (!roam_info)
-                return;
             pUpperLayerAssocCnf = (tSirSmeAssocIndToUpperLayerCnf *)pMsgBuf;
             status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pUpperLayerAssocCnf->bssId, &sessionId );
             pSession = CSR_GET_SESSION(pMac, sessionId);
@@ -9857,10 +9854,17 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             if(!pSession)
             {
                 smsLog(pMac, LOGE, FL("  session %d not found "), sessionId);
-                vos_mem_free(roam_info);
+                if (pUpperLayerAssocCnf->ies)
+                    vos_mem_free(pUpperLayerAssocCnf->ies);
                 return;
             }
 
+            roam_info = vos_mem_malloc(sizeof(*roam_info));
+            if (!roam_info) {
+                if (pUpperLayerAssocCnf->ies)
+                    vos_mem_free(pUpperLayerAssocCnf->ies);
+                return;
+            }
             roam_info->statusCode = eSIR_SME_SUCCESS; //send the status code as Success
             roam_info->u.pConnectedProfile = &pSession->connectedProfile;
             roam_info->staId = (tANI_U8)pUpperLayerAssocCnf->aid;
@@ -9895,6 +9899,12 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 
             if(CSR_IS_INFRA_AP(roam_info->u.pConnectedProfile) )
             {
+                if (pUpperLayerAssocCnf->ies_len > 0) {
+                    roam_info->assocReqLength =
+                        pUpperLayerAssocCnf->ies_len;
+                    roam_info->assocReqPtr =
+                        pUpperLayerAssocCnf->ies;
+                }
                 pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED;
                 roam_info->fReassocReq = pUpperLayerAssocCnf->reassocReq;
                 status = csrRoamCallCallback(pMac, sessionId, roam_info, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_INFRA_ASSOCIATION_CNF);
@@ -9905,6 +9915,8 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
                 pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_WDS_CONNECTED;//Sta
                 status = csrRoamCallCallback(pMac, sessionId, roam_info, 0, eCSR_ROAM_WDS_IND, eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND);//Sta
             }
+            if (pUpperLayerAssocCnf->ies)
+                vos_mem_free(pUpperLayerAssocCnf->ies);
             vos_mem_free(roam_info);
         }
         break;
@@ -16217,6 +16229,19 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
         pBuf = (tANI_U8 *)&pMsg->tx_mcs_map;
         *pBuf = pAssocInd->tx_mcs_map;
 
+        if (pAssocInd->assocReqPtr) {
+            if (pAssocInd->assocReqLength < MAX_ASSOC_REQ_IE_LEN) {
+                pMsg->ies = vos_mem_malloc(pAssocInd->assocReqLength);
+                if (!pMsg->ies) {
+                    vos_mem_free(pMsg);
+                    return eHAL_STATUS_FAILED_ALLOC;
+                }
+                pMsg->ies_len = pAssocInd->assocReqLength;
+                vos_mem_copy(pMsg->ies, pAssocInd->assocReqPtr, pMsg->ies_len);
+                } else {
+                    smsLog(pMac, LOGE, FL("Assoc Ie length is too long"));
+		}
+	}
         msgQ.type = eWNI_SME_UPPER_LAYER_ASSOC_CNF;
         msgQ.bodyptr = pMsg;
         msgQ.bodyval = 0;

@@ -3655,9 +3655,6 @@ sapSignalHDDevent
                          pCsrRoamInfo->peerMac,sizeof(tSirMacAddr));
             sta_event_ptr->staId = pCsrRoamInfo->staId;
             sta_event_ptr->statusCode = pCsrRoamInfo->statusCode;
-            sta_event_ptr->iesLen = pCsrRoamInfo->rsnIELen;
-            vos_mem_copy(sta_event_ptr->ies, pCsrRoamInfo->prsnIE,
-                         pCsrRoamInfo->rsnIELen);
             sta_event_ptr->ampdu = pCsrRoamInfo->ampdu;
             sta_event_ptr->sgi_enable = pCsrRoamInfo->sgi_enable;
             sta_event_ptr->tx_stbc = pCsrRoamInfo->tx_stbc;
@@ -3670,27 +3667,16 @@ sapSignalHDDevent
             sta_event_ptr->rx_mcs_map = pCsrRoamInfo->rx_mcs_map;
             sta_event_ptr->tx_mcs_map = pCsrRoamInfo->tx_mcs_map;
 
-#ifdef FEATURE_WLAN_WAPI
-            if(pCsrRoamInfo->wapiIELen)
-            {
-                v_U8_t  len = sta_event_ptr->iesLen;
-                sta_event_ptr->iesLen
-                                                        += pCsrRoamInfo->wapiIELen;
-                vos_mem_copy(&sta_event_ptr->ies[len],
-                        pCsrRoamInfo->pwapiIE,
-                            pCsrRoamInfo->wapiIELen);
+            if (pCsrRoamInfo->assocReqLength < ASSOC_REQ_IE_OFFSET) {
+                VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                          FL("Invalid assoc request length:%d"),
+                          pCsrRoamInfo->assocReqLength);
+                return VOS_STATUS_E_FAILURE;
             }
-#endif
-
-            if(pCsrRoamInfo->addIELen)
-            {
-                v_U8_t  len = sta_event_ptr->iesLen;
-                sta_event_ptr->iesLen
-                                                        += pCsrRoamInfo->addIELen;
-                vos_mem_copy(&sta_event_ptr->ies[len], pCsrRoamInfo->paddIE,
-                            pCsrRoamInfo->addIELen);
-            }
-
+            sta_event_ptr->iesLen = (pCsrRoamInfo->assocReqLength -
+                                     ASSOC_REQ_IE_OFFSET);
+            sta_event_ptr->ies = (pCsrRoamInfo->assocReqPtr +
+                                     ASSOC_REQ_IE_OFFSET);
             /* also fill up the channel info from the csrRoamInfo */
             pChanInfo =
             &sta_event_ptr->chan_info;
