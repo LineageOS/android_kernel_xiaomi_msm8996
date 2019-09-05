@@ -412,6 +412,8 @@ typedef struct sLimMlmStaContext
 #ifdef WLAN_FEATURE_11AC
     tANI_U8                 vhtCapability:1;
 #endif
+    uint8_t *owe_ie;
+    uint32_t owe_ie_len;
 } tLimMlmStaContext, *tpLimMlmStaContext;
 
 // Structure definition to hold deferred messages queue parameters

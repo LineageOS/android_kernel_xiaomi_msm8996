@@ -2500,6 +2500,19 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
 eCsrPhyMode
 wlansap_get_phymode(v_PVOID_t pctx);
 
+/**
+ * wlansap_update_owe_info() - Update OWE info
+ * @sap_ctx: sap context
+ * @peer: peer mac
+ * @ie: IE from hostapd
+ * @ie_len: IE length
+ * @owe_status: status from hostapd
+ *
+ * Return: QDF_STATUS
+ */
+VOS_STATUS wlansap_update_owe_info(v_PVOID_t sap_ctx,
+				   uint8_t *peer, const uint8_t *ie,
+				   uint32_t ie_len, uint16_t owe_status);
 VOS_STATUS wlansap_set_tx_leakage_threshold(tHalHandle hal,
 			uint16 tx_leakage_threshold);
 

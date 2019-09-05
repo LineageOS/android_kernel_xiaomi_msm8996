@@ -5007,6 +5007,15 @@ typedef struct {
 eHalStatus sme_hpcs_pulse_params_conf_cmd(tHalHandle hHal, tSirHpcsPulseParmasConfig *pHpcsPulseParams);
 
 /**
+ * sme_update_owe_info() - Update OWE info
+ * @hHal: hal context
+ * @assoc_ind: assoc ind
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_update_owe_info(tHalHandle hHal,
+			       struct sSirSmeAssocInd *assoc_ind);
+/**
  * sme_send_mgmt_tx() - Sends mgmt frame from CSR to LIM
  * @hal: The handle returned by mac_open
  * @session_id: session id

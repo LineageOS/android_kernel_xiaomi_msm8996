@@ -194,7 +194,10 @@ static void wlansap_owe_cleanup(ptSapContext sap_ctx)
 		if (status == VOS_STATUS_SUCCESS) {
 			assoc_ind = owe_assoc_ind->assoc_ind;
 			vos_mem_free(owe_assoc_ind);
-			/* TODO: disassoc OWE STA */
+			assoc_ind->owe_ie = NULL;
+			assoc_ind->owe_ie_len = 0;
+			assoc_ind->owe_status = eSIR_MAC_UNSPEC_FAILURE_STATUS;
+			status = sme_update_owe_info(hHal, assoc_ind);
 			vos_mem_free(assoc_ind);
 		} else {
 			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -434,6 +437,171 @@ WLANSAP_Close
 
     return VOS_STATUS_SUCCESS;
 }/* WLANSAP_Close */
+
+#define DH_OUI_TYPE	(0x20)
+/**
+ * wlansap_validate_owe_ie() - validate OWE IE
+ * @ie: IE buffer
+ * @remaining_ie_len: remaining IE length
+ *
+ * Return: validated IE length, negative for failure
+ */
+static int wlansap_validate_owe_ie(const uint8_t *ie, uint32_t remaining_ie_len)
+{
+	uint8_t ie_id, ie_len, ie_ext_id = 0;
+
+	if (remaining_ie_len < 2) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			  "IE too short");
+		return -EINVAL;
+	}
+
+	ie_id = ie[0];
+	ie_len = ie[1];
+
+	/* IEs that we are expecting in OWE IEs
+	 * - RSN IE
+	 * - DH IE
+	 */
+	switch (ie_id) {
+	case DOT11F_EID_RSN:
+		if (ie_len < DOT11F_IE_RSN_MIN_LEN ||
+		    ie_len > DOT11F_IE_RSN_MAX_LEN) {
+			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+				  "Invalid RSN IE len %d", ie_len);
+			return -EINVAL;
+		}
+		ie_len += 2;
+		break;
+	case DOT11F_EID_DH_PARAMETER_ELEMENT:
+		ie_ext_id = ie[2];
+		if (ie_ext_id != DH_OUI_TYPE) {
+			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+				  "Invalid DH IE ID %d", ie_ext_id);
+			return -EINVAL;
+		}
+		if (ie_len < DOT11F_IE_DH_PARAMETER_ELEMENT_MIN_LEN ||
+		    ie_len > DOT11F_IE_DH_PARAMETER_ELEMENT_MAX_LEN) {
+			VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+				  "Invalid DH IE len %d", ie_len);
+			return -EINVAL;
+		}
+		ie_len += 2;
+		break;
+	default:
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			  "Invalid IE %d", ie_id);
+		return -EINVAL;
+	}
+
+	if (ie_len > remaining_ie_len) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+			  "Invalid IE len");
+		return -EINVAL;
+	}
+
+	return ie_len;
+}
+
+/**
+ * wlansap_validate_owe_ies() - validate OWE IEs
+ * @ie: IE buffer
+ * @ie_len: IE length
+ *
+ * Return: true if validated
+ */
+static bool wlansap_validate_owe_ies(const uint8_t *ie, uint32_t ie_len)
+{
+	const uint8_t *remaining_ie = ie;
+	uint32_t remaining_ie_len = ie_len;
+	int validated_len;
+	bool validated = true;
+
+	while (remaining_ie_len) {
+		validated_len = wlansap_validate_owe_ie(remaining_ie,
+							remaining_ie_len);
+		if (validated_len < 0) {
+			validated = false;
+			break;
+		}
+		remaining_ie += validated_len;
+		remaining_ie_len -= validated_len;
+	}
+
+	return validated;
+}
+
+VOS_STATUS wlansap_update_owe_info(v_PVOID_t pctx,
+				   uint8_t *peer, const uint8_t *ie,
+				   uint32_t ie_len, uint16_t owe_status)
+{
+	ptSapContext sap_ctx;
+	tHalHandle hal;
+	struct owe_assoc_ind *owe_assoc_ind;
+	struct sSirSmeAssocInd *assoc_ind = NULL;
+	vos_list_node_t *node = NULL, *next_node = NULL;
+	VOS_STATUS status = VOS_STATUS_SUCCESS;
+
+	sap_ctx = VOS_GET_SAP_CB(pctx);
+	if (!sap_ctx) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+			  "%s: Invalid SAP pointer from pCtx", __func__);
+		return VOS_STATUS_E_FAULT;
+	}
+	if (!wlansap_validate_owe_ies(ie, ie_len)) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+			  "Invalid OWE IE");
+		return VOS_STATUS_E_FAULT;
+	}
+
+	hal = (tHalHandle)VOS_GET_HAL_CB(sap_ctx->pvosGCtx);
+	if (!hal) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+			  "%s: Invalid MAC context from pvosGCtx", __func__);
+		return VOS_STATUS_E_FAULT;
+	}
+	if (VOS_STATUS_SUCCESS !=
+		vos_list_peek_front(&sap_ctx->owe_pending_assoc_ind_list,
+				    &next_node)) {
+		VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+			  "Failed to find assoc ind list");
+		return VOS_STATUS_E_FAULT;
+	}
+
+	do {
+		node = next_node;
+		owe_assoc_ind = container_of(node, struct owe_assoc_ind,
+					     node);
+		if (vos_mem_compare(peer,
+				    owe_assoc_ind->assoc_ind->peerMacAddr,
+				    VOS_MAC_ADDR_SIZE)) {
+			status = vos_list_remove_node(
+					   &sap_ctx->owe_pending_assoc_ind_list,
+					   node);
+			if (status != VOS_STATUS_SUCCESS) {
+				VOS_TRACE(VOS_MODULE_ID_SAP,
+					  VOS_TRACE_LEVEL_INFO_HIGH,
+					  "Failed to remove assoc ind");
+				return status;
+			}
+			assoc_ind = owe_assoc_ind->assoc_ind;
+			vos_mem_free(owe_assoc_ind);
+			break;
+		}
+	} while (VOS_STATUS_SUCCESS ==
+		 vos_list_peek_next(&sap_ctx->owe_pending_assoc_ind_list,
+				    node, &next_node));
+
+	if (assoc_ind) {
+		assoc_ind->owe_ie = ie;
+		assoc_ind->owe_ie_len = ie_len;
+		assoc_ind->owe_status = owe_status;
+		status = sme_update_owe_info(hal, assoc_ind);
+		vos_mem_free(assoc_ind);
+	}
+
+	return status;
+}
 
 /*----------------------------------------------------------------------------
  * Utility Function implementations

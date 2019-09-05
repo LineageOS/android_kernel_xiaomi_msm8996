@@ -4367,9 +4367,13 @@ __limProcessSmeAssocCnfNew(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsg
          * Association Response frame to the requesting BTAMP-STA.
          */
         pStaDs->mlmStaContext.mlmState = eLIM_MLM_LINK_ESTABLISHED_STATE;
+        pStaDs->mlmStaContext.owe_ie = assocCnf.owe_ie;
+        pStaDs->mlmStaContext.owe_ie_len = assocCnf.owe_ie_len;
         limLog(pMac, LOG1, FL("sending Assoc Rsp frame to STA (assoc id=%d) "), pStaDs->assocId);
         limSendAssocRspMgmtFrame( pMac, eSIR_SUCCESS, pStaDs->assocId, pStaDs->staAddr,
                                   pStaDs->mlmStaContext.subType, pStaDs, psessionEntry);
+        pStaDs->mlmStaContext.owe_ie = NULL;
+        pStaDs->mlmStaContext.owe_ie_len = 0;
         goto end;
     } // (assocCnf.statusCode == eSIR_SME_SUCCESS)
     else
@@ -4415,7 +4419,7 @@ end:
             psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
         }
     }
-
+    vos_mem_free(assocCnf.owe_ie);
 } /*** end __limProcessSmeAssocCnfNew() ***/
 
 #ifdef SAP_AUTH_OFFLOAD

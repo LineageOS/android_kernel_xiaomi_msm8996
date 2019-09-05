@@ -16053,8 +16053,8 @@ eHalStatus csrSendAssocCnfMsg(tpAniSirGlobal pMac, tpSirSmeAssocInd pAssocInd,
     tSirResultCodes statusCode;
     tANI_U16 wTmp;
     smsLog( pMac, LOG1, FL("Posting eWNI_SME_ASSOC_CNF to LIM. "
-                           "HalStatus : %d"),
-                            Halstatus);
+                           "HalStatus : %d mac_status_code : %d"),
+                           Halstatus, mac_status_code);
     do {
         pMsg = vos_mem_malloc(sizeof( tSirSmeAssocCnf ));
         if ( NULL == pMsg )
@@ -16093,6 +16093,15 @@ eHalStatus csrSendAssocCnfMsg(tpAniSirGlobal pMac, tpSirSmeAssocInd pAssocInd,
         pBuf += sizeof (tSirMacAddr);
         // alternateChannelId
         *pBuf = 11;
+        /* OWE IE */
+        if (pAssocInd->owe_ie_len) {
+            pMsg->owe_ie = vos_mem_malloc(pAssocInd->owe_ie_len);
+            if (!pMsg->owe_ie)
+                return eHAL_STATUS_FAILED_ALLOC;
+            vos_mem_copy(pMsg->owe_ie, pAssocInd->owe_ie,
+            pAssocInd->owe_ie_len);
+            pMsg->owe_ie_len = pAssocInd->owe_ie_len;
+        }
         status = palSendMBMessage( pMac->hHdd, pMsg );
         if(!HAL_STATUS_SUCCESS(status))
         {
@@ -21439,4 +21448,38 @@ eHalStatus csr_issue_stored_joinreq(tpAniSirGlobal mac_ctx,
         csr_clear_joinreq_param(mac_ctx, session_id);
     }
     return status;
+}
+
+eHalStatus csr_update_owe_info(tpAniSirGlobal mac,
+			       struct sSirSmeAssocInd *assoc_ind)
+{
+	uint32_t session_id = CSR_SESSION_ID_INVALID;
+	eHalStatus status;
+
+	status = csrRoamGetSessionIdFromBSSID(
+				mac,
+				(tCsrBssid *)assoc_ind->bssId,
+				&session_id);
+	if (!HAL_STATUS_SUCCESS(status)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  "Couldn't find session_id for given BSSID");
+		return eHAL_STATUS_FAILURE;
+	}
+
+	/* Send Association completion message to PE */
+	if (assoc_ind->owe_status)
+		status = eHAL_STATUS_FAILURE;
+	status = csrSendAssocCnfMsg(mac, assoc_ind, status,
+				    assoc_ind->owe_status);
+	/*
+	 * send a message to CSR itself just to avoid the EAPOL frames
+	 * going OTA before association response
+	 */
+	if (assoc_ind->owe_status == 0)
+		status = csrSendAssocIndToUpperLayerCnfMsg(mac,
+							   assoc_ind,
+							   status,
+							   session_id);
+
+	return status;
 }
