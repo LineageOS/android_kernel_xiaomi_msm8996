@@ -139,11 +139,21 @@ typedef struct
 
 #define QCSAP_IOCTL_SETPARAM                    (SIOCIWFIRSTPRIV+0)
 #define QCSAP_IOCTL_GETPARAM                    (SIOCIWFIRSTPRIV+1)
+#define QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_CHAR   (SIOCIWFIRSTPRIV+2)
+#define QCSAP_ADD_MULTICAST_GROUP                   1
 /* (SIOCIWFIRSTPRIV+2) is unused */
 #define QCSAP_IOCTL_SET_NONE_GET_THREE          (SIOCIWFIRSTPRIV+3)
 #define WE_GET_TSF                              1
 
 #define QCSAP_IOCTL_GET_STAWPAIE                (SIOCIWFIRSTPRIV+4)
+#define QCSAP_IOCTL_PRIV_SET_CHAR_GET_CHAR   (SIOCIWFIRSTPRIV+5)
+#define QCSAP_GET_GROUP_INFO                   1
+#define QCSAP_GET_GROUP_ADDR                  2
+#define QCSAP_GET_GROUP_MEMB                   3
+#define QCSAP_GET_GROUP_TX_RATE                   4
+#define QCSAP_GET_GROUP_RETRY_LIMIT                   5
+#define QCSAP_SET_GROUP_INFO                   6
+
 #define QCSAP_IOCTL_STOPBSS                     (SIOCIWFIRSTPRIV+6)
 #define QCSAP_IOCTL_VERSION                     (SIOCIWFIRSTPRIV+7)
 #define QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES   (SIOCIWFIRSTPRIV+8)
@@ -163,7 +173,12 @@ typedef struct
 #define WE_SET_SAP_CHANNELS                     3
 
 #define QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE   (SIOCIWFIRSTPRIV+16)
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+#undef MAX_VAR_ARGS
+#define MAX_VAR_ARGS                            15
+#else
 #define MAX_VAR_ARGS                            7
+#endif
 #define WE_LOG_DUMP_CMD                         1
 #define WE_P2P_NOA_CMD                          2
 //IOCTL to configure MCC params
@@ -176,8 +191,7 @@ typedef struct
 #define WE_SET_THERMAL_THROTTLE_CONFIG          14
 #define WE_SET_HPCS_PULSE_PARAMS_CONFIG         15
 
-#define WE_AUDIO_AGGR_ADD_GROUP              16
-#define WE_AUDIO_AGGR_SET_GROUP_RATE         17
+#define WE_AUDIO_AGGR_SET_GROUP_RATE         16
 
 #define QCSAP_IOCTL_SET_CHANNEL_RANGE           (SIOCIWFIRSTPRIV+17)
 #define QCSAP_IOCTL_MODIFY_ACL                  (SIOCIWFIRSTPRIV+18)

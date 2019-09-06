@@ -8802,78 +8802,6 @@ void hdd_wmm_tx_snapshot(hdd_adapter_t *pAdapter)
 }
 
 #ifdef AUDIO_MULTICAST_AGGR_SUPPORT
-#define INVALID_GROUP_ID 0xff
-
-uint32
-find_available_multicast_group(struct audio_multicast_aggr *pMultiAggr)
-{
-	int i;
-
-	if (pMultiAggr->group_num >= MAX_GROUP_NUM) {
-		return INVALID_GROUP_ID;
-	}
-	//Group 0 is reserved for multicast paket of non-audio.
-	for (i = 1; i < MAX_GROUP_NUM; i++) {
-		if (pMultiAggr->multicast_group[i].in_use == 0)
-			return i;
-	}
-	return INVALID_GROUP_ID;
-}
-static int wlan_hdd_add_multicast_group(hdd_adapter_t *pAdapter,
-			int * args)
-{
-	struct audio_multicast_aggr *pMultiAggr = &pAdapter->multicast_aggr;
-	struct audio_multicast_group *pMultiGroup;
-	struct audio_multicast_group *pMultiGroup2;
-	int i = 0;
-	uint32 group_id;
-	vos_msg_t msg;
-
-	if (pMultiAggr->aggr_enable != 1) {
-	hddLog(LOGW, FL("multicast aggr not enabled"));
-	return -EINVAL;
-	}
-
-	group_id = find_available_multicast_group(pMultiAggr);
-	if (INVALID_GROUP_ID == group_id) {
-		hddLog(LOGW, FL("group num %d"), pMultiAggr->group_num);
-		return -EINVAL;
-	}
-	pMultiGroup2 = &pMultiAggr->multicast_group[group_id];
-	pMultiGroup = vos_mem_malloc(sizeof(*pMultiGroup));
-	if (NULL == pMultiGroup) {
-		hddLog(LOGE,
-		FL("vos_mem_alloc failed for pMultiGroup"));
-		return -ENOMEM;
-	}
-	adf_os_mem_zero(pMultiGroup, sizeof(*pMultiGroup));
-
-	pMultiGroup->group_id = group_id;
-	pMultiGroup->multicast_addr.mac_addr31to0= args[0];
-	pMultiGroup->multicast_addr.mac_addr47to32= args[1];
-	pMultiGroup->client_num = args[2];
-	for (i = 0; i < pMultiGroup->client_num; i++) {
-		pMultiGroup->client_addr[i].mac_addr31to0 = args[3+2*i];
-		pMultiGroup->client_addr[i].mac_addr47to32 = args[4+2*i];
-	}
-	adf_os_mem_copy(pMultiGroup2,pMultiGroup,sizeof(*pMultiGroup2));
-
-	msg.type = WDA_ADD_MULTICAST_GROUP;
-	msg.reserved = 0;
-	msg.bodyptr = pMultiGroup;
-	if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA,
-							&msg)) {
-		vos_mem_free(pMultiGroup);
-		VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-		FL("Not able to post Add Multicast group message to WDA"));
-		return -EINVAL;
-	}
-	pMultiGroup2->in_use = 1;
-	pMultiAggr->group_num++;
-
-	return group_id;
-}
-
 static int wlan_hdd_set_multicast_rate(hdd_adapter_t *pAdapter,
 				int * args)
 {
@@ -8890,7 +8818,7 @@ static int wlan_hdd_set_multicast_rate(hdd_adapter_t *pAdapter,
 	}
 
 	num_rate_set = args[1];
-	if (num_rate_set <= 0 || num_rate_set >= MAX_NUM_RATE_SET) {
+	if (num_rate_set <= 0 || num_rate_set > MAX_NUM_RATE_SET) {
 		hddLog(LOGW, FL("Invalid num_rate_set%d"), num_rate_set);
 		return -EINVAL;
 	}
@@ -9410,24 +9338,6 @@ static int __iw_set_var_ints_getnone(struct net_device *dev,
             }
             break;
 #ifdef AUDIO_MULTICAST_AGGR_SUPPORT
-        case WE_AUDIO_AGGR_ADD_GROUP:
-        {
-                 if (apps_args[2] > MAX_CLIENT_NUM|| (num_args != (3+2*apps_args[2]))) {
-                    hddLog(LOGE, FL("add_multicast_group: Invalid arguments"));
-                    return -EINVAL;
-                 }
-                ret = wlan_hdd_add_multicast_group(pAdapter, apps_args);
-                if (ret < 0) {
-                        hddLog(LOGE, FL("add_multicast_group failed"));
-                        apps_args[0] = -1;
-                        return -EINVAL;
-                }
-                apps_args[0] = ret;
-                hddLog(LOGP,"Add Multicast group %d", ret);
-
-        }
-        break;
-
         case WE_AUDIO_AGGR_SET_GROUP_RATE:
         {
                 if (num_args != (2 + 2*apps_args[1])) {
