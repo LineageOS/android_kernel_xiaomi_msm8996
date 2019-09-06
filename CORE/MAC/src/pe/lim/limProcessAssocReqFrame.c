@@ -990,6 +990,38 @@ sendIndToSme:
 
 	return true;
 }
+
+/**
+  * lim_check_sae_pmf_cap() - check pmf capability for SAE STA
+  * @session: pointer to pe session entry
+  * @rsn: pointer to RSN
+  *
+  * This function checks if SAE STA is pmf capable when SAE SAP is pmf
+  * capable. Reject with eSIR_MAC_ROBUST_MGMT_FRAMES_POLICY_VIOLATION
+  * if SAE STA is pmf disable.
+  *
+  * Return: mac_status_code
+  */
+#ifdef WLAN_FEATURE_SAE
+static enum eSirMacStatusCodes lim_check_sae_pmf_cap(tpPESession session,
+						     tDot11fIERSN *rsn)
+{
+	enum eSirMacStatusCodes status = eSIR_MAC_SUCCESS_STATUS;
+
+	if (session->pLimStartBssReq->pmfCapable &&
+	    (rsn->RSN_Cap[0] & RSN_CAP_MFP_ENABLED) == 0)
+		status = eSIR_MAC_ROBUST_MGMT_FRAMES_POLICY_VIOLATION_STATUS;
+
+	return status;
+}
+#else
+static enum eSirMacStatusCodes lim_check_sae_pmf_cap(tpPESession session,
+						     tDot11fIERSN *rsn)
+{
+	return eSIR_MAC_SUCCESS_STATUS;
+}
+#endif
+
 /**---------------------------------------------------------------
 \fn     limProcessAssocReqFrame
 \brief  This function is called by limProcessMessageQueue()
@@ -1608,6 +1640,21 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                 }
                 akm_type = lim_translate_rsn_oui_to_akm_type(
                                    Dot11fIERSN.akm_suite[0]);
+                if (akm_type == ANI_AKM_TYPE_SAE) {
+                    if (eSIR_MAC_SUCCESS_STATUS !=
+                        lim_check_sae_pmf_cap(psessionEntry, &Dot11fIERSN)) {
+                        /* Reject pmf disable SAE STA */
+                        limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from STA:"
+                               MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));
+                        limSendAssocRspMgmtFrame(
+                                   pMac,
+                                   status,
+                                   1,
+                                   pHdr->sa,
+                                   subType, 0,psessionEntry);
+                        goto error;
+                    }
+                }
             } else if (pAssocReq->wpaPresent) {
                 // Unpack the WPA IE
                 if(pAssocReq->wpa.length)
