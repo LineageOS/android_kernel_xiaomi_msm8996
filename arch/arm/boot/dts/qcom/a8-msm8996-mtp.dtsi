@@ -109,7 +109,7 @@
 		vdd_io-supply	= <&pm8994_s4>;
 	};
 
-	tlmm: pinctrl@01010000 {
+	tlmm: pinctrl@1010000 {
 		ts_mux {
 			ts_active: ts_active {
 				mux {
