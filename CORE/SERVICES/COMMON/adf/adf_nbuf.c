@@ -362,6 +362,10 @@ __adf_nbuf_dmamap_destroy(adf_os_device_t osdev, __adf_os_dma_map_t dmap)
     kfree(dmap);
 }
 
+#ifdef MEMORY_DEBUG
+static adf_os_atomic_t adf_nbuf_history_index;
+#endif
+
 #ifdef NBUF_MAP_UNMAP_DEBUG
 
 /**
@@ -412,7 +416,6 @@ struct adf_flex_mem_segment {
 };
 #define ADF_NBUF_HISTORY_SIZE 4096
 
-static adf_os_atomic_t adf_nbuf_history_index;
 static struct adf_nbuf_event adf_nbuf_history[ADF_NBUF_HISTORY_SIZE];
 
 static int32_t adf_nbuf_circular_index_next(adf_os_atomic_t *index, int size)
@@ -838,6 +841,12 @@ static inline void adf_nbuf_map_tracking_deinit(void)
 static inline void adf_nbuf_panic_on_free_if_mapped(adf_nbuf_t nbuf,
 						    uint8_t *file,
 						    uint32_t line)
+{
+}
+
+void
+adf_nbuf_history_add(adf_nbuf_t nbuf, const char *file, uint32_t line,
+		     enum adf_nbuf_event_type type)
 {
 }
 #endif
