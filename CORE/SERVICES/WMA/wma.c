@@ -3725,7 +3725,8 @@ static void wma_handle_sta_peer_info(uint32_t num_peer_stats,
 			WMI_MAC_ADDR_TO_CHAR_ARRAY(&(peer_stats->peer_macaddr),
 				peer_info->info[0].peer_macaddr);
 			peer_info->info[0].rssi =
-						peer_stats->peer_rssi;
+						peer_stats->peer_rssi +
+						WMA_TGT_NOISE_FLOOR_DBM;
 			peer_info->info[0].tx_rate = peer_stats->peer_tx_rate;
 			peer_info->info[0].rx_rate = peer_stats->peer_rx_rate;
 			WMA_LOGD("%s peer %pM rssi %d tx_rate %d rx_rate %d",
@@ -3750,7 +3751,8 @@ static void wma_handle_sta_peer_info(uint32_t num_peer_stats,
 		for (i = 0; i < num_peer_stats; i++) {
 			WMI_MAC_ADDR_TO_CHAR_ARRAY(&(peer_stats->peer_macaddr),
 					peer_info->info[j].peer_macaddr);
-			peer_info->info[j].rssi = peer_stats->peer_rssi;
+			peer_info->info[j].rssi = peer_stats->peer_rssi +
+						WMA_TGT_NOISE_FLOOR_DBM;
 			peer_info->info[j].tx_rate = peer_stats->peer_tx_rate;
 			peer_info->info[j].rx_rate = peer_stats->peer_rx_rate;
 			WMA_LOGD("%s peer %pM rssi %d tx_rate %d rx_rate %d",
