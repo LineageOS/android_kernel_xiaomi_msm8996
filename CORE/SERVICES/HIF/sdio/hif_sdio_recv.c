@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014,2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014,2016-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1015,7 +1015,7 @@ int rx_completion_task(void *param)
         //alloc skb for next bundle
         adf_os_spin_lock_irqsave(&device->pRecvTask->rx_alloc_lock);
         while(HTC_PACKET_QUEUE_DEPTH(&device->pRecvTask->rxAllocQueue) < 64) {
-            pPacket = HIFDevAllocRxBuffer(device, 2048);
+            pPacket = HIFDevAllocRxBuffer(device, target->TargetCreditSize);
             if(pPacket == NULL) {
                 AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("Short of mem, alloc failed"));
                 break;
