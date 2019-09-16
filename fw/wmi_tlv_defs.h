@@ -994,6 +994,20 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_chan_rf_characterization_info_event_fixed_param,
     WMITLV_TAG_STRUC_wmi_oem_data_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_roam_enable_disable_trigger_reason_fixed_param,
+    WMITLV_TAG_STRUC_wmi_service_ready_ext2_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_preauth_status_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_preauth_start_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_set_elna_bypass_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_get_elna_bypass_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_get_elna_bypass_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_roam_pmkid_request_event_fixed_param,
+    WMITLV_TAG_STRUC_wmi_peer_cfr_capture_event_phase_fixed_param,
+    WMITLV_TAG_STRUC_wmi_audio_aggr_enable_cmd_fixed_param,
+    WMITLV_TAG_STRUC_audio_aggr_rate_set,
+    WMITLV_TAG_STRUC_wmi_audio_aggr_add_group,
+    WMITLV_TAG_STRUC_wmi_audio_aggr_del_group,
+    WMITLV_TAG_STRUC_wmi_audio_aggr_set_group_rate,
+    WMITLV_TAG_STRUC_wmi_audio_aggr_set_group_retry,
 } WMITLV_TAG_ID;
 
 /*
@@ -1398,6 +1412,14 @@ typedef enum {
     OP(WMI_VDEV_DELETE_ALL_PEER_CMDID) \
     OP(WMI_OEM_DATA_CMDID) \
     OP(WMI_ROAM_ENABLE_DISABLE_TRIGGER_REASON_CMDID) \
+    OP(WMI_ROAM_PREAUTH_STATUS_CMDID) \
+    OP(WMI_SET_ELNA_BYPASS_CMDID) \
+    OP(WMI_GET_ELNA_BYPASS_CMDID) \
+    OP(WMI_AUDIO_AGGR_ENABLE_CMDID) \
+    OP(WMI_AUDIO_AGGR_ADD_GROUP_CMDID) \
+    OP(WMI_AUDIO_AGGR_DEL_GROUP_CMDID) \
+    OP(WMI_AUDIO_AGGR_SET_GROUP_RATE_CMDID) \
+    OP(WMI_AUDIO_AGGR_SET_GROUP_RETRY_CMDID) \
     /* add new CMD_LIST elements above this line */
 
 
@@ -1408,6 +1430,7 @@ typedef enum {
 #define WMITLV_ALL_EVT_LIST(OP) \
     OP(WMI_SERVICE_READY_EVENTID) \
     OP(WMI_SERVICE_READY_EXT_EVENTID) \
+    OP(WMI_SERVICE_READY_EXT2_EVENTID) \
     OP(WMI_READY_EVENTID) \
     OP(WMI_SCAN_EVENTID) \
     OP(WMI_PDEV_TPC_CONFIG_EVENTID) \
@@ -1630,6 +1653,9 @@ typedef enum {
     OP(WMI_TWT_BTWT_REMOVE_STA_COMPLETE_EVENTID) \
     OP(WMI_VDEV_DELETE_ALL_PEER_RESP_EVENTID) \
     OP(WMI_CHAN_RF_CHARACTERIZATION_INFO_EVENTID) \
+    OP(WMI_ROAM_PREAUTH_START_EVENTID) \
+    OP(WMI_GET_ELNA_BYPASS_EVENTID) \
+    OP(WMI_ROAM_PMKID_REQUEST_EVENTID) \
     /* add new EVT_LIST elements above this line */
 
 
@@ -3076,6 +3102,19 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_DEAUTH_CONFIG_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_idle_config_cmd_fixed_param, wmi_roam_idle_config_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_IDLE_CONFIG_CMDID);
 
+/* Roam Pre-Authentication completion status */
+#define WMITLV_TABLE_WMI_ROAM_PREAUTH_STATUS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_preauth_status_cmd_fixed_param, wmi_roam_preauth_status_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, pmkid, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, pmk, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_PREAUTH_STATUS_CMDID);
+
+/** Roam PMKID request event */
+#define WMITLV_TABLE_WMI_ROAM_PMKID_REQUEST_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_pmkid_request_event_fixed_param, wmi_roam_pmkid_request_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_roam_pmkid_request_tlv_param, pmkid_request, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_PMKID_REQUEST_EVENTID);
+
 /* Screen Status Command parameters */
 #define WMITLV_TABLE_WMI_IDLE_TRIGGER_MONITOR_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_idle_trigger_monitor_cmd_fixed_param, wmi_idle_trigger_monitor_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
@@ -3096,6 +3135,11 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_DSM_FILTER_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_blacklist_event_fixed_param, wmi_roam_blacklist_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_roam_blacklist_with_timeout_tlv_param, blacklist_with_timeout, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_BLACKLIST_EVENTID);
+
+/* Roam Pre-Authentication Start Event */
+#define WMITLV_TABLE_WMI_ROAM_PREAUTH_START_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_roam_preauth_start_event_fixed_param, wmi_roam_preauth_start_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_ROAM_PREAUTH_START_EVENTID);
 
 #define WMITLV_TABLE_WMI_LPI_RESULT_EVENTID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_lpi_result_event_fixed_param, wmi_lpi_result_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
@@ -3239,7 +3283,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_REQUEST_STATS_EXT_CMDID);
 #define WMITLV_TABLE_WMI_OBSS_SCAN_ENABLE_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_obss_scan_enable_cmd_fixed_param, wmi_obss_scan_enable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, channels, WMITLV_SIZE_VAR) \
-    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, ie_field, WMITLV_SIZE_VAR)
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, ie_field, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_ARRAY_UINT32, A_UINT32, chan_freqs, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_OBSS_SCAN_ENABLE_CMDID);
 
 /* 2.4Ghz HT40 OBSS scan disable */
@@ -3981,6 +4026,22 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_OBSS_PD_SPATIAL_REUSE_CMDID);
 /* Peer CFR capture cmd */
 #define WMITLV_TABLE_WMI_PEER_CFR_CAPTURE_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_cfr_capture_cmd_fixed_param, wmi_peer_cfr_capture_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+/*
+ * NOTE: from approximately 7/25/19 to 8/16/19, the below TLV was incorrectly
+ * added to this WMI_PEER_CFR_CAPTURE_CMDID message.
+ * Any targets compiled with these versions of the WMI definitions will
+ * expect that if there is a 2nd TLV in the WMI_PEER_CFR_CAPTURE_CMDID,
+ * it will be
+ * WMITLV_TAG_STRUC_wmi_peer_cfr_capture_event_phase_fixed_param
+ * If in the future a new 2nd TLV is added to this WMI_PEER_CFR_CAPTURE_CMDID
+ * message, that would cause a target compiled with the erroneous old
+ * definitions to reject the WMI_PEER_CFR_CAPTURE_CMDID message containing
+ * the new 2nd TLV, because it would not match the
+ * WMITLV_TAG_STRUC_wmi_peer_cfr_capture_event_phase_fixed_param
+ * tag expected by the old target.
+ *
+ *  WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_cfr_capture_event_phase_fixed_param, wmi_peer_cfr_capture_event_phase_fixed_param, phase_param, WMITLV_SIZE_FIX)
+ */
 WMITLV_CREATE_PARAM_STRUC(WMI_PEER_CFR_CAPTURE_CMDID);
 
 /* CHANNEL WIDTH SWITCH commands for peers. */
@@ -4025,6 +4086,39 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_SET_RAP_CONFIG_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, oem_data, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_OEM_DATA_CMDID);
 
+/* Set ELNA BYPASS cmd */
+#define WMITLV_TABLE_WMI_SET_ELNA_BYPASS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_set_elna_bypass_cmd_fixed_param, wmi_set_elna_bypass_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_SET_ELNA_BYPASS_CMDID);
+
+/* Get ELNA BYPASS cmd */
+#define WMITLV_TABLE_WMI_GET_ELNA_BYPASS_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id, op, buf, len, WMITLV_TAG_STRUC_wmi_get_elna_bypass_cmd_fixed_param, wmi_get_elna_bypass_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_GET_ELNA_BYPASS_CMDID);
+
+/* Audio aggr config cmd */
+#define WMITLV_TABLE_WMI_AUDIO_AGGR_ENABLE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_audio_aggr_enable_cmd_fixed_param, wmi_audio_aggr_enable_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_AUDIO_AGGR_ENABLE_CMDID);
+
+#define WMITLV_TABLE_WMI_AUDIO_AGGR_ADD_GROUP_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_audio_aggr_add_group,  wmi_audio_aggr_add_group_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_FIXED_STRUC, wmi_mac_addr, client_addr, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_AUDIO_AGGR_ADD_GROUP_CMDID);
+
+#define WMITLV_TABLE_WMI_AUDIO_AGGR_DEL_GROUP_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_audio_aggr_del_group, wmi_audio_aggr_del_group_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_AUDIO_AGGR_DEL_GROUP_CMDID);
+
+#define WMITLV_TABLE_WMI_AUDIO_AGGR_SET_GROUP_RATE_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_audio_aggr_set_group_rate, wmi_audio_aggr_set_group_rate_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WMI_AUDIO_AGGR_RATE_SET_T, rate_set, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_AUDIO_AGGR_SET_GROUP_RATE_CMDID);
+
+#define WMITLV_TABLE_WMI_AUDIO_AGGR_SET_GROUP_RETRY_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_audio_aggr_set_group_retry, wmi_audio_aggr_set_group_retry_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_AUDIO_AGGR_SET_GROUP_RETRY_CMDID);
+
 
 /************************** TLV definitions of WMI events *******************************/
 
@@ -4058,6 +4152,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_SERVICE_AVAILABLE_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_spectral_bin_scaling_params, wmi_bin_scaling_params, WMITLV_SIZE_VAR) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WMI_CHAN_RF_CHARACTERIZATION_INFO, wmi_chan_rf_characterization_info, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_SERVICE_READY_EXT_EVENTID);
+
+/* SERVICE_READY_EXT2 event */
+#define WMITLV_TABLE_WMI_SERVICE_READY_EXT2_EVENTID(id,op,buf,len) \
+     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_service_ready_ext2_event_fixed_param, wmi_service_ready_ext2_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, WMI_DMA_RING_CAPABILITIES, dma_ring_caps, WMITLV_SIZE_VAR) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_STRUC, wmi_spectral_bin_scaling_params, wmi_bin_scaling_params, WMITLV_SIZE_VAR)
+WMITLV_CREATE_PARAM_STRUC(WMI_SERVICE_READY_EXT2_EVENTID);
 
 #define WMITLV_TABLE_WMI_CHAN_RF_CHARACTERIZATION_INFO_EVENTID(id,op,buf,len) \
      WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_chan_rf_characterization_info_event_fixed_param, wmi_chan_rf_characterization_info_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
@@ -5434,7 +5535,8 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ESP_ESTIMATE_EVENTID);
 
 /* Peer CFR capture event */
 #define WMITLV_TABLE_WMI_PEER_CFR_CAPTURE_EVENTID(id,op,buf,len) \
-    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_cfr_capture_event_fixed_param, wmi_peer_cfr_capture_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_cfr_capture_event_fixed_param, wmi_peer_cfr_capture_event_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_peer_cfr_capture_event_phase_fixed_param, wmi_peer_cfr_capture_event_phase_fixed_param, phase_param, WMITLV_SIZE_FIX)
 WMITLV_CREATE_PARAM_STRUC(WMI_PEER_CFR_CAPTURE_EVENTID);
 
 #define WMITLV_TABLE_WMI_PDEV_COLD_BOOT_CAL_DATA_EVENTID(id,op,buf,len) \
@@ -5452,6 +5554,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PDEV_RAP_INFO_EVENTID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_mgmt_hdr, wmi_mgmt_hdr, fixed_param, WMITLV_SIZE_FIX) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
 WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_MGMT_OFFLOAD_EVENTID);
+
+/* get ELNA BYPASS status event */
+#define WMITLV_TABLE_WMI_GET_ELNA_BYPASS_EVENTID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_get_elna_bypass_event_fixed_param, wmi_get_elna_bypass_event_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+WMITLV_CREATE_PARAM_STRUC(WMI_GET_ELNA_BYPASS_EVENTID);
+
 
 #ifdef __cplusplus
 }
