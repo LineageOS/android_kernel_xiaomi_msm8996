@@ -81,6 +81,11 @@ typedef enum {
     GEN_PARAM_RESET_TSF_GPIO,
     GEN_PARAM_PS_TDCC,
     GEN_PDEV_MONITOR_MODE,
+#ifdef AUDIO_MULTICAST_AGGR_SUPPORT
+    GEN_PARAM_MULTICAST_RETRY_LIMIT,
+    GEN_PARAM_MULTICAST_AGGR_ENABLED,
+    GEN_PARAM_MULTICAST_DEL_GROUP,
+#endif
 } GEN_PARAM;
 
 #define VDEV_CMD 1
@@ -186,6 +191,7 @@ extern int wma_scpc_event_handler(void *handle, u_int8_t *event, u_int32_t len);
 
 VOS_STATUS wma_set_tx_power_scale(uint8_t vdev_id, int value);
 VOS_STATUS wma_set_tx_power_scale_decr_db(uint8_t vdev_id, int value);
+VOS_STATUS wma_set_wlm_latency_level(uint8_t vdev_id, uint16_t latency_level);
 
 void wma_tx_failure_cb(void *ctx, uint32_t num_msdu,
 		       uint8_t tid, uint32_t status);

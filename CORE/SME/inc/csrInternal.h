@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -738,6 +738,9 @@ typedef struct tagCsrConfig
     bool vendor_vht_for_24ghz_sap;
     struct csr_sta_roam_policy_params sta_roam_policy;
     bool enable_bcast_probe_rsp;
+    uint16_t wlm_latency_enable;
+    uint16_t wlm_latency_level;
+    uint32_t wlm_latency_flags[CSR_NUM_WLM_LATENCY_LEVEL];
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo

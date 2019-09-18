@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -362,6 +362,10 @@ __adf_nbuf_dmamap_destroy(adf_os_device_t osdev, __adf_os_dma_map_t dmap)
     kfree(dmap);
 }
 
+#ifdef MEMORY_DEBUG
+static adf_os_atomic_t adf_nbuf_history_index;
+#endif
+
 #ifdef NBUF_MAP_UNMAP_DEBUG
 
 /**
@@ -412,7 +416,6 @@ struct adf_flex_mem_segment {
 };
 #define ADF_NBUF_HISTORY_SIZE 4096
 
-static adf_os_atomic_t adf_nbuf_history_index;
 static struct adf_nbuf_event adf_nbuf_history[ADF_NBUF_HISTORY_SIZE];
 
 static int32_t adf_nbuf_circular_index_next(adf_os_atomic_t *index, int size)
@@ -840,6 +843,12 @@ static inline void adf_nbuf_panic_on_free_if_mapped(adf_nbuf_t nbuf,
 						    uint32_t line)
 {
 }
+
+void
+adf_nbuf_history_add(adf_nbuf_t nbuf, const char *file, uint32_t line,
+		     enum adf_nbuf_event_type type)
+{
+}
 #endif
 /**
  * @brief get the dma map of the nbuf
@@ -897,6 +906,7 @@ __adf_nbuf_unmap(
     __adf_nbuf_unmap_single(osdev, skb, dir);
 }
 
+#if defined(HIF_PCI)
 a_status_t
 __adf_nbuf_map_single(
     adf_os_device_t osdev, adf_nbuf_t buf, adf_os_dma_dir_t dir)
@@ -926,7 +936,19 @@ __adf_nbuf_unmap_single(
                      skb_end_pointer(buf) - buf->data, dir);
 #endif	/* #if !defined(A_SIMOS_DEVHOST) */
 }
-
+#else
+a_status_t
+__adf_nbuf_map_single(
+    adf_os_device_t osdev, adf_nbuf_t buf, adf_os_dma_dir_t dir)
+{
+	return A_STATUS_OK;
+}
+void
+__adf_nbuf_unmap_single(
+    adf_os_device_t osdev, adf_nbuf_t buf, adf_os_dma_dir_t dir)
+{
+}
+#endif
 /**
  * @brief return the dma map info
  *

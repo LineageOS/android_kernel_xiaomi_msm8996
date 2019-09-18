@@ -1974,21 +1974,26 @@ VOS_STATUS hdd_wlan_reset_initialization(void)
    return VOS_STATUS_SUCCESS;
 }
 
-static void hdd_ssr_timer_init(void)
-{
-    init_timer(&ssr_timer);
-}
-
 static void hdd_ssr_timer_del(void)
 {
-    del_timer(&ssr_timer);
+    adf_os_timer_cancel(&ssr_timer);
     ssr_timer_started = false;
 }
 
-static void hdd_ssr_timer_cb(unsigned long data)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+static void hdd_ssr_timer_cb(struct timer_list *t)
+#else
+static void hdd_ssr_timer_cb(void *data)
+#endif
 {
     hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HDD SSR timer expired!", __func__);
     VOS_BUG(0);
+}
+
+static void hdd_ssr_timer_init(void)
+{
+    adf_os_timer_init(NULL, &ssr_timer,
+                      hdd_ssr_timer_cb, NULL, ADF_NON_DEFERRABLE_TIMER);
 }
 
 static void hdd_ssr_timer_start(int msec)
@@ -1998,9 +2003,7 @@ static void hdd_ssr_timer_start(int msec)
         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Trying to start SSR timer when "
                "it's running!", __func__);
     }
-    ssr_timer.expires = jiffies + msecs_to_jiffies(msec);
-    ssr_timer.function = hdd_ssr_timer_cb;
-    add_timer(&ssr_timer);
+    adf_os_timer_start(&ssr_timer, msec);
     ssr_timer_started = true;
 }
 

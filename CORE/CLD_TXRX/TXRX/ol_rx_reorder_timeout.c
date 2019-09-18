@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013,2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -128,14 +128,22 @@ ol_rx_reorder_timeout_update(struct ol_txrx_peer_t *peer, u_int8_t tid)
 }
 
 static void
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+ol_rx_reorder_timeout(struct timer_list *t)
+#else
 ol_rx_reorder_timeout(void *arg)
+#endif
 {
     struct ol_txrx_pdev_t *pdev;
     struct ol_rx_reorder_timeout_list_elem_t *list_elem, *tmp;
     u_int32_t time_now_ms;
     struct ol_tx_reorder_cat_timeout_t *rx_reorder_timeout_ac;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+    rx_reorder_timeout_ac = from_timer(rx_reorder_timeout_ac, t, timer);
+#else
     rx_reorder_timeout_ac = (struct ol_tx_reorder_cat_timeout_t *) arg;
+#endif
     time_now_ms = adf_os_ticks_to_msecs(adf_os_ticks());
 
     pdev = rx_reorder_timeout_ac->pdev;

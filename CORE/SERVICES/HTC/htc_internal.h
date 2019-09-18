@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016,2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016,2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -282,7 +282,13 @@ void        HTCProcessCreditRpt(HTC_TARGET        *target,
                                 int                NumEntries,
                                 HTC_ENDPOINT_ID    FromEndpoint);
 void        HTCFwEventHandler(void *context, A_STATUS status);
-void        HTCSendCompleteCheckCleanup(void *context);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+void HTCSendCompleteCheckCleanup(struct timer_list *t);
+#else
+void HTCSendCompleteCheckCleanup(void *context);
+#endif
+
 void        HTCTxResumeAllHandler(void *context);
 
 void htc_credit_record(htc_credit_exchange_type type, A_UINT32 tx_credit,

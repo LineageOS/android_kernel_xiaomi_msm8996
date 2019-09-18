@@ -1616,9 +1616,15 @@ static int __is_driver_dfs_capable(struct wiphy *wiphy,
         return -EPERM;
     }
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
-    defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
+#if defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,17,0)) || \
+	defined(CFG80211_DFS_OFFLOAD_BACKPORT)
+	dfs_capability =
+		wiphy_ext_feature_isset(wiphy,
+					NL80211_EXT_FEATURE_DFS_OFFLOAD);
+#elif (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
     dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
+#endif
 #endif
 
     temp_skbuff = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(u32) +
@@ -10478,6 +10484,7 @@ wlan_hdd_wifi_config_policy[QCA_WLAN_VENDOR_ATTR_CONFIG_MAX
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_SUB20_CHAN_WIDTH] = {.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_PROPAGATION_ABS_DELAY] = {.type = NLA_U32},
 	[QCA_WLAN_VENDOR_ATTR_CONFIG_RESTRICT_OFFCHANNEL] = {.type = NLA_U8},
+	[QCA_WLAN_VENDOR_ATTR_CONFIG_LATENCY_LEVEL] = {.type = NLA_U16 },
 };
 
 /**
@@ -10632,7 +10639,7 @@ hdd_sta_set_sub20_channelwidth(hdd_adapter_t *adapter, uint32_t chan_width)
  * Return: The VOS_STATUS code associated with performing
  * the operation
  */
-static VOS_STATUS
+VOS_STATUS
 hdd_get_sub20_channelwidth(hdd_adapter_t *adapter, uint32_t *sub20_channelwidth)
 {
 	tHalHandle hal_ptr = WLAN_HDD_GET_HAL_CTX(adapter);
@@ -10766,6 +10773,7 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 	char vendor_ie[SIR_MAC_MAX_IE_LENGTH + 2];
 	bool vendor_ie_present = false, access_policy_present = false;
 	uint32_t ant_div_usrcfg;
+	uint16_t latency_level;
 
 	if (VOS_FTM_MODE == hdd_get_conparam()) {
 		hddLog(LOGE, FL("Command not allowed in FTM mode"));
@@ -11112,6 +11120,30 @@ static int __wlan_hdd_cfg80211_wifi_configuration_set(struct wiphy *wiphy,
 		if (ret_val) {
 			hddLog(LOG1, FL("Failed to set antdiv_selftest_intvl"));
 			return ret_val;
+		}
+	}
+
+	if (tb[QCA_WLAN_VENDOR_ATTR_CONFIG_LATENCY_LEVEL]) {
+		latency_level = nla_get_u16(
+			tb[QCA_WLAN_VENDOR_ATTR_CONFIG_LATENCY_LEVEL]);
+
+		if ((latency_level >
+		    QCA_WLAN_VENDOR_ATTR_CONFIG_LATENCY_LEVEL_MAX) ||
+		    (latency_level ==
+		    QCA_WLAN_VENDOR_ATTR_CONFIG_LATENCY_LEVEL_INVALID)) {
+			hddLog(LOGE, FL("Invalid Wlan latency level value"));
+			return -EINVAL;
+		}
+
+		/* Mapping the latency value to the level which fw expected
+		 * 0 - normal, 1 - moderate, 2 - low, 3 - ultralow
+		 */
+		latency_level = latency_level - 1;
+		vos_status = wma_set_wlm_latency_level(pAdapter->sessionId,
+						       latency_level);
+		if (vos_status != VOS_STATUS_SUCCESS) {
+			hddLog(LOGE, FL("set Wlan latency level failed"));
+			ret_val = -EINVAL;
 		}
 	}
 
@@ -16354,6 +16386,22 @@ static void wlan_hdd_cfg80211_set_wiphy_sae_feature(struct wiphy *wiphy,
 }
 #endif
 
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
+	defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)) || \
+	defined(CFG80211_DFS_OFFLOAD_BACKPORT)
+static void wlan_hdd_cfg80211_set_dfs_offload_feature(struct wiphy *wiphy)
+{
+	wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_DFS_OFFLOAD);
+}
+#else
+static void wlan_hdd_cfg80211_set_dfs_offload_feature(struct wiphy *wiphy)
+{
+	wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
+}
+#endif
+#endif
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_init
  * This function is called by hdd_wlan_startup()
@@ -16623,10 +16671,9 @@ int wlan_hdd_cfg80211_init(struct device *dev,
     wiphy->n_vendor_events = ARRAY_SIZE(wlan_hdd_cfg80211_vendor_events);
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
-    defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
-    if (pCfg->enableDFSMasterCap) {
-        wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
-    }
+	defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
+    if (pCfg->enableDFSMasterCap)
+	wlan_hdd_cfg80211_set_dfs_offload_feature(wiphy);
 #endif
 
     wiphy->max_ap_assoc_sta = pHddCtx->max_peers;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017,2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -297,7 +297,11 @@ typedef a_bool_t (*adf_os_irqlocked_func_t)(void *);
 /**
  * @brief Prototype of timer function
  */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+typedef void (*adf_os_timer_func_t)(struct timer_list *);
+#else
 typedef void (*adf_os_timer_func_t)(void *);
+#endif
 
 /**
  * @brief Prototype of IRQ function.

@@ -2435,6 +2435,20 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_MCS_TX_FORCE2CHAIN_DISABLE,
                 CFG_MCS_TX_FORCE2CHAIN_ENABLE),
 
+   REG_VARIABLE(CFG_MASK_FOR_TX_LEGACY_RATE, WLAN_PARAM_HexInteger,
+                 hdd_config_t, mask_tx_legacy_rate,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MASK_FOR_TX_LEGACY_RATE_DEFAULT,
+                 CFG_MASK_FOR_TX_LEGACY_RATE_MIN,
+                 CFG_MASK_FOR_TX_LEGACY_RATE_MAX),
+
+   REG_VARIABLE(CFG_MASK_FOR_TX_HT_RATE, WLAN_PARAM_HexInteger,
+                 hdd_config_t, mask_tx_ht_rate,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MASK_FOR_TX_HT_RATE_DEFAULT,
+                 CFG_MASK_FOR_TX_HT_RATE_MIN,
+                 CFG_MASK_FOR_TX_HT_RATE_MAX),
+
    REG_VARIABLE(CFG_SAP_GET_PEER_INFO, WLAN_PARAM_Integer,
                  hdd_config_t, sap_get_peer_info,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -5503,6 +5517,48 @@ REG_TABLE_ENTRY g_registry_table[] =
 		CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_MIN,
 		CFG_HOST_LOG_CUSTOM_NETLINK_PROTO_MAX),
 #endif
+
+	REG_VARIABLE(CFG_LATENCY_ENABLE_NAME, WLAN_PARAM_Integer,
+		     struct hdd_config, wlm_latency_enable,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_LATENCY_ENABLE_DEFAULT,
+		     CFG_LATENCY_ENABLE_MIN,
+		     CFG_LATENCY_ENABLE_MAX),
+
+	REG_VARIABLE(CFG_LATENCY_LEVEL_NAME, WLAN_PARAM_Integer,
+		     struct hdd_config, wlm_latency_level,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_LATENCY_LEVEL_DEFAULT,
+		     CFG_LATENCY_LEVEL_MIN,
+		     CFG_LATENCY_LEVEL_MAX),
+
+	REG_VARIABLE(CFG_LATENCY_FLAGS_NORMAL_NAME, WLAN_PARAM_HexInteger,
+		     struct hdd_config, wlm_latency_flags_normal,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_LATENCY_FLAGS_NORMAL_DEFAULT,
+		     CFG_LATENCY_FLAGS_NORMAL_MIN,
+		     CFG_LATENCY_FLAGS_NORMAL_MAX),
+
+	REG_VARIABLE(CFG_LATENCY_FLAGS_MODERATE_NAME, WLAN_PARAM_HexInteger,
+		     struct hdd_config, wlm_latency_flags_moderate,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_LATENCY_FLAGS_MODERATE_DEFAULT,
+		     CFG_LATENCY_FLAGS_MODERATE_MIN,
+		     CFG_LATENCY_FLAGS_MODERATE_MAX),
+
+	REG_VARIABLE(CFG_LATENCY_FLAGS_LOW_NAME, WLAN_PARAM_HexInteger,
+		     struct hdd_config, wlm_latency_flags_low,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_LATENCY_FLAGS_LOW_DEFAULT,
+		     CFG_LATENCY_FLAGS_LOW_MIN,
+		     CFG_LATENCY_FLAGS_LOW_MAX),
+
+	REG_VARIABLE(CFG_LATENCY_FLAGS_ULTRALOW_NAME, WLAN_PARAM_HexInteger,
+		     struct hdd_config, wlm_latency_flags_ultralow,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_LATENCY_FLAGS_ULTRALOW_DEFAULT,
+		     CFG_LATENCY_FLAGS_ULTRALOW_MIN,
+		     CFG_LATENCY_FLAGS_ULTRALOW_MAX),
 };
 
 
@@ -6467,6 +6523,25 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
                  CFG_ARP_AC_CATEGORY,
                  pHddCtx->cfg_ini->arp_ac_category);
   hdd_cfg_print_sae(pHddCtx);
+
+	hddLog(LOG2, "Name = [%s] value = [%u]",
+	       CFG_LATENCY_ENABLE_NAME,
+	       pHddCtx->cfg_ini->wlm_latency_enable);
+	hddLog(LOG2, "Name = [%s] value = [%u]",
+	       CFG_LATENCY_LEVEL_NAME,
+	       pHddCtx->cfg_ini->wlm_latency_level);
+	hddLog(LOG2, "Name = [%s] value = [%u]",
+	       CFG_LATENCY_FLAGS_NORMAL_NAME,
+	       pHddCtx->cfg_ini->wlm_latency_flags_normal);
+	hddLog(LOG2, "Name = [%s] value = [%u]",
+	       CFG_LATENCY_FLAGS_MODERATE_NAME,
+	       pHddCtx->cfg_ini->wlm_latency_flags_moderate);
+	hddLog(LOG2, "Name = [%s] value = [%u]",
+	       CFG_LATENCY_FLAGS_LOW_NAME,
+	       pHddCtx->cfg_ini->wlm_latency_flags_low);
+	hddLog(LOG2, "Name = [%s] value = [%u]",
+	       CFG_LATENCY_FLAGS_ULTRALOW_NAME,
+	       pHddCtx->cfg_ini->wlm_latency_flags_ultralow);
 }
 
 #define CFG_VALUE_MAX_LEN 256
@@ -8136,6 +8211,20 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
        hddLog(LOGE, "Could not pass on WNI_CFG_MAX_HT_MCS_TX_DATA to CCM");
    }
 
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MASK_TX_HT_RATE,
+                    pConfig->mask_tx_ht_rate, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_MASK_TX_HT_RATE to CCM");
+   }
+
+   if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_MASK_TX_LEGACY_RATE,
+                    pConfig->mask_tx_legacy_rate, NULL,
+                    eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
+       fStatus = FALSE;
+       hddLog(LOGE, "Could not pass on WNI_CFG_MASK_TX_LEGACY_RATE to CCM");
+   }
+
    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_DISABLE_ABG_RATE_FOR_TX_DATA,
                     pConfig->disable_abg_rate_txdata, NULL,
                     eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE) {
@@ -8519,6 +8608,20 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #endif /* FEATURE_AP_MCC_CH_AVOIDANCE */
    smeConfig->csrConfig.ignore_peer_ht_opmode =
                            pConfig->ignore_peer_ht_opmode;
+
+	smeConfig->csrConfig.wlm_latency_enable =
+		pConfig->wlm_latency_enable;
+	smeConfig->csrConfig.wlm_latency_level =
+		pConfig->wlm_latency_level;
+	smeConfig->csrConfig.wlm_latency_flags[0] =
+		pConfig->wlm_latency_flags_normal;
+	smeConfig->csrConfig.wlm_latency_flags[1] =
+		pConfig->wlm_latency_flags_moderate;
+	smeConfig->csrConfig.wlm_latency_flags[2] =
+		pConfig->wlm_latency_flags_low;
+	smeConfig->csrConfig.wlm_latency_flags[3] =
+		pConfig->wlm_latency_flags_ultralow;
+
    smeConfig->csrConfig.pkt_err_disconn_th =
                    pHddCtx->cfg_ini->pkt_err_disconn_th;
    smeConfig->f_prefer_non_dfs_on_radar =

@@ -481,8 +481,25 @@ typedef enum {
     WMI_SERVICE_THREE_WAY_COEX_CONFIG_LEGACY   = 202, /* BTCOEX Three-way CoEx Config Legacy Feature support */
     WMI_SERVICE_THREE_WAY_COEX_CONFIG_OVERRIDE = 203, /* BTCOEX Three-way CoEx Config Override Feature support */
     WMI_SERVICE_TX_PWR_PER_PEER = 204, /* target supports per-peer tx pwr spec via WMI_PEER_USE_FIXED_PWR */
-    WMI_SERVICE_NO_STA_PLUS_STA_SUPPORT = 205, /* indicates target doesn't support STA + STA concurrency */
-
+    WMI_SERVICE_STA_PLUS_STA_SUPPORT = 205, /* indicates target supports STA + STA concurrency */
+    WMI_SERVICE_WPA3_FT_FILS = 206,
+    WMI_SERVICE_ADAPTIVE_11R_ROAM = 207, /* Indicates FW supports adaptive 11r roaming */
+    WMI_SERVICE_CHAN_RF_CHARACTERIZATION_INFO = 208, /* FW provides RF scores for chans in the service ready extension msg */
+    WMI_SERVICE_FW_IFACE_COMBINATION_SUPPORT = 209, /* FW sends WMI_IFACE_COMBINATION_IND_EVENT msg immediately after WMI_SERVICE_READY_EXT_EVENT msg */
+    WMI_SERVICE_TX_COMPL_TSF64 = 210, /* FW supports 64-bit tx TSF in HTT_T2H TX_COMPL_IND msg */
+    WMI_SERVICE_DSM_ROAM_FILTER = 211, /* FW supports data stall AP mitigation while roaming */
+    WMI_SERVICE_PACKET_CAPTURE_SUPPORT = 212, /* target supports packet capture Mode (SMART MU) */
+    WMI_SERVICE_PER_PEER_HTT_STATS_RESET = 213, /* FW supports HTT per peer stats reset facility */
+    WMI_SERVICE_DELETE_ALL_PEER_SUPPORT = 214, /* target supports cmd to delete all peers within a vdev */
+    WMI_SERVICE_DYNAMIC_HW_MODE_SWITCH_SUPPORT = 215, /* target supports Dynamic HW mode switch */
+    WMI_SERVICE_MSDU_FLOW_OVERRIDE_BY_HOST = 216, /* target supports flow override feature */
+    WMI_SERVICE_WMI_CHAN_RF_CHARACTERIZATION_INFO_EVENT= 217, /* target will send WMI_CHAN_RF_CHARACTERIZATION_INFO_EVENT */
+    WMI_SERVICE_RX_FSE_SUPPORT = 218, /* target supports flow search through RxOLE FSE hw block */
+    WMI_SERVICE_FREQINFO_IN_METADATA = 219, /* FW provides freq_info during spectral scan */
+    WMI_SERVICE_EXT2_MSG = 220, /* WMI_SERVICE_READY_EXT2 msg is sent by target */
+    WMI_SERVICE_WPA3_SAE_ROAM_SUPPORT = 221, /* Indicates FW supports WPA3 SAE roaming */
+    WMI_SERVICE_WPA3_OWE_ROAM_SUPPORT = 222, /* Indicates FW supports WPA3 OWE roaming */
+    WMI_SERVICE_AUDIO_AGGR = 223, /* Indicates FW supports audio frame aggregation */
 
     /******* ADD NEW SERVICES HERE *******/
 

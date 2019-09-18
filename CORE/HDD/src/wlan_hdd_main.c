@@ -1105,9 +1105,9 @@ static int __hdd_netdev_notifier_call(struct notifier_block * nb,
    hdd_context_t *pHddCtx;
 
    //Make sure that this callback corresponds to our device.
-   if ((strncmp(dev->name, "wlan", 4)) &&
+   if ((strncmp(dev->name, "wlan" IFNAME_SUFFIX, 4 + IFNAME_SUFFIX_SIZE)) &&
       (strncmp(dev->name, "softAP", 6)) &&
-      (strncmp(dev->name, "p2p", 3)))
+      (strncmp(dev->name, "p2p" IFNAME_SUFFIX, 3 + IFNAME_SUFFIX_SIZE)))
       return NOTIFY_DONE;
 
    if ((pAdapter->magic != WLAN_HDD_ADAPTER_MAGIC) ||
@@ -10865,17 +10865,21 @@ static void hdd_set_multicast_list(struct net_device *dev)
   \return - ac, Queue Index/access category corresponding to UP in IP header
 
   --------------------------------------------------------------------------*/
-static v_U16_t hdd_select_queue(struct net_device *dev,
-                         struct sk_buff *skb
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0))
-                         , void *accel_priv
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
+uint16_t hdd_select_queue(struct net_device *dev, struct sk_buff *skb,
+			  struct net_device *sb_dev,
+			  select_queue_fallback_t fallback)
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+uint16_t hdd_select_queue(struct net_device *dev, struct sk_buff *skb,
+			  void *accel_priv, select_queue_fallback_t fallback)
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 13, 0))
+uint16_t hdd_select_queue(struct net_device *dev, struct sk_buff *skb,
+			  void *accel_priv)
+#else
+uint16_t hdd_select_queue(struct net_device *dev, struct sk_buff *skb)
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
-                         , select_queue_fallback_t fallback
-#endif
-)
 {
-   return hdd_wmm_select_queue(dev, skb);
+	return hdd_wmm_select_queue(dev, skb);
 }
 
 static const struct ethtool_ops wlan_ethtool_ops = {
@@ -17412,7 +17416,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
                                   rtnl_lock_enable);
    } else {
 #ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
-      pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
+      pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan" IFNAME_SUFFIX "%d",
                                   wlan_hdd_get_intf_addr(pHddCtx),
                                   NET_NAME_UNKNOWN,
                                   rtnl_lock_enable);
@@ -17450,7 +17454,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
          }
 
 #ifndef SUPPORT_P2P_BY_ONE_INTF_WLAN
-         pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p%d",
+         pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_P2P_DEVICE, "p2p" IFNAME_SUFFIX "%d",
 #else
          pP2pAdapter = hdd_open_adapter(pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
 #endif
@@ -18339,18 +18343,6 @@ static bool unload_timer_started;
 #endif
 
 /**
- * hdd_unload_timer_init() - API to initialize unload timer
- *
- * initialize unload timer
- *
- * Return: None
- */
-static void hdd_unload_timer_init(void)
-{
-	init_timer(&unload_timer);
-}
-
-/**
  * hdd_unload_timer_del() - API to Delete unload timer
  *
  * Delete unload timer
@@ -18359,7 +18351,7 @@ static void hdd_unload_timer_init(void)
  */
 static void hdd_unload_timer_del(void)
 {
-	del_timer(&unload_timer);
+	adf_os_timer_cancel(&unload_timer);
 	unload_timer_started = false;
 }
 
@@ -18370,7 +18362,11 @@ static void hdd_unload_timer_del(void)
  *
  * Return: None
  */
-static void hdd_unload_timer_cb(unsigned long data)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+static void hdd_unload_timer_cb(struct timer_list *t)
+#else
+static void hdd_unload_timer_cb(void *data)
+#endif
 {
 	v_CONTEXT_t vos_context = NULL;
 	hdd_context_t *hdd_ctx = NULL;
@@ -18396,6 +18392,19 @@ static void hdd_unload_timer_cb(unsigned long data)
 }
 
 /**
+ * hdd_unload_timer_init() - API to initialize unload timer
+ *
+ * initialize unload timer
+ *
+ * Return: None
+ */
+static void hdd_unload_timer_init(void)
+{
+	adf_os_timer_init(NULL, &unload_timer,
+			  hdd_unload_timer_cb, NULL, ADF_NON_DEFERRABLE_TIMER);
+}
+
+/**
  * hdd_unload_timer_start() - API to start unload timer
  * @msec: timer interval in msec units
  *
@@ -18409,9 +18418,7 @@ static void hdd_unload_timer_start(int msec)
 		hddLog(VOS_TRACE_LEVEL_FATAL,
 			"%s: Starting unload timer when it's running!",
 			__func__);
-	unload_timer.expires = jiffies + msecs_to_jiffies(msec);
-	unload_timer.function = hdd_unload_timer_cb;
-	add_timer(&unload_timer);
+	adf_os_timer_start(&unload_timer, msec);
 	unload_timer_started = true;
 }
 /**---------------------------------------------------------------------------

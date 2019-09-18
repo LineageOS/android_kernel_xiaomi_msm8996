@@ -123,25 +123,25 @@ unsigned int debugcccr = 1;
 module_param(debugcccr, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(debugcccr, "Output this cccr values");
 
-unsigned int writecccr1 = 0;
+unsigned int writecccr1 = CCCR1;
 module_param(writecccr1, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-unsigned int writecccr1value = 0;
+unsigned int writecccr1value = CCCR1_VALUE;
 module_param(writecccr1value, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-unsigned int writecccr2 = 0;
+unsigned int writecccr2 = CCCR2;
 module_param(writecccr2, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-unsigned int writecccr2value = 0;
+unsigned int writecccr2value = CCCR2_VALUE;
 module_param(writecccr2value, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-unsigned int writecccr3 = 0;
+unsigned int writecccr3 = CCCR3;
 module_param(writecccr3, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-unsigned int writecccr3value = 0;
+unsigned int writecccr3value = CCCR3_VALUE;
 module_param(writecccr3value, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-unsigned int writecccr4 = 0;
+unsigned int writecccr4 = CCCR4;
 module_param(writecccr4, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-unsigned int writecccr4value = 0;
+unsigned int writecccr4value = CCCR4_VALUE;
 module_param(writecccr4value, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 unsigned int modstrength = 0;
@@ -1485,10 +1485,18 @@ static void hif_oob_irq_handler(void *dev_para)
 }
 
 #ifdef HIF_MBOX_SLEEP_WAR
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+static void
+HIF_sleep_entry(struct timer_list *t)
+{
+    HIF_DEVICE *device = from_timer(device, t, sleep_timer);
+#else
 static void
 HIF_sleep_entry(void *arg)
 {
     HIF_DEVICE *device = (HIF_DEVICE *)arg;
+#endif
+
     A_UINT32 idle_ms;
 
     idle_ms = adf_os_ticks_to_msecs(adf_os_ticks()

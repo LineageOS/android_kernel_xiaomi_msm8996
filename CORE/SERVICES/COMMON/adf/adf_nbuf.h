@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2016-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -387,8 +387,6 @@ adf_nbuf_dmamap_set_cb(adf_os_dma_map_t dmap, adf_os_dma_map_cb_t cb,
     __adf_nbuf_dmamap_set_cb(dmap, cb, arg);
 }
 
-#ifdef NBUF_MAP_UNMAP_DEBUG
-#define ADF_MEM_FILE_NAME_SIZE 48
 enum adf_nbuf_event_type {
 	ADF_NBUF_ALLOC,
 	ADF_NBUF_ALLOC_FAILURE,
@@ -397,6 +395,12 @@ enum adf_nbuf_event_type {
 	ADF_NBUF_UNMAP,
 };
 
+void
+adf_nbuf_history_add(adf_nbuf_t nbuf, const char *file, uint32_t line,
+		     enum adf_nbuf_event_type type);
+
+#ifdef NBUF_MAP_UNMAP_DEBUG
+#define ADF_MEM_FILE_NAME_SIZE 48
 struct adf_nbuf_event {
 	adf_nbuf_t nbuf;
 	char file[ADF_MEM_FILE_NAME_SIZE];
@@ -416,9 +420,6 @@ struct adf_nbuf_map_metadata {
 #define ADF_FM_BITMAP_BITS (sizeof(ADF_FM_BITMAP) * 8)
 
 #define adf_ffz(mask) (~(mask) == 0 ? -1 : ffz(mask))
-void
-adf_nbuf_history_add(adf_nbuf_t nbuf, const char *file, uint32_t line,
-		     enum adf_nbuf_event_type type);
 
 void adf_nbuf_map_check_for_leaks(void);
 
