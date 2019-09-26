@@ -3278,6 +3278,7 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	buf_data_size = buf_size - sizeof(*event);
 
 	rssi_event = param_buf->chain_stats;
+	buf_size += sizeof(*rssi_event);
 	if (rssi_event) {
 		if (rssi_event->num_per_chain_rssi_stats >
 		    param_buf->num_rssi_stats) {
@@ -3290,9 +3291,8 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 			 ((rssi_event->tlv_header & 0x0000FFFF) ==
 				WMITLV_GET_STRUCT_TLVLEN(
 					wmi_per_chain_rssi_stats))) {
-			buf_size += sizeof(*rssi_event) +
-				(rssi_event->num_per_chain_rssi_stats *
-				sizeof(wmi_rssi_stats));
+			buf_size += rssi_event->num_per_chain_rssi_stats *
+				sizeof(wmi_rssi_stats);
 			rssi_stats_support = TRUE;
 		}
 	}
