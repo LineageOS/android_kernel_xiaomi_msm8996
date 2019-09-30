@@ -6043,8 +6043,10 @@ ol_txrx_mon_tx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		/*
 		 * Get the channel info and update the rx status
 		 */
-		cds_get_chan_by_session_id(vdev_id, &chan);
-		ol_htt_mon_note_chan(pdev, chan);
+		if (vdev_id != HTT_INVALID_VDEV) {
+			cds_get_chan_by_session_id(vdev_id, &chan);
+			ol_htt_mon_note_chan(pdev, chan);
+		}
 
 		ol_txrx_update_tx_status(pdev, &tx_status, &mon_hdr);
 
@@ -6170,8 +6172,10 @@ ol_txrx_mon_rx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		/*
 		 * Get the channel info and update the rx status
 		 */
-		cds_get_chan_by_session_id(vdev_id, &chan);
-		ol_htt_mon_note_chan(pdev, chan);
+		if (vdev_id != HTT_INVALID_VDEV) {
+			cds_get_chan_by_session_id(vdev_id, &chan);
+			ol_htt_mon_note_chan(pdev, chan);
+		}
 		htt_rx_mon_get_rx_status(pdev->htt_pdev, rx_desc, &rx_status);
 
 		rx_status.tx_status = pkt_tx_status.status;

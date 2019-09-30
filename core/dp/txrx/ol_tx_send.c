@@ -54,6 +54,7 @@
 #include <ol_txrx.h>
 #include <pktlog_ac_fmt.h>
 #include <utils_api.h>
+#include "cds_utils.h"
 
 #ifdef TX_CREDIT_RECLAIM_SUPPORT
 
@@ -949,6 +950,7 @@ ol_tx_offload_deliver_indication_handler(ol_txrx_pdev_handle pdev, void *msg)
 	struct htt_tx_offload_deliver_ind_hdr_t *offload_deliver_msg;
 	bool is_pkt_during_roam = false;
 	uint8_t vdev_id;
+	uint32_t freq = 0;
 
 	offload_deliver_msg = (struct htt_tx_offload_deliver_ind_hdr_t *)msg;
 
@@ -984,8 +986,12 @@ ol_tx_offload_deliver_indication_handler(ol_txrx_pdev_handle pdev, void *msg)
 	tid = offload_deliver_msg->tid_num;
 	/* Is FW sends offload data during roaming */
 	is_pkt_during_roam = (offload_deliver_msg->reserved_2 ? true : false);
-	if (is_pkt_during_roam)
+	if (is_pkt_during_roam) {
 		vdev_id = HTT_INVALID_VDEV;
+		freq = (uint32_t)offload_deliver_msg->reserved_3;
+
+		ol_htt_mon_note_chan(pdev, cds_freq_to_chan(freq));
+	}
 
 	ol_txrx_mon_data_process(
 			vdev_id,
