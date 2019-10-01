@@ -9402,6 +9402,7 @@ wlan_hdd_add_monitor_check(hdd_context_t *hdd_ctx, hdd_adapter_t **adapter,
 			wlan_hdd_release_intf_addr(
 					hdd_ctx,
 					adapter->macAddressCurrent.bytes);
+			hdd_stop_adapter(hdd_ctx, adapter, true);
 			hdd_close_adapter(hdd_ctx, adapter, rtnl_held);
 		}
 	}
