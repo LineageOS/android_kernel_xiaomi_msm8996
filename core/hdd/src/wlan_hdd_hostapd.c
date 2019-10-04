@@ -55,6 +55,7 @@
 #include <cds_utils.h>
 #include "pld_common.h"
 #include "wlan_hdd_regulatory.h"
+#include "wlan_hdd_power.h"
 
 #include "wma.h"
 #ifdef WLAN_DEBUG
@@ -7882,6 +7883,12 @@ int wlan_hdd_restore_channels(hdd_context_t *hdd_ctx)
 	status = sme_update_channel_list(hdd_ctx->hHal);
 	if (status)
 		hdd_err("Can't Restore channel list");
+	else
+		/*
+		 * Free the cache channels when the
+		 * disabled channels are restored
+		 */
+		wlan_hdd_free_cache_channels(hdd_ctx);
 	EXIT();
 
 	return 0;
@@ -8587,6 +8594,8 @@ int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
 		}
 	}
 
+	hdd_thermal_mitigation_disable(pHddCtx);
+
 	if (!cds_set_connection_in_progress(true)) {
 		hdd_err("Can't start BSS: set connnection in progress failed");
 		ret = -EINVAL;
@@ -8681,6 +8690,8 @@ error:
 	qdf_atomic_set(
 		&pHostapdAdapter->sessionCtx.ap.acs_in_progress, 0);
 	wlan_hdd_undo_acs(pHostapdAdapter);
+
+	hdd_thermal_mitigation_enable(pHddCtx);
 
 enable_roaming:
 	/* Enable Roaming after start bss in case of failure */
@@ -8919,8 +8930,9 @@ static int __wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
 		global_p2p_connection_status = P2P_NOT_ACTIVE;
 	}
 #endif
-	pAdapter->sessionId = HDD_SESSION_ID_INVALID;
 	wlan_hdd_check_conc_and_update_tdls_state(pHddCtx, false);
+	hdd_thermal_mitigation_enable(pHddCtx);
+
 	EXIT();
 	return ret;
 }
