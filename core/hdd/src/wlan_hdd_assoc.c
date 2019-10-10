@@ -1579,6 +1579,13 @@ static void hdd_conn_remove_connect_info(hdd_station_ctx_t *pHddStaCtx)
 	pHddStaCtx->conn_info.proxyARPService = 0;
 
 	qdf_mem_zero(&pHddStaCtx->conn_info.SSID, sizeof(tCsrSSIDInfo));
+
+	/*
+	 * Reset the ptk, gtk status flags to avoid using current connection
+	 * status in further connections.
+	 */
+	pHddStaCtx->conn_info.gtk_installed = false;
+	pHddStaCtx->conn_info.ptk_installed = false;
 }
 
 /**
