@@ -83,7 +83,7 @@ void ol_rx_data_process(struct ol_txrx_peer_t *peer,
  * @mon_buf_list: netbuf list
  * @type: data process type
  * @tid:  tid number
- * @status: Tx status
+ * @pkt_tx_status: Tx status
  * @pktformat: Frame format
  *
  * Return: none
@@ -91,7 +91,9 @@ void ol_rx_data_process(struct ol_txrx_peer_t *peer,
 void ol_txrx_mon_data_process(uint8_t vdev_id,
 			      qdf_nbuf_t mon_buf_list,
 			      enum mon_data_process_type type,
-			      uint8_t tid, uint8_t status, bool pktformat);
+			      uint8_t tid,
+			      struct ol_mon_tx_status pkt_tx_status,
+			      bool pktformat);
 
 void ol_txrx_flush_rx_frames(struct ol_txrx_peer_t *peer,
 			     bool drop);

@@ -2895,6 +2895,7 @@ wma_process_mon_mgmt_tx_data(wmi_mgmt_hdr *hdr,
 	txrx_status.rate = ((txrx_status.rate == 6 /* Mbps */) ? 0x0c : 0x02);
 	txrx_status.tx_status = status;
 	txrx_status.add_rtap_ext = true;
+	txrx_status.tx_retry_cnt = hdr->tx_retry_cnt;
 
 	wh = (struct ieee80211_frame *)qdf_nbuf_data(nbuf);
 	wh->i_fc[1] &= ~IEEE80211_FC1_WEP;
