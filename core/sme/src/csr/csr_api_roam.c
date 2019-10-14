@@ -16019,6 +16019,15 @@ QDF_STATUS csr_send_join_req_msg(tpAniSirGlobal pMac, uint32_t sessionId,
 		csr_dump_vendor_ies((uint8_t *)pBssDescription->ieFields,
 				    ieLen);
 
+		is_vendor_ap_present = csr_check_vendor_ap_present(pMac,
+					pBssDescription,
+					ucDot11Mode, pIes, ieLen,
+					WMI_ACTION_OUI_DISABLE_AGGRESSIVE_EDCA);
+		if (is_vendor_ap_present)
+			pMac->follow_ap_edca = true;
+		else
+			pMac->follow_ap_edca = false;
+
 		is_vendor_ap_present = csr_check_vendor_ap_present(
 						pMac, pBssDescription,
 						ucDot11Mode, pIes, ieLen,

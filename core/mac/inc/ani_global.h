@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1016,6 +1016,8 @@ typedef struct sAniSirGlobal {
 	/* 11k Offload Support */
 	bool is_11k_offload_supported;
 
+	/* if true, it is forced to follow the AP's edca */
+	bool follow_ap_edca;
 	uint32_t peer_rssi;
 	uint32_t peer_txrate;
 	uint32_t peer_rxrate;
