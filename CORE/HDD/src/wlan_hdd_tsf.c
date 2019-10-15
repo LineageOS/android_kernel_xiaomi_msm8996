@@ -1162,6 +1162,28 @@ int hdd_stop_tsf_sync(hdd_adapter_t *adapter)
 	return 0;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
+static void hdd_tsf_cp_sk(adf_nbuf_t netbuf, struct sock *sk, bool sk_to_tstamp)
+{
+	if (sk_to_tstamp)
+		memcpy((void *)(&netbuf->tstamp), (void *)(&netbuf->sk),
+		       sizeof(netbuf->sk));
+	else
+		memcpy((void *)(&sk), (void *)(&netbuf->tstamp),
+		       sizeof(sk));
+}
+#else
+static void hdd_tsf_cp_sk(adf_nbuf_t netbuf, struct sock *sk, bool sk_to_tstamp)
+{
+	if (sk_to_tstamp)
+		memcpy((void *)(&netbuf->tstamp.tv64), (void *)(&netbuf->sk),
+		       sizeof(netbuf->sk));
+	else
+		memcpy((void *)(&sk), (void *)(&netbuf->tstamp.tv64),
+		       sizeof(sk));
+}
+#endif
+
 int hdd_tx_timestamp(int32_t status, adf_nbuf_t netbuf, uint64_t target_time)
 {
 	struct sock *sk = NULL;
@@ -1169,8 +1191,7 @@ int hdd_tx_timestamp(int32_t status, adf_nbuf_t netbuf, uint64_t target_time)
 	if (netbuf->sk != NULL)
 		sk = netbuf->sk;
 	else
-		memcpy((void *)(&sk), (void *)(&netbuf->tstamp.tv64),
-		       sizeof(sk));
+		hdd_tsf_cp_sk(netbuf, sk, false);
 
 	if (!sk)
 		return -EINVAL;
@@ -1435,8 +1456,7 @@ hdd_tsf_record_sk_for_skb(hdd_context_t *hdd_ctx, adf_nbuf_t nbuf)
 	 * be set to NULL in skb_orphan().
 	 */
 	if (HDD_TSF_IS_TX_SET(hdd_ctx))
-		memcpy((void *)(&nbuf->tstamp.tv64), (void *)(&nbuf->sk),
-		       sizeof(nbuf->sk));
+		hdd_tsf_cp_sk(nbuf, nbuf->sk, true);
 }
 #else
 static inline void hdd_update_tsf(hdd_adapter_t *adapter, uint64_t tsf)
