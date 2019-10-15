@@ -23284,6 +23284,13 @@ typedef enum wmi_coex_config_type {
      * config to enable(1)/disable(0) WAR of BT 2nd harmonic issue function
      */
     WMI_COEX_CONFIG_ENABLE_2ND_HARMONIC_WAR     = 43,
+#ifdef FEATURE_COEX_TPUT_SHAPING_CONFIG
+    /* WMI_COEX_CONFIG_ENABLE_TPUT_SHAPING
+     * config to disable/enable the feature of Shaping traffic
+     * for BT/wifi coex.
+     */
+    WMI_COEX_CONFIG_ENABLE_TPUT_SHAPING = 45,
+#endif
 } WMI_COEX_CONFIG_TYPE;
 
 typedef struct {

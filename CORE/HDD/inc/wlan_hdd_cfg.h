@@ -5647,6 +5647,30 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_COEX_PTA_CONFIG_PARAM_DEFAULT (0x00000000)
 #endif
 
+#ifdef FEATURE_COEX_TPUT_SHAPING_CONFIG
+/*
+ * <ini>
+ * gCoexTputShapingEnable - enable/disable Traffic shaping for BT/Wifi
+ * @Min: 0
+ * @Max: 1
+ * @Default: 0
+ *
+ * This ini is used to enable Traffic shaping between QCA wifi and External BT.
+ * set 1 to enable, or set 0 to disabled.
+ *
+ * Related: none
+ *
+ * Usage: External
+ *
+ * </ini>
+ */
+
+#define CFG_COEX_TPUT_SHAPING_ENABLE         "gCoexTputShapingEnable"
+#define CFG_COEX_TPUT_SHAPING_ENABLE_MIN     (0)
+#define CFG_COEX_TPUT_SHAPING_ENABLE_MAX     (1)
+#define CFG_COEX_TPUT_SHAPING_ENABLE_DEFAULT (0)
+#endif
+
 /*
  * <ini>
  * arp_ac_category - ARP access category
@@ -6753,6 +6777,10 @@ struct hdd_config {
 #ifdef FEATURE_COEX_PTA_CONFIG_ENABLE
    uint8_t                     coex_pta_config_enable;
    uint32_t                    coex_pta_config_param;
+#endif
+
+#ifdef FEATURE_COEX_TPUT_SHAPING_CONFIG
+   uint32_t                    coex_tput_shaping_enable;
 #endif
 
 #ifdef WMI_COEX_BTC_DUTYCYCLE
