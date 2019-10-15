@@ -3418,6 +3418,7 @@ static unsigned int qdf_nbuf_update_radiotap_vht_flags(
 #define NORMALIZED_TO_NOISE_FLOOR (-96)
 
 #define IEEE80211_RADIOTAP_TX_STATUS 0
+#define IEEE80211_RADIOTAP_RETRY_COUNT 1
 
 /* This is Radio Tap Header Extension Length.
  * 4 Bytes for Extended it_present bit map +
@@ -3534,8 +3535,11 @@ unsigned int qdf_nbuf_update_radiotap(struct mon_rx_status *rx_status,
 		rtap_ext = (uint32_t *)&rthdr->it_present;
 		rtap_ext++;
 		*rtap_ext = cpu_to_le32(1 << IEEE80211_RADIOTAP_TX_STATUS);
+		*rtap_ext |= cpu_to_le32(1 << IEEE80211_RADIOTAP_RETRY_COUNT);
 
 		rtap_buf[rtap_len] = rx_status->tx_status;
+		rtap_len += 1;
+		rtap_buf[rtap_len] = rx_status->tx_retry_cnt;
 		rtap_len += 1;
 	}
 
