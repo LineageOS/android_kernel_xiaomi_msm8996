@@ -3679,8 +3679,8 @@ QDF_STATUS hdd_init_station_mode(hdd_adapter_t *adapter)
 	status = hdd_lro_enable(hdd_ctx, adapter);
 	if (status)
 		/* Err code from errno.h */
-		hdd_err("LRO is disabled either because of kernel doesnot support or disabled in INI or via vendor commandi. err code %d",
-		status);
+		hdd_debug("LRO is disabled either because of kernel doesnot support or disabled in INI or via vendor commandi. err code %d",
+			  status);
 
 	/* rcpi info initialization */
 	qdf_mem_zero(&adapter->rcpi, sizeof(adapter->rcpi));
@@ -3739,7 +3739,7 @@ void hdd_cleanup_actionframe(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter)
 			&adapter->tx_action_cnf_event,
 			msecs_to_jiffies(ACTION_FRAME_TX_TIMEOUT));
 		if (!rc) {
-			hdd_err("HDD Wait for Action Confirmation Failed!!");
+			hdd_debug("HDD Wait for Action Confirmation Failed!!");
 			/*
 			 * Inform tx status as FAILURE to upper layer and free
 			 * cfgState->buf
