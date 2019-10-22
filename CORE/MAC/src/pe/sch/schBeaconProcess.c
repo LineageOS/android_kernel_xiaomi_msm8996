@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -780,11 +780,6 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
              lim_parse_beacon_for_tim(pMac,
                  pRxPacketInfo, psessionEntry);
         return;
-    }
-
-    if (beaconStruct.ssidPresent)
-    {
-        beaconStruct.ssId.ssId[beaconStruct.ssId.length] = 0;
     }
 
     /*

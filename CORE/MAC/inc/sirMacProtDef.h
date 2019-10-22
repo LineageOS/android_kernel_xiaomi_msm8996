@@ -1035,10 +1035,11 @@ struct merged_mac_rate_set {
 	uint8_t rate[2 * SIR_MAC_RATESET_EID_MAX];
 };
 
+/* Reserve 1 byte for NULL character in the SSID name field to print in %s */
 typedef __ani_attr_pre_packed struct sSirMacSSid
 {
     tANI_U8        length;
-    tANI_U8        ssId[SIR_MAC_MAX_SSID_LENGTH];
+    tANI_U8        ssId[SIR_MAC_MAX_SSID_LENGTH + 1];
 } __ani_attr_packed tSirMacSSid;
 
 typedef __ani_attr_pre_packed struct sSirMacWpaInfo
