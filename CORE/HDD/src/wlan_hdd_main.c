@@ -8797,6 +8797,11 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
     } else {
         hdd_ctx->prevent_suspend = false;
     }
+
+    if (!cfg->fast_chswitch_cali_support)
+        cfg_ini->enable_fast_ch_switch_cali = false;
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: FastChSwitchCali support flag %d",
+           __func__, cfg_ini->enable_fast_ch_switch_cali);
 }
 
 /**
@@ -16764,6 +16769,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
    int set_value;
    struct sme_5g_band_pref_params band_pref_params;
+   tpAniSirGlobal mac_ptr;
 
    ENTER();
 
@@ -17890,6 +17896,26 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    hdd_set_btc_bt_wlan_interval(pHddCtx);
 
    hdd_runtime_suspend_init(pHddCtx);
+
+   if (vos_is_fast_chswitch_cali_enabled()) {
+       mac_ptr = PMAC_STRUCT(pHddCtx->hHal);
+       init_completion(&mac_ptr->full_chan_cal);
+       ret = process_wma_set_command(0, WMI_PDEV_CHECK_CAL_VERSION_CMDID,
+                                     0, PDEV_CMD);
+       if (0 != ret) {
+           hddLog(VOS_TRACE_LEVEL_ERROR,
+                  "%s: WMI_PDEV_CHECK_CAL_VERSION_CMDID failed %d",
+                  __func__, ret);
+       }
+       sme_set_cali_chanlist(mac_ptr);
+       rc = wait_for_completion_timeout(
+	 &mac_ptr->full_chan_cal,
+	 msecs_to_jiffies(6000));
+       if (!rc)
+           hddLog(VOS_TRACE_LEVEL_ERROR,
+                  "%s: cali timed out", __func__);
+   }
+
    pHddCtx->isLoadInProgress = FALSE;
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);

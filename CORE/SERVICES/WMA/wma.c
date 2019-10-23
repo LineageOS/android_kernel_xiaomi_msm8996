@@ -7398,6 +7398,72 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 	return 0;
 }
 
+VOS_STATUS wma_start_cal(void)
+{
+	tp_wma_handle wma_handle;
+	wmi_pdev_check_cal_version_cmd_fixed_param *cmd;
+	s32 len;
+	wmi_buf_t buf;
+	u8 *buf_ptr;
+	int ret;
+
+	wma_handle =
+		vos_get_context(VOS_MODULE_ID_WDA,
+				vos_get_global_context(VOS_MODULE_ID_WDA,
+						       NULL));
+
+	if (!wma_handle) {
+		WMA_LOGE("%s: WMA context is invald!", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *)wmi_buf_data(buf);
+	cmd = (wmi_pdev_check_cal_version_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_pdev_check_cal_version_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_pdev_check_cal_version_cmd_fixed_param));
+
+	cmd->pdev_id = 0;
+	WMA_LOGD("%s: start cal", __func__);
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				   WMI_PDEV_CHECK_CAL_VERSION_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send aggregation size command",
+			 __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+int wma_cal_finish_handler(void *handle, u_int8_t *event, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_PDEV_CHECK_CAL_VERSION_EVENTID_param_tlvs *param_buf;
+	wmi_pdev_check_cal_version_event_fixed_param *cal_done_event;
+	tpAniSirGlobal mac_ptr =
+		(tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
+						wma->vos_context);
+
+	WMA_LOGD("%s: cal event recv", __func__);
+	param_buf = (WMI_PDEV_CHECK_CAL_VERSION_EVENTID_param_tlvs *)event;
+	if (!param_buf) {
+		WMA_LOGE("Invalid cal event buffer");
+		return -EINVAL;
+	}
+	cal_done_event = param_buf->fixed_param;
+	complete(&mac_ptr->full_chan_cal);
+
+	return 0;
+}
+
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 static int wma_gtk_offload_status_event(void *handle, u_int8_t *event,
 					u_int32_t len)
@@ -16211,6 +16277,19 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 				 status);
 		return;
 	} else {
+		if (wma->interfaces[req.vdev_id].is_channel_switch) {
+			u32 freq;
+			int j;
+
+			freq = vos_chan_to_freq(req.chan);
+			for (j = 0; j < CALI_FRAG_IDX_MAX; j++) {
+				if (A_OK !=
+				    htt_h2t_chan_cali_data_msg(pdev->htt_pdev,
+							       freq, j))
+					WMA_LOGE("%s: download cali data failed for chan %d\n",
+						 __func__, req.chan);
+			}
+		}
 
 		status = wma_vdev_start(wma, &req,
 				wma->interfaces[req.vdev_id].is_channel_switch);
@@ -18100,6 +18179,11 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		   (privcmd->param_id == WMI_PDEV_PARAM_TX_CHAIN_MASK_5G))
 			wma_update_txrx_chainmask(wma->num_rf_chains,
 						&privcmd->param_value);
+		else if (privcmd->param_id ==
+			 WMI_PDEV_CHECK_CAL_VERSION_CMDID) {
+			wma_start_cal();
+			break;
+		}
 
 		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
 						privcmd->param_id,
@@ -38759,6 +38843,9 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 		cfg->get_peer_info_enabled = 1;
 	cfg->wow_support = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 						  WMI_SERVICE_WOW);
+	cfg->fast_chswitch_cali_support =
+		WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+				       WMI_SERVICE_CHECK_CAL_VERSION);
 }
 
 static inline void wma_update_target_ht_cap(tp_wma_handle wh,

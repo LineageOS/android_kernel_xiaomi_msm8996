@@ -1043,6 +1043,8 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
 #ifdef DEBUG_HL_LOGGING
     adf_os_spinlock_destroy(&pdev->grp_stat_spinlock);
 #endif
+    if (vos_is_fast_chswitch_cali_enabled())
+        cali_deinit(pdev->htt_pdev);
 
     /*
      * WDI event detach

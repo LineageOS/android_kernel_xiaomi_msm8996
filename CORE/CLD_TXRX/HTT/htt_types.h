@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2014, 2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014, 2016 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -211,6 +211,25 @@ struct rx_buf_debug {
 };
 #endif
 
+#define MAX_WIFI_CHAN_CNT 41
+#define CALI_FRAG_IDX_MAX 2
+
+/**
+ * struct chan_cali_data - channel's cali data
+ * @freq: channel freq
+ * @payloadsize: cali data length
+ * @cali_data_valid: cali data valid flag
+ * @buf: cali data msg buf include h2t head
+ * @cali_data_buf: cali data msg buf
+ */
+struct chan_cali_data {
+	u32 freq;
+	u16 payloadsize[CALI_FRAG_IDX_MAX + 1];
+	bool cali_data_valid[CALI_FRAG_IDX_MAX + 1];
+	adf_nbuf_t buf[CALI_FRAG_IDX_MAX + 1];
+	u32 *cali_data_buf[CALI_FRAG_IDX_MAX + 1];
+};
+
 struct htt_pdev_t {
     ol_pdev_handle ctrl_pdev;
     ol_txrx_pdev_handle txrx_pdev;
@@ -373,6 +392,7 @@ struct htt_pdev_t {
     struct rx_buf_debug *rx_buff_list;
     int rx_buff_index;
 #endif
+    struct chan_cali_data chan_cali_data_array[MAX_WIFI_CHAN_CNT + 1];
 
     /* callback function for packetdump */
     tp_rx_pkt_dump_cb rx_pkt_dump_cb;

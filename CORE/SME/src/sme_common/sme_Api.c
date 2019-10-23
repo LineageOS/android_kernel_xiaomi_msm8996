@@ -18669,6 +18669,17 @@ sme_set_sta_chanlist_with_sub20(tHalHandle hal_ptr, uint8_t chan_width)
 	return status;
 }
 
+eHalStatus
+sme_set_cali_chanlist(tHalHandle hal_ptr)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	tpAniSirGlobal mac_ptr  = PMAC_STRUCT(hal_ptr);
+
+	status = csrUpdateCaliChannelList(mac_ptr);
+
+	return status;
+}
+
 /**
  * sme_enable_phy_error_logs() - Enable DFS phy error logs
  * @hal:        global hal handle

@@ -2916,6 +2916,11 @@ typedef enum
 #define CFG_ENABLE_SNR_MONITORING_MAX               ( 1 )
 #define CFG_ENABLE_SNR_MONITORING_DEFAULT           ( 0 )
 
+#define CFG_ENABLE_FAST_CH_SWITCH_CALI_NAME              "gEnableFastChSwitchCali"
+#define CFG_ENABLE_FAST_CH_SWITCH_CALI_DISABLE              (0)
+#define CFG_ENABLE_FAST_CH_SWITCH_CALI_ENABLE               (1)
+#define CFG_ENABLE_FAST_CH_SWITCH_CALI_DEFAULT           (0)
+
 #ifdef FEATURE_WLAN_SCAN_PNO
 #define CFG_PNO_SCAN_SUPPORT                         "gPNOScanSupport"
 #define CFG_PNO_SCAN_SUPPORT_ENABLE                  ( 1 )
@@ -6421,6 +6426,7 @@ struct hdd_config {
    v_BOOL_t                    enableIbssHeartBeatOffload;
    v_U32_t                     antennaDiversity;
    v_BOOL_t                    fEnableSNRMonitoring;
+   bool                        enable_fast_ch_switch_cali;
    /*PNO related parameters */
 #ifdef FEATURE_WLAN_SCAN_PNO
    v_BOOL_t                    configPNOScanSupport;
