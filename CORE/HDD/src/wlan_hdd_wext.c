@@ -5347,7 +5347,7 @@ int wlan_hdd_update_phymode(struct net_device *net, tHalHandle hal,
 #endif
     v_BOOL_t band_24 = VOS_FALSE, band_5g = VOS_FALSE;
     v_BOOL_t ch_bond24 = VOS_FALSE, ch_bond5g = VOS_FALSE;
-    tSmeConfigParams smeconfig;
+    tSmeConfigParams smeconfig = {0};
     tANI_U32 chwidth = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
 #ifdef WLAN_FEATURE_11AC
     tANI_U32 vhtchanwidth;
