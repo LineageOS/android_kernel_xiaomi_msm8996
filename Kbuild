@@ -1723,6 +1723,10 @@ ifeq ($(CONFIG_WLAN_SYNC_TSF_PTP), y)
 CDEFINES += -DWLAN_FEATURE_TSF_PTP
 endif
 
+ifeq ($(CONFIG_ARCH_QCS405), y)
+CDEFINES += -DCONFIG_QTIME_TSF_SHOW
+endif
+
 # Enable target dump for non-qualcomm platform
 ifeq ($(CONFIG_NON_QC_PLATFORM), y)
 CDEFINES += -DCONFIG_NON_QC_PLATFORM
