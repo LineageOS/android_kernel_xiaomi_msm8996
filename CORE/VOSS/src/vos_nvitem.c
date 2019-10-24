@@ -2400,7 +2400,7 @@ static int create_linux_regulatory_entry(v_REGDOMAIN_t temp_reg_domain,
 
             }
             /* Copy wiphy flags in nv table */
-            if (n != -1)
+            if (n != INVALID_RF_CHANNEL)
                 pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
                     channels[n].flags = wiphy->bands[i]->channels[j].flags;
             pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].
