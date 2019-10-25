@@ -2326,6 +2326,7 @@ void hdd_PerformRoamSetKeyComplete(hdd_adapter_t *pAdapter)
 	if (!roam_info)
 		return;
 
+	vos_mem_set(roam_info, sizeof(*roam_info), 0);
 	roam_info->fAuthRequired = FALSE;
 	vos_mem_copy(roam_info->bssid,
 	             pHddStaCtx->roam_info.bssid,
