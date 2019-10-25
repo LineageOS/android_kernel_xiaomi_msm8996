@@ -8335,9 +8335,11 @@ const struct iw_handler_def hostapd_handler_def = {
    .get_wireless_stats = NULL,
 };
 
+#ifdef WLAN_FEATURE_TSF_PTP
 static const struct ethtool_ops wlan_hostapd_ethtool_ops = {
 	.get_ts_info = wlan_get_ts_info,
 };
+#endif
 
 struct net_device_ops net_ops_struct  = {
     .ndo_open = hdd_hostapd_open,
@@ -8357,11 +8359,18 @@ static int hdd_set_hostapd(hdd_adapter_t *pAdapter)
     return VOS_STATUS_SUCCESS;
 }
 
+#ifdef WLAN_FEATURE_TSF_PTP
 void hdd_set_ap_ops( struct net_device *pWlanHostapdDev )
 {
 	pWlanHostapdDev->netdev_ops = &net_ops_struct;
 	pWlanHostapdDev->ethtool_ops = &wlan_hostapd_ethtool_ops;
 }
+#else
+void hdd_set_ap_ops( struct net_device *pWlanHostapdDev )
+{
+	pWlanHostapdDev->netdev_ops = &net_ops_struct;
+}
+#endif
 
 VOS_STATUS hdd_init_ap_mode(hdd_adapter_t *pAdapter, bool reinit)
 {
