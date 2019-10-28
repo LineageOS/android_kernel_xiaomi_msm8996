@@ -1917,6 +1917,11 @@ CDEFINES += -DIFNAME_SUFFIX=\"\"
 CDEFINES += -DIFNAME_SUFFIX_SIZE=0
 endif
 
+ifeq ($(CONFIG_ARCH_QCS405), y)
+CDEFINES += -DFW_RAM_DUMP_TO_FILE
+CDEFINES += -DMDM_SAP_11AC_NO_OVERRIDE
+endif
+
 # WLAN_HDD_ADAPTER_MAGIC must be unique for all instances of the driver on the
 # system. If it is not defined, then the host driver will use the first 4
 # characters (including NULL) of MULTI_IF_NAME to construct
