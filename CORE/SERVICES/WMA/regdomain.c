@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011,2013-2014, 2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011,2013-2014, 2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -361,7 +361,7 @@ int32_t regdmn_get_country_alpha2(struct regulatory *reg)
 /*
  * Returns regulatory domain for given country string
  */
-int32_t regdmn_get_regdmn_for_country(u_int8_t *alpha2)
+uint16 regdmn_get_regdmn_for_country(const u_int8_t *alpha2)
 {
 	u_int8_t i;
 
@@ -370,7 +370,52 @@ int32_t regdmn_get_regdmn_for_country(u_int8_t *alpha2)
 		    (ol_regdmn_Rdt.allCountries[i].isoName[1] == alpha2[1]))
 			return ol_regdmn_Rdt.allCountries[i].regDmnEnum;
 	}
-	return -1;
+	return 0;
+}
+
+void regdmn_map_country_to_vos_regdmn(const unsigned char *alpha2,
+				      v_REGDOMAIN_t *vos_regdmn)
+{
+	uint16 regdmn_enum, regdmn_5g;
+	uint8 ctl_5g;
+
+	*vos_regdmn = REGDOMAIN_COUNT;
+
+	regdmn_enum = regdmn_get_regdmn_for_country(alpha2);
+
+	if (regdmn_enum == 0) {
+		adf_os_print("%s: get regdmn for %s failed\n", __func__, alpha2);
+		return;
+	}
+
+	regdmn_5g = get_regdmn_5g(regdmn_enum);
+
+	if (regdmn_5g == 0) {
+		adf_os_print("%s: get 5g regdmn for %s failed\n", __func__, alpha2);
+		return;
+	}
+
+	ctl_5g = regdmn_get_ctl_for_regdmn(regdmn_5g);
+
+	if (ctl_5g == 0) {
+		adf_os_print("%s: get 5g ctl for %s failed\n", __func__, alpha2);
+		return;
+	}
+
+	switch (ctl_5g) {
+		case FCC:
+			*vos_regdmn = REGDOMAIN_FCC;
+			break;
+		case ETSI:
+			*vos_regdmn = REGDOMAIN_ETSI;
+			break;
+		case MKK:
+			*vos_regdmn = REGDOMAIN_JAPAN;
+			break;
+		default:
+			adf_os_print("%s: vos regdmn for %s is unset\n", __func__, alpha2);
+			break;
+	}
 }
 
 /*
@@ -616,7 +661,7 @@ u_int8_t regdmn_get_ctl_for_regdmn(u_int32_t reg_dmn)
             return ol_regdmn_Rdt.regDomains[i].conformance_test_limit;
       }
    }
-   return -1;
+   return 0;
 }
 
 /*
