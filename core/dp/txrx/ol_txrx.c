@@ -115,6 +115,8 @@ enum dpt_set_param_debugfs {
 #define OL_TXRX_PEER_DEC_REF_CNT_SILENT(peer) \
 	qdf_atomic_dec(&peer->ref_cnt)
 
+#define NORMALIZED_TO_NOISE_FLOOR (-96)
+
 ol_txrx_peer_handle
 ol_txrx_peer_find_by_local_id_inc_ref(struct ol_txrx_pdev_t *pdev,
 			      uint8_t local_peer_id);
@@ -5858,7 +5860,11 @@ ol_txrx_update_tx_status(struct ol_txrx_pdev_t *pdev,
 		IEEE80211_CHAN_2GHZ : IEEE80211_CHAN_5GHZ);
 
 	tx_status->chan_flags = channel_flags;
-	tx_status->ant_signal_db = mon_hdr->rssi_comb;
+	/* RSSI is filled with TPC which will be normalized
+	 * during radiotap updation, so add 96 here
+	 */
+	tx_status->ant_signal_db =
+				mon_hdr->rssi_comb - NORMALIZED_TO_NOISE_FLOOR;
 	tx_status->tx_status = mon_hdr->status;
 	tx_status->add_rtap_ext = true;
 	tx_status->tx_retry_cnt = mon_hdr->tx_retry_cnt;
