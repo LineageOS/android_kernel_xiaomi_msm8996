@@ -2364,8 +2364,8 @@ static int wma_rx_service_available_event(void *handle, uint8_t *cmd_param_info,
 
 	wma_handle->wmi_service_ext_offset = ev->wmi_service_segment_offset;
 	qdf_mem_copy(wma_handle->wmi_service_ext_bitmap,
-				&ev->wmi_service_segment_bitmap[0],
-				WMI_SERVICE_EXT_BM_SIZE32 * sizeof(A_UINT32));
+		     &ev->wmi_service_segment_bitmap[0],
+		     WMI_SERVICE_SEGMENT_BM_SIZE32 * sizeof(A_UINT32));
 
 	return 0;
 }
@@ -7791,6 +7791,11 @@ QDF_STATUS wma_mc_process_msg(void *cds_context, cds_msg_t *msg)
 		 */
 		wma_process_roaming_config(wma_handle,
 				(tSirRoamOffloadScanReq *) msg->bodyptr);
+		break;
+
+	case WMA_ROAM_SYNC_TIMEOUT:
+		wma_handle_roam_sync_timeout(wma_handle, msg->bodyptr);
+		qdf_mem_free(msg->bodyptr);
 		break;
 
 	case WMA_RATE_UPDATE_IND:
