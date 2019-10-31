@@ -1178,5 +1178,6 @@ void regdmn_set_regval(struct regulatory *reg);
 
 int32_t regdmn_find_ctry_by_name(u_int8_t *alpha2);
 void regdmn_set_dfs_region(struct regulatory *reg);
+extern HAL_REG_DMN_TABLES ol_regdmn_Rdt;
 
 #endif /* REGULATORY_H */
