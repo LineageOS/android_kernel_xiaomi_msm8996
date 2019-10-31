@@ -7289,7 +7289,7 @@ limProcessUpdateAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                 /* In case of append, allocate new memory with combined length */
                 tANI_U16 new_length = pUpdateAddIEs->updateIE.ieBufferlength +
                                 psessionEntry->addIeParams.probeRespDataLen;
-                tANI_U8 *new_ptr = vos_mem_malloc(new_length);
+                tANI_U8 *new_ptr;
                 /* Multiple back to back append commands
                  * can lead to a huge length.So, check
                  * for the validity of the length.
@@ -7305,6 +7305,8 @@ limProcessUpdateAddIEs(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                     pUpdateAddIEs->updateIE.pAdditionIEBuffer = NULL;
                     return;
                 }
+
+                new_ptr = vos_mem_malloc(new_length);
                 if (NULL == new_ptr)
                 {
                     limLog(pMac, LOGE, FL("Memory allocation failed."));
