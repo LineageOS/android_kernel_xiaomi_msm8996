@@ -1705,11 +1705,6 @@ static void wlan_hdd_phc_deinit(hdd_context_t *hdd_ctx)
 }
 #endif
 #else
-int wlan_get_ts_info(struct net_device *dev, struct ethtool_ts_info *info)
-{
-	return -ENOTSUPP;
-}
-
 static void wlan_hdd_phc_init(hdd_context_t *hdd_ctx)
 {
 }

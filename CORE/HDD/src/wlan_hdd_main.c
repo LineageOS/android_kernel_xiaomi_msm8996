@@ -10883,9 +10883,11 @@ uint16_t hdd_select_queue(struct net_device *dev, struct sk_buff *skb)
 	return hdd_wmm_select_queue(dev, skb);
 }
 
+#ifdef WLAN_FEATURE_TSF_PTP
 static const struct ethtool_ops wlan_ethtool_ops = {
 	.get_ts_info = wlan_get_ts_info,
 };
+#endif
 
 static struct net_device_ops wlan_drv_ops = {
       .ndo_open = hdd_open,
@@ -10919,6 +10921,7 @@ static struct net_device_ops wlan_mon_dev_ops = {
 	.ndo_stop = hdd_vir_mon_stop,
 };
 
+#ifdef WLAN_FEATURE_TSF_PTP
 void hdd_set_station_ops( struct net_device *pWlanDev )
 {
 	if (VOS_MONITOR_MODE == hdd_get_conparam())
@@ -10927,6 +10930,15 @@ void hdd_set_station_ops( struct net_device *pWlanDev )
 		pWlanDev->netdev_ops = &wlan_drv_ops;
 	pWlanDev->ethtool_ops = &wlan_ethtool_ops;
 }
+#else
+void hdd_set_station_ops( struct net_device *pWlanDev )
+{
+	if (VOS_MONITOR_MODE == hdd_get_conparam())
+		pWlanDev->netdev_ops = &wlan_mon_drv_ops;
+	else
+		pWlanDev->netdev_ops = &wlan_drv_ops;
+}
+#endif
 
 void hdd_set_monitor_ops(struct net_device *pwlan_dev)
 {
