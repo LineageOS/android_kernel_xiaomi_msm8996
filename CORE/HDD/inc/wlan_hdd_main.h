@@ -1349,6 +1349,10 @@ struct hdd_adapter_s
 #ifdef WLAN_FEATURE_TSF
 #define MAX_INVALD_TIME_NUM 4
    /* tsf value get from firmware */
+#ifndef CONFIG_NON_QC_PLATFORM
+   uint64_t cur_qtime;
+   uint64_t last_qtime;
+#endif
    uint64_t cur_target_time;
    uint64_t cur_host_time;
    uint64_t last_host_time;
