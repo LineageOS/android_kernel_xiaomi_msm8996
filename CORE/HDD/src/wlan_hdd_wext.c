@@ -367,6 +367,7 @@ typedef enum eMonFilterType{
 #define WE_GET_OEM_DATA_CAP                       13
 #endif
 #define WE_GET_SNR                                14
+#define WE_GET_PS_TDCC                            15
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_NONE               (SIOCIWFIRSTPRIV + 6)
@@ -8581,6 +8582,11 @@ static int __iw_get_char_setnone(struct net_device *dev,
             wrqu->data.length = strlen(extra) + 1;
             break;
         }
+        case WE_GET_PS_TDCC:
+        {
+            return hdd_wlan_get_ps_tdcc_info(pAdapter, &(wrqu->data.length),
+                                             extra, WE_MAX_STR_LEN);
+        }
         default:
         {
             hddLog(LOGE, "%s: Invalid IOCTL command %d", __func__, sub_cmd );
@@ -11600,25 +11606,76 @@ VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *i
   return VOS_STATUS_SUCCESS;
 }/*iw_set_power_params*/
 
-int wlan_hdd_process_tdcc_ps(hdd_adapter_t *adapter, int enable, int percentage)
+int hdd_wlan_get_ps_tdcc_info(hdd_adapter_t *adapter,
+			      uint16_t *length,
+			      char *buffer,
+			      uint16_t buf_len)
+{
+	int32_t tdcc_enable, tdcc_percent, ret;
+	uint32_t len;
+
+	ret = wlan_hdd_process_tdcc_ps(adapter, PS_TDCC_GET,
+				       &tdcc_enable, &tdcc_percent);
+	if (ret)
+		return ret;
+
+	len = snprintf(buffer, buf_len, "\nTDCC enable=%d percent=%d\n",
+		       tdcc_enable, tdcc_percent);
+	if (len >= buf_len) {
+		hddLog(LOGE, "Insufficient buffer:%d, %d", buf_len, len);
+		return -E2BIG;
+	}
+
+	*length = len + 1;
+	return 0;
+}
+
+int wlan_hdd_process_tdcc_ps(hdd_adapter_t *adapter,
+			     enum tdcc_cmd_type cmd,
+			     int *enable, int *percentage)
 {
 	static int32_t ps_tdcc_enabled = 0;
+	static int32_t ps_tdcc_percent = 0;
 
-	if (enable !=0 && enable != 1) {
-		hddLog(LOGE, "Invalid tdcc enable/disable");
+	if ((!enable || !percentage) && cmd != PS_TDCC_RESET) {
+		hddLog(LOGE, "Input enable/percentage null pointer");
 		return -EINVAL;
 	}
-	if (percentage < 0 || percentage > 100) {
-		hddLog(LOGE, "Invalid tdcc duty cycle percentage");
+
+	switch (cmd) {
+	case PS_TDCC_SET:
+		if (*enable != 0 && *enable != 1) {
+			hddLog(LOGE, "Invalid tdcc enable/disable");
+			return -EINVAL;
+		}
+		if (*percentage < 0 || *percentage > 100) {
+			hddLog(LOGE, "Invalid tdcc duty cycle percentage");
+			return -EINVAL;
+		}
+		break;
+	case PS_TDCC_RESET:
+		ps_tdcc_enabled = 0;
+		ps_tdcc_percent = 0;
+		return 0;
+	case PS_TDCC_GET:
+		*enable = ps_tdcc_enabled;
+		*percentage = ps_tdcc_percent;
+		return 0;
+	default:
+		hddLog(LOGE, "Invalid tdcc command %d", cmd);
 		return -EINVAL;
 	}
-	if (enable == ps_tdcc_enabled)
+
+	if (*enable == ps_tdcc_enabled &&
+	    (*percentage == ps_tdcc_percent || *enable == 0))
 		return 0;
 
-	ps_tdcc_enabled = enable;
+	hddLog(LOG1, "Set tdcc enable:%d percentage:%d", *enable, *percentage);
+	ps_tdcc_enabled = *enable;
+	ps_tdcc_percent = *percentage;
 	return process_wma_set_command_twoargs((int)adapter->sessionId,
 					       (int)GEN_PARAM_PS_TDCC,
-					       enable, percentage, GEN_CMD);
+					       *enable, *percentage, GEN_CMD);
 }
 
 static int __iw_set_two_ints_getnone(struct net_device *dev,
@@ -11662,8 +11719,9 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
         break;
 #endif
     case WE_SET_PS_TDCC:
-	ret = wlan_hdd_process_tdcc_ps(pAdapter, value[1], value[2]);
-	break;
+        ret = wlan_hdd_process_tdcc_ps(pAdapter, PS_TDCC_SET,
+                                       &value[1], &value[2]);
+        break;
     case WE_SET_MON_MODE_CHAN:
         /*
          * TODO: Remove this private implementation use standard
@@ -13002,6 +13060,10 @@ static const struct iw_priv_args we_private_args[] = {
     {   WE_SET_PS_TDCC,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
 	0, "set_ps_tdcc" },
+    {   WE_GET_PS_TDCC,
+        0,
+        IW_PRIV_TYPE_CHAR | WE_MAX_STR_LEN,
+        "get_ps_tdcc" },
 #ifdef FEATURE_PBM_MAGIC_WOW
     {
         WE_SET_WOW_START,

@@ -2517,6 +2517,8 @@ VOS_STATUS hdd_wlan_re_init(void *hif_sc)
    pHddCtx->btCoexModeSet = false;
    hdd_register_mcast_bcast_filter(pHddCtx);
 
+   wlan_hdd_process_tdcc_ps(NULL, PS_TDCC_RESET, NULL, NULL);
+
    /* Allow the phone to go to sleep */
    hdd_allow_suspend(WIFI_POWER_EVENT_WAKELOCK_DRIVER_REINIT);
    /* register for riva power on lock */
