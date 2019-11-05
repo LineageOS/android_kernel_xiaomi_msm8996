@@ -365,6 +365,8 @@ int q6core_get_avcs_fwk_ver_info(uint32_t service_id,
 				 struct avcs_fwk_ver_info *ver_info)
 {
 	int ret;
+	unsigned long timeout;
+	bool adsp_ready = false;
 
 	mutex_lock(&(q6core_lcl.ver_lock));
 	pr_debug("%s: q6core_avcs_ver_info.status(%d)\n",
@@ -378,13 +380,26 @@ int q6core_get_avcs_fwk_ver_info(uint32_t service_id,
 		ret = -ENOSYS;
 		break;
 	case VER_QUERY_UNATTEMPTED:
-		if (q6core_is_adsp_ready()) {
-			ret = q6core_send_get_avcs_fwk_ver_cmd();
+		if (!q6core_is_adsp_ready()) {
+			pr_debug("ADSP isn't ready retry\n");
+			timeout = jiffies +
+				  msecs_to_jiffies(2 * Q6_READY_TIMEOUT_MS);
+			while (!time_after(jiffies, timeout)) {
+				if (!q6core_is_adsp_ready()) {
+					pr_debug("%s: ADSP is not ready to query version\n",
+						 __func__);
+				} else {
+					adsp_ready = true;
+					break;
+				}
+			}
 		} else {
-			pr_err("%s: ADSP is not ready to query version\n",
-				 __func__);
-			ret = -ENODEV;
+			adsp_ready = true;
 		}
+		if (adsp_ready == true)
+			ret = q6core_send_get_avcs_fwk_ver_cmd();
+		else
+			ret = -ENODEV;
 		break;
 	default:
 		pr_err("%s: Invalid version query status %d\n",
