@@ -5857,6 +5857,8 @@ ol_txrx_update_tx_status(struct ol_txrx_pdev_t *pdev,
 
 	tx_status->chan_flags = channel_flags;
 	tx_status->ant_signal_db = mon_hdr->rssi_comb;
+	tx_status->tx_status = mon_hdr->status;
+	tx_status->add_rtap_ext = true;
 }
 
 /**
@@ -5945,6 +5947,7 @@ ol_txrx_mon_tx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		mon_hdr.sgi = cmpl_desc->sgi;
 		mon_hdr.ldpc = cmpl_desc->ldpc;
 		mon_hdr.beamformed = cmpl_desc->beamformed;
+		mon_hdr.status = status;
 
 		qdf_nbuf_pull_head(
 			msdu,
@@ -6158,6 +6161,9 @@ ol_txrx_mon_rx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		ol_htt_mon_note_chan(pdev, chan);
 		htt_rx_mon_get_rx_status(pdev->htt_pdev, rx_desc, &rx_status);
 
+		rx_status.tx_status = status;
+		rx_status.add_rtap_ext = true;
+
 		/* clear IEEE80211_RADIOTAP_F_FCS flag*/
 		rx_status.rtap_flags &= ~(BIT(4));
 		rx_status.rtap_flags &= ~(BIT(2));
@@ -6192,6 +6198,36 @@ ol_txrx_mon_rx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 
 free_buf:
 	drop_count = ol_txrx_drop_nbuf_list(buf_list);
+}
+
+/**
+ * ol_txrx_pktcapture_status_map() - map Tx status for data packets
+ * with packet capture Tx status
+ * @status: Tx status
+ *
+ * Return: pktcapture_tx_status enum
+ */
+static enum pktcapture_tx_status
+ol_txrx_pktcapture_status_map(uint8_t status)
+{
+	enum pktcapture_tx_status tx_status;
+
+	switch (status) {
+	case htt_tx_status_ok:
+		tx_status = pktcapture_tx_status_ok;
+		break;
+	case htt_tx_status_discard:
+		tx_status = pktcapture_tx_status_discard;
+		break;
+	case htt_tx_status_no_ack:
+		tx_status = pktcapture_tx_status_no_ack;
+		break;
+	default:
+		tx_status = pktcapture_tx_status_discard;
+		break;
+	}
+
+	return tx_status;
 }
 
 void ol_txrx_mon_data_process(uint8_t vdev_id,
@@ -6233,7 +6269,7 @@ void ol_txrx_mon_data_process(uint8_t vdev_id,
 	pkt->monpkt = (void *)mon_buf_list;
 	pkt->vdev_id = vdev_id;
 	pkt->tid = tid;
-	pkt->status = status;
+	pkt->status = ol_txrx_pktcapture_status_map(status);
 	pkt->pkt_format = pkt_format;
 	cds_indicate_monpkt(sched_ctx, pkt);
 	return;

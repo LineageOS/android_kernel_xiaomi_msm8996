@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -2460,10 +2460,6 @@ __wlan_hdd_cfg80211_extscan_get_valid_channels(struct wiphy *wiphy,
 	if (0 != ret)
 		return -EINVAL;
 
-	if (!pHddCtx->config->extscan_enabled) {
-		hdd_err("extscan not supported");
-		return -ENOTSUPP;
-	}
 	if (hdd_nla_parse(tb,
 			  QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_MAX,
 			  data, data_len, wlan_hdd_extscan_config_policy)) {
