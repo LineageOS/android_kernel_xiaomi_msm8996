@@ -19442,7 +19442,8 @@ void hdd_ch_avoid_cb
                        ch_avoid_indi->avoid_freq_range[range_loop].end_freq) {
                end_channel_idx = channel_loop;
                if (rfChannels[channel_loop].targetFreq >
-                        ch_avoid_indi->avoid_freq_range[range_loop].end_freq)
+                   ch_avoid_indi->avoid_freq_range[range_loop].end_freq &&
+                   end_channel_idx > 0)
                    end_channel_idx--;
                break;
             }
