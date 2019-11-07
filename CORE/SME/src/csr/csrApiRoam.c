@@ -17785,7 +17785,7 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
                             tANI_U8 staId, void *pContext,
                             tANI_U8 sessionId)
 {
-   tCsrStatsClientReqInfo staEntry;
+   tCsrStatsClientReqInfo staEntry = {0};
    tCsrStatsClientReqInfo *pStaEntry = NULL;
    tCsrPeStatsReqInfo *pPeStaEntry = NULL;
    tListElem *pEntry = NULL;
