@@ -717,7 +717,7 @@ int hdd_priv_get_data(struct iw_point *p_priv_data,
    return 0;
 }
 
-#define WLAN_HDD_MAX_BW_VALUE	5
+#define WLAN_HDD_MAX_BW_VALUE	6
 
 /**
  * wlan_hdd_validate_mon_channel() - check channel number is valid or not
@@ -759,7 +759,7 @@ VOS_STATUS wlan_hdd_validate_mon_bw(int ch, int bw)
             /* Check if bandwidth from user is valid in 2.4GHz */
             if ((ch >= rfChannels[RF_CHAN_1].channelNum) &&
                 (ch <= rfChannels[RF_CHAN_14].channelNum)) {
-                if (bw > 1) {
+                if ((bw != 5 && bw != 6) && bw > 1) {/* 5M bw == 5; 10M bw == 6 */
                    hddLog(VOS_TRACE_LEVEL_ERROR,
                        "Invalid bw %d for 2.4GHz Chan [%d]",bw,ch);
                    return VOS_STATUS_E_INVAL;
@@ -11759,10 +11759,10 @@ static int __iw_set_two_ints_getnone(struct net_device *dev,
             }
             vos_mem_zero(roam_profile, sizeof(*roam_profile));
 
-            if (vht_channel_width == 4) {
+            if (vht_channel_width == 5) {
                 vht_channel_width = 0;
                 roam_profile->sub20_channelwidth = SUB20_MODE_5MHZ;
-            } else if (vht_channel_width == 5) {
+            } else if (vht_channel_width == 6) {
                 vht_channel_width = 0;
                 roam_profile->sub20_channelwidth = SUB20_MODE_10MHZ;
             } else {
