@@ -1990,6 +1990,17 @@ VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 WLAN_PHY_MODE wma_chan_to_mode(uint8_t chan, ePhyChanBondState chan_offset,
 		uint8_t vht_capable, uint8_t dot11_mode);
 
+/**
+ * wma_cal_finish_handler()
+ * @handle: WMI handle
+ * @event: event data
+ * @len: Length of @event
+ *
+ * This is the WMI event handler function to receive cali
+ * finish event.
+ */
+int wma_cal_finish_handler(void *handle, u_int8_t *event, u_int32_t len);
+
 #define RESET_BEACON_INTERVAL_TIMEOUT 200
 struct wma_beacon_interval_reset_req {
 	vos_timer_t event_timeout;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2014, 2016, 2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011, 2014, 2016, 2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -46,7 +46,7 @@
 /* TID */
 #define OL_HTT_TID_NON_QOS_UNICAST     16
 #define OL_HTT_TID_NON_QOS_MCAST_BCAST 18
-
+#define CHAN_CALI_DATA_LEN 1152
 
 struct htt_pdev_t;
 typedef struct htt_pdev_t *htt_pdev_handle;
@@ -81,6 +81,32 @@ htt_attach(
     HTC_HANDLE htc_pdev,
     adf_os_device_t osdev,
     int desc_pool_size);
+
+/**
+ * cali_init()
+ * @pdev: handle to the HTT instance
+ *
+ * This function is used to init cali structure
+ * Return: A_OK if successful
+ */
+int cali_init(struct htt_pdev_t *pdev);
+
+/**
+ * cali_deinit()
+ * @pdev: handle to deinit cali structure
+ *
+ * This function is used send cali data to firmware
+ */
+void cali_deinit(struct htt_pdev_t *pdev);
+
+/**
+ * get_chan_cali_data_index()
+ * @freq: channel freq
+ *
+ * This function is used get cali data array index via freq
+ * Return: cali data index
+ */
+uint8_t get_chan_cali_data_index(uint32_t freq);
 
 /**
  * @brief Send HTT configuration messages to the target.
@@ -313,6 +339,18 @@ htt_ipa_uc_attach(struct htt_pdev_t *pdev);
 void
 htt_ipa_uc_detach(struct htt_pdev_t *pdev);
 #endif /* IPA_UC_OFFLOAD */
+
+/**
+ * htt_h2t_chan_cali_data_msg()
+ * @pdev: handle to the HTT instance
+ * @freq: channel freq
+ * @frag_idx: fragment of cali data
+ *
+ * This function is used send cali data to firmware
+ * Return: A_OK if cali data send successful
+ */
+int htt_h2t_chan_cali_data_msg(struct htt_pdev_t *pdev, u32 freq,
+			       u32 frag_idx);
 
 #if defined(DEBUG_HL_LOGGING) && defined(CONFIG_HL_SUPPORT)
 void

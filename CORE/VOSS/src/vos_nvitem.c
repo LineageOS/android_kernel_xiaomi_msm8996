@@ -1626,12 +1626,17 @@ bool vos_is_dsrc_channel(uint16_t center_freq)
 {
     switch (center_freq) {
     case 5852:
+    case 5855:
     case 5860:
+    case 5865:
     case 5870:
     case 5880:
+    case 5885:
     case 5890:
+    case 5895:
     case 5900:
     case 5910:
+    case 5915:
     case 5920:
     case 5875:
     case 5905:

@@ -719,6 +719,81 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
     return eHAL_STATUS_SUCCESS;
 }
 
+eHalStatus csrUpdateCaliChannelList(tpAniSirGlobal mac_ptr)
+{
+	tSirUpdateChanList *chanlist_ptr;
+	tCsrScanStruct *scan_ptr = &mac_ptr->scan;
+	u8 num_chan = scan_ptr->baseChannels.numChannels;
+	u8 num_channel = 0;
+	u32 buf_len;
+	vos_msg_t msg;
+	u8 i;
+	u8 channel_state;
+	u8  channel;
+
+	buf_len = sizeof(tSirUpdateChanList) +
+		(sizeof(tSirUpdateChanParam) * (num_chan));
+
+	chanlist_ptr = (tSirUpdateChanList *)vos_mem_malloc(buf_len);
+	if (!chanlist_ptr) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			  "Failed to allocate memory for tSirUpdateChanList");
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+	vos_mem_zero(chanlist_ptr, buf_len);
+
+	for (i = 0; i < num_chan; i++) {
+		channel = scan_ptr->baseChannels.channelList[i];
+		channel_state =
+			vos_nv_getChannelEnabledState(channel);
+		if (vos_is_dsrc_channel(vos_chan_to_freq(channel)) &&
+		    channel != 173)
+			continue;
+		smsLog(mac_ptr, LOG1, FL("base channel %d state %d"),
+		       channel, channel_state);
+
+		chanlist_ptr->chanParam[num_channel].chanId =
+			scan_ptr->baseChannels.channelList[i];
+		num_channel++;
+	}
+
+	if ((mac_ptr->roam.configParam.uCfgDot11Mode ==
+             eCSR_CFG_DOT11_MODE_AUTO) ||
+	    (mac_ptr->roam.configParam.uCfgDot11Mode ==
+	     eCSR_CFG_DOT11_MODE_11AC) ||
+	    (mac_ptr->roam.configParam.uCfgDot11Mode ==
+	     eCSR_CFG_DOT11_MODE_11AC_ONLY)) {
+		chanlist_ptr->vht_en = true;
+		if (mac_ptr->roam.configParam.enableVhtFor24GHz)
+			chanlist_ptr->vht_24_en = true;
+	}
+
+	if ((mac_ptr->roam.configParam.uCfgDot11Mode ==
+             eCSR_CFG_DOT11_MODE_AUTO) ||
+	    (mac_ptr->roam.configParam.uCfgDot11Mode ==
+	     eCSR_CFG_DOT11_MODE_11N) ||
+	    (mac_ptr->roam.configParam.uCfgDot11Mode ==
+	     eCSR_CFG_DOT11_MODE_11N_ONLY)) {
+		chanlist_ptr->ht_en = true;
+	}
+
+	msg.type = WDA_UPDATE_CHAN_LIST_REQ;
+	msg.reserved = 0;
+	msg.bodyptr = chanlist_ptr;
+	chanlist_ptr->numChan = num_channel;
+	MTRACE(vos_trace(VOS_MODULE_ID_SME, TRACE_CODE_SME_TX_WDA_MSG,
+			 NO_SESSION, msg.type));
+	if (VOS_STATUS_SUCCESS !=
+	    vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+			  "%s: Failed to post msg to WDA", __func__);
+		vos_mem_free(chanlist_ptr);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
 eHalStatus csrStart(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;

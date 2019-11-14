@@ -2918,6 +2918,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_SNR_MONITORING_MIN,
                  CFG_ENABLE_SNR_MONITORING_MAX),
 
+    REG_VARIABLE(CFG_ENABLE_FAST_CH_SWITCH_CALI_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, enable_fast_ch_switch_cali,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_ENABLE_FAST_CH_SWITCH_CALI_DEFAULT,
+                 CFG_ENABLE_FAST_CH_SWITCH_CALI_DISABLE,
+                 CFG_ENABLE_FAST_CH_SWITCH_CALI_ENABLE),
+
 #ifdef FEATURE_WLAN_SCAN_PNO
    REG_VARIABLE( CFG_PNO_SCAN_SUPPORT, WLAN_PARAM_Integer,
                  hdd_config_t, configPNOScanSupport,
