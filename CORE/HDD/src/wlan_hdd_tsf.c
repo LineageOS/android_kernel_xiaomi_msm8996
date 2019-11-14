@@ -1320,7 +1320,7 @@ int hdd_tx_timestamp(int32_t status, adf_nbuf_t netbuf, uint64_t target_time)
 		memset(serr, 0, sizeof(*serr));
 		switch (status) {
 		case htt_tx_status_ok:
-			serr->ee.ee_errno = ENOMSG;
+			serr->ee.ee_errno = 0;
 			break;
 		case htt_tx_status_discard:
 			serr->ee.ee_errno = ENOBUFS;
