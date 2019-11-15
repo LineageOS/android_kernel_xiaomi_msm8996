@@ -3130,10 +3130,12 @@ sapGotoStarting
     halStatus = sme_RoamConnect(hHal, sapContext->sessionId,
             &sapContext->csrRoamProfile,
             &sapContext->csrRoamId);
-    if (eHAL_STATUS_SUCCESS != halStatus)
+    if (eHAL_STATUS_SUCCESS != halStatus) {
         VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
         "%s: Failed to issue sme_RoamConnect", __func__);
-        return halStatus;
+    }
+
+    return halStatus;
 
 }// sapGotoStarting
 

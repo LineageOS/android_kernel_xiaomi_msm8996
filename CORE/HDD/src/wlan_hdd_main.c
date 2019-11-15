@@ -17994,8 +17994,8 @@ err_close_cesium:
 err_ptt_sock_activate_svc:
 #ifdef PTT_SOCK_SVC_ENABLE
    ptt_sock_deactivate_svc();
-#endif
 err_oem_activate_service:
+#endif
 #ifdef FEATURE_OEM_DATA_SUPPORT
    oem_deactivate_service();
 #endif

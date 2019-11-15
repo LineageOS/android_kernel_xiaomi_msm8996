@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012,2014,2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2012,2014,2016, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -192,6 +192,67 @@ typedef enum
    VOS_PKT_USER_DATA_ID_MAX
 
 } VOS_PKT_USER_DATA_ID;
+
+/**
+ * enum pkt_type - packet type
+ * @START_MONITOR: indicates parser to start packetdump parsing
+ * @STOP_MONITOR: indicates parser to stop packetdump parsing
+ * @TX_MGMT_PKT: TX management Packet
+ * @TX_DATA_PKT: TX data Packet
+ * @RX_MGMT_PKT: RX management Packet
+ * @RX_DATA_PKT: RX data Packet
+ *
+ * This enum has packet types
+ */
+enum pkt_type {
+	START_MONITOR = 1,
+	STOP_MONITOR,
+	TX_MGMT_PKT,
+	TX_DATA_PKT,
+	RX_MGMT_PKT,
+	RX_DATA_PKT,
+};
+
+/**
+ * enum rx_pkt_fate - tx packet fate
+ * @RX_PKT_FATE_SUCCESS: Valid and delivered to
+ * network stack (e.g., netif_rx()).
+ * @RX_PKT_FATE_FW_QUEUED: Queued within firmware,
+ * but not yet sent to driver.
+ * @RX_PKT_FATE_FW_DROP_FILTER: Dropped by firmware
+ * due to host-programmable filters.
+ * @RX_PKT_FATE_FW_DROP_INVALID: Dropped by firmware
+ * as invalid. E.g. bad checksum, decrypt failed, or invalid for current state.
+ * @RX_PKT_FATE_FW_DROP_NOBUFS: Dropped by firmware
+ * due to lack of buffer space.
+ * @RX_PKT_FATE_FW_DROP_OTHER: Dropped by firmware
+ * for any other reason.
+ * @RX_PKT_FATE_DRV_QUEUED: Queued within driver,
+ * not yet delivered to network stack.
+ * @RX_PKT_FATE_DRV_DROP_FILTER: Dropped by drive
+ * r due to filter rules.
+ * @RX_PKT_FATE_DRV_DROP_INVALID: Dropped by driver as invalid.
+ * E.g. not permitted in current state.
+ * @RX_PKT_FATE_DRV_DROP_NOBUFS: Dropped by driver
+ * due to lack of buffer space.
+ * @RX_PKT_FATE_DRV_DROP_OTHER: Dropped by driver for any other reason.
+ *
+ * This enum has packet fate types
+ */
+
+enum rx_pkt_fate {
+	RX_PKT_FATE_SUCCESS,
+	RX_PKT_FATE_FW_QUEUED,
+	RX_PKT_FATE_FW_DROP_FILTER,
+	RX_PKT_FATE_FW_DROP_INVALID,
+	RX_PKT_FATE_FW_DROP_NOBUFS,
+	RX_PKT_FATE_FW_DROP_OTHER,
+	RX_PKT_FATE_DRV_QUEUED,
+	RX_PKT_FATE_DRV_DROP_FILTER,
+	RX_PKT_FATE_DRV_DROP_INVALID,
+	RX_PKT_FATE_DRV_DROP_NOBUFS,
+	RX_PKT_FATE_DRV_DROP_OTHER,
+};
 
 typedef VOS_STATUS ( *vos_pkt_get_packet_callback )( vos_pkt_t *pPacket,
                                                      v_VOID_t *userData );

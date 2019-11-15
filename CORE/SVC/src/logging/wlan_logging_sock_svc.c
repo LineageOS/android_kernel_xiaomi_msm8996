@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -74,8 +74,10 @@ enum tx_status {
 	tx_status_peer_del,
 };
 
+#ifndef REMOVE_PKT_LOG
 static uint8_t gtx_count;
 static uint8_t grx_count;
+#endif
 
 #define LOGGING_TRACE(level, args...) \
 		VOS_TRACE(VOS_MODULE_ID_HDD, level, ## args)
@@ -1013,6 +1015,7 @@ void wlan_logging_set_fw_flush_complete(void)
  *
  */
 
+#ifndef REMOVE_PKT_LOG
 static int wlan_get_pkt_stats_free_node(void)
 {
 	int ret = 0;
@@ -1128,6 +1131,7 @@ void wlan_pkt_stats_to_logger_thread(void *pl_hdr, void *pkt_dump, void *data)
 		wake_up_interruptible(&gwlan_logging.wait_queue);
 	}
 }
+#endif
 
 /**
  * driver_hal_status_map() - maps driver to hal
@@ -1139,6 +1143,7 @@ void wlan_pkt_stats_to_logger_thread(void *pl_hdr, void *pkt_dump, void *data)
  * Return: None
  *
  */
+#ifndef REMOVE_PKT_LOG
 static void driver_hal_status_map(uint8_t *status)
 {
 	switch (*status) {
@@ -1363,6 +1368,7 @@ void wlan_register_txrx_packetdump(void)
 	gtx_count = 0;
 	grx_count = 0;
 }
+#endif
 
 /**
  * wlan_flush_host_logs_for_fatal() - Flush host logs
