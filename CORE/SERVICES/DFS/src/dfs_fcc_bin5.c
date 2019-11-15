@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2013, 2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2013, 2017, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -185,7 +185,10 @@ dfs_bin5_check(struct ath_dfs *dfs)
    struct dfs_bin5radars *br;
         int index[DFS_MAX_B5_SIZE];
    u_int32_t n = 0, i = 0, i1 = 0, this = 0, prev = 0, rssi_diff = 0, width_diff = 0, bursts= 0;
-        u_int32_t total_diff=0, average_diff=0, total_width=0, average_width=0, numevents=0;
+        u_int32_t numevents=0;
+#ifdef WLAN_DEBUG
+	u_int32_t average_diff=0, total_width=0, average_width=0, total_diff=0;
+#endif
    u_int64_t pri;
 
 

@@ -15581,7 +15581,9 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         {
             if (pProfile->csrPersona == VOS_STA_MODE) {
                 smsLog(pMac, LOG1, FL(" Invoking packetdump register API"));
+#ifndef REMOVE_PKT_LOG
                 wlan_register_txrx_packetdump();
+#endif
                 packetdump_timer_status =
                          vos_timer_start(&pMac->roam.packetdump_timer,
                          (PKT_DUMP_TIMER_DURATION*VOS_TIMER_TO_SEC_UNIT)/
@@ -18959,13 +18961,14 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
             pRequestBuf->ConnectedNetwork.ChannelCache[num_channels++] =
                 *ChannelList;
 
-            if (*ChannelList)
+            if (*ChannelList) {
                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                        "DFSRoam=%d, ChnlState=%d, Chnl=%d, num_ch=%d",
                        pMac->roam.configParam.allowDFSChannelRoam,
                        vos_nv_getChannelEnabledState(*ChannelList),
                        *ChannelList,
                        num_channels);
+	    }
               ChannelList++;
         }
         pRequestBuf->ConnectedNetwork.ChannelCount = num_channels;
