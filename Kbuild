@@ -1548,6 +1548,10 @@ ifeq ($(CONFIG_WLAN_DYNAMIC_POWER_CONTROL), y)
 CDEFINES += -DFEATURE_DYNAMIC_POWER_CONTROL
 endif
 
+ifeq ($(CONFIG_FEATURE_COEX_TPUT_SHAPING_CONFIG), y)
+CDEFINES += -DFEATURE_COEX_TPUT_SHAPING_CONFIG
+endif
+
 KBUILD_CPPFLAGS += $(CDEFINES)
 
 # Currently, for versions of gcc which support it, the kernel Makefile

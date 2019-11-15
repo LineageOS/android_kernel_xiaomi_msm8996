@@ -5407,6 +5407,15 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_COEX_PTA_CONFIG_PARAM_MAX),
 #endif
 
+#ifdef FEATURE_COEX_TPUT_SHAPING_CONFIG
+     REG_VARIABLE(CFG_COEX_TPUT_SHAPING_ENABLE, WLAN_PARAM_Integer,
+		  hdd_config_t, coex_tput_shaping_enable,
+		  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		  CFG_COEX_TPUT_SHAPING_ENABLE_DEFAULT,
+		  CFG_COEX_TPUT_SHAPING_ENABLE_MIN,
+		  CFG_COEX_TPUT_SHAPING_ENABLE_MAX),
+#endif
+
    REG_VARIABLE(CFG_ARP_AC_CATEGORY, WLAN_PARAM_Integer,
                 hdd_config_t, arp_ac_category,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -9322,6 +9331,12 @@ void hdd_set_btc_bt_wlan_interval(hdd_context_t *hdd_ctx)
                 hddLog(LOGE, "Fail to set coex PauseDuration");
 #endif
 
+#ifdef FEATURE_COEX_TPUT_SHAPING_CONFIG
+       status = sme_configure_tput_shaping_enable(config->coex_tput_shaping_enable);
+
+       if (VOS_STATUS_SUCCESS != status)
+                hddLog(LOGE, "Fail to set traffic shaping enable/disable.");
+#endif
 }
 
 /**
