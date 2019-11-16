@@ -147,6 +147,10 @@ static inline void bio_set_dev(struct bio *bio, struct block_device *bdev)
 }
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
+#define CURRENT_TIME_SEC	timespec_trunc(current_kernel_time(), NSEC_PER_SEC)
+#endif
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 static int sdfat_getattr(const struct path *path, struct kstat *stat,
 			u32 request_mask, unsigned int query_flags)
@@ -3711,7 +3715,7 @@ static int sdfat_check_writable(struct super_block *sb)
 	if (fsapi_check_bdi_valid(sb))
 		return -EIO;
 
-	if (SDFAT_IS_SB_RDONLY(sb))
+	if (sb->s_flags & MS_RDONLY)
 		return -EROFS;
 
 	return 0;
