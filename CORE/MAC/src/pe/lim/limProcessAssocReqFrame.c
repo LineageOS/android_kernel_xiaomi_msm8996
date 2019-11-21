@@ -220,9 +220,9 @@ void lim_process_assoc_cleanup(
 			pAssocReq->assocReqFrameLength = 0;
 		}
 		vos_mem_free(pAssocReq);
-		if (assoc_req_copied) /* to avoid double free */
-			if(psessionEntry->parsedAssocReq)
-				psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
+		if (assoc_req_copied && pStaDs && psessionEntry->parsedAssocReq)
+			/* to avoid double free */
+			psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
 	}
 
 	/* If it is not duplicate Assoc request then only free the memory */
