@@ -5877,8 +5877,8 @@ static void csr_populate_ie_whitelist_attrs(tSirSmeScanReq *msg,
 	qdf_mem_copy(msg->probe_req_ie_bitmap, scan_req->probe_req_ie_bitmap,
 		     PROBE_REQ_BITMAP_LEN * sizeof(uint32_t));
 	msg->oui_field_len = scan_req->num_vendor_oui * sizeof(*scan_req->voui);
-	msg->oui_field_offset = (sizeof(tSirSmeScanReq) +
-				 (scan_req->ChannelInfo.numOfChannels)) +
+	msg->oui_field_offset = sizeof(tSirSmeScanReq) +
+				 scan_req->ChannelInfo.numOfChannels +
 				 scan_req->uIEFieldLen;
 
 	if (scan_req->num_vendor_oui != 0)
