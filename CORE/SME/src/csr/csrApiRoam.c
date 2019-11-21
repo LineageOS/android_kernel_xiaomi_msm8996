@@ -11024,7 +11024,7 @@ static bool csr_is_sae_akm_present(tpAniSirGlobal mac,
 {
 	uint16_t i;
 
-	if (rsn_ie->akm_suite_cnt > 6) {
+	if (rsn_ie->akm_suite_cnt > 4) {
 		smsLog(mac, LOGE, FL("Invalid akm_suite_cnt in Rx RSN IE"));
 		return false;
 	}
