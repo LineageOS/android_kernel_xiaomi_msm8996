@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013,2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -185,8 +185,9 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
       break;
 
    case SIR_PTT_MSG_TYPES_BEGIN:
-      break;
-
+      WMA_LOGW(FL("%s:%d: message type = 0x%X"),
+               __func__, __LINE__, msg.type));
+      /* fall through */
 
    default:
 //TODO:FIXME
