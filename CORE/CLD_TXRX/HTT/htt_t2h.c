@@ -568,6 +568,10 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
                 adf_os_print("error cali_data_idx %d", cali_data_idx);
                 break;
             }
+            if ((sizeof(struct htt_chan_caldata_msg) + payloadsize - 1) > CHAN_CALI_DATA_LEN) {
+                adf_os_print("cali_data len %d exceed!", payloadsize);
+                break;
+            }
             adf_os_print("%s: recv cali data,"
                          "chksum_valid %u freq %u idx %d frag %d append %d"
                          " center_freq1 %u center_freq2 %u payloadsize %u\n",
@@ -590,6 +594,7 @@ htt_t2h_lp_msg_handler(void *context, adf_nbuf_t htt_t2h_msg )
                                  freq, frag_num);
                     break;
                 }
+                adf_os_print("additional alloc cali data for idx %d frag %d", cali_data_idx, frag_num);
             }
             /* set the length of the message */
             adf_nbuf_put_tail(buf,

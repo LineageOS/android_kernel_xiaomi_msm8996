@@ -7433,7 +7433,7 @@ VOS_STATUS wma_start_cal(void)
 		WMITLV_GET_STRUCT_TLVLEN(wmi_pdev_check_cal_version_cmd_fixed_param));
 
 	cmd->pdev_id = 0;
-	WMA_LOGD("%s: start cal", __func__);
+	WMA_LOGD("%s: start cali", __func__);
 	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
 				   WMI_PDEV_CHECK_CAL_VERSION_CMDID);
 	if (ret) {
@@ -7454,7 +7454,7 @@ int wma_cal_finish_handler(void *handle, u_int8_t *event, u_int32_t len)
 		(tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
 						wma->vos_context);
 
-	WMA_LOGD("%s: cal event recv", __func__);
+	WMA_LOGD("%s: cali event recv", __func__);
 	param_buf = (WMI_PDEV_CHECK_CAL_VERSION_EVENTID_param_tlvs *)event;
 	if (!param_buf) {
 		WMA_LOGE("Invalid cal event buffer");

@@ -17913,7 +17913,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 	 msecs_to_jiffies(6000));
        if (!rc)
            hddLog(VOS_TRACE_LEVEL_ERROR,
-                  "%s: cali timed out", __func__);
+                  "%s: cali timeout", __func__);
    }
 
    pHddCtx->isLoadInProgress = FALSE;

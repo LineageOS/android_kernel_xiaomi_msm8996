@@ -1022,7 +1022,7 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
                                                WMI_PDEV_CHECK_CAL_VERSION_EVENTID,
                                                wma_cal_finish_handler))
             WMA_LOGE("Failed to register CSA offload event cb");
-        else if (cali_init(pdev->htt_pdev))
+        if (cali_init(pdev->htt_pdev))
             VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
                       "%s: alloc cali mem failed\n", __func__);
     }

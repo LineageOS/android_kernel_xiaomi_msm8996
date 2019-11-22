@@ -944,6 +944,9 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
 
     OL_RX_REORDER_TIMEOUT_CLEANUP(pdev);
 
+    if (vos_is_fast_chswitch_cali_enabled())
+        cali_deinit(pdev->htt_pdev);
+
     ol_per_pkt_tx_stats_enable(0);
 
     if (ol_cfg_is_high_latency(pdev->ctrl_pdev)) {
@@ -1043,8 +1046,6 @@ ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev, int force)
 #ifdef DEBUG_HL_LOGGING
     adf_os_spinlock_destroy(&pdev->grp_stat_spinlock);
 #endif
-    if (vos_is_fast_chswitch_cali_enabled())
-        cali_deinit(pdev->htt_pdev);
 
     /*
      * WDI event detach

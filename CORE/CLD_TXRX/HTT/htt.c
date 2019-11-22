@@ -217,9 +217,10 @@ void cali_deinit(struct htt_pdev_t *pdev)
 	for (i = 0; i < MAX_WIFI_CHAN_CNT; i++) {
 		for (j = 0; j < CALI_FRAG_IDX_MAX; j++) {
 			pdev->chan_cali_data_array[i].cali_data_valid[j] = false;
-			pdev->chan_cali_data_array[i].cali_data_buf[j] = NULL;
-			if (pdev->chan_cali_data_array[i].buf[j])
+			if (pdev->chan_cali_data_array[i].buf[j]) {
 				adf_nbuf_free(pdev->chan_cali_data_array[i].buf[j]);
+				pdev->chan_cali_data_array[i].cali_data_buf[j] = NULL;
+			}
 			pdev->chan_cali_data_array[i].buf[j] = NULL;
 		}
 	}
