@@ -102,6 +102,8 @@ extern int scm_call(u32 svc_id, u32 cmd_id, const void *cmd_buf, size_t cmd_len,
 
 extern int scm_call2(u32 cmd_id, struct scm_desc *desc);
 
+extern int scm_call2_noretry(u32 cmd_id, struct scm_desc *desc);
+
 extern int scm_call2_atomic(u32 cmd_id, struct scm_desc *desc);
 
 extern int scm_call_noalloc(u32 svc_id, u32 cmd_id, const void *cmd_buf,
@@ -147,6 +149,11 @@ static inline int scm_call(u32 svc_id, u32 cmd_id, const void *cmd_buf,
 }
 
 static inline int scm_call2(u32 cmd_id, struct scm_desc *desc)
+{
+	return 0;
+}
+
+static inline int scm_call2_noretry(u32 cmd_id, struct scm_desc *desc)
 {
 	return 0;
 }
