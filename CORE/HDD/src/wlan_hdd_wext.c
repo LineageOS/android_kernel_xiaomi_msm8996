@@ -7520,6 +7520,8 @@ static int __iw_setnone_getint(struct net_device *dev,
        return -EINVAL;
     }
 
+    vos_mem_zero(&smeConfig, sizeof(smeConfig));
+
     switch (value[0])
     {
         case WE_GET_11D_STATE:
