@@ -178,6 +178,7 @@ ifeq ($(CONFIG_ARCH_QCS405), y)
 	CONFIG_MULTI_IF_LOG := y
 	CONFIG_NETWORK_PHY_TIMESTAMPING := y
 	WLAN_HDD_ADAPTER_MAGIC := 0x5344494F
+	CONFIG_RX_LATENCY_OPTIMIZE := y
 endif
 
 #Enable Power debugfs feature only if debug_fs is enabled
