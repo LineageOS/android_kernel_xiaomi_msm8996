@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -250,14 +250,10 @@
 /*
  * Maximum number of VDEV that beacon tx offload will support
  */
-#ifdef HIF_SDIO
 #ifdef WLAN_4SAP_CONCURRENCY
 #define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 4
 #else
 #define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 2
-#endif
-#else
-#define CFG_TGT_DEFAULT_BEACON_TX_OFFLOAD_MAX_VDEV 1
 #endif
 
 /*
