@@ -5081,4 +5081,10 @@ eHalStatus sme_set_gpio_cfg(tHalHandle hal, uint32_t gpio_num,
 eHalStatus sme_set_gpio_output(tHalHandle hal,
 			       uint32_t gpio_num,
 			       uint32_t set);
+
+eHalStatus sme_spectral_scan_enable(tHalHandle hal,
+				    sir_spectral_enable_params_t *params);
+
+eHalStatus sme_spectral_scan_config(tHalHandle hal,
+				    sir_spectral_config_params_t *params);
 #endif //#if !defined( __SME_API_H )

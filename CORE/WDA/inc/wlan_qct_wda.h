@@ -1127,6 +1127,9 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_ADD_MULTICAST_GROUP              SIR_HAL_ADD_MULTICAST_GROUP
 #define WDA_SET_MULTICAST_RATE              SIR_HAL_SET_MULTICAST_RATE
 #endif
+
+#define WDA_SPECTRAL_SCAN_ENABLE_CMDID        SIR_HAL_SPECTRAL_SCAN_ENABLE_CMDID
+#define WDA_SPECTRAL_SCAN_CONFIG_CMDID        SIR_HAL_SPECTRAL_SCAN_CONFIG_CMDID
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
