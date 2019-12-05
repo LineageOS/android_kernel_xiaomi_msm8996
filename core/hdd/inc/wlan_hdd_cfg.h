@@ -16526,6 +16526,8 @@ struct hdd_config {
 	uint16_t thermal_throt_dc;
 #endif
 	bool disable_4way_hs_offload;
+	bool ShortGI80MhzEnable;
+	bool ShortGI160MhzEnable;
 };
 
 #define VAR_OFFSET(_Struct, _Var) (offsetof(_Struct, _Var))
