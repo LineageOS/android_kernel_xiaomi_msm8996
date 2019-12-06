@@ -2326,7 +2326,7 @@ static int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 						 msecs_to_jiffies
 							 (WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX));
 		if (!rc) {
-			hdd_err("wait on offchannel_tx_event timed out");
+			hdd_debug("wait on offchannel_tx_event timed out");
 			goto err_rem_channel;
 		}
 	} else if (offchan) {
@@ -2974,6 +2974,7 @@ struct wireless_dev *__wlan_hdd_add_virtual_intf(struct wiphy *wiphy,
 		}
 	}
 
+	pAdapter = NULL;
 	ret = wlan_hdd_add_monitor_check(pHddCtx, &pAdapter, type, name,
 					 true, name_assign_type);
 	if (ret)

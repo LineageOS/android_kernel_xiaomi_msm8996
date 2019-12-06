@@ -363,6 +363,7 @@ enum {
  * @eHDD_REASSOC_IN_PROGRESS: reassociation is in progress
  * @eHDD_EAPOL_IN_PROGRESS: STA/P2P-CLI is in middle of EAPOL/WPS exchange
  * @eHDD_SAP_EAPOL_IN_PROGRESS: SAP/P2P-GO is in middle of EAPOL/WPS exchange
+ * @eHDD_SAP_CONNECTION_IN_PROGRESS: SAP/P2P-GO is in middle of connection.
  */
 typedef enum {
 	eHDD_SCAN_REJECT_DEFAULT = 0,
@@ -370,6 +371,7 @@ typedef enum {
 	eHDD_REASSOC_IN_PROGRESS,
 	eHDD_EAPOL_IN_PROGRESS,
 	eHDD_SAP_EAPOL_IN_PROGRESS,
+	eHDD_SAP_CONNECTION_IN_PROGRESS,
 } scan_reject_states;
 
 #define MAX_PROBE_REQ_OUIS 16
@@ -3266,6 +3268,16 @@ hdd_station_info_t *hdd_get_stainfo(hdd_station_info_t *aStaInfo,
 
 int hdd_driver_memdump_init(void);
 void hdd_driver_memdump_deinit(void);
+
+/**
+ * hdd_driver_mem_cleanup() - Frees memory allocated for
+ * driver dump
+ *
+ * This function  frees driver dump memory.
+ *
+ * Return: None
+ */
+void hdd_driver_mem_cleanup(void);
 
 /**
  * wlan_hdd_free_cache_channels() - Free the cache channels list

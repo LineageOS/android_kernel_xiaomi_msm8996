@@ -1215,12 +1215,8 @@ static QDF_STATUS lim_send_hal_start_scan_offload_req(tpAniSirGlobal pMac,
 	    pe_debug("No IEs in the scan request from supplicant");
 	}
 
-	/**
-	 * The tSirScanOffloadReq will reserve the space for first channel,
-	 * so allocate the memory for (numChannels - 1) and uIEFieldLen
-	 */
 	len = sizeof(tSirScanOffloadReq) +
-		(pScanReq->channelList.numChannels - 1) +
+		(pScanReq->channelList.numChannels) +
 		pScanReq->uIEFieldLen + pScanReq->oui_field_len;
 
 	pScanOffloadReq = qdf_mem_malloc(len);
@@ -1328,7 +1324,7 @@ static QDF_STATUS lim_send_hal_start_scan_offload_req(tpAniSirGlobal pMac,
 			     pScanReq->probe_req_ie_bitmap,
 			     PROBE_REQ_BITMAP_LEN * sizeof(uint32_t));
 	pScanOffloadReq->oui_field_offset = sizeof(tSirScanOffloadReq) +
-				(pScanOffloadReq->channelList.numChannels - 1) +
+				(pScanOffloadReq->channelList.numChannels) +
 				pScanOffloadReq->uIEFieldLen;
 	if (pScanOffloadReq->num_vendor_oui != 0) {
 		qdf_mem_copy(

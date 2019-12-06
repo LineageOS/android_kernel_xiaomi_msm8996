@@ -828,8 +828,7 @@ static void wma_data_tx_ack_work_handler(void *ack_work)
 
 	/* Call the Ack Cb registered by UMAC */
 	if (ack_cb)
-		ack_cb((tpAniSirGlobal) (wma_handle->mac_context),
-			work->status ? 0 : 1);
+		ack_cb(wma_handle->mac_context, work->status ? 0 : 1);
 	else
 		WMA_LOGE("Data Tx Ack Cb is NULL");
 
@@ -1390,8 +1389,7 @@ static void wma_mgmt_tx_ack_work_handler(void *ack_work)
 		 work->sub_type, work->status);
 
 	/* Call the Ack Cb registered by UMAC */
-	ack_cb((tpAniSirGlobal) (wma_handle->mac_context),
-	       work->status ? 0 : 1);
+	ack_cb(wma_handle->mac_context, work->status ? 0 : 1);
 end:
 	qdf_mem_free(work);
 	wma_handle->mgmt_ack_work_ctx = NULL;
@@ -2654,6 +2652,8 @@ QDF_STATUS wma_tx_packet(void *wma_context, void *tx_frame, uint16_t frmLen,
 	ol_pdev_handle ctrl_pdev;
 	bool is_5g = false;
 
+	ol_txrx_pdev_handle pdev = cds_get_context(QDF_MODULE_ID_TXRX);
+
 	if (NULL == wma_handle) {
 		WMA_LOGE("wma_handle is NULL");
 		cds_packet_free((void *)tx_frame);
@@ -3045,6 +3045,16 @@ QDF_STATUS wma_tx_packet(void *wma_context, void *tx_frame, uint16_t frmLen,
 			wmi_desc->nbuf = tx_frame;
 			wmi_desc->tx_cmpl_cb = tx_frm_download_comp_cb;
 			wmi_desc->ota_post_proc_cb = tx_frm_ota_comp_cb;
+
+			if (pdev && cds_get_pktcap_mode_enable() &&
+			    (ol_cfg_pktcapture_mode(pdev->ctrl_pdev) &
+			    PKT_CAPTURE_MODE_MGMT_ONLY) &&
+			    pdev->mon_cb) {
+				chanfreq = wma_handle->interfaces[vdev_id].mhz;
+				wma_process_mon_mgmt_tx(tx_frame,
+							qdf_nbuf_len(tx_frame),
+							&mgmt_param, chanfreq);
+			}
 			status = wmi_mgmt_unified_cmd_send(
 					wma_handle->wmi_handle,
 					&mgmt_param);

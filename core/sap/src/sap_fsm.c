@@ -4913,6 +4913,10 @@ static QDF_STATUS sap_get_channel_list(ptSapContext sap_ctx,
 		      CDS_CHANNEL_STATE(loop_count)))))
 			continue;
 
+		if (CDS_CHANNEL_NUM(loop_count) == 12 ||
+		    CDS_CHANNEL_NUM(loop_count) == 13)
+			continue;
+
 		/*
 		 * Skip the channels which are not in ACS config from user
 		 * space

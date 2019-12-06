@@ -1180,7 +1180,7 @@ void *cds_get_context(QDF_MODULE_ID moduleId)
 	}
 
 	if (pModContext == NULL) {
-		QDF_TRACE(QDF_MODULE_ID_QDF, QDF_TRACE_LEVEL_ERROR,
+		QDF_TRACE(QDF_MODULE_ID_QDF, QDF_TRACE_LEVEL_DEBUG,
 			  "%s: Module ID %i context is Null", __func__,
 			  moduleId);
 	}

@@ -925,6 +925,11 @@ typedef struct sSirChannelList {
 	uint8_t channelNumber[SIR_ESE_MAX_MEAS_IE_REQS];
 } tSirChannelList, *tpSirChannelList;
 
+struct sir_channel_list {
+	uint8_t numChannels;
+	uint8_t channelNumber[];
+};
+
 typedef struct sSirDFSChannelList {
 	uint32_t timeStamp[SIR_MAX_24G_5G_CHANNEL_RANGE];
 
@@ -1058,7 +1063,7 @@ typedef struct sSirSmeScanReq {
 	uint32_t oui_field_offset;
 
 	/* channelList MUST be the last field of this structure */
-	tSirChannelList channelList;
+	struct sir_channel_list channelList;
 
 	/*-----------------------------
 	   tSirSmeScanReq....
@@ -3648,6 +3653,14 @@ struct mawc_params {
 	uint8_t mawc_roam_rssi_low_adjust;
 };
 
+/**
+ * struct roam_sync_timeout_timer_info - Info related to roam sync timer
+ * @vdev_id: Vdev id for which host waiting roam sync ind from fw
+ */
+struct roam_sync_timeout_timer_info {
+	uint8_t vdev_id;
+};
+
 typedef struct sSirRoamOffloadScanReq {
 	uint16_t message_type;
 	uint16_t length;
@@ -4332,7 +4345,7 @@ typedef struct sSirScanOffloadReq {
 	uint32_t oui_field_len;
 	uint32_t oui_field_offset;
 
-	tSirChannelList channelList;
+	struct sir_channel_list channelList;
 	/*-----------------------------
 	  sSirScanOffloadReq....
 	  -----------------------------

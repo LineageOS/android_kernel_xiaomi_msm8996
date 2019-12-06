@@ -1545,7 +1545,7 @@ typedef struct {
 	void *wmi_handle;
 	void *htc_handle;
 	void *cds_context;
-	void *mac_context;
+	tAniSirGlobal *mac_context;
 	qdf_event_t wma_ready_event;
 	qdf_event_t wma_resume_event;
 	qdf_event_t target_suspend;
@@ -2423,6 +2423,9 @@ int wmi_desc_pool_init(tp_wma_handle wma_handle, uint32_t pool_size);
 void wmi_desc_pool_deinit(tp_wma_handle wma_handle);
 struct wmi_desc_t *wmi_desc_get(tp_wma_handle wma_handle);
 void wmi_desc_put(tp_wma_handle wma_handle, struct wmi_desc_t *wmi_desc);
+int wma_process_mon_mgmt_tx(qdf_nbuf_t nbuf, uint32_t nbuf_len,
+			    struct wmi_mgmt_params *mgmt_param,
+			    uint16_t chanfreq);
 int wma_mgmt_tx_completion_handler(void *handle, uint8_t *cmpl_event_params,
 				   uint32_t len);
 int wma_mgmt_tx_bundle_completion_handler(void *handle,
@@ -2650,6 +2653,18 @@ bool wma_is_wow_bitmask_zero(uint32_t *bitmask,
  */
 QDF_STATUS wma_process_roaming_config(tp_wma_handle wma_handle,
 				     tSirRoamOffloadScanReq *roam_req);
+
+/**
+ * wma_handle_roam_sync_timeout() - Update roaming status at wma layer
+ * @wma_handle: wma handle
+ * @info: Info for roaming start timer
+ *
+ * This function gets called in case of roaming offload timer get expired
+ *
+ * Return: None
+ */
+void wma_handle_roam_sync_timeout(tp_wma_handle wma_handle,
+				  struct roam_sync_timeout_timer_info *info);
 
 /**
  * wma_register_phy_err_event_handler() - register phy error event handler

@@ -2777,6 +2777,7 @@ static const char *wma_get_status_str(uint32_t status)
 
 #define RATE_LIMIT 16
 #define RESERVE_BYTES   100
+#define NORMALIZED_TO_NOISE_FLOOR (-96)
 
 /**
  * wma_process_mon_mgmt_tx_data(): process management tx packets
@@ -2875,12 +2876,10 @@ wma_process_mon_mgmt_tx_data(wmi_mgmt_hdr *hdr,
 	txrx_status.chan_freq = hdr->chan_freq;
 	/* hdr->rate is in Kbps, convert into Mbps */
 	txrx_status.rate = (hdr->rate_kbps / 1000);
-	txrx_status.ant_signal_db = hdr->rssi;
-	/* RSSI -128 is invalid rssi for TX, add 96 here,
-	 * will be normalized during radiotap updation
+	/* RSSI is filled with TPC which will be normalized
+	 * during radiotap updation, so add 96 here
 	 */
-	if (txrx_status.ant_signal_db == -128)
-		txrx_status.ant_signal_db += 96;
+	txrx_status.ant_signal_db = hdr->rssi - NORMALIZED_TO_NOISE_FLOOR;
 
 	txrx_status.nr_ant = 1;
 	txrx_status.rtap_flags |=
@@ -2893,6 +2892,9 @@ wma_process_mon_mgmt_tx_data(wmi_mgmt_hdr *hdr,
 		IEEE80211_CHAN_2GHZ : IEEE80211_CHAN_5GHZ);
 	txrx_status.chan_flags = channel_flags;
 	txrx_status.rate = ((txrx_status.rate == 6 /* Mbps */) ? 0x0c : 0x02);
+	txrx_status.tx_status = status;
+	txrx_status.add_rtap_ext = true;
+	txrx_status.tx_retry_cnt = hdr->tx_retry_cnt;
 
 	wh = (struct ieee80211_frame *)qdf_nbuf_data(nbuf);
 	wh->i_fc[1] &= ~IEEE80211_FC1_WEP;
@@ -2941,7 +2943,60 @@ static int wma_process_mon_mgmt_tx_completion(tp_wma_handle wma_handle,
 
 	qdf_mem_copy(qdf_nbuf_data(wbuf), qdf_nbuf_data(nbuf), nbuf_len);
 
-	if (!wma_process_mon_mgmt_tx_data(mgmt_hdr, wbuf, status))
+	if (!wma_process_mon_mgmt_tx_data(
+		mgmt_hdr, wbuf,
+		wma_mgmt_pktcapture_status_map(status)))
+		qdf_nbuf_free(wbuf);
+
+	return 0;
+}
+
+/**
+ * wma_process_mon_mgmt_tx() - process tx mgmt packets for mon interface
+ * without waiting for tx completion
+ * @nbuf: netbuf
+ * @nbuf_len: nbuf length
+ *
+ * Return: 0 for success or error code
+ */
+int wma_process_mon_mgmt_tx(qdf_nbuf_t nbuf, uint32_t nbuf_len,
+			    struct wmi_mgmt_params *mgmt_param,
+			    uint16_t chanfreq)
+{
+	qdf_nbuf_t wbuf;
+	wmi_mgmt_hdr mgmt_hdr = {0};
+
+	wbuf = qdf_nbuf_alloc(NULL, roundup(nbuf_len + RESERVE_BYTES, 4),
+			      RESERVE_BYTES, 4, false);
+
+	if (!wbuf) {
+		WMA_LOGE("%s: Failed to allocate wbuf for mgmt len(%u)",
+			 __func__, nbuf_len);
+		return -ENOMEM;
+	}
+
+	qdf_nbuf_put_tail(wbuf, nbuf_len);
+
+	qdf_mem_copy(qdf_nbuf_data(wbuf), qdf_nbuf_data(nbuf), nbuf_len);
+
+	mgmt_hdr.chan_freq = chanfreq;
+	/* Filling Tpc in rssi field.
+	 * As Tpc is not available, filling with default value of tpc
+	 */
+	mgmt_hdr.rssi = 0;
+	/* Assigning the local timestamp as TSF timestamp is not available*/
+	mgmt_hdr.tsf_l32 = (uint32_t)jiffies;
+
+	if (mgmt_param->tx_param.preamble_type == (1 << WMI_RATE_PREAMBLE_CCK))
+		mgmt_hdr.rate_kbps = 1000; /* Rate is 1 Mbps for CCK */
+	else
+		mgmt_hdr.rate_kbps = 6000; /* Rate is 6 Mbps for OFDM */
+
+	/* The mgmt tx packet is send to mon interface before tx completion.
+	 * we do not have status for this packet, using magic number(0xFF)
+	 * as status for mgmt tx packet
+	 */
+	if (!wma_process_mon_mgmt_tx_data(&mgmt_hdr, wbuf, 0xFF))
 		qdf_nbuf_free(wbuf);
 
 	return 0;
@@ -3751,6 +3806,7 @@ wma_process_mon_mgmt_rx_data(wmi_mgmt_rx_hdr *hdr,
 		IEEE80211_CHAN_2GHZ : IEEE80211_CHAN_5GHZ);
 	txrx_status.chan_flags = channel_flags;
 	txrx_status.rate = ((txrx_status.rate == 6 /* Mbps */) ? 0x0c : 0x02);
+	txrx_status.add_rtap_ext = true;
 
 	wh = (struct ieee80211_frame *)qdf_nbuf_data(nbuf);
 	wh->i_fc[1] &= ~IEEE80211_FC1_WEP;
@@ -3947,7 +4003,7 @@ wma_mgmt_offload_data_event_handler(void *handle, uint8_t *data,
 	qdf_nbuf_set_protocol(wbuf, ETH_P_CONTROL);
 	qdf_mem_copy(qdf_nbuf_data(wbuf), param_tlvs->bufp, hdr->buf_len);
 
-	status = hdr->tx_status;
+	status = wma_mgmt_pktcapture_status_map(hdr->tx_status);
 	if (!wma_process_mon_mgmt_tx_data(hdr, wbuf, status))
 		qdf_nbuf_free(wbuf);
 

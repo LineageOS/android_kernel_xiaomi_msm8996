@@ -269,6 +269,16 @@ tSirRFBand hdd_conn_get_connected_band(hdd_station_ctx_t *pHddStaCtx);
 hdd_adapter_t *hdd_get_sta_connection_in_progress(hdd_context_t *hdd_ctx);
 
 /**
+ * hdd_abort_ongoing_sta_connection() - Disconnect the sta for which the
+ * connection is in progress.
+ *
+ * @hdd_ctx: hdd context
+ *
+ * Return: none
+ */
+void hdd_abort_ongoing_sta_connection(hdd_context_t *hdd_ctx);
+
+/**
  * hdd_sme_roam_callback() - hdd sme roam callback
  * @pContext: pointer to adapter context
  * @pRoamInfo: pointer to roam info

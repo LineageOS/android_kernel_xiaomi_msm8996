@@ -115,6 +115,8 @@ enum dpt_set_param_debugfs {
 #define OL_TXRX_PEER_DEC_REF_CNT_SILENT(peer) \
 	qdf_atomic_dec(&peer->ref_cnt)
 
+#define NORMALIZED_TO_NOISE_FLOOR (-96)
+
 ol_txrx_peer_handle
 ol_txrx_peer_find_by_local_id_inc_ref(struct ol_txrx_pdev_t *pdev,
 			      uint8_t local_peer_id);
@@ -5471,14 +5473,15 @@ static inline int ol_txrx_drop_nbuf_list(qdf_nbuf_t buf_list)
  * @nbuf_list: netbuf list
  * @vdev_id: vdev id for which packet is captured
  * @tid:  tid number
- * @status: Tx status
+ * @pkt_tx_status: Tx status
  * @pktformat: Frame format
  *
  * Return: none
  */
 static void
 ol_txrx_mon_mgmt_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
-		    uint8_t tid, uint8_t status, bool pkt_format)
+		    uint8_t tid, struct ol_mon_tx_status pkt_tx_status,
+		    bool pkt_format)
 {
 	struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)ppdev;
 	uint8_t drop_count;
@@ -5529,6 +5532,7 @@ bool ol_txrx_mon_mgmt_process(struct mon_rx_status *txrx_status,
 	struct cds_ol_mon_pkt *pkt;
 	ol_txrx_pdev_handle pdev = cds_get_context(QDF_MODULE_ID_TXRX);
 	p_cds_sched_context sched_ctx = get_cds_sched_ctxt();
+	struct ol_mon_tx_status pkt_tx_status = {0};
 
 	if (unlikely(!sched_ctx))
 		return false;
@@ -5554,7 +5558,7 @@ bool ol_txrx_mon_mgmt_process(struct mon_rx_status *txrx_status,
 	pkt->monpkt = (void *)nbuf;
 	pkt->vdev_id = HTT_INVALID_VDEV;
 	pkt->tid = HTT_INVALID_TID;
-	pkt->status = status;
+	pkt->pkt_tx_status = pkt_tx_status;
 	pkt->pkt_format = TXRX_PKT_FORMAT_80211;
 	cds_indicate_monpkt(sched_ctx, pkt);
 
@@ -5856,7 +5860,14 @@ ol_txrx_update_tx_status(struct ol_txrx_pdev_t *pdev,
 		IEEE80211_CHAN_2GHZ : IEEE80211_CHAN_5GHZ);
 
 	tx_status->chan_flags = channel_flags;
-	tx_status->ant_signal_db = mon_hdr->rssi_comb;
+	/* RSSI is filled with TPC which will be normalized
+	 * during radiotap updation, so add 96 here
+	 */
+	tx_status->ant_signal_db =
+				mon_hdr->rssi_comb - NORMALIZED_TO_NOISE_FLOOR;
+	tx_status->tx_status = mon_hdr->status;
+	tx_status->add_rtap_ext = true;
+	tx_status->tx_retry_cnt = mon_hdr->tx_retry_cnt;
 }
 
 /**
@@ -5866,14 +5877,15 @@ ol_txrx_update_tx_status(struct ol_txrx_pdev_t *pdev,
  * @nbuf_list: netbuf list
  * @vdev_id: vdev id for which packet is captured
  * @tid:  tid number
- * @status: Tx status
+ * @pkt_tx_status: Tx status
  * @pktformat: Frame format
  *
  * Return: none
  */
 static void
 ol_txrx_mon_tx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
-		       uint8_t tid, uint8_t status, bool pkt_format)
+		       uint8_t tid, struct ol_mon_tx_status pkt_tx_status,
+		       bool pkt_format)
 {
 	struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)ppdev;
 	qdf_nbuf_t msdu, next_buf;
@@ -5945,6 +5957,8 @@ ol_txrx_mon_tx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		mon_hdr.sgi = cmpl_desc->sgi;
 		mon_hdr.ldpc = cmpl_desc->ldpc;
 		mon_hdr.beamformed = cmpl_desc->beamformed;
+		mon_hdr.status = pkt_tx_status.status;
+		mon_hdr.tx_retry_cnt = pkt_tx_status.tx_retry_cnt;
 
 		qdf_nbuf_pull_head(
 			msdu,
@@ -6029,8 +6043,10 @@ ol_txrx_mon_tx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		/*
 		 * Get the channel info and update the rx status
 		 */
-		cds_get_chan_by_session_id(vdev_id, &chan);
-		ol_htt_mon_note_chan(pdev, chan);
+		if (vdev_id != HTT_INVALID_VDEV) {
+			cds_get_chan_by_session_id(vdev_id, &chan);
+			ol_htt_mon_note_chan(pdev, chan);
+		}
 
 		ol_txrx_update_tx_status(pdev, &tx_status, &mon_hdr);
 
@@ -6049,6 +6065,7 @@ ol_txrx_mon_tx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 
 		msdu = next_buf;
 	}
+
 	return;
 
 free_buf:
@@ -6062,14 +6079,15 @@ free_buf:
  * @nbuf_list: netbuf list
  * @vdev_id: vdev id for which packet is captured
  * @tid:  tid number
- * @status: Tx status
+ * @pkt_tx_status: Tx status
  * @pktformat: Frame format
  *
  * Return: none
  */
 static void
 ol_txrx_mon_rx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
-		       uint8_t tid, uint8_t status, bool pkt_format)
+		       uint8_t tid, struct ol_mon_tx_status pkt_tx_status,
+		       bool pkt_format)
 {
 	struct ol_txrx_pdev_t *pdev = (struct ol_txrx_pdev_t *)ppdev;
 	qdf_nbuf_t buf_list = (qdf_nbuf_t)nbuf_list;
@@ -6154,9 +6172,15 @@ ol_txrx_mon_rx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		/*
 		 * Get the channel info and update the rx status
 		 */
-		cds_get_chan_by_session_id(vdev_id, &chan);
-		ol_htt_mon_note_chan(pdev, chan);
+		if (vdev_id != HTT_INVALID_VDEV) {
+			cds_get_chan_by_session_id(vdev_id, &chan);
+			ol_htt_mon_note_chan(pdev, chan);
+		}
 		htt_rx_mon_get_rx_status(pdev->htt_pdev, rx_desc, &rx_status);
+
+		rx_status.tx_status = pkt_tx_status.status;
+		rx_status.add_rtap_ext = true;
+		rx_status.tx_retry_cnt = pkt_tx_status.tx_retry_cnt;
 
 		/* clear IEEE80211_RADIOTAP_F_FCS flag*/
 		rx_status.rtap_flags &= ~(BIT(4));
@@ -6194,16 +6218,50 @@ free_buf:
 	drop_count = ol_txrx_drop_nbuf_list(buf_list);
 }
 
+/**
+ * ol_txrx_pktcapture_status_map() - map Tx status for data packets
+ * with packet capture Tx status
+ * @status: Tx status
+ *
+ * Return: pktcapture_tx_status enum
+ */
+static enum pktcapture_tx_status
+ol_txrx_pktcapture_status_map(uint8_t status)
+{
+	enum pktcapture_tx_status tx_status;
+
+	switch (status) {
+	case htt_tx_status_ok:
+		tx_status = pktcapture_tx_status_ok;
+		break;
+	case htt_tx_status_discard:
+		tx_status = pktcapture_tx_status_discard;
+		break;
+	case htt_tx_status_no_ack:
+		tx_status = pktcapture_tx_status_no_ack;
+		break;
+	default:
+		tx_status = pktcapture_tx_status_discard;
+		break;
+	}
+
+	return tx_status;
+}
+
 void ol_txrx_mon_data_process(uint8_t vdev_id,
 			      qdf_nbuf_t mon_buf_list,
 			      enum mon_data_process_type type,
-			      uint8_t tid, uint8_t status, bool pkt_format)
+			      uint8_t tid,
+			      struct ol_mon_tx_status pkt_tx_status,
+			      bool pkt_format)
 {
 	uint8_t drop_count;
 	struct cds_ol_mon_pkt *pkt;
 	ol_txrx_pdev_handle pdev = cds_get_context(QDF_MODULE_ID_TXRX);
 	p_cds_sched_context sched_ctx = get_cds_sched_ctxt();
 	cds_ol_mon_thread_cb callback = NULL;
+	pkt_tx_status.status =
+		ol_txrx_pktcapture_status_map(pkt_tx_status.status);
 
 	if (!pdev) {
 		ol_txrx_err("pdev is NULL");
@@ -6233,7 +6291,7 @@ void ol_txrx_mon_data_process(uint8_t vdev_id,
 	pkt->monpkt = (void *)mon_buf_list;
 	pkt->vdev_id = vdev_id;
 	pkt->tid = tid;
-	pkt->status = status;
+	pkt->pkt_tx_status = pkt_tx_status;
 	pkt->pkt_format = pkt_format;
 	cds_indicate_monpkt(sched_ctx, pkt);
 	return;

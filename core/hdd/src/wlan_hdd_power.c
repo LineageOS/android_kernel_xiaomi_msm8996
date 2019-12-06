@@ -229,7 +229,7 @@ static int __wlan_hdd_ipv6_changed(struct notifier_block *nb,
 	ENTER_DEV(ndev);
 
 	if ((pAdapter == NULL) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)) {
-		hdd_err("Adapter context is invalid %pK", pAdapter);
+		hdd_debug("Adapter context is invalid %pK", pAdapter);
 		return NOTIFY_DONE;
 	}
 
@@ -923,7 +923,7 @@ static int __wlan_hdd_ipv4_changed(struct notifier_block *nb,
 	ENTER_DEV(ndev);
 
 	if ((pAdapter == NULL) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)) {
-		hdd_err("Adapter context is invalid %pK", pAdapter);
+		hdd_debug("Adapter context is invalid %pK", pAdapter);
 		return NOTIFY_DONE;
 	}
 
@@ -1476,6 +1476,7 @@ QDF_STATUS hdd_wlan_shutdown(void)
 	}
 
 	pHddCtx->is_ssr_in_progress = true;
+	cds_set_connection_in_progress(false);
 
 	cds_clear_concurrent_session_count();
 
@@ -2516,7 +2517,7 @@ static int __wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
 
 	/* Validate adapter sessionId */
 	if (wlan_hdd_validate_session_id(adapter->sessionId)) {
-		hdd_err("invalid session id: %d", adapter->sessionId);
+		hdd_debug("invalid session id: %d", adapter->sessionId);
 		return -EINVAL;
 	}
 
