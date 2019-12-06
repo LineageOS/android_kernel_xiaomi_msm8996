@@ -258,6 +258,7 @@ typedef enum {
     WMI_GRP_ESP,            /* 0x41 Estimate Service Parameters (802.11mc) */
     WMI_GRP_HPCS_PULSE,     /* 0x42 */
     WMI_GRP_AUDIO,          /* 0x43 */
+    WMI_GRP_CFR_CAPTURE,    /* 0x44 */
 } WMI_GRP_ID;
 
 #define WMI_CMD_GRP_START_ID(grp_id) (((grp_id) << 12) | 0x1)
@@ -483,6 +484,8 @@ typedef enum {
     WMI_VDEV_GET_MWS_COEX_INFO_CMDID,
     /** delete all peer (excluding bss peer) */
     WMI_VDEV_DELETE_ALL_PEER_CMDID,
+    /* To set bss max idle time related parameters */
+    WMI_VDEV_BSS_MAX_IDLE_TIME_CMDID,
 
     /* peer specific commands */
 
@@ -615,6 +618,8 @@ typedef enum {
     WMI_BSS_COLOR_CHANGE_ENABLE_CMDID,
     /** To configure Beacon offload quiet-ie params */
     WMI_VDEV_BCN_OFFLOAD_QUIET_CONFIG_CMDID,
+    /** set FILS Discovery frame template for FW to generate FD frames */
+    WMI_FD_TMPL_CMDID,
 
     /** commands to directly control ba negotiation directly from host. only used in test mode */
 
@@ -1249,6 +1254,9 @@ typedef enum {
     WMI_AUDIO_AGGR_DEL_GROUP_CMDID,
     WMI_AUDIO_AGGR_SET_GROUP_RATE_CMDID,
     WMI_AUDIO_AGGR_SET_GROUP_RETRY_CMDID,
+
+    /** WMI commands related to Channel Frequency Response Capture **/
+    WMI_CFR_CAPTURE_FILTER_CMDID = WMI_CMD_GRP_START_ID(WMI_GRP_CFR_CAPTURE),
 } WMI_CMD_ID;
 
 typedef enum {
@@ -1945,6 +1953,7 @@ typedef enum {
 #define WMI_CHAN_FLAG_QUARTER_RATE  15  /* Indicates quarter rate channel */
 #define WMI_CHAN_FLAG_DFS_CFREQ2  16 /* Enable radar event reporting for sec80 in VHT80p80 */
 #define WMI_CHAN_FLAG_ALLOW_HE    17 /* HE (11ax) is allowed on this channel */
+#define WMI_CHAN_FLAG_PSC         18 /* Indicate it is a PSC (preferred scanning channel) */
 
 #define WMI_SET_CHANNEL_FLAG(pwmi_channel,flag) do { \
         (pwmi_channel)->info |=  (1 << flag);      \
@@ -3210,6 +3219,12 @@ typedef struct {
     #define WMI_RSRC_CFG_FLAG_PACKET_CAPTURE_SUPPORT_S 27
     #define WMI_RSRC_CFG_FLAG_PACKET_CAPTURE_SUPPORT_M 0x8000000
 
+    /*
+     * If this BIT is set, then target should support BSS Max Idle period.
+     */
+    #define WMI_RSRC_CFG_FLAG_BSS_MAX_IDLE_TIME_SUPPORT_S 28
+    #define WMI_RSRC_CFG_FLAG_BSS_MAX_IDLE_TIME_SUPPORT_M 0x10000000
+
     A_UINT32 flag1;
 
     /** @brief smart_ant_cap - Smart Antenna capabilities information
@@ -3556,6 +3571,11 @@ typedef struct {
 #define WMI_RSRC_CFG_FLAG_PACKET_CAPTURE_SUPPORT_GET(word32) \
     WMI_RSRC_CFG_FLAG_GET((word32), PACKET_CAPTURE_SUPPORT)
 
+#define WMI_RSRC_CFG_FLAG_BSS_MAX_IDLE_TIME_SUPPORT_SET(word32, value) \
+    WMI_RSRC_CFG_FLAG_SET((word32), BSS_MAX_IDLE_TIME_SUPPORT, (value))
+#define WMI_RSRC_CFG_FLAG_BSS_MAX_IDLE_TIME_SUPPORT_GET(word32) \
+    WMI_RSRC_CFG_FLAG_GET((word32), BSS_MAX_IDLE_TIME_SUPPORT)
+
 typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_init_cmd_fixed_param */
 
@@ -3708,6 +3728,55 @@ typedef struct {
 #define WMI_SCAN_CHAN_GET_MODE(_c) ((_c) - 1)
 #define WMI_SCAN_CHAN_MODE_IS_SET(_c) (_c)
 
+typedef struct {
+    /*
+     * freq unit: MHz (upper 16bits -- value)
+     * flags (lower 16bits -- bitfield): valid for the freq short ssid
+     *     The flags bitfield contains a bitmask of WMI_SCAN_HINT_FLAG_ values.
+     */
+    A_UINT32 freq_flags;
+    /* per spec, only 4 bytes*/
+    A_UINT32 short_ssid;
+} wmi_hint_freq_short_ssid;
+
+/** following bssid mac address same as wmi_mac_addr
+ *  one example: freq -- 5980(0x175c), flags -- 0x1, mac -- 00:03:7f:12:34:56
+ *  freq_flags     will be: 0x175c0001
+ *  macaddr31to00 will be: 0x127f0300
+ *  macaddr47to32 will be: 0x00005634
+ */
+typedef struct {
+    /*
+     * freq unit: MHz (upper 16bits -- value)
+     * flags (lower 16bits -- bitfield): valid for the freq bssid
+     *     The flags bitfield contains a bitmask of WMI_SCAN_HINT_FLAG_ values.
+     */
+    A_UINT32 freq_flags;
+    /* legacy bssid addr, use same macro to convert: WMI_MAC_ADDR_TO_CHAR_ARRAY, WMI_CHAR_ARRAY_TO_MAC_ADDR */
+    wmi_mac_addr bssid;
+} wmi_hint_freq_bssid;
+
+/** macro to get freq and corresponding flags from wmi_hint_freq_short_ssid */
+#define WMI_GET_FREQ_FROM_HINT_FREQ_SHORT_SSID(pwmi_hint_freq_short_ssid_addr) ((((pwmi_hint_freq_short_ssid_addr)->freq_flags) >> 16) & 0xffff)
+#define WMI_GET_FLAGS_FROM_HINT_FREQ_SHORT_SSID(pwmi_hint_freq_short_ssid_addr) (((pwmi_hint_freq_short_ssid_addr)->freq_flags) & 0xffff)
+
+/** macro to set freq and corresponding flags in wmi_hint_freq_short_ssid */
+#define WMI_SET_FREQ_IN_HINT_FREQ_SHORT_SSID(freq, pwmi_hint_freq_short_ssid_addr) (((pwmi_hint_freq_short_ssid_addr)->freq_flags) |= ((freq) << 16))
+#define WMI_SET_FLAGS_IN_HINT_FREQ_SHORT_SSID(flags, pwmi_hint_freq_short_ssid_addr) (((pwmi_hint_freq_short_ssid_addr)->freq_flags) |= (flags))
+
+/** macro to get freq and corresponding flags from wmi_hint_freq_bssid */
+#define WMI_GET_FREQ_FROM_HINT_FREQ_BSSID(pwmi_hint_freq_bssid_addr) ((((pwmi_hint_freq_bssid_addr)->freq_flags) >> 16) & 0xffff)
+#define WMI_GET_FLAGS_FROM_HINT_FREQ_BSSID(pwmi_hint_freq_bssid_addr) (((pwmi_hint_freq_bssid_addr)->freq_flags) & 0xffff)
+
+/** macro to set freq and corresponding flags in wmi_hint_freq_bssid */
+#define WMI_SET_FREQ_IN_HINT_FREQ_BSSID(freq, pwmi_hint_freq_bssid_addr) (((pwmi_hint_freq_bssid_addr)->freq_flags) |= ((freq) << 16))
+#define WMI_SET_FLAGS_IN_HINT_FREQ_BSSID(flags, pwmi_hint_freq_bssid_addr) (((pwmi_hint_freq_bssid_addr)->freq_flags) |= (flags))
+
+/** other macro for 6GHZ, TU(time unit), 20TU normally it is 20ms */
+#define MAX_NUM_20TU_EACH_CH      4
+#define MAX_NUM_S_SSID_EACH_20TU  1
+#define MAX_NUM_BSSID_EACH_20TU   3
+
 /* prefix used by scan requestor ids on the host */
 #define WMI_HOST_SCAN_REQUESTOR_ID_PREFIX 0xA000
 /* prefix used by scan request ids generated on the host */
@@ -3787,6 +3856,16 @@ typedef struct {
     A_UINT32 scan_ctrl_flags_ext;
     /** dwell time in msec on active 2G channels, if it's not zero */
     A_UINT32 dwell_time_active_2g;
+    /**
+     * dwell time in msec when 6 GHz channel (PSC or non-PSC) is marked
+     * as an active channel
+     */
+    A_UINT32 dwell_time_active_6ghz;
+    /**
+     * dwell time in msec when 6 GHz channel (PSC or non-PSC) is marked
+     * as a passive channel
+     */
+    A_UINT32 dwell_time_passive_6ghz;
 
 /**
  * TLV (tag length value) parameters follow the scan_cmd
@@ -3797,6 +3876,12 @@ typedef struct {
  *     A_UINT8 ie_data[ie_len];
  *     wmi_vendor_oui vendor_oui[num_vendor_oui];
  *     A_UINT8 phymode_list[0 or num_chan]; // see WMI_SCAN_CHAN_MODE macros
+ *     wmi_hint_freq_short_ssid hint_freq_short_ssid[num]; // the num can be calculated by TLV len
+ *     wmi_hint_freq_bssid hint_freq_bssid[num]; // the num can be calculated by TLV len
+ *     *** NOTE:
+ *     *** Use caution when using further TLVs, in case the additional
+ *     *** TLVs cause the message size to exceed the of the buffer to
+ *     *** hold the message.
  */
 } wmi_start_scan_cmd_fixed_param;
 
@@ -3894,10 +3979,36 @@ typedef enum {
 #define WMI_SCAN_DBS_POLICY_RESERVED            0x3
 #define WMI_SCAN_DBS_POLICY_MAX                 0x3
 
-/** Enable Reception of Public Action frame with this flag
- * (inside scan_ctrl_flags_ext field of wmi_start_scan_cmd_fixed_param)
+/* Enable Reception of Public Action frame with this flag */
+#define WMI_SCAN_FLAG_EXT_FILTER_PUBLIC_ACTION_FRAME  0x00000004
+
+/* Indicate to scan all PSC channel */
+#define WMI_SCAN_FLAG_EXT_6GHZ_SCAN_ALL_PSC_CH        0x00000008
+
+/* Indicate to scan all NON-PSC channel */
+#define WMI_SCAN_FLAG_EXT_6GHZ_SCAN_ALL_NON_PSC_CH    0x00000010
+
+/* Indicate to save scan result matching hint from scan client */
+#define WMI_SCAN_FLAG_EXT_6GHZ_MATCH_HINT             0x00000020
+
+/* Skip any ch on which no any RNR had been received */
+#define WMI_SCAN_FLAG_EXT_6GHZ_SKIP_NON_RNR_CH        0x00000040
+
+/* Indicate client hint req is high priority than fw rnr or FILS disc */
+#define WMI_SCAN_FLAG_EXT_6GHZ_CLIENT_HIGH_PRIORITY   0x00000080
+
+/* Force all 6ghz scan channels to active channel */
+#define WMI_SCAN_FLAG_EXT_6GHZ_FORCE_CHAN_ACTIVE      0x00000100
+
+/**
+ * new 6 GHz flags per chan (short ssid or bssid) in struct
+ * wmi_hint_freq_short_ssid or wmi_hint_freq_bssid
  */
-#define WMI_SCAN_FLAG_EXT_FILTER_PUBLIC_ACTION_FRAME      0x4
+/* Indicate not to send probe req for short_ssid or bssid on that channel */
+#define WMI_SCAN_HINT_FLAG_SKIP_TX_PROBE_REQ    0x00000001
+
+/* Force channel in WMI hint to active channel */
+#define WMI_SCAN_HINT_FLAG_FORCE_CHAN_ACTIVE    0x00000002
 
 typedef struct {
     A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_stop_scan_cmd_fixed_param */
@@ -4396,10 +4507,25 @@ typedef struct {
      */
     A_UINT32 tx_status;
 
+    A_UINT32
+        /* tx_retry_cnt:
+         * Indicates retry count of offloaded/local & host mgmt tx frames.
+         * The WMI_MGMT_HDR_TX_RETRY_[SET,GET] macros can be used to access
+         * this bitfield in a portable manner.
+         */
+        tx_retry_cnt:6, /* [5:0] */
+        reserved_1:26;  /* [31:6] */
+
 /* This TLV may be followed by array of bytes:
  *   A_UINT8 bufp[]; <-- management frame buffer
  */
 } wmi_mgmt_hdr;
+
+/* Tx retry cnt set & get bits*/
+#define WMI_MGMT_HDR_TX_RETRY_CNT_SET(tx_retry_cnt, value) \
+    WMI_SET_BITS(tx_retry_cnt, 0, 6, value)
+#define WMI_MGMT_HDR_TX_RETRY_CNT_GET(tx_retry_cnt) \
+    WMI_GET_BITS(tx_retry_cnt, 0, 6)
 
 /*
  * Instead of universally increasing the RX_HDR_HEADROOM size which may cause problems for older targets,
@@ -6119,6 +6245,15 @@ typedef enum {
      * 4 - 31 | Reserved
      */
     WMI_PDEV_PARAM_SET_CMD_OBSS_PD_PER_AC,
+
+    /*
+     * Parameter used to enable/disable FW control of MU-EDCA and AP back-off
+     * parameters.
+     * If set to zero, FW mode is disabled; if set to 1, FW mode is enabled.
+     * Default setting is to have it enabled, and user can disable it in
+     * favor of manual mode or host control mode.
+     */
+    WMI_PDEV_PARAM_ENABLE_FW_DYNAMIC_HE_EDCA,
 
 } WMI_PDEV_PARAM;
 
@@ -9258,6 +9393,8 @@ typedef struct {
     A_UINT32 he_ops; /* refer to WMI_HEOPS_xxx macros */
     A_UINT32 cac_duration_ms;  /* in milliseconds */
     A_UINT32 regdomain;
+    /* min data rate to be used in BSS in Mbps */
+    A_UINT32 min_data_rate;
 /* The TLVs follows this structure:
  *     wmi_channel chan; <-- WMI channel
  *     wmi_p2p_noa_descriptor  noa_descriptors[]; <-- actual p2p NOA descriptor from scan entry
@@ -9399,6 +9536,18 @@ typedef enum {
 #define WMI_VDEV_OCE_FILS_DISCOVERY_FRAME_FEATURE_BITMAP               0x10
 #define WMI_VDEV_OCE_ESP_FEATURE_BITMAP                                0x20
 #define WMI_VDEV_OCE_REASSOC_REJECT_FEATURE_BITMAP                     0x40
+
+/** 6GHZ params **/
+/* Control to enable/disable beacon tx in non-HT duplicate */
+#define WMI_VDEV_6GHZ_BITMAP_NON_HT_DUPLICATE_BEACON                    0x1
+/* Control to enable/disable broadcast probe response tx in non-HT duplicate */
+#define WMI_VDEV_6GHZ_BITMAP_NON_HT_DUPLICATE_BCAST_PROBE_RSP           0x2
+/* Control to enable/disable FILS discovery frame tx in non-HT duplicate */
+#define WMI_VDEV_6GHZ_BITMAP_NON_HT_DUPLICATE_FD_FRAME                  0x4
+/* Control to enable/disable periodic FILS discovery frame transmission */
+#define WMI_VDEV_6GHZ_BITMAP_FD_FRAME                                   0x8
+/* Control to enable/disable periodic broadcast probe response transmission */
+#define WMI_VDEV_6GHZ_BITMAP_BCAST_PROBE_RSP                            0x10
 
 /** the definition of different VDEV parameters */
 typedef enum {
@@ -10123,6 +10272,20 @@ typedef enum {
     /* Enable/Disable using NULL frame for leaky AP  */
     WMI_VDEV_PARAM_ENABLE_NULL_FOR_LEAKY_AP,   /* 0x96 */
 
+    /**
+     * To configure duration of how many seconds without TX/RX data traffic,
+     * NDI vdev can kickout the connected peer (i.e. NDP Termination).
+     */
+    WMI_VDEV_PARAM_NDP_INACTIVITY_TIMEOUT,     /* 0x97 */
+
+    /* To enable/disable multicast rate adaptation feature at vdev level */
+    WMI_VDEV_PARAM_ENABLE_MCAST_RC,            /* 0x98 */
+
+    /*
+     * Params related to 6GHz operation
+     * The parameter value is formed from WMI_VDEV_6GHZ_BITMAP flags.
+     */
+    WMI_VDEV_PARAM_6GHZ_PARAMS,                /* 0x99 */
 
     /*=== ADD NEW VDEV PARAM TYPES ABOVE THIS LINE ===
      * The below vdev param types are used for prototyping, and are
@@ -10416,6 +10579,23 @@ typedef struct {
     A_UINT32 vdev_id;
 } wmi_vdev_simple_event_fixed_param;
 
+/* Commands for getting and setting protected bit : bss max idle time */
+#define WMI_BSS_MAX_IDLE_TIME_PROTECTED_GET(idle_options) \
+    WMI_GET_BITS(idle_options, 0, 1)
+#define WMI_BSS_MAX_IDLE_TIME_PROTECTED_SET(idle_options, val) \
+    WMI_SET_BITS(idle_options, 0, 1, val)
+
+typedef struct {
+    A_UINT32 tlv_header; /* TLV tag and len; tag equals WMITLV_TAG_STRUC_WMI_VDEV_BSS_MAX_IDLE_TIME_fixed_param */
+    A_UINT32 vdev_id; /** unique id identifying the VDEV, generated by the caller */
+    A_UINT32 max_idle_period; /* time interval in seconds */
+    /* idle_options:
+     * bit 0    - Protected bit
+     *            Refer to WMI_BSS_MAX_IDLE_TIME_PROTECTED_GET,SET macros.
+     * bit 31:1 - Reserved bits
+     */
+    A_UINT32 idle_options;
+} wmi_vdev_bss_max_idle_time_cmd_fixed_param;
 
 /** VDEV start response status codes */
 #define WMI_VDEV_START_RESPONSE_STATUS_SUCCESS 0x0  /** VDEV succesfully started */
@@ -10514,6 +10694,13 @@ typedef struct {
      * is 0, 1, 4 and 5, set the bitmap to (0X80000033)
      */
     A_UINT32 csc_event_bitmap;
+    /** Specify offset for FW to overwrite MU EDCA parameters in the beacon.
+     * This is done during FW tuning of EDCA parameters.
+     * Based on number of HE and Legacy stations.
+     * If mu_edca_ie_offset == 0, it is ignored.
+     * Only non-zero values are considered.
+     */
+    A_UINT32 mu_edca_ie_offset;
 
 /*
  * The TLVs follows:
@@ -10544,6 +10731,19 @@ typedef struct {
  *    A_UINT8  data[]; <-- Variable length data
  */
 } wmi_prb_tmpl_cmd_fixed_param;
+
+typedef struct {
+    A_UINT32 tlv_header; /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_fd_tmpl_cmd_fixed_param */
+    /** unique id identifying the VDEV, generated by the caller */
+    A_UINT32 vdev_id;
+    /** fd frame buffer length. data is in TLV data[] */
+    A_UINT32 buf_len;
+
+/*
+ * The TLVs follows:
+ *    A_UINT8  data[]; <-- Variable length data
+ */
+} wmi_fd_tmpl_cmd_fixed_param;
 
 typedef struct {
     /** TLV tag and len; tag equals WMITLV_TAG_STRUC_wmi_offload_bcn_tx_status_event_fixed_param */
@@ -11892,6 +12092,9 @@ typedef struct {
      */
     A_UINT32 peer_he_cap_info_internal;
 
+    /* min data rate to be used in Mbps */
+    A_UINT32 min_data_rate;
+
 /* Following this struct are the TLV's:
  *     A_UINT8 peer_legacy_rates[];
  *     A_UINT8 peer_ht_rates[];
@@ -12630,6 +12833,11 @@ typedef struct {
     A_UINT32 score_pcnt15_to_12;
 } wmi_roam_cnd_oce_wan_scoring;
 
+typedef enum {
+    WMI_VENDOR_ROAM_SCORE_ALGORITHM_ID_NONE = 0, /* Legacy roam score algorithm */
+    WMI_VENDOR_ROAM_SCORE_ALGORITHM_ID_RSSI_CU_BASED = 1, /* Roam score algorithm based on RSSI and CU */
+}  WMI_VENDOR_ROAM_SCORE_ALGORITHM_ID;
+
 /**
     disable_bitmap :- Each bit will be either allow(0)/disallow(1) to considered the roam score param.
     rssi_weightage_pcnt :- RSSI weightage out of total score in percentage
@@ -12674,6 +12882,8 @@ typedef struct {
     wmi_roam_cnd_oce_wan_scoring oce_wan_scoring;
     A_UINT32 roam_score_delta_pcnt;
     A_UINT32 roam_score_delta_mask;
+    /* Vendor specific roam score algorithm ID from WMI_VENDOR_ROAM_SCORE_ALGORITHM_ID enum */
+    A_UINT32 vendor_roam_score_algorithm_id;
 } wmi_roam_cnd_scoring_param;
 
 typedef struct {
@@ -18380,7 +18590,7 @@ enum {
     do { \
         (param) &= ~PDEV_PARAM_SMART_CHAINMASK_SCHEME_DECISION_MASK; \
         (param) |= (value) << PDEV_PARAM_SMART_CHAINMASK_SCHEME_DECISION_SHIFT; \
-    while (0)
+    } while (0)
 
 #define GET_PDEV_SMART_CHAINMASK_SCHEME_DECISION(param)     \
     (((param) & PDEV_PARAM_SMART_CHAINMASK_SCHEME_DECISION_MASK) >> PDEV_PARAM_SMART_CHAINMASK_SCHEME_DECISION_SHIFT)
@@ -22378,6 +22588,7 @@ typedef struct {
     wmi_mac_addr peer_macaddr;
     A_UINT32 ratecount; /* Max Rate count for each mode */
     A_UINT32 vdev_id; /* ID of the vdev this peer belongs to */
+    A_UINT32 pdev_id; /* ID of the pdev this peer belongs to */
     /*
      * Following this structure are the TLV:
      * struct wmi_peer_cck_ofdm_rate_info;
@@ -23908,6 +24119,8 @@ static INLINE A_UINT8 *wmi_id_to_name(A_UINT32 wmi_command)
         /* set a key (used for setting per peer unicast
          * and per vdev multicast) */
         WMI_RETURN_STRING(WMI_VDEV_INSTALL_KEY_CMDID);
+        /* Set bss max idle time */
+        WMI_RETURN_STRING(WMI_VDEV_BSS_MAX_IDLE_TIME_CMDID);
 
         /* wnm sleep mode command */
         WMI_RETURN_STRING(WMI_VDEV_WNM_SLEEPMODE_CMDID);
@@ -23971,6 +24184,8 @@ static INLINE A_UINT8 *wmi_id_to_name(A_UINT32 wmi_command)
          * to setup the common probe response template with the FW to
          * be used by FW to generate probe responses */
         WMI_RETURN_STRING(WMI_PRB_TMPL_CMDID);
+        /** set FILS Discovery frame template for FW to generate FD frames */
+        WMI_RETURN_STRING(WMI_FD_TMPL_CMDID);
 
         /* commands to directly control ba negotiation directly from
          * host. only used in test mode */
@@ -24501,6 +24716,7 @@ static INLINE A_UINT8 *wmi_id_to_name(A_UINT32 wmi_command)
         WMI_RETURN_STRING(WMI_AUDIO_AGGR_DEL_GROUP_CMDID);
         WMI_RETURN_STRING(WMI_AUDIO_AGGR_SET_GROUP_RATE_CMDID);
         WMI_RETURN_STRING(WMI_AUDIO_AGGR_SET_GROUP_RETRY_CMDID);
+        WMI_RETURN_STRING(WMI_CFR_CAPTURE_FILTER_CMDID);
     }
 
     return "Invalid WMI cmd";
@@ -27618,6 +27834,334 @@ typedef struct {
     A_UINT32 group_id;
     A_UINT32 retry_thresh;
 } wmi_audio_aggr_set_group_retry_cmd_fixed_param;
+
+
+#define WMI_CFR_GROUP_TA_ADDR_VALID_BIT_POS           0
+#define WMI_CFR_GROUP_TA_ADDR_MASK_VALID_BIT_POS      1
+#define WMI_CFR_GROUP_RA_ADDR_VALID_BIT_POS           2
+#define WMI_CFR_GROUP_RA_ADDR_MASK_VALID_BIT_POS      3
+#define WMI_CFR_GROUP_BW_VALID_BIT_POS                4
+#define WMI_CFR_GROUP_NSS_VALID_BIT_POS               5
+#define WMI_CFR_GROUP_MGMT_SUBTYPE_VALID_BIT_POS      6
+#define WMI_CFR_GROUP_CTRL_SUBTYPE_VALID_BIT_POS      7
+#define WMI_CFR_GROUP_DATA_SUBTYPE_VALID_BIT_POS      8
+
+/* The bits in this mask mapped to WMI_PEER_CFR_CAPTURE_BW enum */
+#define WMI_CFR_GROUP_BW_MASK_NUM_BITS                5
+#define WMI_CFR_GROUP_BW_BIT_POS                      0
+
+/* The bits in this mask correspond to the values as below
+ * bit 0 -> Nss 1
+ * bit 1 -> Nss 2
+ * ...
+ * bit 7 -> Nss 8
+ */
+#define WMI_CFR_GROUP_NSS_MASK_NUM_BITS               8
+#define WMI_CFR_GROUP_NSS_BIT_POS                     16
+
+#define WMI_CFR_GROUP_TA_ADDR_VALID_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_TA_ADDR_VALID_BIT_POS, 1, value)
+
+#define WMI_CFR_GROUP_TA_ADDR_VALID_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_TA_ADDR_VALID_BIT_POS, 1)
+
+#define WMI_CFR_GROUP_TA_ADDR_MASK_VALID_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_TA_ADDR_MASK_VALID_BIT_POS, 1, value)
+
+#define WMI_CFR_GROUP_TA_ADDR_MASK_VALID_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_TA_ADDR_MASK_VALID_BIT_POS, 1)
+
+#define WMI_CFR_GROUP_RA_ADDR_VALID_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_RA_ADDR_VALID_BIT_POS, 1, value)
+
+#define WMI_CFR_GROUP_RA_ADDR_VALID_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_RA_ADDR_VALID_BIT_POS, 1)
+
+#define WMI_CFR_GROUP_RA_ADDR_MASK_VALID_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_RA_ADDR_MASK_VALID_BIT_POS, 1, value)
+
+#define WMI_CFR_GROUP_RA_ADDR_MASK_VALID_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_RA_ADDR_MASK_VALID_BIT_POS, 1)
+
+#define WMI_CFR_GROUP_BW_VALID_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_BW_VALID_BIT_POS, 1, value)
+
+#define WMI_CFR_GROUP_BW_VALID_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_BW_VALID_BIT_POS, 1)
+
+#define WMI_CFR_GROUP_NSS_VALID_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_NSS_VALID_BIT_POS, 1, value)
+
+#define WMI_CFR_GROUP_NSS_VALID_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_NSS_VALID_BIT_POS, 1)
+
+#define WMI_CFR_GROUP_MGMT_SUBTYPE_VALID_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_MGMT_SUBTYPE_VALID_BIT_POS, 1, value)
+
+#define WMI_CFR_GROUP_MGMT_SUBTYPE_VALID_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_MGMT_SUBTYPE_VALID_BIT_POS, 1)
+
+#define WMI_CFR_GROUP_CTRL_SUBTYPE_VALID_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_CTRL_SUBTYPE_VALID_BIT_POS, 1, value)
+
+#define WMI_CFR_GROUP_CTRL_SUBTYPE_VALID_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_CTRL_SUBTYPE_VALID_BIT_POS, 1)
+
+#define WMI_CFR_GROUP_DATA_SUBTYPE_VALID_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_DATA_SUBTYPE_VALID_BIT_POS, 1, value)
+
+#define WMI_CFR_GROUP_DATA_SUBTYPE_VALID_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_DATA_SUBTYPE_VALID_BIT_POS, 1)
+
+#define WMI_CFR_GROUP_BW_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_BW_BIT_POS, WMI_CFR_GROUP_BW_MASK_NUM_BITS, value)
+
+#define WMI_CFR_GROUP_BW_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_BW_BIT_POS, WMI_CFR_GROUP_BW_MASK_NUM_BITS)
+
+#define WMI_CFR_GROUP_NSS_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_GROUP_NSS_BIT_POS, WMI_CFR_GROUP_NSS_MASK_NUM_BITS, value)
+
+#define WMI_CFR_GROUP_NSS_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_GROUP_NSS_BIT_POS, WMI_CFR_GROUP_NSS_MASK_NUM_BITS)
+
+typedef struct {
+    /* Filter group number for which the below filters needs to be applied */
+    A_UINT32 filter_group_id;
+    /* Indicates which of the below filter's value is valid
+     * Bit 0:    Ta_addr is valid if set
+     * Bit 1:    Ta_addr_mask is valid if set
+     * Bit 2:    Ra_addr is valid if set
+     * Bit 3:    Ra_addr_mask is valid if set
+     * Bit 4:    Bandwidth is valid if set
+     * Bit 5:    NSS is valid if set
+     * Bit 6:    Mgmt_subtype is valid if set
+     * Bit 7:    Ctrl_subtype is valid if set
+     * Bit 8:    Data_subtype is valid if set
+     * Bits 31:9 Reserved for future use
+     */
+    A_UINT32 filter_set_valid_mask;
+    /* ta_addr:
+     * Packets matching the TA_mac addr will be filtered in by MAC
+     * for CFR capture.
+     */
+    wmi_mac_addr ta_addr;
+    /* ta_addr_mask:
+     * Packets matching the TA_mac addr Mask will be filtered in by MAC
+     * for CFR capture.
+     */
+    wmi_mac_addr ta_addr_mask;
+    /* ra_addr:
+     * Packets matching the RA_mac addr will be filtered in by MAC
+     * for CFR capture.
+     */
+    wmi_mac_addr ra_addr;
+    /* ra_addr_mask:
+     * Packets matching the RA_mac addr Mask will be filtered in by MAC
+     * for CFR capture.
+     */
+    wmi_mac_addr ra_addr_mask;
+    /* bw_nss_filter:
+     * Indicates which bw and nss packets will be filtered for CFR capture
+     * Bits 4:0   CFR capture will be done for packets matching the bandwidths
+     *            specified within this bitmask
+     * Bits 15:5  Reserved for future
+     * Bits 23:16 CFR capture will be done for packets matching the Nss
+     *            specified within this bitmask
+     * Bits 31:24 Reserved for future
+     */
+    A_UINT32 bw_nss_filter;
+    /* mgmt_subtype_filter:
+     * Managments Packets matching the subtype filter categories will be
+     * filtered in by MAC for CFR capture.
+     * This is a bitmask, in which each bit represents the corresponding
+     * mgmt subtype value as per ieee80211_defs.h
+     */
+    A_UINT32 mgmt_subtype_filter;
+    /* ctrl_subtype_filter:
+     * Control Packets matching the subtype filter category will be
+     * filtered in by MAC for CFR capture.
+     * This is a bitmask, in which each bit represents the corresponding
+     * ctrl subtype value as per ieee80211_defs.h
+     */
+    A_UINT32 ctrl_subtype_filter;
+    /* data_subtype_filter:
+     * Data Packets matching the subtype filter category will be
+     * filtered in by MAC for CFR capture.
+     * This is a bitmask, in which each bit represents the corresponding
+     * data subtype value as per ieee80211_defs.h
+     */
+    A_UINT32 data_subtype_filter;
+} wmi_cfr_filter_group_config;
+
+#define WMI_CFR_DIRECTED_FTM_ACK_EN_BIT_POS           0
+#define WMI_CFR_ALL_FTM_ACK_EN_BIT_POS                1
+#define WMI_CFR_NDPA_NDP_DIRECTED_EN_BIT_POS          2
+#define WMI_CFR_NDPA_NDP_ALL_EN_BIT_POS               3
+#define WMI_CFR_TA_RA_TYPE_FILTER_EN_BIT_POS          4
+#define WMI_CFR_ALL_PACKET_EN_BIT_POS                 5
+
+#define WMI_CFR_CAPTURE_INTERVAL_NUM_BITS             24
+#define WMI_CFR_CAPTURE_INTERVAL_BIT_POS              0
+
+#define WMI_CFR_CAPTURE_DURATION_NUM_BITS             24
+#define WMI_CFR_CAPTURE_DURATION_BIT_POS              0
+
+#define WMI_CFR_FILTER_GROUP_BITMAP_NUM_BITS          16
+#define WMI_CFR_FILTER_GROUP_BITMAP_BIT_POS           0
+
+#define WMI_CFR_UL_MU_USER_UPPER_NUM_BITS             5
+#define WMI_CFR_UL_MU_USER_UPPER_BIT_POS              0
+
+#define WMI_CFR_FREEZE_DELAY_CNT_EN_MASK              1
+#define WMI_CFR_FREEZE_DELAY_CNT_EN_BIT_POS           0
+
+#define WMI_CFR_FREEZE_DELAY_CNT_THR_NUM_BITS         8
+#define WMI_CFR_FREEZE_DELAY_CNT_THR_BIT_POS          1
+
+#define WMI_CFR_DIRECTED_FTM_ACK_EN_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_DIRECTED_FTM_ACK_EN_BIT_POS, 1, value)
+
+#define WMI_CFR_DIRECTED_FTM_ACK_EN_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_DIRECTED_FTM_ACK_EN_BIT_POS, 1)
+
+#define WMI_CFR_ALL_FTM_ACK_EN_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_ALL_FTM_ACK_EN_BIT_POS, 1, value)
+
+#define WMI_CFR_ALL_FTM_ACK_EN_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_ALL_FTM_ACK_EN_BIT_POS, 1)
+
+#define WMI_CFR_NDPA_NDP_DIRECTED_EN_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_NDPA_NDP_DIRECTED_EN_BIT_POS, 1, value)
+
+#define WMI_CFR_NDPA_NDP_DIRECTED_EN_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_NDPA_NDP_DIRECTED_EN_BIT_POS, 1)
+
+#define WMI_CFR_NDPA_NDP_ALL_EN_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_NDPA_NDP_ALL_EN_BIT_POS, 1, value)
+
+#define WWMI_CFR_NDPA_NDP_ALL_EN_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_NDPA_NDP_ALL_EN_BIT_POS, 1)
+
+#define WMI_CFR_TA_RA_TYPE_FILTER_EN_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_TA_RA_TYPE_FILTER_EN_BIT_POS, 1, value)
+
+#define WMI_CFR_TA_RA_TYPE_FILTER_EN_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_TA_RA_TYPE_FILTER_EN_BIT_POS, 1)
+
+#define WWMI_CFR_ALL_PACKET_EN_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_ALL_PACKET_EN_BIT_POS, 1, value)
+
+#define WMI_CFR_ALL_PACKET_EN_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_ALL_PACKET_EN_BIT_POS, 1)
+
+#define WMI_CFR_CAPTURE_INTERVAL_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_CAPTURE_INTERVAL_BIT_POS, WMI_CFR_CAPTURE_INTERVAL_NUM_BITS, value)
+
+#define WMI_CFR_CAPTURE_INTERVAL_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_CAPTURE_INTERVAL_BIT_POS, WMI_CFR_CAPTURE_INTERVAL_NUM_BITS)
+
+#define WMI_CFR_CAPTURE_DURATION_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_CAPTURE_DURATION_BIT_POS, WMI_CFR_CAPTURE_DURATION_NUM_BITS, value)
+
+#define WMI_CFR_CAPTURE_DURATION_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_CAPTURE_DURATION_BIT_POS, WMI_CFR_CAPTURE_DURATION_NUM_BITS)
+
+#define WMI_CFR_FILTER_GROUP_BITMAP_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_FILTER_GROUP_BITMAP_BIT_POS, WMI_CFR_FILTER_GROUP_BITMAP_NUM_BITS, value)
+
+#define WMI_CFR_FILTER_GROUP_BITMAP_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_FILTER_GROUP_BITMAP_BIT_POS, WMI_CFR_FILTER_GROUP_BITMAP_NUM_BITS)
+
+#define WMI_CFR_UL_MU_USER_UPPER_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_UL_MU_USER_UPPER_BIT_POS, WMI_CFR_UL_MU_USER_UPPER_NUM_BITS, value)
+
+#define WMI_CFR_UL_MU_USER_UPPER_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_UL_MU_USER_UPPER_BIT_POS, WMI_CFR_UL_MU_USER_UPPER_NUM_BITS)
+
+#define WMI_CFR_FREEZE_DELAY_CNT_EN_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_FREEZE_DELAY_CNT_EN_BIT_POS, WMI_CFR_FREEZE_DELAY_CNT_EN_MASK, value)
+
+#define WMI_CFR_FREEZE_DELAY_CNT_EN_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_FREEZE_DELAY_CNT_EN_BIT_POS, WMI_CFR_FREEZE_DELAY_CNT_EN_MASK)
+
+#define WMI_CFR_FREEZE_DELAY_CNT_THR_SET(param, value) \
+    WMI_SET_BITS(param, WMI_CFR_FREEZE_DELAY_CNT_THR_BIT_POS, WMI_CFR_FREEZE_DELAY_CNT_THR_NUM_BITS, value)
+
+#define WMI_CFR_FREEZE_DELAY_CNT_THR_GET(param)     \
+    WMI_GET_BITS(param, WMI_CFR_FREEZE_DELAY_CNT_THR_BIT_POS, WMI_CFR_FREEZE_DELAY_CNT_THR_NUM_BITS)
+
+typedef struct {
+   /** TLV tag and len; tag equals
+    * WMITLV_TAG_STRUC_wmi_peer_cfr_capture_filter_cmd_fixed_param */
+    A_UINT32 tlv_header;
+    /** pdev_id for identifying the MAC
+     * See macros starting with WMI_PDEV_ID_ for values.
+     * In non-DBDC case host should set it to 0
+     */
+    A_UINT32 pdev_id;
+    /* filter_type:
+     * Indicates the type of filter to be enabled
+     * Bit 0:    Filter Directed FTM ACK frames for CFR capture
+     * Bit 1:    Filter All FTM ACK frames for CFR capture
+     * Bit 2:    Filter NDPA NDP Directed Frames for CFR capture
+     * Bit 3:    Filter Frames based on TA/RA/Subtype as provided
+     *           in CFR Group config
+     * Bit 4:    Filter in All packets for CFR Capture
+     * Bits 31:5 Reserved for future use
+     */
+    A_UINT32 filter_type;
+    /* capture_interval:
+     * Capture interval field which is time in between consecutive
+     * CFR capture, in microsecond units
+     * Bits 23:0  Capture interval
+     * Bits 31:24 Reserved for future use
+     */
+    A_UINT32 capture_interval;
+    /* capture_duration:
+     * Capture Duration field for which CFR capture has to happen,
+     * in microsecond units
+     * Bits 23:0  Capture Duration
+     * Bits 31:24 Reserved for future use
+     */
+    A_UINT32 capture_duration;
+    /* Bitfields set indicates which of the CFR group config is enabled
+     * Bits 15:0  Filter Group enable Bits
+     * Bits 31:16 Reserved for future use
+     * If Bit 0 is set, then CFR filter group 0 alone is enabled and so on
+     */
+    A_UINT32 filter_group_bitmap;
+    /* ul_mu_user_mask_lower:
+     * Bitfields indicates which of the users in the current UL MU
+     * tranmission are enabled for CFR capture.
+     * Bits 31 to 0 indicates user indexes for 32 users in a UL MU transmission.
+     * If bit 0 is set, then the CFR capture will happen for user index 0
+     * in the current UL MU Transmission.
+     * If bits 0,2 are set, then CFR capture for UL MU TX corresponds to
+     * user indices 0 and 2.
+     */
+    A_UINT32 ul_mu_user_mask_lower;
+    /* ul_mu_user_mask_upper:
+     * This is contiuation of the above lower mask.
+     * Bits 4:0  Bitfields indicates user indices from 33 to 37 users.
+     * Bits 31:5 Reserved for future use
+     * If bit 0 is set, then CFR capture is enabled for user index 33
+     * in a UL MU transmission.
+     */
+    A_UINT32 ul_mu_user_mask_upper;
+    /* freeze_tlv_delay_cnt
+     * Indicates the number of consecutive Rx packets to be skipped
+     * before CFR capture is enabled again.
+     * Bits 8:0   Freeze Delay Count value
+     * Bits 31:9  Reserved for future use
+     */
+    A_UINT32 freeze_tlv_delay_cnt;
+/*
+ * A variable-length TLV array of wmi_cfr_filter_group_config will
+ * follow this fixed_param TLV
+ * wmi_cfr_filter_group_config filter_group_config[];
+ */
+} wmi_cfr_capture_filter_cmd_fixed_param;
 
 
 
