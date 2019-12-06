@@ -1010,6 +1010,8 @@ typedef enum {
     WMITLV_TAG_STRUC_wmi_audio_aggr_set_group_retry,
     WMITLV_TAG_STRUC_wmi_cfr_capture_filter_cmd_fixed_param,
     WMITLV_TAG_STRUC_wmi_cfr_filter_group_config,
+    WMITLV_TAG_STRUC_wmi_fd_tmpl_cmd_fixed_param,
+    WMITLV_TAG_STRUC_wmi_vdev_bss_max_idle_time_cmd_fixed_param,
 } WMITLV_TAG_ID;
 
 /*
@@ -1423,6 +1425,8 @@ typedef enum {
     OP(WMI_AUDIO_AGGR_SET_GROUP_RATE_CMDID) \
     OP(WMI_AUDIO_AGGR_SET_GROUP_RETRY_CMDID) \
     OP(WMI_CFR_CAPTURE_FILTER_CMDID) \
+    OP(WMI_FD_TMPL_CMDID) \
+    OP(WMI_VDEV_BSS_MAX_IDLE_TIME_CMDID) \
     /* add new CMD_LIST elements above this line */
 
 
@@ -2096,6 +2100,13 @@ WMITLV_CREATE_PARAM_STRUC(WMI_PRB_TMPL_CMDID);
 
 WMITLV_CREATE_PARAM_STRUC(WMI_BCN_TMPL_CMDID);
 
+/* FILS Discovery template Cmd */
+#define WMITLV_TABLE_WMI_FD_TMPL_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_fd_tmpl_cmd_fixed_param, wmi_fd_tmpl_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_ARRAY_BYTE, A_UINT8, bufp, WMITLV_SIZE_VAR)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_FD_TMPL_CMDID);
+
 /* VDEV install key complete Cmd */
 #define WMITLV_TABLE_WMI_VDEV_INSTALL_KEY_CMDID(id,op,buf,len) \
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_install_key_cmd_fixed_param, wmi_vdev_install_key_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)\
@@ -2143,6 +2154,12 @@ WMITLV_CREATE_PARAM_STRUC(WMI_ADD_BCN_FILTER_CMDID);
     WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_WMI_STA_KEEPALVE_ARP_RESPONSE, WMI_STA_KEEPALVE_ARP_RESPONSE, arp_resp, WMITLV_SIZE_FIX)
 
 WMITLV_CREATE_PARAM_STRUC(WMI_STA_KEEPALIVE_CMDID);
+
+/* Bss Max idle time cmd */
+#define WMITLV_TABLE_WMI_VDEV_BSS_MAX_IDLE_TIME_CMDID(id,op,buf,len) \
+    WMITLV_ELEM(id,op,buf,len, WMITLV_TAG_STRUC_wmi_vdev_bss_max_idle_time_cmd_fixed_param, wmi_vdev_bss_max_idle_time_cmd_fixed_param, fixed_param, WMITLV_SIZE_FIX)
+
+WMITLV_CREATE_PARAM_STRUC(WMI_VDEV_BSS_MAX_IDLE_TIME_CMDID);
 
 /* ARP NS offload Cmd */
 #define WMITLV_TABLE_WMI_SET_ARP_NS_OFFLOAD_CMDID(id,op,buf,len) \
