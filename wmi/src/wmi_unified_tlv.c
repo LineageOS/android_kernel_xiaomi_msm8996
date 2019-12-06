@@ -10999,7 +10999,7 @@ QDF_STATUS send_enable_specific_fw_logs_cmd_tlv(wmi_unified_t wmi_handle,
 	count = 0;
 
 	if (!wmi_handle->events_logs_list) {
-		WMI_LOGE("%s: Not received event/log list from FW, yet",
+		WMI_LOGD("%s: Not received event/log list from FW, yet",
 				__func__);
 		return QDF_STATUS_E_NOMEM;
 	}
@@ -14255,7 +14255,7 @@ QDF_STATUS send_limit_off_chan_cmd_tlv(wmi_unified_t wmi_handle,
 	cmd->max_offchan_time = limit_off_chan_param->max_offchan_time;
 	cmd->rest_time = limit_off_chan_param->rest_time;
 
-	WMI_LOGE("%s: vdev_id=%d, flags =%x, max_offchan_time=%d, rest_time=%d",
+	WMI_LOGD("%s: vdev_id=%d, flags =%x, max_offchan_time=%d, rest_time=%d",
 		__func__, cmd->vdev_id, cmd->flags, cmd->max_offchan_time,
 		cmd->rest_time);
 
@@ -15181,6 +15181,99 @@ static QDF_STATUS send_thermal_mitigation_param_cmd_tlv(
 }
 #endif
 
+/**
+ * send_addba_send_cmd_tlv() - send addba send command to fw
+ * @wmi_handle: wmi handle
+ * @param: pointer to delba send params
+ * @macaddr: peer mac address
+ *
+ * Send WMI_ADDBA_SEND_CMDID command to firmware
+ * Return: QDF_STATUS_SUCCESS on success. QDF_STATUS_E** on error
+ */
+static QDF_STATUS
+send_addba_send_cmd_tlv(wmi_unified_t wmi_handle,
+				uint8_t macaddr[QDF_MAC_ADDR_SIZE],
+				struct addba_send_params *param)
+{
+	wmi_addba_send_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	uint16_t len;
+	QDF_STATUS ret;
+
+	len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf)
+		return QDF_STATUS_E_NOMEM;
+
+	cmd = (wmi_addba_send_cmd_fixed_param *)wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_addba_send_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_addba_send_cmd_fixed_param));
+
+	cmd->vdev_id = param->vdev_id;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(macaddr, &cmd->peer_macaddr);
+	cmd->tid = param->tidno;
+	cmd->buffersize = param->buffersize;
+
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len, WMI_ADDBA_SEND_CMDID);
+	if (QDF_IS_STATUS_ERROR(ret)) {
+		WMI_LOGE("%s: Failed to send cmd to fw, ret=%d", __func__, ret);
+		wmi_buf_free(buf);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	return QDF_STATUS_SUCCESS;
+}
+
+/**
+ * send_delba_send_cmd_tlv() - send delba send command to fw
+ * @wmi_handle: wmi handle
+ * @param: pointer to delba send params
+ * @macaddr: peer mac address
+ *
+ * Send WMI_DELBA_SEND_CMDID command to firmware
+ * Return: QDF_STATUS_SUCCESS on success. QDF_STATUS_E** on error
+ */
+static QDF_STATUS
+send_delba_send_cmd_tlv(wmi_unified_t wmi_handle,
+				uint8_t macaddr[QDF_MAC_ADDR_SIZE],
+				struct delba_send_params *param)
+{
+	wmi_delba_send_cmd_fixed_param *cmd;
+	wmi_buf_t buf;
+	uint16_t len;
+	QDF_STATUS ret;
+
+	len = sizeof(*cmd);
+
+	buf = wmi_buf_alloc(wmi_handle, len);
+	if (!buf)
+		return QDF_STATUS_E_NOMEM;
+
+	cmd = (wmi_delba_send_cmd_fixed_param *)wmi_buf_data(buf);
+
+	WMITLV_SET_HDR(&cmd->tlv_header,
+			WMITLV_TAG_STRUC_wmi_delba_send_cmd_fixed_param,
+			WMITLV_GET_STRUCT_TLVLEN(wmi_delba_send_cmd_fixed_param));
+
+	cmd->vdev_id = param->vdev_id;
+	WMI_CHAR_ARRAY_TO_MAC_ADDR(macaddr, &cmd->peer_macaddr);
+	cmd->tid = param->tidno;
+	cmd->initiator = param->initiator;
+	cmd->reasoncode = param->reasoncode;
+
+	ret = wmi_unified_cmd_send(wmi_handle, buf, len, WMI_DELBA_SEND_CMDID);
+	if (QDF_IS_STATUS_ERROR(ret)) {
+		WMI_LOGE("%s: Failed to send cmd to fw, ret=%d", __func__, ret);
+		wmi_buf_free(buf);
+		return QDF_STATUS_E_FAILURE;
+	}
+
+	return QDF_STATUS_SUCCESS;
+}
+
 struct wmi_ops tlv_ops =  {
 	.send_vdev_create_cmd = send_vdev_create_cmd_tlv,
 	.send_vdev_delete_cmd = send_vdev_delete_cmd_tlv,
@@ -15488,6 +15581,8 @@ struct wmi_ops tlv_ops =  {
 	.send_thermal_mitigation_param_cmd =
 			send_thermal_mitigation_param_cmd_tlv,
 #endif
+	.send_addba_send_cmd = send_addba_send_cmd_tlv,
+	.send_delba_send_cmd = send_delba_send_cmd_tlv,
 };
 
 #ifdef WMI_TLV_AND_NON_TLV_SUPPORT

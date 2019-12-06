@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -155,6 +155,8 @@
  * @sgi: Rx frame short guard interval
  * @ldpc: ldpc enabled
  * @beamformed: Is frame beamformed.
+ * @tx_status: Status of Tx frame
+ * @add_rtap_ext: Bool to add extension to radiotap header
  */
 struct mon_rx_status {
 	uint64_t tsft;
@@ -179,6 +181,9 @@ struct mon_rx_status {
 	uint8_t  sgi;
 	uint8_t  ldpc;
 	uint8_t  beamformed;
+	uint8_t  tx_status;
+	bool add_rtap_ext;
+	uint8_t  tx_retry_cnt;
 };
 
 /* DHCP Related Mask */
