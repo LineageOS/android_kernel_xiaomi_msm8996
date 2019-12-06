@@ -2777,6 +2777,7 @@ static const char *wma_get_status_str(uint32_t status)
 
 #define RATE_LIMIT 16
 #define RESERVE_BYTES   100
+#define NORMALIZED_TO_NOISE_FLOOR (-96)
 
 /**
  * wma_process_mon_mgmt_tx_data(): process management tx packets
@@ -2875,12 +2876,10 @@ wma_process_mon_mgmt_tx_data(wmi_mgmt_hdr *hdr,
 	txrx_status.chan_freq = hdr->chan_freq;
 	/* hdr->rate is in Kbps, convert into Mbps */
 	txrx_status.rate = (hdr->rate_kbps / 1000);
-	txrx_status.ant_signal_db = hdr->rssi;
-	/* RSSI -128 is invalid rssi for TX, add 96 here,
-	 * will be normalized during radiotap updation
+	/* RSSI is filled with TPC which will be normalized
+	 * during radiotap updation, so add 96 here
 	 */
-	if (txrx_status.ant_signal_db == -128)
-		txrx_status.ant_signal_db += 96;
+	txrx_status.ant_signal_db = hdr->rssi - NORMALIZED_TO_NOISE_FLOOR;
 
 	txrx_status.nr_ant = 1;
 	txrx_status.rtap_flags |=
@@ -2895,6 +2894,7 @@ wma_process_mon_mgmt_tx_data(wmi_mgmt_hdr *hdr,
 	txrx_status.rate = ((txrx_status.rate == 6 /* Mbps */) ? 0x0c : 0x02);
 	txrx_status.tx_status = status;
 	txrx_status.add_rtap_ext = true;
+	txrx_status.tx_retry_cnt = hdr->tx_retry_cnt;
 
 	wh = (struct ieee80211_frame *)qdf_nbuf_data(nbuf);
 	wh->i_fc[1] &= ~IEEE80211_FC1_WEP;

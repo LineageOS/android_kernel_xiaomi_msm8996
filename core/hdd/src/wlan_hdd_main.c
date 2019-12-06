@@ -530,8 +530,6 @@ static int __hdd_netdev_notifier_call(struct notifier_block *nb,
 				hdd_err("Timeout occurred while waiting for abortscan");
 		}
 		cds_flush_work(&adapter->scan_block_work);
-		/* Need to clean up blocked scan request */
-		wlan_hdd_cfg80211_scan_block_cb(&adapter->scan_block_work);
 		hdd_debug("Scan is not Pending from user");
 		/*
 		 * After NETDEV_GOING_DOWN, kernel calls hdd_stop.Irrespective
@@ -2390,7 +2388,8 @@ int hdd_wlan_start_modules(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 		if (!reinit && !unint) {
 			ret = pld_power_on(qdf_dev->dev);
 			if (ret) {
-				hdd_err("Failed to Powerup the device: %d", ret);
+				hdd_err("Failed to Powerup the device; errno: %d",
+					ret);
 				goto release_lock;
 			}
 		}
@@ -2403,7 +2402,7 @@ int hdd_wlan_start_modules(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 				   (reinit == true) ?  HIF_ENABLE_TYPE_REINIT :
 				   HIF_ENABLE_TYPE_PROBE);
 		if (ret) {
-			hdd_err("Failed to open hif: %d", ret);
+			hdd_err("Failed to open hif; errno: %d", ret);
 			goto power_down;
 		}
 
@@ -2416,20 +2415,22 @@ int hdd_wlan_start_modules(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 
 		status = ol_cds_init(qdf_dev, hif_ctx);
 		if (status != QDF_STATUS_SUCCESS) {
-			hdd_err("No Memory to Create BMI Context :%d", status);
+			hdd_err("No Memory to Create BMI Context; status: %d",
+				status);
 			ret = qdf_status_to_os_return(status);
 			goto hif_close;
 		}
 
 		ret = hdd_update_config(hdd_ctx);
 		if (ret) {
-			hdd_err("Failed to update configuration :%d", ret);
+			hdd_err("Failed to update configuration; errno: %d",
+				ret);
 			goto ol_cds_free;
 		}
 
 		status = cds_open();
 		if (!QDF_IS_STATUS_SUCCESS(status)) {
-			hdd_err("Failed to Open CDS: %d", status);
+			hdd_err("Failed to Open CDS; status: %d", status);
 			ret = (status == QDF_STATUS_E_NOMEM) ? -ENOMEM : -EINVAL;
 			goto deinit_config;
 		}
@@ -2451,8 +2452,8 @@ int hdd_wlan_start_modules(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 
 		status = cds_pre_enable(hdd_ctx->pcds_context);
 		if (!QDF_IS_STATUS_SUCCESS(status)) {
-			hdd_err("Failed to pre-enable CDS: %d", status);
-			ret = (status == QDF_STATUS_E_NOMEM) ? -ENOMEM : -EINVAL;
+			hdd_err("Failed to pre-enable CDS; status: %d", status);
+			ret = qdf_status_to_os_return(status);
 			goto deregister_cb;
 		}
 
@@ -2481,9 +2482,10 @@ int hdd_wlan_start_modules(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 		}
 
 		if (reinit) {
-			if (hdd_ipa_uc_ssr_reinit(hdd_ctx)) {
-				hdd_err("HDD IPA UC reinit failed");
-				ret = -EINVAL;
+			ret = hdd_ipa_uc_ssr_reinit(hdd_ctx);
+			if (ret) {
+				hdd_err("HDD IPA UC reinit failed; errno: %d",
+					ret);
 				goto err_ipa_cleanup;
 			}
 		}
@@ -2493,16 +2495,19 @@ int hdd_wlan_start_modules(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 		hdd_info("Wlan transition (OPENED -> ENABLED)");
 		if (!adapter) {
 			hdd_err("adapter is Null");
+			ret = -EINVAL;
 			goto err_ipa_cleanup;
 		}
 
 		if (QDF_GLOBAL_FTM_MODE == hdd_get_conparam()) {
 			hdd_err("in ftm mode, no need to configure cds modules");
+			ret = -EINVAL;
 			break;
 		}
 
-		if (hdd_configure_cds(hdd_ctx, adapter)) {
-			hdd_err("Failed to Enable cds modules");
+		ret = hdd_configure_cds(hdd_ctx, adapter);
+		if (ret) {
+			hdd_err("Failed to Enable cds modules; errno: %d", ret);
 			ret = -EINVAL;
 			goto err_ipa_cleanup;
 		}
@@ -3679,8 +3684,8 @@ QDF_STATUS hdd_init_station_mode(hdd_adapter_t *adapter)
 	status = hdd_lro_enable(hdd_ctx, adapter);
 	if (status)
 		/* Err code from errno.h */
-		hdd_err("LRO is disabled either because of kernel doesnot support or disabled in INI or via vendor commandi. err code %d",
-		status);
+		hdd_debug("LRO is disabled either because of kernel doesnot support or disabled in INI or via vendor commandi. err code %d",
+			  status);
 
 	/* rcpi info initialization */
 	qdf_mem_zero(&adapter->rcpi, sizeof(adapter->rcpi));
@@ -3739,7 +3744,7 @@ void hdd_cleanup_actionframe(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter)
 			&adapter->tx_action_cnf_event,
 			msecs_to_jiffies(ACTION_FRAME_TX_TIMEOUT));
 		if (!rc) {
-			hdd_err("HDD Wait for Action Confirmation Failed!!");
+			hdd_debug("HDD Wait for Action Confirmation Failed!!");
 			/*
 			 * Inform tx status as FAILURE to upper layer and free
 			 * cfgState->buf
@@ -3961,6 +3966,9 @@ static void hdd_cleanup_adapter(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 		hdd_err("adapter is Null");
 		return;
 	}
+
+	qdf_list_destroy(&adapter->blocked_scan_request_q);
+	qdf_mutex_destroy(&adapter->blocked_scan_request_q_lock);
 
 	wlan_hdd_debugfs_csr_deinit(adapter);
 	qdf_mutex_destroy(&adapter->arp_offload_info_lock);
@@ -4746,9 +4754,6 @@ QDF_STATUS hdd_close_adapter(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 	if (QDF_STATUS_SUCCESS == status) {
 		hdd_bus_bw_compute_timer_stop(hdd_ctx);
 
-		qdf_list_destroy(&adapter->blocked_scan_request_q);
-		qdf_mutex_destroy(&adapter->blocked_scan_request_q_lock);
-
 		/* cleanup adapter */
 		cds_clear_concurrency_mode(adapter->device_mode);
 		hdd_cleanup_adapter(hdd_ctx, adapterNode->pAdapter, rtnl_held);
@@ -4973,6 +4978,8 @@ QDF_STATUS hdd_stop_adapter(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 		return -ENODEV;
 	}
 
+	/* Need to clean up blocked scan request */
+	wlan_hdd_cfg80211_scan_block_cb(&adapter->scan_block_work);
 	scan_info = &adapter->scan_info;
 	hdd_info("Disabling queues");
 	wlan_hdd_netif_queue_control(adapter,
@@ -5061,6 +5068,17 @@ QDF_STATUS hdd_stop_adapter(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 #endif
 
 		/*
+		 * During vdev destroy, if any STA is in connecting state the
+		 * roam command will be in active queue and thus vdev destroy is
+		 * queued in pending queue. In case STA tries to connect to
+		 * multiple BSSID and fails to connect, due to auth/assoc
+		 * timeouts it may take more than vdev destroy time to get
+		 * completed. So before vdev destroy is queued abort any STA
+		 * ongoing connection to avoid vdev destroy timeout.
+		 */
+		if (test_bit(SME_SESSION_OPENED, &adapter->event_flags))
+			hdd_abort_ongoing_sta_connection(hdd_ctx);
+		/*
 		 * It is possible that the caller of this function does not
 		 * wish to close the session
 		 */
@@ -5102,6 +5120,18 @@ QDF_STATUS hdd_stop_adapter(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 			wlan_hdd_cleanup_remain_on_channel_ctx(adapter);
 
 		hdd_deregister_tx_flow_control(adapter);
+
+		/*
+		 * During vdev destroy, if any STA is in connecting state the
+		 * roam command will be in active queue and thus vdev destroy is
+		 * queued in pending queue. In case STA tries to connect to
+		 * multiple BSSID and fails to connect, due to auth/assoc
+		 * timeouts it may take more than vdev destroy time to get
+		 * complete. So before vdev destroy is queued abort any STA
+		 * ongoing connection to avoid vdev destroy timeout.
+		 */
+		if (test_bit(SME_SESSION_OPENED, &adapter->event_flags))
+			hdd_abort_ongoing_sta_connection(hdd_ctx);
 
 		mutex_lock(&hdd_ctx->sap_lock);
 		if (test_bit(SOFTAP_BSS_STARTED, &adapter->event_flags)) {
@@ -11300,6 +11330,7 @@ int hdd_wlan_stop_modules(hdd_context_t *hdd_ctx, bool ftm_mode)
 	}
 	/* Free the cache channels of the command SET_DISABLE_CHANNEL_LIST */
 	wlan_hdd_free_cache_channels(hdd_ctx);
+	hdd_driver_mem_cleanup();
 
 	/* many adapter resources are not freed by design in SSR case */
 	if (!is_recover_stop)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -61,15 +61,7 @@ static void *memdump_get_file_data(struct file *file)
 	return hdd_ctx;
 }
 
-/**
- * hdd_driver_mem_cleanup() - Frees memory allocated for
- * driver dump
- *
- * This function unallocates driver dump memory.
- *
- * Return: None
- */
-static void hdd_driver_mem_cleanup(void)
+void hdd_driver_mem_cleanup(void)
 {
 	hdd_context_t *hdd_ctx;
 
@@ -307,6 +299,4 @@ int hdd_driver_memdump_init(void)
 void hdd_driver_memdump_deinit(void)
 {
 	hdd_driver_memdump_procfs_remove();
-
-	hdd_driver_mem_cleanup();
 }
