@@ -10999,7 +10999,7 @@ QDF_STATUS send_enable_specific_fw_logs_cmd_tlv(wmi_unified_t wmi_handle,
 	count = 0;
 
 	if (!wmi_handle->events_logs_list) {
-		WMI_LOGE("%s: Not received event/log list from FW, yet",
+		WMI_LOGD("%s: Not received event/log list from FW, yet",
 				__func__);
 		return QDF_STATUS_E_NOMEM;
 	}
@@ -14255,7 +14255,7 @@ QDF_STATUS send_limit_off_chan_cmd_tlv(wmi_unified_t wmi_handle,
 	cmd->max_offchan_time = limit_off_chan_param->max_offchan_time;
 	cmd->rest_time = limit_off_chan_param->rest_time;
 
-	WMI_LOGE("%s: vdev_id=%d, flags =%x, max_offchan_time=%d, rest_time=%d",
+	WMI_LOGD("%s: vdev_id=%d, flags =%x, max_offchan_time=%d, rest_time=%d",
 		__func__, cmd->vdev_id, cmd->flags, cmd->max_offchan_time,
 		cmd->rest_time);
 
