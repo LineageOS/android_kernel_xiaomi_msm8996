@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -220,7 +220,7 @@ static int ipa3_generate_flt_hw_rule(enum ipa_ip_type ip,
 	hdr = (struct ipa3_flt_rule_hw_hdr *)buf;
 	hdr->u.hdr.action = entry->rule.action;
 	hdr->u.hdr.retain_hdr =  entry->rule.retain_hdr;
-	if (entry->rt_tbl)
+	if (entry->rt_tbl && (!ipa3_check_idr_if_freed(entry->rt_tbl)))
 		hdr->u.hdr.rt_tbl_idx = entry->rt_tbl->idx;
 	else
 		hdr->u.hdr.rt_tbl_idx = entry->rule.rt_tbl_idx;
@@ -1740,7 +1740,9 @@ int ipa3_reset_flt(enum ipa_ip_type ip, bool user_only)
 					entry->ipacm_installed) {
 				list_del(&entry->link);
 				entry->tbl->rule_cnt--;
-				if (entry->rt_tbl)
+				if (entry->rt_tbl &&
+					(!ipa3_check_idr_if_freed(
+						entry->rt_tbl)))
 					entry->rt_tbl->ref_cnt--;
 				/* if rule id was allocated from idr, remove */
 				rule_id = entry->rule_id;
