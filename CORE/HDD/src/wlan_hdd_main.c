@@ -141,6 +141,8 @@ extern int hdd_hostapd_stop (struct net_device *dev);
 #include <net/cnss_nl.h>
 #endif
 
+#include <wlan_hdd_spectral.h>
+
 #if defined(LINUX_QCMBR)
 #define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
 #endif
@@ -14826,6 +14828,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       hdd_set_idle_ps_config(pHddCtx, FALSE);
    }
 
+   hdd_spectral_deinit(pHddCtx);
+
    TRACK_UNLOAD_STATUS(unload_debugfs_exit);
    hdd_debugfs_exit(pHddCtx);
 
@@ -17356,16 +17360,19 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_wiphy_unregister;
 #endif
 
-   /*Start VOSS which starts up the SME/MAC/HAL modules and everything else */
-   status = vos_start( pHddCtx->pvosContext );
-   if ( !VOS_IS_STATUS_SUCCESS( status ) )
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
+   if (hdd_spectral_init(pHddCtx) == VOS_STATUS_E_FAILURE)
 #ifdef IPA_OFFLOAD
       goto err_ipa_cleanup;
 #else
       goto err_wiphy_unregister;
 #endif
+
+   /*Start VOSS which starts up the SME/MAC/HAL modules and everything else */
+   status = vos_start( pHddCtx->pvosContext );
+   if ( !VOS_IS_STATUS_SUCCESS( status ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
+      goto err_spectral_deinit;
    }
 
    /* Register Smart Antenna Module */
@@ -18036,6 +18043,9 @@ err_close_adapter:
 
 err_vosstop:
    vos_stop(pVosContext);
+
+err_spectral_deinit:
+   hdd_spectral_deinit(pHddCtx);
 
 #ifdef IPA_OFFLOAD
 err_ipa_cleanup:

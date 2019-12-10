@@ -115,6 +115,7 @@
 #include "wma_nan_datapath.h"
 #include "adf_trace.h"
 
+#include "wlan_hdd_spectral.h"
 /* ################### defines ################### */
 /*
  * TODO: Following constant should be shared by firwmare in
@@ -8103,6 +8104,10 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
                             WMI_UNIFIED_RSSI_COMB_GET(&ev->hdr) & 0xff,
                             ev->hdr.tsf_timestamp,
                             tsf64, enable_log);
+            }
+        } else if (phy_err_code == 0x26) {
+            if (ev->hdr.buf_len > 0) {
+                spectral_process_phyerr(ev, tsf64);
             }
         }
 
@@ -35335,6 +35340,125 @@ VOS_STATUS wma_set_hpcs_pulse_params(tp_wma_handle wma_handle,
     return VOS_STATUS_SUCCESS;
 }
 
+static VOS_STATUS wma_spectral_scan_enable(tp_wma_handle wma_handle,
+					   sir_spectral_enable_params_t *params)
+{
+	wmi_vdev_spectral_enable_cmd_fixed_param *cmd;
+	uint32_t len;
+	wmi_buf_t buf;
+	int ret = 0;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		return -ENOMEM;
+	}
+	cmd = (wmi_vdev_spectral_enable_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_spectral_enable_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+		       wmi_vdev_spectral_enable_cmd_fixed_param));
+	cmd->vdev_id = params->vdev_id;
+	cmd->trigger_cmd = params->trigger_cmd;
+	cmd->enable_cmd = params->enable_cmd;
+
+	WMA_LOGD(FL("vdev_id=%d"), cmd->vdev_id);
+	WMA_LOGD(FL("trigger_cmd=%d"), cmd->trigger_cmd);
+	WMA_LOGD(FL("enable_cmd=%d"), cmd->enable_cmd);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				   WMI_VDEV_SPECTRAL_SCAN_ENABLE_CMDID);
+	if (ret) {
+		WMA_LOGE(FL("failed to send WMI_VDEV_SPECTRAL_SCAN_ENABLE_CMDID"));
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+static VOS_STATUS wma_spectral_scan_config(tp_wma_handle wma_handle,
+					   sir_spectral_config_params_t *params)
+{
+	wmi_vdev_spectral_configure_cmd_fixed_param *cmd;
+	uint32_t len;
+	wmi_buf_t buf;
+	int ret = 0;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		return -ENOMEM;
+	}
+	cmd = (wmi_vdev_spectral_configure_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_spectral_configure_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+		       wmi_vdev_spectral_configure_cmd_fixed_param));
+
+	cmd->vdev_id=params->vdev_id;
+	cmd->spectral_scan_count=params->spectral_scan_count;
+	cmd->spectral_scan_period=params->spectral_scan_period;
+	cmd->spectral_scan_priority=params->spectral_scan_priority;
+	cmd->spectral_scan_fft_size=params->spectral_scan_fft_size;
+	cmd->spectral_scan_gc_ena=params->spectral_scan_gc_ena;
+	cmd->spectral_scan_restart_ena=params->spectral_scan_restart_ena;
+	cmd->spectral_scan_noise_floor_ref=params->spectral_scan_noise_floor_ref;
+	cmd->spectral_scan_init_delay=params->spectral_scan_init_delay;
+	cmd->spectral_scan_nb_tone_thr=params->spectral_scan_nb_tone_thr;
+	cmd->spectral_scan_str_bin_thr=params->spectral_scan_str_bin_thr;
+	cmd->spectral_scan_wb_rpt_mode=params->spectral_scan_wb_rpt_mode;
+	cmd->spectral_scan_rssi_rpt_mode=params->spectral_scan_rssi_rpt_mode;
+	cmd->spectral_scan_rssi_thr=params->spectral_scan_rssi_thr;
+	cmd->spectral_scan_pwr_format=params->spectral_scan_pwr_format;
+	cmd->spectral_scan_rpt_mode=params->spectral_scan_rpt_mode;
+	cmd->spectral_scan_bin_scale=params->spectral_scan_bin_scale;
+	cmd->spectral_scan_dBm_adj=params->spectral_scan_dbm_adj;
+	cmd->spectral_scan_chn_mask=params->spectral_scan_chn_mask;
+
+	WMA_LOGD(FL("vdev_id=%d"), cmd->vdev_id);
+	WMA_LOGD(FL("spectral_scan_count=%d"), cmd->spectral_scan_count);
+	WMA_LOGD(FL("spectral_scan_period=%d"), cmd->spectral_scan_period);
+	WMA_LOGD(FL("spectral_scan_priority=%d"), cmd->spectral_scan_priority);
+	WMA_LOGD(FL("spectral_scan_fft_size=%d"), cmd->spectral_scan_fft_size);
+	WMA_LOGD(FL("spectral_scan_gc_ena=%d"), cmd->spectral_scan_gc_ena);
+	WMA_LOGD(FL("spectral_scan_restart_ena=%d"), cmd->spectral_scan_restart_ena);
+	WMA_LOGD(FL("spectral_scan_noise_floor_ref=%d"), cmd->spectral_scan_noise_floor_ref);
+	WMA_LOGD(FL("spectral_scan_init_delay=%d"), cmd->spectral_scan_init_delay);
+	WMA_LOGD(FL("spectral_scan_nb_tone_thr=%d"), cmd->spectral_scan_nb_tone_thr);
+	WMA_LOGD(FL("spectral_scan_str_bin_thr=%d"), cmd->spectral_scan_str_bin_thr);
+	WMA_LOGD(FL("spectral_scan_wb_rpt_mode=%d"), cmd->spectral_scan_wb_rpt_mode);
+	WMA_LOGD(FL("spectral_scan_rssi_rpt_mode=%d"), cmd->spectral_scan_rssi_rpt_mode);
+	WMA_LOGD(FL("spectral_scan_rssi_thr=%d"), cmd->spectral_scan_rssi_thr);
+	WMA_LOGD(FL("spectral_scan_pwr_format=%d"), cmd->spectral_scan_pwr_format);
+	WMA_LOGD(FL("spectral_scan_rpt_mode=%d"), cmd->spectral_scan_rpt_mode);
+	WMA_LOGD(FL("spectral_scan_bin_scale=%d"), cmd->spectral_scan_bin_scale);
+	WMA_LOGD(FL("spectral_scan_dBm_adj=%d"), cmd->spectral_scan_dBm_adj);
+	WMA_LOGD(FL("spectral_scan_chn_mask=%d"), cmd->spectral_scan_chn_mask);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				   WMI_VDEV_SPECTRAL_SCAN_CONFIGURE_CMDID);
+	if (ret) {
+		WMA_LOGE(FL("failed to send WMI_VDEV_SPECTRAL_SCAN_CONFIGURE_CMDID"));
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -36356,6 +36480,14 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif
+		case WDA_SPECTRAL_SCAN_ENABLE_CMDID:
+			wma_spectral_scan_enable(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SPECTRAL_SCAN_CONFIG_CMDID:
+			wma_spectral_scan_config(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */

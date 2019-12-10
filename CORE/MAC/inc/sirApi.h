@@ -8801,4 +8801,33 @@ struct sir_sae_msg {
 	uint8_t sae_status;
 	tSirMacAddr peer_mac_addr;
 };
+
+typedef struct sir_spectral_enable_params {
+	uint32_t vdev_id;
+	uint32_t trigger_cmd;
+	uint32_t enable_cmd;
+} sir_spectral_enable_params_t;
+
+typedef struct sir_spectral_config_params {
+	uint32_t vdev_id;
+	uint32_t spectral_scan_count;
+	uint32_t spectral_scan_period;
+	uint32_t spectral_scan_priority;
+	uint32_t spectral_scan_fft_size;
+	uint32_t spectral_scan_gc_ena;
+	uint32_t spectral_scan_restart_ena;
+	uint32_t spectral_scan_noise_floor_ref;
+	uint32_t spectral_scan_init_delay;
+	uint32_t spectral_scan_nb_tone_thr;
+	uint32_t spectral_scan_str_bin_thr;
+	uint32_t spectral_scan_wb_rpt_mode;
+	uint32_t spectral_scan_rssi_rpt_mode;
+	uint32_t spectral_scan_rssi_thr;
+	uint32_t spectral_scan_pwr_format;
+	uint32_t spectral_scan_rpt_mode;
+	uint32_t spectral_scan_bin_scale;
+	uint32_t spectral_scan_dbm_adj;
+	uint32_t spectral_scan_chn_mask;
+} sir_spectral_config_params_t;
+
 #endif /* __SIR_API_H */

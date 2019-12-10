@@ -21489,3 +21489,85 @@ eHalStatus sme_set_gpio_output(tHalHandle hal,
 
 	return hal_status;
 }
+
+eHalStatus sme_spectral_scan_enable(tHalHandle hal,
+				    sir_spectral_enable_params_t *params)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	vos_msg_t vos_msg;
+	sir_spectral_enable_params_t *spectral_enable_params;
+
+	spectral_enable_params = vos_mem_malloc(sizeof(*spectral_enable_params));
+	if (!spectral_enable_params) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Failed to alloc spectral enable params"));
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	*spectral_enable_params = *params;
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (status == eHAL_STATUS_SUCCESS) {
+		/* Serialize the req through MC thread */
+		vos_msg.bodyptr = spectral_enable_params;
+		vos_msg.type = SIR_HAL_SPECTRAL_SCAN_ENABLE_CMDID;
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg);
+
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				  FL("post spectal scan enable msg fail"));
+			status = eHAL_STATUS_FAILURE;
+			vos_mem_free(spectral_enable_params);
+		}
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock failed"));
+		vos_mem_free(spectral_enable_params);
+	}
+
+	return status;
+}
+
+eHalStatus sme_spectral_scan_config(tHalHandle hal,
+				    sir_spectral_config_params_t *params)
+{
+	eHalStatus status = eHAL_STATUS_SUCCESS;
+	VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+	tpAniSirGlobal mac_ctx = PMAC_STRUCT(hal);
+	vos_msg_t vos_msg;
+	sir_spectral_config_params_t *spectral_config_params;
+
+	spectral_config_params = vos_mem_malloc(sizeof(*spectral_config_params));
+	if (!spectral_config_params) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("Failed to alloc spectral config params"));
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+
+	*spectral_config_params = *params;
+
+	status = sme_AcquireGlobalLock(&mac_ctx->sme);
+	if (status == eHAL_STATUS_SUCCESS) {
+		/* Serialize the req through MC thread */
+		vos_msg.bodyptr = spectral_config_params;
+		vos_msg.type = SIR_HAL_SPECTRAL_SCAN_CONFIG_CMDID;
+		vos_status = vos_mq_post_message(VOS_MQ_ID_WDA, &vos_msg);
+
+		if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
+			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+				  FL("post spectal scan config msg fail"));
+			status = eHAL_STATUS_FAILURE;
+			vos_mem_free(spectral_config_params);
+		}
+		sme_ReleaseGlobalLock(&mac_ctx->sme);
+	} else {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+			  FL("sme_AcquireGlobalLock failed"));
+		vos_mem_free(spectral_config_params);
+	}
+
+	return status;
+}
