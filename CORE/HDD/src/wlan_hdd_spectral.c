@@ -679,14 +679,13 @@ VOS_STATUS hdd_spectral_debugfs_deinit(hdd_context_t *hdd_ctx)
 {
 	hdd_spectral_t *spec = hdd_ctx->hdd_spec;
 
-	if (spec->debugfs_dir) {
-		debugfs_remove_recursive(spec->debugfs_dir);
-		spec->debugfs_dir = NULL;
-	}
-
 	if (spec->rfs_chan_spec_scan) {
 		relay_close(spec->rfs_chan_spec_scan);
 		spec->rfs_chan_spec_scan = NULL;
+	}
+	if (spec->debugfs_dir) {
+		debugfs_remove_recursive(spec->debugfs_dir);
+		spec->debugfs_dir = NULL;
 	}
 
 	return VOS_STATUS_SUCCESS;
