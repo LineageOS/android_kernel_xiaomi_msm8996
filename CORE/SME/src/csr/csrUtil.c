@@ -3385,6 +3385,33 @@ static void csr_check_sae_auth(tpAniSirGlobal mac_ctx,
 }
 #endif
 
+bool csr_is_pmkid_found_for_peer(tpAniSirGlobal mac,
+				 tCsrRoamSession *session,
+				 tSirMacAddr peer_mac_addr,
+				 uint8_t *pmkid, uint16_t pmkid_count)
+{
+	uint32_t i, index;
+	uint8_t *session_pmkid;
+	tPmkidCacheInfo pmkid_cache;
+
+	vos_mem_zero(&pmkid_cache, sizeof(pmkid_cache));
+	vos_mem_copy(pmkid_cache.BSSID, peer_mac_addr, VOS_MAC_ADDR_SIZE);
+
+	if (!csr_lookup_pmkid_using_bssid(mac, session, &pmkid_cache, &index))
+		return false;
+	session_pmkid = &session->PmkidCacheInfo[index].PMKID[0];
+	for (i = 0; i < pmkid_count; i++) {
+		if (vos_mem_compare(pmkid + (i * CSR_RSN_PMKID_SIZE),
+			session_pmkid, CSR_RSN_PMKID_SIZE))
+			return true;
+	}
+
+	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
+		  "PMKID in PmkidCacheInfo doesn't match with PMKIDs of peer");
+
+	return false;
+}
+
 tANI_BOOLEAN csrGetRSNInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEncryptionType enType, tCsrEncryptionList *pMCEncryption,
                                    tDot11fIERSN *pRSNIe,
                            tANI_U8 *UnicastCypher,

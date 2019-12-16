@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2017 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -618,7 +618,7 @@ eHalStatus csr_process_ndp_data_end_request(tpAniSirGlobal mac_ctx,
  */
 void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 {
-	tCsrRoamInfo roam_info = {0};
+	tCsrRoamInfo *roam_info;
 	eCsrRoamResult result;
 	uint32_t session_id;
 	tListElem *entry = NULL;
@@ -631,13 +631,17 @@ void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 	if (entry != NULL)
 		cmd = GET_BASE_ADDR(entry, tSmeCmd, Link);
 
+	roam_info = vos_mem_malloc(sizeof(*roam_info));
+	if (!roam_info)
+		return;
+
 	switch (msg->type) {
 	case eWNI_SME_NDP_CONFIRM_IND: {
 		result = eCSR_ROAM_RESULT_NDP_CONFIRM_IND;
 		/* copy msg from msg body to roam info passed to callback */
-		vos_mem_copy(&roam_info.ndp.ndp_confirm_params, msg->bodyptr,
-			sizeof(roam_info.ndp.ndp_confirm_params));
-		session_id = roam_info.ndp.ndp_confirm_params.vdev_id;
+		vos_mem_copy(&roam_info->ndp.ndp_confirm_params, msg->bodyptr,
+			sizeof(roam_info->ndp.ndp_confirm_params));
+		session_id = roam_info->ndp.ndp_confirm_params.vdev_id;
 		break;
 	}
 	case eWNI_SME_NDP_INITIATOR_RSP: {
@@ -646,10 +650,10 @@ void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 			send_to_user = false;
 		} else {
 			result = eCSR_ROAM_RESULT_NDP_INITIATOR_RSP;
-			vos_mem_copy(&roam_info.ndp.ndp_init_rsp_params,
+			vos_mem_copy(&roam_info->ndp.ndp_init_rsp_params,
 				     msg->bodyptr,
-				     sizeof(roam_info.ndp.ndp_init_rsp_params));
-			session_id = roam_info.ndp.ndp_init_rsp_params.vdev_id;
+				     sizeof(roam_info->ndp.ndp_init_rsp_params));
+			session_id = roam_info->ndp.ndp_init_rsp_params.vdev_id;
 		}
 		release_active_cmd = true;
 		cmd_to_rel = eSmeCommandNdpInitiatorRequest;
@@ -658,18 +662,18 @@ void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 	case eWNI_SME_NDP_NEW_PEER_IND: {
 		result = eCSR_ROAM_RESULT_NDP_NEW_PEER_IND;
 		/* copy msg from msg body to roam info passed to callback */
-		vos_mem_copy(&roam_info.ndp.ndp_peer_ind_params,
+		vos_mem_copy(&roam_info->ndp.ndp_peer_ind_params,
 			     msg->bodyptr,
-			     sizeof(roam_info.ndp.ndp_peer_ind_params));
-		session_id = roam_info.ndp.ndp_peer_ind_params.session_id;
+			     sizeof(roam_info->ndp.ndp_peer_ind_params));
+		session_id = roam_info->ndp.ndp_peer_ind_params.session_id;
 		break;
 	}
 	case eWNI_SME_NDP_INDICATION:
 		result = eCSR_ROAM_RESULT_NDP_INDICATION;
 		/* copy msg from msg body to roam info passed to callback */
-		vos_mem_copy(&roam_info.ndp.ndp_indication_params,
+		vos_mem_copy(&roam_info->ndp.ndp_indication_params,
 			msg->bodyptr, sizeof(struct ndp_indication_event));
-		session_id = roam_info.ndp.ndp_indication_params.vdev_id;
+		session_id = roam_info->ndp.ndp_indication_params.vdev_id;
 		break;
 	case eWNI_SME_NDP_RESPONDER_RSP:
 		if (true == msg->bodyval) {
@@ -681,11 +685,11 @@ void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 			 * Copy msg from msg body to roam info passed to
 			 * callback
 			 */
-			vos_mem_copy(&roam_info.ndp.ndp_responder_rsp_params,
+			vos_mem_copy(&roam_info->ndp.ndp_responder_rsp_params,
 				msg->bodyptr,
 				sizeof(struct ndp_responder_rsp_event));
 			session_id =
-				roam_info.ndp.ndp_responder_rsp_params.vdev_id;
+				roam_info->ndp.ndp_responder_rsp_params.vdev_id;
 		}
 		release_active_cmd = true;
 		cmd_to_rel = eSmeCommandNdpResponderRequest;
@@ -696,7 +700,7 @@ void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 			send_to_user = false;
 		} else {
 			result = eCSR_ROAM_RESULT_NDP_END_RSP;
-			roam_info.ndp.ndp_end_rsp_params = msg->bodyptr;
+			roam_info->ndp.ndp_end_rsp_params = msg->bodyptr;
 			/*
 			 * NDP_END_IND is independent of session, but session_id
 			 * is needed for csrRoamCallCallback(). Set it to 0
@@ -710,7 +714,7 @@ void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 	}
 	case eWNI_SME_NDP_END_IND:
 		result = eCSR_ROAM_RESULT_NDP_END_IND;
-		roam_info.ndp.ndp_end_ind_params = msg->bodyptr;
+		roam_info->ndp.ndp_end_ind_params = msg->bodyptr;
 		/*
 		 * NDP_END_IND is independent of session, but session_id is
 		 * needed for csrRoamCallCallback(). Set it to vdev_id of first
@@ -718,25 +722,26 @@ void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 		 * for all.
 		 */
 		session_id =
-			roam_info.ndp.ndp_end_ind_params->ndp_map[0].vdev_id;
+			roam_info->ndp.ndp_end_ind_params->ndp_map[0].vdev_id;
 		break;
 	case eWNI_SME_NDP_PEER_DEPARTED_IND:
 		result = eCSR_ROAM_RESULT_NDP_PEER_DEPARTED_IND;
 		/* copy msg from msg body to roam info passed to callback */
-		vos_mem_copy(&roam_info.ndp.ndp_peer_ind_params,
+		vos_mem_copy(&roam_info->ndp.ndp_peer_ind_params,
 			msg->bodyptr,
-			sizeof(roam_info.ndp.ndp_peer_ind_params));
+			sizeof(roam_info->ndp.ndp_peer_ind_params));
 		session_id =
 			((struct sme_ndp_peer_ind *)msg->bodyptr)->session_id;
 		break;
 	default:
 		smsLog(mac_ctx, LOGE, FL("Unhandled NDP rsp"));
 		vos_mem_free(msg->bodyptr);
+		vos_mem_free(roam_info);
 		return;
 	}
 
 	if (true == send_to_user) {
-		csrRoamCallCallback(mac_ctx, session_id, &roam_info, 0,
+		csrRoamCallCallback(mac_ctx, session_id, roam_info, 0,
 				    eCSR_ROAM_NDP_STATUS_UPDATE, result);
 	}
 
@@ -762,10 +767,10 @@ void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 		}
 		break;
 	case eWNI_SME_NDP_INDICATION:
-		vos_mem_free(roam_info.ndp.ndp_indication_params.scid.scid);
-		vos_mem_free(roam_info.ndp.ndp_indication_params.ndp_config.ndp_cfg);
+		vos_mem_free(roam_info->ndp.ndp_indication_params.scid.scid);
+		vos_mem_free(roam_info->ndp.ndp_indication_params.ndp_config.ndp_cfg);
 		vos_mem_free(
-			roam_info.ndp.ndp_indication_params.ndp_info.ndp_app_info);
+			roam_info->ndp.ndp_indication_params.ndp_info.ndp_app_info);
 		break;
 	case eWNI_SME_NDP_END_RSP:
 		if (cmd &&
@@ -786,6 +791,7 @@ void sme_ndp_msg_processor(tpAniSirGlobal mac_ctx, vos_msg_t *msg)
 			smeReleaseCommand(mac_ctx, cmd);
 		smeProcessPendingQueue(mac_ctx);
 	}
+	vos_mem_free(roam_info);
 }
 
 /**

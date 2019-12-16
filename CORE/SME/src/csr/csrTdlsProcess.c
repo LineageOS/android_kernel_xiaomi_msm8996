@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -693,7 +693,12 @@ eHalStatus csrTdlsProcessLinkEstablish( tpAniSirGlobal pMac, tSmeCmd *cmd )
 eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
                                 void *pMsgBuf)
 {
-    tCsrRoamInfo roamInfo = {0} ;
+    tCsrRoamInfo *roam_info;
+
+    roam_info = vos_mem_malloc(sizeof(*roam_info));
+    if (!roam_info)
+        return eHAL_STATUS_FAILED_ALLOC;
+
     switch(msgType)
     {
         case eWNI_SME_TDLS_SEND_MGMT_RSP:
@@ -706,12 +711,12 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         {
             tSirTdlsAddStaRsp *addStaRsp = (tSirTdlsAddStaRsp *) pMsgBuf ;
             eCsrRoamResult roamResult ;
-            vos_mem_copy( &roamInfo.peerMac, addStaRsp->peerMac,
+            vos_mem_copy( &roam_info->peerMac, addStaRsp->peerMac,
                                          sizeof(tSirMacAddr)) ;
-            roamInfo.staId = addStaRsp->staId ;
-            roamInfo.ucastSig = addStaRsp->ucastSig ;
-            roamInfo.bcastSig = addStaRsp->bcastSig ;
-            roamInfo.statusCode = addStaRsp->statusCode ;
+            roam_info->staId = addStaRsp->staId ;
+            roam_info->ucastSig = addStaRsp->ucastSig ;
+            roam_info->bcastSig = addStaRsp->bcastSig ;
+            roam_info->statusCode = addStaRsp->statusCode ;
             /*
              * register peer with TL, we have to go through HDD as this is
              * the only way to register any STA with TL.
@@ -720,7 +725,7 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
                 roamResult = eCSR_ROAM_RESULT_ADD_TDLS_PEER;
             else /* addStaRsp->tdlsAddOper must be TDLS_OPER_UPDATE */
                 roamResult = eCSR_ROAM_RESULT_UPDATE_TDLS_PEER;
-            csrRoamCallCallback(pMac, addStaRsp->sessionId, &roamInfo, 0,
+            csrRoamCallCallback(pMac, addStaRsp->sessionId, roam_info, 0,
                                 eCSR_ROAM_TDLS_STATUS_UPDATE,
                                 roamResult);
 
@@ -732,19 +737,19 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         {
             tSirTdlsDelStaRsp *delStaRsp = (tSirTdlsDelStaRsp *) pMsgBuf ;
 
-            vos_mem_copy( &roamInfo.peerMac, delStaRsp->peerMac,
+            vos_mem_copy( &roam_info->peerMac, delStaRsp->peerMac,
                                          sizeof(tSirMacAddr)) ;
-            roamInfo.staId = delStaRsp->staId ;
-            roamInfo.statusCode = delStaRsp->statusCode ;
+            roam_info->staId = delStaRsp->staId ;
+            roam_info->statusCode = delStaRsp->statusCode ;
             /*
              * register peer with TL, we have to go through HDD as this is
              * the only way to register any STA with TL.
              */
-            csrRoamCallCallback(pMac, delStaRsp->sessionId, &roamInfo, 0,
+            csrRoamCallCallback(pMac, delStaRsp->sessionId, roam_info, 0,
                          eCSR_ROAM_TDLS_STATUS_UPDATE,
                                eCSR_ROAM_RESULT_DELETE_TDLS_PEER);
             csrTdlsRemoveSmeCmd(pMac, eSmeCommandTdlsDelPeer);
-            csrRoamCallCallback(pMac, delStaRsp->sessionId, &roamInfo, 0,
+            csrRoamCallCallback(pMac, delStaRsp->sessionId, roam_info, 0,
                             eCSR_ROAM_TDLS_STATUS_UPDATE,
                             eCSR_ROAM_TDLS_CHECK_BMPS);
         }
@@ -752,13 +757,13 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_DEL_STA_IND:
         {
             tpSirTdlsDelStaInd pSirTdlsDelStaInd = (tpSirTdlsDelStaInd) pMsgBuf ;
-            vos_mem_copy( &roamInfo.peerMac, pSirTdlsDelStaInd->peerMac,
+            vos_mem_copy( &roam_info->peerMac, pSirTdlsDelStaInd->peerMac,
                                          sizeof(tSirMacAddr)) ;
-            roamInfo.staId = pSirTdlsDelStaInd->staId ;
-            roamInfo.reasonCode = pSirTdlsDelStaInd->reasonCode ;
+            roam_info->staId = pSirTdlsDelStaInd->staId ;
+            roam_info->reasonCode = pSirTdlsDelStaInd->reasonCode ;
 
             /* Sending the TEARDOWN indication to HDD. */
-            csrRoamCallCallback(pMac, pSirTdlsDelStaInd->sessionId, &roamInfo, 0,
+            csrRoamCallCallback(pMac, pSirTdlsDelStaInd->sessionId, roam_info, 0,
                          eCSR_ROAM_TDLS_STATUS_UPDATE,
                                eCSR_ROAM_RESULT_TEARDOWN_TDLS_PEER_IND);
             break ;
@@ -768,7 +773,7 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
             tpSirTdlsDelAllPeerInd pSirTdlsDelAllPeerInd = (tpSirTdlsDelAllPeerInd) pMsgBuf ;
 
             /* Sending the TEARDOWN indication to HDD. */
-            csrRoamCallCallback(pMac, pSirTdlsDelAllPeerInd->sessionId, &roamInfo, 0,
+            csrRoamCallCallback(pMac, pSirTdlsDelAllPeerInd->sessionId, roam_info, 0,
                                 eCSR_ROAM_TDLS_STATUS_UPDATE,
                                 eCSR_ROAM_RESULT_DELETE_ALL_TDLS_PEER_IND);
             break ;
@@ -776,20 +781,20 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_MGMT_FRM_TX_COMPLETION_IND:
         {
             tpSirMgmtTxCompletionInd pSirTdlsDelAllPeerInd = (tpSirMgmtTxCompletionInd) pMsgBuf ;
-            roamInfo.reasonCode = pSirTdlsDelAllPeerInd->txCompleteStatus;
+            roam_info->reasonCode = pSirTdlsDelAllPeerInd->txCompleteStatus;
 
-            csrRoamCallCallback(pMac, pSirTdlsDelAllPeerInd->sessionId, &roamInfo,
+            csrRoamCallCallback(pMac, pSirTdlsDelAllPeerInd->sessionId, roam_info,
                                 0, eCSR_ROAM_RESULT_MGMT_TX_COMPLETE_IND, 0);
             break;
         }
         case eWNI_SME_TDLS_LINK_ESTABLISH_RSP:
         {
             tSirTdlsLinkEstablishReqRsp *linkEstablishReqRsp = (tSirTdlsLinkEstablishReqRsp *) pMsgBuf ;
-            vos_mem_copy(&roamInfo.peerMac, linkEstablishReqRsp->peerMac,
+            vos_mem_copy(&roam_info->peerMac, linkEstablishReqRsp->peerMac,
                                             sizeof(tSirMacAddr));
-            roamInfo.staId = (uint8_t)linkEstablishReqRsp->sta_idx;
-            roamInfo.statusCode = linkEstablishReqRsp->statusCode;
-            csrRoamCallCallback(pMac, linkEstablishReqRsp->sessionId, &roamInfo, 0,
+            roam_info->staId = (uint8_t)linkEstablishReqRsp->sta_idx;
+            roam_info->statusCode = linkEstablishReqRsp->statusCode;
+            csrRoamCallCallback(pMac, linkEstablishReqRsp->sessionId, roam_info, 0,
                          eCSR_ROAM_TDLS_STATUS_UPDATE,
                                eCSR_ROAM_RESULT_LINK_ESTABLISH_REQ_RSP);
             /* remove pending eSmeCommandTdlsLinkEstablish command */
@@ -799,15 +804,15 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_SHOULD_DISCOVER:
         {
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
-            vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
+            vos_mem_copy(&roam_info->peerMac, tevent->peerMac,
                          sizeof(tSirMacAddr));
-            roamInfo.reasonCode = tevent->peer_reason;
+            roam_info->reasonCode = tevent->peer_reason;
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                       "%s: eWNI_SME_TDLS_SHOULD_DISCOVER for peer mac: "
                       MAC_ADDRESS_STR " peer_reason: %d",
                       __func__, MAC_ADDR_ARRAY(tevent->peerMac),
                       tevent->peer_reason);
-            csrRoamCallCallback(pMac, tevent->sessionId, &roamInfo, 0,
+            csrRoamCallCallback(pMac, tevent->sessionId, roam_info, 0,
                                 eCSR_ROAM_TDLS_STATUS_UPDATE,
                                 eCSR_ROAM_RESULT_TDLS_SHOULD_DISCOVER);
             break;
@@ -815,15 +820,15 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_SHOULD_TEARDOWN:
         {
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
-            vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
+            vos_mem_copy(&roam_info->peerMac, tevent->peerMac,
                          sizeof(tSirMacAddr));
-            roamInfo.reasonCode = tevent->peer_reason;
+            roam_info->reasonCode = tevent->peer_reason;
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                       "%s: eWNI_SME_TDLS_SHOULD_TEARDOWN for peer mac: "
                       MAC_ADDRESS_STR " peer_reason: %d",
                       __func__, MAC_ADDR_ARRAY(tevent->peerMac),
                       tevent->peer_reason);
-            csrRoamCallCallback(pMac, tevent->sessionId, &roamInfo, 0,
+            csrRoamCallCallback(pMac, tevent->sessionId, roam_info, 0,
                                 eCSR_ROAM_TDLS_STATUS_UPDATE,
                                 eCSR_ROAM_RESULT_TDLS_SHOULD_TEARDOWN);
             break;
@@ -831,15 +836,15 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
         case eWNI_SME_TDLS_PEER_DISCONNECTED:
         {
             tSirTdlsEventNotify *tevent = (tSirTdlsEventNotify *) pMsgBuf;
-            vos_mem_copy(&roamInfo.peerMac, tevent->peerMac,
+            vos_mem_copy(&roam_info->peerMac, tevent->peerMac,
                          sizeof(tSirMacAddr));
-            roamInfo.reasonCode = tevent->peer_reason;
+            roam_info->reasonCode = tevent->peer_reason;
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO,
                       "%s: eWNI_SME_TDLS_PEER_DISCONNECTED for peer mac: "
                       MAC_ADDRESS_STR " peer_reason: %d",
                       __func__, MAC_ADDR_ARRAY(tevent->peerMac),
                       tevent->peer_reason);
-            csrRoamCallCallback(pMac, tevent->sessionId, &roamInfo, 0,
+            csrRoamCallCallback(pMac, tevent->sessionId, roam_info, 0,
                                 eCSR_ROAM_TDLS_STATUS_UPDATE,
                                 eCSR_ROAM_RESULT_TDLS_SHOULD_PEER_DISCONNECTED);
             break;
@@ -849,6 +854,7 @@ eHalStatus tdlsMsgProcessor(tpAniSirGlobal pMac,  v_U16_t msgType,
             break ;
         }
     }
+    vos_mem_free(roam_info);
 
     return eHAL_STATUS_SUCCESS ;
 }

@@ -388,7 +388,9 @@ eHalStatus csrSendMBDisassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
 eHalStatus csrSendMBDeauthReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirMacAddr bssId, tANI_U16 reasonCode );
 eHalStatus csrSendMBDisassocCnfMsg( tpAniSirGlobal pMac, tpSirSmeDisassocInd pDisassocInd );
 eHalStatus csrSendMBDeauthCnfMsg( tpAniSirGlobal pMac, tpSirSmeDeauthInd pDeauthInd );
-eHalStatus csrSendAssocCnfMsg( tpAniSirGlobal pMac, tpSirSmeAssocInd pAssocInd, eHalStatus status );
+eHalStatus csrSendAssocCnfMsg(tpAniSirGlobal pMac, tpSirSmeAssocInd pAssocInd,
+			      eHalStatus status,
+			      tSirMacStatusCodes mac_status_code);
 eHalStatus csrSendAssocIndToUpperLayerCnfMsg( tpAniSirGlobal pMac, tpSirSmeAssocInd pAssocInd, eHalStatus Halstatus, tANI_U8 sessionId );
 eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrRoamBssType bssType,
                                     tCsrRoamStartBssParams *pParam, tSirBssDescription *pBssDesc );
@@ -1101,6 +1103,22 @@ bool csr_lookup_pmkid_using_bssid(tpAniSirGlobal mac,
 	                    tCsrRoamSession *session,
 	                    tPmkidCacheInfo *pmk_cache,
 	                    uint32_t *index);
+
+/**
+ * csr_is_pmkid_found_for_peer() - check if pmkid sent by peer is present
+				   in PMK cache. Used in SAP mode.
+ * @mac: pointer to mac
+ * @session: sme session pointer
+ * @peer_mac_addr: mac address of the connecting peer
+ * @pmkid: pointer to pmkid(s) send by peer
+ * @pmkid_count: number of pmkids sent by peer
+ *
+ * Return: true if pmkid is found else false
+ */
+bool csr_is_pmkid_found_for_peer(tpAniSirGlobal mac,
+				 tCsrRoamSession *session,
+				 tSirMacAddr peer_mac_addr,
+				 uint8_t *pmkid, uint16_t pmkid_count);
 #endif
 eHalStatus csr_send_ext_change_channel(tpAniSirGlobal mac_ctx,
 				uint32_t channel, uint8_t session_id);

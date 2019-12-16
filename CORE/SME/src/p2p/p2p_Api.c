@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014,2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014,2016, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -198,7 +198,11 @@ eHalStatus sme_remainOnChnReady( tHalHandle hHal, tANI_U8* pMsg)
     eHalStatus  status = eHAL_STATUS_SUCCESS;
     tListElem *pEntry = NULL;
     tSmeCmd *pCommand = NULL;
-    tCsrRoamInfo RoamInfo;
+    tCsrRoamInfo *roam_info;
+
+    roam_info = vos_mem_malloc(sizeof(*roam_info));
+    if (!roam_info)
+        return status;
 
     if (pMac->fP2pListenOffload)
         pEntry = csrLLPeekHead(&pMac->sme.smeScanCmdActiveList, LL_ACCESS_LOCK);
@@ -212,11 +216,12 @@ eHalStatus sme_remainOnChnReady( tHalHandle hHal, tANI_U8* pMsg)
         {
 
             /* forward the indication to HDD */
-            RoamInfo.pRemainCtx = pCommand->u.remainChlCmd.callbackCtx;
-            csrRoamCallCallback(pMac, ((tSirSmeRsp*)pMsg)->sessionId, &RoamInfo,
+            roam_info->pRemainCtx = pCommand->u.remainChlCmd.callbackCtx;
+            csrRoamCallCallback(pMac, ((tSirSmeRsp*)pMsg)->sessionId, roam_info,
                                 0, eCSR_ROAM_REMAIN_CHAN_READY, 0);
         }
     }
+    vos_mem_free(roam_info);
 
     return status;
 }

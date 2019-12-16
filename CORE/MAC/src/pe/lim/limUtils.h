@@ -269,9 +269,9 @@ static inline int limSelectCBMode(tDphHashNode *pStaDs, tpPESession psessionEntr
         {
             return PHY_SINGLE_CHANNEL_CENTERED;
         }
-    }
-    else if ( pStaDs->mlmStaContext.htCapability )
-    {
+    } else if (pStaDs->mlmStaContext.htCapability &&
+	     psessionEntry->htSupportedChannelWidthSet >
+	     eHT_CHANNEL_WIDTH_20MHZ) {
         if ( channel== 40 || channel == 48 || channel == 56 ||
              channel == 64 || channel == 104 || channel == 112 ||
              channel == 120 || channel == 128 || channel == 136 ||

@@ -98,6 +98,8 @@ when           who                what, where, why
 #define       MAX_ACL_MAC_ADDRESS          32
 #define       AUTO_CHANNEL_SELECT          0
 #define       MAX_ASSOC_IND_IE_LEN         255
+#define       MAX_ASSOC_REQ_IE_LEN         2000
+#define       ASSOC_REQ_IE_OFFSET          4
 
 #define       MAX_NAME_SIZE                64
 #define       MAX_TEXT_SIZE                32
@@ -270,13 +272,15 @@ typedef struct sap_StationAssocIndication_s {
     eCsrEncryptionType negotiatedMCEncryptionType;
     tANI_BOOLEAN fAuthRequired;
     uint8_t      ecsa_capable;
+    uint32_t owe_ie_len;
+    uint8_t *owe_ie;
 } tSap_StationAssocIndication;
 
 typedef struct sap_StationAssocReassocCompleteEvent_s {
     v_MACADDR_t  staMac;
     v_U8_t       staId;
     v_U8_t       status;
-    v_U8_t       ies[MAX_ASSOC_IND_IE_LEN];
+    v_U8_t       *ies;
     v_U16_t      iesLen;
     v_U32_t      statusCode;
     eSapAuthType SapAuthType;
@@ -568,6 +572,7 @@ typedef struct sap_Config {
     v_U8_t          RSNEncryptType;
     v_U8_t          mcRSNEncryptType;
     eSapAuthType    authType;
+    tCsrAuthList    akm_list;
     v_BOOL_t        privacy;
     v_BOOL_t        UapsdEnable;
     v_BOOL_t        fwdWPSPBCProbeReq;
@@ -1089,7 +1094,8 @@ WLANSAP_Start
     v_PVOID_t  pvosGCtx,
     tVOS_CON_MODE mode,
     uint8_t *addr,
-    uint32_t *session_id
+    uint32_t *session_id,
+    bool reinit
 );
 
 /*==========================================================================
@@ -2495,6 +2501,19 @@ WLANSAP_ACS_CHSelect(v_PVOID_t pvosGCtx,
 eCsrPhyMode
 wlansap_get_phymode(v_PVOID_t pctx);
 
+/**
+ * wlansap_update_owe_info() - Update OWE info
+ * @sap_ctx: sap context
+ * @peer: peer mac
+ * @ie: IE from hostapd
+ * @ie_len: IE length
+ * @owe_status: status from hostapd
+ *
+ * Return: QDF_STATUS
+ */
+VOS_STATUS wlansap_update_owe_info(v_PVOID_t sap_ctx,
+				   uint8_t *peer, const uint8_t *ie,
+				   uint32_t ie_len, uint16_t owe_status);
 VOS_STATUS wlansap_set_tx_leakage_threshold(tHalHandle hal,
 			uint16 tx_leakage_threshold);
 

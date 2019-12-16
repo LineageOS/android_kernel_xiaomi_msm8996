@@ -5007,6 +5007,15 @@ typedef struct {
 eHalStatus sme_hpcs_pulse_params_conf_cmd(tHalHandle hHal, tSirHpcsPulseParmasConfig *pHpcsPulseParams);
 
 /**
+ * sme_update_owe_info() - Update OWE info
+ * @hHal: hal context
+ * @assoc_ind: assoc ind
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_update_owe_info(tHalHandle hHal,
+			       struct sSirSmeAssocInd *assoc_ind);
+/**
  * sme_send_mgmt_tx() - Sends mgmt frame from CSR to LIM
  * @hal: The handle returned by mac_open
  * @session_id: session id
@@ -5023,14 +5032,17 @@ eHalStatus sme_send_mgmt_tx(tHalHandle hal, uint8_t session_id,
  * @hal: The handle returned by mac_open
  * @session_id: session id
  * @sae_status: status of SAE authentication
+ * @peer_mac_addr: mac address of the peer to be authenticated
  *
  * Return: HAL_STATUS
  */
 eHalStatus sme_handle_sae_msg(tHalHandle hal, uint8_t session_id,
-				uint8_t sae_status);
+			      uint8_t sae_status,
+			      tSirMacAddr peer_mac_addr);
 #else
 static inline eHalStatus sme_handle_sae_msg(tHalHandle hal, uint8_t session_id,
-				uint8_t sae_status)
+					    uint8_t sae_status,
+					    tSirMacAddr peer_mac_addr)
 {
 	return eHAL_STATUS_SUCCESS;
 }

@@ -5492,6 +5492,13 @@ REG_TABLE_ENTRY g_registry_table[] =
 		CFG_IS_SAE_ENABLED_DEFAULT,
 		CFG_IS_SAE_ENABLED_MIN,
 		CFG_IS_SAE_ENABLED_MAX),
+
+	REG_VARIABLE(CFG_ENABLE_SAE_FOR_SAP_NAME, WLAN_PARAM_Integer,
+		struct hdd_config, enable_sae_for_sap,
+		VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		CFG_ENABLE_SAE_FOR_SAP_DEFAULT,
+		CFG_ENABLE_SAE_FOR_SAP_MIN,
+		CFG_ENABLE_SAE_FOR_SAP_MAX),
 #endif
 	REG_VARIABLE(CFG_IS_PER_CHAIN_STATS_ENABLED_NAME, WLAN_PARAM_Integer,
 		struct hdd_config, per_chain_stats_enabled,
@@ -5834,8 +5841,19 @@ static void hdd_cfg_print_sae(hdd_context_t *hdd_ctx)
 	       CFG_IS_SAE_ENABLED_NAME,
 	       hdd_ctx->cfg_ini->is_sae_enabled);
 }
+
+static void hdd_cfg_print_sae_sap(hdd_context_t *hdd_ctx)
+{
+	hddLog(LOG2, "Name = [%s] value = [%u]",
+	       CFG_ENABLE_SAE_FOR_SAP_NAME,
+	       hdd_ctx->cfg_ini->enable_sae_for_sap);
+}
 #else
 static void hdd_cfg_print_sae(hdd_context_t *hdd_ctx)
+{
+}
+
+static void hdd_cfg_print_sae_sap(hdd_context_t *hdd_ctx)
 {
 }
 #endif
@@ -6522,26 +6540,27 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
   hddLog(LOG2, "Name = [%s] Value = [%u]",
                  CFG_ARP_AC_CATEGORY,
                  pHddCtx->cfg_ini->arp_ac_category);
-  hdd_cfg_print_sae(pHddCtx);
 
-	hddLog(LOG2, "Name = [%s] value = [%u]",
-	       CFG_LATENCY_ENABLE_NAME,
-	       pHddCtx->cfg_ini->wlm_latency_enable);
-	hddLog(LOG2, "Name = [%s] value = [%u]",
-	       CFG_LATENCY_LEVEL_NAME,
-	       pHddCtx->cfg_ini->wlm_latency_level);
-	hddLog(LOG2, "Name = [%s] value = [%u]",
-	       CFG_LATENCY_FLAGS_NORMAL_NAME,
-	       pHddCtx->cfg_ini->wlm_latency_flags_normal);
-	hddLog(LOG2, "Name = [%s] value = [%u]",
-	       CFG_LATENCY_FLAGS_MODERATE_NAME,
-	       pHddCtx->cfg_ini->wlm_latency_flags_moderate);
-	hddLog(LOG2, "Name = [%s] value = [%u]",
-	       CFG_LATENCY_FLAGS_LOW_NAME,
-	       pHddCtx->cfg_ini->wlm_latency_flags_low);
-	hddLog(LOG2, "Name = [%s] value = [%u]",
-	       CFG_LATENCY_FLAGS_ULTRALOW_NAME,
-	       pHddCtx->cfg_ini->wlm_latency_flags_ultralow);
+  hddLog(LOG2, "Name = [%s] value = [%u]",
+               CFG_LATENCY_ENABLE_NAME,
+               pHddCtx->cfg_ini->wlm_latency_enable);
+  hddLog(LOG2, "Name = [%s] value = [%u]",
+               CFG_LATENCY_LEVEL_NAME,
+               pHddCtx->cfg_ini->wlm_latency_level);
+  hddLog(LOG2, "Name = [%s] value = [%u]",
+               CFG_LATENCY_FLAGS_NORMAL_NAME,
+               pHddCtx->cfg_ini->wlm_latency_flags_normal);
+  hddLog(LOG2, "Name = [%s] value = [%u]",
+               CFG_LATENCY_FLAGS_MODERATE_NAME,
+               pHddCtx->cfg_ini->wlm_latency_flags_moderate);
+  hddLog(LOG2, "Name = [%s] value = [%u]",
+               CFG_LATENCY_FLAGS_LOW_NAME,
+               pHddCtx->cfg_ini->wlm_latency_flags_low);
+  hddLog(LOG2, "Name = [%s] value = [%u]",
+               CFG_LATENCY_FLAGS_ULTRALOW_NAME,
+               pHddCtx->cfg_ini->wlm_latency_flags_ultralow);
+  hdd_cfg_print_sae(pHddCtx);
+  hdd_cfg_print_sae_sap(pHddCtx);
 }
 
 #define CFG_VALUE_MAX_LEN 256

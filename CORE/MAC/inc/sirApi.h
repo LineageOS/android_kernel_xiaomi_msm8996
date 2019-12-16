@@ -1350,6 +1350,7 @@ typedef struct sSirSmeAssocInd
     tANI_U8              uniSig;  // DPU signature for unicast packets
     tANI_U8              bcastSig; // DPU signature for broadcast packets
     tAniAuthType         authType;
+    enum ani_akm_type    akm_type;
     tAniSSID             ssId; // SSID used by STA to associate
     tSirWAPIie           wapiIE;//WAPI IE received from peer
     tSirRSNie            rsnIE;// RSN IE received from peer
@@ -1384,9 +1385,21 @@ typedef struct sSirSmeAssocInd
     uint8_t              max_mcs_idx;
     uint8_t              rx_mcs_map;
     uint8_t              tx_mcs_map;
+    bool                 is_sae_authenticated;
+    const uint8_t *      owe_ie;
+    uint32_t             owe_ie_len;
+    uint16_t             owe_status;
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
-
+/**
+ * struct owe_assoc_ind - owe association indication
+ * @node : List entry element
+ * @assoc_ind: pointer to assoc ind
+ */
+struct owe_assoc_ind {
+	vos_list_node_t node;
+	struct sSirSmeAssocInd *assoc_ind;
+};
 /// Definition for Association confirm
 /// ---> MAC
 typedef struct sSirSmeAssocCnf
@@ -1399,6 +1412,9 @@ typedef struct sSirSmeAssocCnf
     tANI_U16             aid;
     tSirMacAddr          alternateBssId;
     tANI_U8              alternateChannelId;
+    tSirMacStatusCodes   mac_status_code;
+    uint8_t *            owe_ie;
+    uint32_t             owe_ie_len;
 } tSirSmeAssocCnf, *tpSirSmeAssocCnf;
 
 /// Definition for Reassociation indication from peer
@@ -3722,6 +3738,17 @@ typedef struct sSirSmeCoexInd
     tANI_U32        coexIndData[SIR_COEX_IND_DATA_SIZE];
 }tSirSmeCoexInd, *tpSirSmeCoexInd;
 
+/**
+ * enum rxmgmt_flags - flags for received management frame.
+ * @RXMGMT_FLAG_NONE: Default value to indicate no flags are set.
+ * @RXMGMT_FLAG_EXTERNAL_AUTH: frame can be used for external authentication
+ *                             by upper layers.
+ */
+enum rxmgmt_flags {
+	RXMGMT_FLAG_NONE,
+	RXMGMT_FLAG_EXTERNAL_AUTH = 1 << 1,
+};
+
 typedef struct sSirSmeMgmtFrameInd
 {
     uint16_t        frame_len;
@@ -3729,6 +3756,7 @@ typedef struct sSirSmeMgmtFrameInd
     tANI_U8        sessionId;
     tANI_U8         frameType;
     tANI_S8         rxRssi;
+    enum rxmgmt_flags rx_flags;
     tANI_U8  frameBuf[1]; //variable
 }tSirSmeMgmtFrameInd, *tpSirSmeMgmtFrameInd;
 
@@ -8764,11 +8792,13 @@ struct sir_sae_info {
  * @length: message length
  * @session_id: SME session id
  * @sae_status: SAE status, 0: Success, Non-zero: Failure.
+ * @peer_mac_addr: peer MAC address
  */
 struct sir_sae_msg {
 	uint16_t message_type;
 	uint16_t length;
 	uint16_t session_id;
 	uint8_t sae_status;
+	tSirMacAddr peer_mac_addr;
 };
 #endif /* __SIR_API_H */

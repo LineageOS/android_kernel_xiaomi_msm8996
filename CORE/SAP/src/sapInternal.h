@@ -316,6 +316,7 @@ typedef struct sSapContext {
     eCsrBand	target_band;
     uint8_t     sub20_channelwidth;
     uint32_t    backup_channel;
+    vos_list_t  owe_pending_assoc_ind_list;
 } *ptSapContext;
 
 

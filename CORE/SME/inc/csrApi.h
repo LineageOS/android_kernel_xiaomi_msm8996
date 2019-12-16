@@ -985,6 +985,7 @@ typedef struct tagCsrRoamProfile
 
     tCsrAuthList AuthType;
     eCsrAuthType negotiatedAuthType;
+    tCsrAuthList akm_list;
 
     tCsrEncryptionList EncryptionType;
     //This field is for output only, not for input
@@ -1093,6 +1094,7 @@ typedef struct tagCsrRoamConnectedProfile
     eCsrRoamBssType BSSType;
     eCsrAuthType AuthType;
     tCsrAuthList AuthInfo;
+    tCsrAuthList akm_list;
     eCsrEncryptionType EncryptionType;
     tCsrEncryptionList EncryptionInfo;
     eCsrEncryptionType mcEncryptionType;
@@ -1583,6 +1585,7 @@ typedef struct tagCsrRoamInfo
 #ifdef WLAN_FEATURE_SAE
     struct sir_sae_info *sae_info;
 #endif
+    struct sSirSmeAssocInd *owe_pending_assoc_ind;
 }tCsrRoamInfo;
 
 
@@ -1615,6 +1618,8 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     tSirSmeChanInfo      chan_info;
     /* Extended capabilities of STA */
     uint8_t              ecsa_capable;
+    uint32_t             ies_len;
+    uint8_t              *ies;
     bool                 ampdu;
     bool                 sgi_enable;
     bool                 tx_stbc;

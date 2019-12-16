@@ -106,6 +106,46 @@ isAuthValid(tpAniSirGlobal pMac, tpSirMacAuthFrameBody auth,
 }
 
 #ifdef WLAN_FEATURE_SAE
+
+/**
+ * lim_external_auth_add_pre_auth_node()- Add preauth node for the peer
+ *                                        performing external authentication
+ * @mac_ctx: MAC context
+ * @mac_hdr: Mac header of the packet
+ * @mlm_state: MLM state to be marked to track SAE authentication
+ *
+ * Return: None
+ */
+static void lim_external_auth_add_pre_auth_node(tpAniSirGlobal mac_ctx,
+						tpSirMacMgmtHdr mac_hdr,
+						tLimMlmStates mlm_state)
+{
+	struct tLimPreAuthNode *auth_node;
+	tpLimPreAuthTable preauth_table = &mac_ctx->lim.gLimPreAuthTimerTable;
+
+	limLog(mac_ctx, LOG1, FL("=======> eSIR_AUTH_TYPE_SAE"));
+	/* Create entry for this STA in pre-auth list */
+	auth_node = limAcquireFreePreAuthNode(mac_ctx, preauth_table);
+	if (!auth_node) {
+		limLog(mac_ctx, LOG1,
+		       "Max pre-auth nodes reached " MAC_ADDRESS_STR,
+		       MAC_ADDR_ARRAY(mac_hdr->sa));
+		return;
+	}
+	limLog(mac_ctx, LOG1,
+	       "Creating preauth node for SAE peer " MAC_ADDRESS_STR,
+	       MAC_ADDR_ARRAY(mac_hdr->sa));
+	vos_mem_copy((uint8_t *)auth_node->peerMacAddr,
+		     mac_hdr->sa, sizeof(tSirMacAddr));
+	auth_node->mlmState = mlm_state;
+	auth_node->authType = eSIR_AUTH_TYPE_SAE;
+	auth_node->timestamp = vos_timer_get_system_ticks();
+	auth_node->seqNum = ((mac_hdr->seqControl.seqNumHi << 4) |
+		 (mac_hdr->seqControl.seqNumLo));
+	auth_node->assoc_req.present = false;
+	limAddPreAuthNode(mac_ctx, auth_node);
+}
+
 /**
  * lim_process_sae_auth_frame()-Process SAE authentication frame
  * @mac_ctx: MAC context
@@ -120,6 +160,7 @@ static void lim_process_sae_auth_frame(tpAniSirGlobal mac_ctx,
 	tpSirMacMgmtHdr mac_hdr;
 	uint32_t frame_len;
 	uint8_t *body_ptr;
+	enum rxmgmt_flags rx_flags = RXMGMT_FLAG_NONE;
 
 	mac_hdr = WDA_GET_RX_MAC_HEADER(rx_pkt_info);
 	body_ptr = WDA_GET_RX_MPDU_DATA(rx_pkt_info);
@@ -129,16 +170,39 @@ static void lim_process_sae_auth_frame(tpAniSirGlobal mac_ctx,
 		FL("Received SAE Auth frame type %d subtype %d"),
 		mac_hdr->fc.type, mac_hdr->fc.subType);
 
-	if (pe_session->limMlmState != eLIM_MLM_WT_SAE_AUTH_STATE)
+	if (LIM_IS_STA_ROLE(pe_session) &&
+	    pe_session->limMlmState != eLIM_MLM_WT_SAE_AUTH_STATE)
 		limLog(mac_ctx, LOGE,
 			FL("received SAE auth response in unexpected state %x"),
 			pe_session->limMlmState);
+
+	if(LIM_IS_AP_ROLE(pe_session)) {
+		struct tLimPreAuthNode *sta_pre_auth_ctx;
+
+		rx_flags = RXMGMT_FLAG_EXTERNAL_AUTH;
+		/* Add preauth node when the first SAE authentication frame
+		 * is received and mark state as authenticating.
+		 * It's not good to track SAE authentication frames with
+		 * authTransactionSeqNumber as it's subjected to
+		 * SAE protocol optimizations.
+		 */
+		/* Extract pre-auth context for the STA, if any. */
+		sta_pre_auth_ctx = limSearchPreAuthList(mac_ctx,
+							mac_hdr->sa);
+		if (!sta_pre_auth_ctx ||
+		    (sta_pre_auth_ctx->mlmState != eLIM_MLM_WT_SAE_AUTH_STATE &&
+		    sta_pre_auth_ctx->mlmState !=
+		    eLIM_MLM_AUTHENTICATED_STATE)) {
+			lim_external_auth_add_pre_auth_node(mac_ctx, mac_hdr,
+							    eLIM_MLM_WT_SAE_AUTH_STATE);
+		}
+	}
 
 	limSendSmeMgmtFrameInd(mac_ctx, mac_hdr->fc.subType,
 			(uint8_t *) mac_hdr,
 			frame_len + sizeof(tSirMacMgmtHdr), 0,
 			WDA_GET_RX_CH(rx_pkt_info), pe_session,
-			WDA_GET_RX_RSSI_NORMALIZED(rx_pkt_info));
+			WDA_GET_RX_RSSI_NORMALIZED(rx_pkt_info), rx_flags);
 }
 #else
 static void lim_process_sae_auth_frame(tpAniSirGlobal mac_ctx,
@@ -633,9 +697,10 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                                  eSIR_FALSE);
             goto free;
         } // else if (wlan_cfgGetInt(CFG_PRIVACY_OPTION_IMPLEMENTED))
-    } else if ((auth_alg ==
-        eSIR_AUTH_TYPE_SAE) && (LIM_IS_STA_ROLE(psessionEntry))) {
-        lim_process_sae_auth_frame(pMac, pRxPacketInfo, psessionEntry);
+    } else if (auth_alg == eSIR_AUTH_TYPE_SAE) {
+        if(LIM_IS_STA_ROLE(psessionEntry) ||
+           LIM_IS_AP_ROLE(psessionEntry))
+            lim_process_sae_auth_frame(pMac, pRxPacketInfo, psessionEntry);
         goto free;
     } // if (fc.wep)
     else

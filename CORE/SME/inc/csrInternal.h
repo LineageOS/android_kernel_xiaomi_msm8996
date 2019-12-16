@@ -1616,6 +1616,15 @@ bool csr_store_joinreq_param(tpAniSirGlobal mac_ctx,
                              uint32_t session_id);
 bool csr_clear_joinreq_param(tpAniSirGlobal mac_ctx,
                              tANI_U32 session_id);
+/**
+ * csr_update_owe_info() - Update OWE info
+ * @mac: mac context
+ * @assoc_ind: assoc ind
+ *
+ * Return: eHalStatus
+ */
+eHalStatus csr_update_owe_info(tpAniSirGlobal mac,
+			       struct sSirSmeAssocInd *assoc_ind);
 eHalStatus csr_issue_stored_joinreq(tpAniSirGlobal mac_ctx,
                                     uint32_t *roam_id,
                                     uint32_t session_id);

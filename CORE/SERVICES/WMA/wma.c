@@ -26682,6 +26682,7 @@ static bool wma_is_wow_prtn_cached(tp_wma_handle wma, u_int8_t vdev_id)
 static void wma_unpause_vdev(tp_wma_handle wma) {
 	int8_t vdev_id;
 	struct wma_txrx_node *iface;
+	int i, tmp_reason;
 
 	for (vdev_id = 0; vdev_id < wma->max_bssid; vdev_id++) {
 		if (!wma->interfaces[vdev_id].handle)
@@ -26690,8 +26691,14 @@ static void wma_unpause_vdev(tp_wma_handle wma) {
 #if defined(CONFIG_HL_SUPPORT) || defined(QCA_SUPPORT_TXRX_VDEV_PAUSE_LL)
 	/* When host resume, by default, unpause all active vdev */
 		if (wma->interfaces[vdev_id].pause_bitmap) {
-			wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle,
-					    0xffffffff);
+			for (i = 0; i < sizeof(wma->interfaces[vdev_id].pause_bitmap); i++) {
+				tmp_reason = 1 << i;
+				if (wma->interfaces[vdev_id].pause_bitmap & tmp_reason) {
+					WMA_LOGD("%s: unpause reason %d", __func__, tmp_reason);
+					wdi_in_vdev_unpause(wma->interfaces[vdev_id].handle,
+							    tmp_reason);
+				}
+			}
 			wma->interfaces[vdev_id].pause_bitmap = 0;
 		}
 #endif /* QCA_SUPPORT_TXRX_VDEV_PAUSE_LL || CONFIG_HL_SUPPORT */
@@ -27691,8 +27698,8 @@ static VOS_STATUS wma_apfind_set_cmd(void *wda_handle,
 	tp_wma_handle wma_handle = (tp_wma_handle)wda_handle;
 	wmi_apfind_cmd_param *cmd;
 	wmi_buf_t buf;
-	u_int16_t len = sizeof(*cmd);
-	u_int16_t apfind_data_len, apfind_data_len_aligned;
+	size_t len = sizeof(*cmd);
+	size_t apfind_data_len, apfind_data_len_aligned;
 	u_int8_t *buf_ptr;
 
 	if (!apfind_req) {

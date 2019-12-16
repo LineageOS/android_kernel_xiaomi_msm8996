@@ -175,6 +175,7 @@ ifeq ($(CONFIG_ARCH_QCS405), y)
 	CONFIG_TXRX_PERF := y
 	CONFIG_NON_QC_PLATFORM := n
 	CONFIG_CUSTOMIZE_SDIO_CCCR_VALUE := y
+	CONFIG_MULTI_IF_LOG := y
 endif
 
 #Enable Power debugfs feature only if debug_fs is enabled

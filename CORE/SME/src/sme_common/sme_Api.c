@@ -2487,19 +2487,24 @@ eHalStatus sme_PCFilterMatchCountResponseHandler(tHalHandle hHal, void* pMsg)
 eHalStatus sme_UnprotectedMgmtFrmInd( tHalHandle hHal,
                                       tpSirSmeUnprotMgmtFrameInd pSmeMgmtFrm)
 {
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    eHalStatus  status = eHAL_STATUS_SUCCESS;
-    tCsrRoamInfo pRoamInfo = {0};
-    tANI_U32 SessionId = pSmeMgmtFrm->sessionId;
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	eHalStatus  status = eHAL_STATUS_SUCCESS;
+	tCsrRoamInfo *roam_info;
+	tANI_U32 SessionId = pSmeMgmtFrm->sessionId;
 
-    pRoamInfo.nFrameLength = pSmeMgmtFrm->frameLen;
-    pRoamInfo.pbFrames = pSmeMgmtFrm->frameBuf;
-    pRoamInfo.frameType = pSmeMgmtFrm->frameType;
+	roam_info = vos_mem_malloc(sizeof(*roam_info));
+	if (!roam_info)
+		return eHAL_STATUS_FAILED_ALLOC;
+	roam_info->nFrameLength = pSmeMgmtFrm->frameLen;
+	roam_info->pbFrames = pSmeMgmtFrm->frameBuf;
+	roam_info->frameType = pSmeMgmtFrm->frameType;
 
-    /* forward the mgmt frame to HDD */
-    csrRoamCallCallback(pMac, SessionId, &pRoamInfo, 0, eCSR_ROAM_UNPROT_MGMT_FRAME_IND, 0);
+	/* forward the mgmt frame to HDD */
+	csrRoamCallCallback(pMac, SessionId, roam_info, 0,
+			    eCSR_ROAM_UNPROT_MGMT_FRAME_IND, 0);
+	vos_mem_free(roam_info);
 
-    return status;
+	return status;
 }
 #endif
 
@@ -2511,13 +2516,17 @@ eHalStatus sme_UnprotectedMgmtFrmInd( tHalHandle hHal,
 eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    tCsrRoamInfo roamInfo = {0};
+    tCsrRoamInfo *roam_info;
     tSirSmeDfsEventInd *dfs_event;
     tSirSmeCSAIeTxCompleteRsp *csaIeTxCompleteRsp;
     tANI_U32 sessionId = 0;
     eRoamCmdStatus roamStatus;
     eCsrRoamResult roamResult;
     int i;
+
+    roam_info = vos_mem_malloc(sizeof(*roam_info));
+    if (!roam_info)
+        return eHAL_STATUS_FAILED_ALLOC;
 
     switch (msgType)
     {
@@ -2530,20 +2539,21 @@ eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
             smsLog(pMac, LOGE,
                    "%s: pMsg is NULL for eWNI_SME_DFS_RADAR_FOUND message",
                    __func__);
+            vos_mem_free(roam_info);
             return eHAL_STATUS_FAILURE;
          }
          sessionId = dfs_event->sessionId;
-         roamInfo.dfs_event.sessionId = sessionId;
-         roamInfo.dfs_event.chan_list.nchannels =
+         roam_info->dfs_event.sessionId = sessionId;
+         roam_info->dfs_event.chan_list.nchannels =
              dfs_event->chan_list.nchannels;
          for (i = 0; i < dfs_event->chan_list.nchannels; i++)
          {
-             roamInfo.dfs_event.chan_list.channels[i] =
+             roam_info->dfs_event.chan_list.channels[i] =
                  dfs_event->chan_list.channels[i];
          }
 
-         roamInfo.dfs_event.dfs_radar_status = dfs_event->dfs_radar_status;
-         roamInfo.dfs_event.use_nol = dfs_event->use_nol;
+         roam_info->dfs_event.dfs_radar_status = dfs_event->dfs_radar_status;
+         roam_info->dfs_event.use_nol = dfs_event->use_nol;
 
          roamStatus = eCSR_ROAM_DFS_RADAR_IND;
          roamResult = eCSR_ROAM_RESULT_DFS_RADAR_FOUND_IND;
@@ -2559,6 +2569,7 @@ eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
             smsLog(pMac, LOGE,
                    "%s: pMsg is NULL for eWNI_SME_DFS_CSAIE_TX_COMPLETE_IND",
                    __func__);
+            vos_mem_free(roam_info);
             return eHAL_STATUS_FAILURE;
          }
          sessionId = csaIeTxCompleteRsp->sessionId;
@@ -2574,13 +2585,16 @@ eHalStatus dfsMsgProcessor(tpAniSirGlobal pMac, v_U16_t msgType, void *pMsgBuf)
          smsLog(pMac, LOG1, "%s: Invalid DFS message = 0x%x", __func__,
                 msgType);
          status = eHAL_STATUS_FAILURE;
+         vos_mem_free(roam_info);
          return status;
       }
     }
 
     /* Indicate Radar Event to SAP */
-    csrRoamCallCallback(pMac, sessionId, &roamInfo, 0,
+    csrRoamCallCallback(pMac, sessionId, roam_info, 0,
                         roamStatus, roamResult);
+    vos_mem_free(roam_info);
+
     return status;
 }
 
@@ -2601,7 +2615,7 @@ static eHalStatus sme_extended_change_channel_ind(tpAniSirGlobal mac_ctx,
 	struct sir_sme_ext_cng_chan_ind *ext_chan_ind;
 	eHalStatus status = eHAL_STATUS_SUCCESS;
 	uint32_t session_id = 0;
-	tCsrRoamInfo roamInfo = {0};
+	tCsrRoamInfo *roam_info;
 	eRoamCmdStatus roamStatus;
 	eCsrRoamResult roamResult;
 
@@ -2612,8 +2626,11 @@ static eHalStatus sme_extended_change_channel_ind(tpAniSirGlobal mac_ctx,
 			FL("pMsg is NULL for eWNI_SME_EXT_CHANGE_CHANNEL_IND"));
 		return eHAL_STATUS_FAILURE;
 	}
+	roam_info = vos_mem_malloc(sizeof(*roam_info));
+	if (!roam_info)
+		return eHAL_STATUS_FAILED_ALLOC;
 	session_id = ext_chan_ind->session_id;
-	roamInfo.target_channel = ext_chan_ind->new_channel;
+	roam_info->target_channel = ext_chan_ind->new_channel;
 	roamStatus = eCSR_ROAM_EXT_CHG_CHNL_IND;
 	roamResult = eCSR_ROAM_EXT_CHG_CHNL_UPDATE_IND;
 	smsLog(mac_ctx, LOG1,
@@ -2621,8 +2638,10 @@ static eHalStatus sme_extended_change_channel_ind(tpAniSirGlobal mac_ctx,
 		session_id);
 
 	/* Indicate Ext Channel Change event to SAP */
-	csrRoamCallCallback(mac_ctx, session_id, &roamInfo, 0,
+	csrRoamCallCallback(mac_ctx, session_id, roam_info, 0,
 					roamStatus, roamResult);
+	vos_mem_free(roam_info);
+
 	return status;
 }
 
@@ -2634,21 +2653,27 @@ static eHalStatus sme_extended_change_channel_ind(tpAniSirGlobal mac_ctx,
  *------------------------------------------------------------------*/
 eHalStatus sme_TsmIeInd(tHalHandle hHal, tSirSmeTsmIEInd *pSmeTsmIeInd)
 {
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    eHalStatus     status = eHAL_STATUS_SUCCESS;
-    tCsrRoamInfo   pRoamInfo = {0};
-    tANI_U32       SessionId = pSmeTsmIeInd->sessionId;
-    pRoamInfo.tsmIe.tsid= pSmeTsmIeInd->tsmIe.tsid;
-    pRoamInfo.tsmIe.state= pSmeTsmIeInd->tsmIe.state;
-    pRoamInfo.tsmIe.msmt_interval= pSmeTsmIeInd->tsmIe.msmt_interval;
-    /* forward the tsm ie information to HDD */
-    csrRoamCallCallback(pMac,
-                        SessionId,
-                        &pRoamInfo,
-                        0,
-                        eCSR_ROAM_TSM_IE_IND,
-                        0);
-    return status;
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	eHalStatus     status = eHAL_STATUS_SUCCESS;
+	tCsrRoamInfo   *roam_info;
+	tANI_U32       SessionId = pSmeTsmIeInd->sessionId;
+
+	roam_info = vos_mem_malloc(sizeof(*roam_info));
+	if (!roam_info)
+		return eHAL_STATUS_FAILED_ALLOC;
+	roam_info->tsmIe.tsid= pSmeTsmIeInd->tsmIe.tsid;
+	roam_info->tsmIe.state= pSmeTsmIeInd->tsmIe.state;
+	roam_info->tsmIe.msmt_interval= pSmeTsmIeInd->tsmIe.msmt_interval;
+	/* forward the tsm ie information to HDD */
+	csrRoamCallCallback(pMac,
+	                    SessionId,
+	                    roam_info,
+	                    0,
+	                    eCSR_ROAM_TSM_IE_IND,
+	                    0);
+	vos_mem_free(roam_info);
+
+	return status;
 }
 /* ---------------------------------------------------------------------------
     \fn sme_SetCCKMIe
@@ -15320,27 +15345,32 @@ eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
                                      v_U16_t msg_type, void *pMsgBuf)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    tCsrRoamInfo pRoamInfo = {0};
+    tCsrRoamInfo *roam_info;
     eCsrRoamResult roamResult;
     tpSwitchChannelParams pChnlParams = (tpSwitchChannelParams) pMsgBuf;
     tANI_U32 SessionId = pChnlParams->peSessionId;
 
-    pRoamInfo.channelChangeRespEvent =
-    (tSirChanChangeResponse *)vos_mem_malloc(
+    roam_info = vos_mem_malloc(sizeof(*roam_info));
+    if (!roam_info)
+        return eHAL_STATUS_FAILED_ALLOC;
+    roam_info->channelChangeRespEvent =
+        (tSirChanChangeResponse *)vos_mem_malloc(
                                 sizeof(tSirChanChangeResponse));
-    if (NULL == pRoamInfo.channelChangeRespEvent)
+    if (NULL == roam_info->channelChangeRespEvent)
     {
         status = eHAL_STATUS_FAILURE;
         smsLog(pMac, LOGE, "Channel Change Event Allocation Failed: %d\n",
               status);
+        vos_mem_free(roam_info);
+
         return status;
     }
     if (msg_type == eWNI_SME_CHANNEL_CHANGE_RSP)
     {
-        pRoamInfo.channelChangeRespEvent->sessionId = SessionId;
-        pRoamInfo.channelChangeRespEvent->newChannelNumber =
+        roam_info->channelChangeRespEvent->sessionId = SessionId;
+        roam_info->channelChangeRespEvent->newChannelNumber =
                                            pChnlParams->channelNumber;
-        pRoamInfo.channelChangeRespEvent->secondaryChannelOffset =
+        roam_info->channelChangeRespEvent->secondaryChannelOffset =
                                   pChnlParams->secondaryChannelOffset;
 
         if (pChnlParams->status == eHAL_STATUS_SUCCESS)
@@ -15348,7 +15378,7 @@ eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
             "sapdfs: Received success eWNI_SME_CHANNEL_CHANGE_RSP for sessionId[%d]",
                       SessionId);
-            pRoamInfo.channelChangeRespEvent->channelChangeStatus = 1;
+            roam_info->channelChangeRespEvent->channelChangeStatus = 1;
             roamResult = eCSR_ROAM_RESULT_CHANNEL_CHANGE_SUCCESS;
         }
         else
@@ -15356,12 +15386,12 @@ eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
             "sapdfs: Received failure eWNI_SME_CHANNEL_CHANGE_RSP for sessionId[%d]",
                       SessionId);
-            pRoamInfo.channelChangeRespEvent->channelChangeStatus = 0;
+            roam_info->channelChangeRespEvent->channelChangeStatus = 0;
             roamResult = eCSR_ROAM_RESULT_CHANNEL_CHANGE_FAILURE;
         }
 
-        csrRoamCallCallback(pMac, SessionId, &pRoamInfo, 0,
-                                  eCSR_ROAM_SET_CHANNEL_RSP, roamResult);
+        csrRoamCallCallback(pMac, SessionId, roam_info, 0,
+                            eCSR_ROAM_SET_CHANNEL_RSP, roamResult);
 
     }
     else
@@ -15370,7 +15400,8 @@ eHalStatus sme_ProcessChannelChangeResp(tpAniSirGlobal pMac,
         smsLog(pMac, LOGE, "Invalid Channel Change Resp Message: %d\n",
               status);
     }
-    vos_mem_free(pRoamInfo.channelChangeRespEvent);
+    vos_mem_free(roam_info->channelChangeRespEvent);
+    vos_mem_free(roam_info);
 
     return status;
 }
@@ -21200,6 +21231,21 @@ eHalStatus sme_MotionDetBaseLineEnable(tHalHandle hHal, tSirMotionDetBaseLineEna
 }
 #endif
 
+eHalStatus sme_update_owe_info(tHalHandle hal,
+			       struct sSirSmeAssocInd *assoc_ind)
+{
+	tpAniSirGlobal mac = PMAC_STRUCT(hal);
+	eHalStatus status;
+
+	status = sme_AcquireGlobalLock(&mac->sme);
+	if (HAL_STATUS_SUCCESS(status)) {
+		status = csr_update_owe_info(mac, assoc_ind);
+		sme_ReleaseGlobalLock(&mac->sme);
+	}
+
+	return status;
+}
+
 uint32_t sme_unpack_rsn_ie(tHalHandle hal, uint8_t *buf,
                            uint8_t buf_len,
                            tDot11fIERSN *rsn_ie)
@@ -21211,7 +21257,8 @@ uint32_t sme_unpack_rsn_ie(tHalHandle hal, uint8_t *buf,
 
 #ifdef WLAN_FEATURE_SAE
 eHalStatus sme_handle_sae_msg(tHalHandle hal, uint8_t session_id,
-uint8_t sae_status)
+			      uint8_t sae_status,
+			      tSirMacAddr peer_mac_addr)
 {
 	eHalStatus hal_status = eHAL_STATUS_SUCCESS;
 	tpAniSirGlobal mac = PMAC_STRUCT(hal);
@@ -21231,12 +21278,17 @@ uint8_t sae_status)
 			sae_msg->length = sizeof(*sae_msg);
 			sae_msg->session_id = session_id;
 			sae_msg->sae_status = sae_status;
+			vos_mem_copy(sae_msg->peer_mac_addr,
+				     peer_mac_addr,
+				     VOS_MAC_ADDR_SIZE);
 			vos_message.bodyptr = sae_msg;
 			vos_message.type =  eWNI_SME_SEND_SAE_MSG;
 			VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-				"SAE: sae_status %d session_id %d",
-				sae_msg->sae_status,
-				sae_msg->session_id);
+				  "SAE: sae_status %d session_id %d Peer: "
+				  MAC_ADDRESS_STR,
+				  sae_msg->sae_status,
+				  sae_msg->session_id,
+				  MAC_ADDR_ARRAY(sae_msg->peer_mac_addr));
 
 			vos_status = vos_mq_post_message(VOS_MQ_ID_PE,
 							 &vos_message);

@@ -2318,27 +2318,32 @@ static int hdd_change_sta_state_authenticated(hdd_adapter_t *adapter,
 
 void hdd_PerformRoamSetKeyComplete(hdd_adapter_t *pAdapter)
 {
-    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
-    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-    tCsrRoamInfo roamInfo;
-    roamInfo.fAuthRequired = FALSE;
-    vos_mem_copy(roamInfo.bssid,
-                 pHddStaCtx->roam_info.bssid,
-                 VOS_MAC_ADDR_SIZE);
-    vos_mem_copy(roamInfo.peerMac,
-                 pHddStaCtx->roam_info.peerMac,
-                 VOS_MAC_ADDR_SIZE);
+	eHalStatus halStatus = eHAL_STATUS_SUCCESS;
+	hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+	tCsrRoamInfo *roam_info;
 
-    halStatus = hdd_RoamSetKeyCompleteHandler(pAdapter,
-                                  &roamInfo,
-                                  pHddStaCtx->roam_info.roamId,
-                                  pHddStaCtx->roam_info.roamStatus,
-                                  eCSR_ROAM_RESULT_AUTHENTICATED);
-    if (halStatus != eHAL_STATUS_SUCCESS)
-    {
-        hddLog(LOGE, "%s: Set Key complete failure", __func__);
-    }
-    pHddStaCtx->roam_info.deferKeyComplete = FALSE;
+	roam_info = vos_mem_malloc(sizeof(*roam_info));
+	if (!roam_info)
+		return;
+
+	roam_info->fAuthRequired = FALSE;
+	vos_mem_copy(roam_info->bssid,
+	             pHddStaCtx->roam_info.bssid,
+	             VOS_MAC_ADDR_SIZE);
+	vos_mem_copy(roam_info->peerMac,
+	             pHddStaCtx->roam_info.peerMac,
+	             VOS_MAC_ADDR_SIZE);
+
+	halStatus = hdd_RoamSetKeyCompleteHandler(
+			pAdapter,
+			roam_info,
+			pHddStaCtx->roam_info.roamId,
+			pHddStaCtx->roam_info.roamStatus,
+			eCSR_ROAM_RESULT_AUTHENTICATED);
+	if (halStatus != eHAL_STATUS_SUCCESS)
+		hddLog(LOGE, "%s: Set Key complete failure", __func__);
+	pHddStaCtx->roam_info.deferKeyComplete = FALSE;
+	vos_mem_free(roam_info);
 }
 
 #if defined(WLAN_FEATURE_FILS_SK) && defined(CFG80211_FILS_SK_OFFLOAD_SUPPORT)

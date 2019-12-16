@@ -2007,7 +2007,8 @@ int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
      * Where as wlan_cfg80211_mgmt_tx requires roc and requires approval
      * from policy manager
      */
-    if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+    if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode ||
+	WLAN_HDD_SOFTAP == pAdapter->device_mode) &&
         (type == SIR_MAC_MGMT_FRAME &&
         subType == SIR_MAC_MGMT_AUTH)) {
         hal_status = sme_send_mgmt_tx(WLAN_HDD_GET_HAL_CTX(pAdapter),
@@ -3173,12 +3174,54 @@ int wlan_hdd_del_virtual_intf(struct wiphy *wiphy, struct net_device *dev)
     return ret;
 }
 
+#if defined(WLAN_FEATURE_SAE) && defined(CFG80211_EXTERNAL_AUTH_AP_SUPPORT)
+/**
+ * wlan_hdd_set_rxmgmt_external_auth_flag() - Set the EXTERNAL_AUTH flag
+ * @nl80211_flag: flags to be sent to nl80211 from enum nl80211_rxmgmt_flags
+ *
+ * Set the flag NL80211_RXMGMT_FLAG_EXTERNAL_AUTH if supported.
+ */
+static void
+wlan_hdd_set_rxmgmt_external_auth_flag(enum nl80211_rxmgmt_flags *nl80211_flag)
+{
+	*nl80211_flag |= NL80211_RXMGMT_FLAG_EXTERNAL_AUTH;
+}
+#else
+static void
+wlan_hdd_set_rxmgmt_external_auth_flag(enum nl80211_rxmgmt_flags *nl80211_flag)
+{
+}
+#endif
+
+/**
+ * wlan_hdd_cfg80211_convert_rxmgmt_flags() - Convert RXMGMT value
+ * @nl80211_flag: Flags to be sent to nl80211 from enum nl80211_rxmgmt_flags
+ * @flag: flags set by driver(SME/PE) from enum rxmgmt_flags
+ *
+ * Convert driver internal RXMGMT flag value to nl80211 defined RXMGMT flag
+ * Return: 0 on success, -EINVAL on invalid value
+ */
+static int
+wlan_hdd_cfg80211_convert_rxmgmt_flags(enum rxmgmt_flags flag,
+				       enum nl80211_rxmgmt_flags *nl80211_flag)
+{
+	int ret = -EINVAL;
+
+	if (flag & RXMGMT_FLAG_EXTERNAL_AUTH) {
+		wlan_hdd_set_rxmgmt_external_auth_flag(nl80211_flag);
+		ret = 0;
+	}
+
+	return ret;
+}
+
 void __hdd_indicate_mgmt_frame(hdd_adapter_t *pAdapter,
                             tANI_U32 nFrameLength,
                             tANI_U8* pbFrames,
                             tANI_U8 frameType,
                             tANI_U32 rxChan,
-                            tANI_S8 rxRssi)
+                            tANI_S8 rxRssi,
+                            enum rxmgmt_flags rx_flags)
 {
     tANI_U16 freq;
     tANI_U16 extend_time;
@@ -3190,6 +3233,7 @@ void __hdd_indicate_mgmt_frame(hdd_adapter_t *pAdapter,
     hdd_remain_on_chan_ctx_t* pRemainChanCtx = NULL;
     hdd_context_t *pHddCtx;
     uint8_t broadcast = 0;
+    enum nl80211_rxmgmt_flags nl80211_flag = 0;
 
     hddLog(VOS_TRACE_LEVEL_INFO, FL("Frame Type = %d Frame Length = %d"),
             frameType, nFrameLength);
@@ -3450,11 +3494,14 @@ void __hdd_indicate_mgmt_frame(hdd_adapter_t *pAdapter,
         }
     }
 
+    if (wlan_hdd_cfg80211_convert_rxmgmt_flags(rx_flags, &nl80211_flag))
+        hddLog(LOG1, "Failed to convert RXMGMT flags :0x%x to nl80211 format",
+                  rx_flags);
     //Indicate Frame Over Normal Interface
     hddLog( LOG1, FL("Indicate Frame over NL80211 Interface"));
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0)) || defined(WITH_BACKPORTS)
     cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr, freq, rxRssi * 100, pbFrames,
-                     nFrameLength, NL80211_RXMGMT_FLAG_ANSWERED);
+                     nFrameLength, NL80211_RXMGMT_FLAG_ANSWERED | nl80211_flag);
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0))
     cfg80211_rx_mgmt(pAdapter->dev->ieee80211_ptr, freq, rxRssi * 100, pbFrames,
                      nFrameLength, NL80211_RXMGMT_FLAG_ANSWERED, GFP_ATOMIC);
