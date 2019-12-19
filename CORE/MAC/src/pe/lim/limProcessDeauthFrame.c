@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2014, 2016-2020 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -494,20 +494,23 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
     }
 
     if ((pStaDs->mlmStaContext.mlmState == eLIM_MLM_WT_DEL_STA_RSP_STATE) ||
-        (pStaDs->mlmStaContext.mlmState == eLIM_MLM_WT_DEL_BSS_RSP_STATE)) {
+        (pStaDs->mlmStaContext.mlmState == eLIM_MLM_WT_DEL_BSS_RSP_STATE) ||
+        pStaDs->sta_deletion_in_progress) {
         /**
          * Already in the process of deleting context for the peer
          * and received Deauthentication frame. Log and Ignore.
          */
         PELOGE(limLog(pMac, LOGE,
-           FL("received Deauth frame from peer that is in state %X, addr "
+           FL("Deletion is in progress : %d for peer that is in state %X, addr "
            MAC_ADDRESS_STR", isDisassocDeauthInProgress : %d\n"),
-           pStaDs->mlmStaContext.mlmState,MAC_ADDR_ARRAY(pHdr->sa),
+           pStaDs->sta_deletion_in_progress,
+           pStaDs->mlmStaContext.mlmState, MAC_ADDR_ARRAY(pHdr->sa),
            pStaDs->isDisassocDeauthInProgress);)
         return;
     }
     pStaDs->mlmStaContext.disassocReason = (tSirMacReasonCodes)reasonCode;
     pStaDs->mlmStaContext.cleanupTrigger = eLIM_PEER_ENTITY_DEAUTH;
+    pStaDs->sta_deletion_in_progress = true;
 
     /// Issue Deauth Indication to SME.
     vos_mem_copy((tANI_U8 *) &mlmDeauthInd.peerMacAddr,
