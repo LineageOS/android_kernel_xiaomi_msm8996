@@ -948,7 +948,13 @@ VOS_STATUS hdd_softap_rx_packet_cbk(v_VOID_t *vosContext,
        * Just put packet into backlog queue, not scheduling RX sirq
        */
       if (skb->next) {
+#ifdef RX_LATENCY_OPTIMIZE
+	local_bh_disable();
+	rxstat = netif_receive_skb(skb);
+	local_bh_enable();
+#else
          rxstat = netif_rx(skb);
+#endif
       } else {
          if ((pHddCtx->cfg_ini->rx_wakelock_timeout) &&
              (PACKET_BROADCAST != skb->pkt_type) &&
