@@ -225,4 +225,16 @@ enum pktcapture_tx_status {
 	pktcapture_tx_status_discard,
 	pktcapture_tx_status_no_ack,
 };
+
+/*
+ * struct ol_mon_tx_status - tx packets info
+ * @status: tx status
+ * @tx_retry_cnt: tx retry count
+ *
+ */
+
+struct ol_mon_tx_status {
+	uint8_t status;
+	uint8_t tx_retry_cnt;
+};
 #endif /* _OL_TXRX__H_ */

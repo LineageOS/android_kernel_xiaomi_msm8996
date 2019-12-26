@@ -5877,10 +5877,8 @@ static void csr_populate_ie_whitelist_attrs(tSirSmeScanReq *msg,
 	qdf_mem_copy(msg->probe_req_ie_bitmap, scan_req->probe_req_ie_bitmap,
 		     PROBE_REQ_BITMAP_LEN * sizeof(uint32_t));
 	msg->oui_field_len = scan_req->num_vendor_oui * sizeof(*scan_req->voui);
-	msg->oui_field_offset = (sizeof(tSirSmeScanReq) -
-				 sizeof(msg->channelList.channelNumber) +
-				 (sizeof(msg->channelList.channelNumber) *
-				 scan_req->ChannelInfo.numOfChannels)) +
+	msg->oui_field_offset = sizeof(tSirSmeScanReq) +
+				 scan_req->ChannelInfo.numOfChannels +
 				 scan_req->uIEFieldLen;
 
 	if (scan_req->num_vendor_oui != 0)
@@ -5901,10 +5899,8 @@ static QDF_STATUS csr_send_mb_scan_req(tpAniSirGlobal pMac, uint16_t sessionId,
 	uint32_t i;
 	struct qdf_mac_addr selfmac;
 
-	msgLen = (uint16_t) (sizeof(tSirSmeScanReq) -
-		 sizeof(pMsg->channelList.channelNumber) +
-		 (sizeof(pMsg->channelList.channelNumber) *
-		 pScanReq->ChannelInfo.numOfChannels)) +
+	msgLen = (uint16_t) (sizeof(tSirSmeScanReq) +
+		 (pScanReq->ChannelInfo.numOfChannels)) +
 		 (pScanReq->uIEFieldLen) +
 		 pScanReq->num_vendor_oui * sizeof(*pScanReq->voui);
 
@@ -6058,10 +6054,8 @@ static QDF_STATUS csr_send_mb_scan_req(tpAniSirGlobal pMac, uint16_t sessionId,
 	}
 
 	pMsg->uIEFieldLen = (uint16_t) pScanReq->uIEFieldLen;
-	pMsg->uIEFieldOffset = (uint16_t) (sizeof(tSirSmeScanReq) -
-			sizeof(pMsg->channelList.channelNumber) +
-			(sizeof(pMsg->channelList.channelNumber) *
-			 pScanReq->ChannelInfo.numOfChannels));
+	pMsg->uIEFieldOffset = (uint16_t) (sizeof(tSirSmeScanReq) +
+					(pMsg->channelList.numChannels));
 	if (pScanReq->uIEFieldLen != 0) {
 		qdf_mem_copy((uint8_t *) pMsg + pMsg->uIEFieldOffset,
 			     pScanReq->pIEField, pScanReq->uIEFieldLen);

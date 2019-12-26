@@ -576,6 +576,7 @@ struct ol_txrx_mon_hdr_elem_t {
 	bool beamformed;
 	bool dir; /* rx:0 , tx:1 */
 	uint8_t status; /* tx status */
+	uint8_t tx_retry_cnt;
 };
 
 /*

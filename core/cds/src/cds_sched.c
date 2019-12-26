@@ -1565,7 +1565,7 @@ static void cds_mon_from_queue(p_cds_sched_context pschedcontext)
 		vdev_id = pkt->vdev_id;
 		tid = pkt->tid;
 		pkt->callback(pkt->context, pkt->monpkt, vdev_id,
-			      tid, pkt->status, pkt->pkt_format);
+			      tid, pkt->pkt_tx_status, pkt->pkt_format);
 		cds_free_ol_mon_pkt(pschedcontext, pkt);
 		spin_lock_bh(&pschedcontext->ol_mon_queue_lock);
 	}

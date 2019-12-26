@@ -54,6 +54,7 @@
 #include <ol_txrx.h>
 #include <pktlog_ac_fmt.h>
 #include <utils_api.h>
+#include "cds_utils.h"
 
 #ifdef TX_CREDIT_RECLAIM_SUPPORT
 
@@ -835,6 +836,10 @@ ol_tx_process_mon_tx_completion(
 	qdf_nbuf_t netbuf;
 	int nbuf_len;
 	struct qdf_tso_seg_elem_t *tso_seg = NULL;
+	struct ol_mon_tx_status pkt_tx_status = {0};
+
+	pkt_tx_status.status = status;
+	pkt_tx_status.tx_retry_cnt = payload->tx_retry_cnt;
 
 	qdf_assert(tx_desc);
 
@@ -928,7 +933,7 @@ ol_tx_process_mon_tx_completion(
 
 	ol_txrx_mon_data_process(tx_desc->vdev_id,
 				 netbuf, PROCESS_TYPE_DATA_TX_COMPL,
-				 tid, status, TXRX_PKT_FORMAT_8023);
+				 tid, pkt_tx_status, TXRX_PKT_FORMAT_8023);
 }
 
 void
@@ -936,7 +941,7 @@ ol_tx_offload_deliver_indication_handler(ol_txrx_pdev_handle pdev, void *msg)
 {
 	int nbuf_len;
 	qdf_nbuf_t netbuf;
-	uint8_t status;
+	struct ol_mon_tx_status pkt_tx_status = {0};
 	uint8_t tid = 0;
 	bool pkt_format;
 	u_int32_t *msg_word = (u_int32_t *)msg;
@@ -945,6 +950,7 @@ ol_tx_offload_deliver_indication_handler(ol_txrx_pdev_handle pdev, void *msg)
 	struct htt_tx_offload_deliver_ind_hdr_t *offload_deliver_msg;
 	bool is_pkt_during_roam = false;
 	uint8_t vdev_id;
+	uint32_t freq = 0;
 
 	offload_deliver_msg = (struct htt_tx_offload_deliver_ind_hdr_t *)msg;
 
@@ -974,18 +980,23 @@ ol_tx_offload_deliver_indication_handler(ol_txrx_pdev_handle pdev, void *msg)
 	qdf_mem_copy(qdf_nbuf_data(netbuf), txhdr,
 		     sizeof(struct htt_tx_data_hdr_information));
 
-	status = offload_deliver_msg->status;
+	pkt_tx_status.status = offload_deliver_msg->status;
+	pkt_tx_status.tx_retry_cnt = offload_deliver_msg->tx_retry_cnt;
 	pkt_format = offload_deliver_msg->format;
 	tid = offload_deliver_msg->tid_num;
 	/* Is FW sends offload data during roaming */
 	is_pkt_during_roam = (offload_deliver_msg->reserved_2 ? true : false);
-	if (is_pkt_during_roam)
+	if (is_pkt_during_roam) {
 		vdev_id = HTT_INVALID_VDEV;
+		freq = (uint32_t)offload_deliver_msg->reserved_3;
+
+		ol_htt_mon_note_chan(pdev, cds_freq_to_chan(freq));
+	}
 
 	ol_txrx_mon_data_process(
 			vdev_id,
 			netbuf, PROCESS_TYPE_DATA_TX,
-			tid, status, pkt_format);
+			tid, pkt_tx_status, pkt_format);
 }
 
 /**

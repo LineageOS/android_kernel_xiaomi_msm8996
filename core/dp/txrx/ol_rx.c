@@ -1476,6 +1476,7 @@ ol_rx_in_order_indication_handler(ol_txrx_pdev_handle pdev,
 	uint32_t filled = 0;
 	uint8_t vdev_id;
 	bool is_pkt_capture_flow_id = false;
+	struct ol_mon_tx_status pkt_tx_status = {0};
 
 	if (tid >= OL_TXRX_NUM_EXT_TIDS) {
 		ol_txrx_err("%s:  invalid tid, %u\n", __FUNCTION__, tid);
@@ -1585,7 +1586,7 @@ ol_rx_in_order_indication_handler(ol_txrx_pdev_handle pdev,
 	if (head_mon_msdu)
 		ol_txrx_mon_data_process(
 			vdev_id, head_mon_msdu,
-			PROCESS_TYPE_DATA_RX, 0, 0,
+			PROCESS_TYPE_DATA_RX, 0, pkt_tx_status,
 			TXRX_PKT_FORMAT_8023);
 
 	if (is_pkt_capture_flow_id) {

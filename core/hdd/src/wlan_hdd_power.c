@@ -70,6 +70,7 @@
 #include <wlan_logging_sock_svc.h>
 #include "cds_utils.h"
 #include "wlan_hdd_packet_filter_api.h"
+#include "cds_concurrency.h"
 
 /* Preprocessor definitions and constants */
 #define HDD_SSR_BRING_UP_TIME 30000
@@ -229,7 +230,7 @@ static int __wlan_hdd_ipv6_changed(struct notifier_block *nb,
 	ENTER_DEV(ndev);
 
 	if ((pAdapter == NULL) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)) {
-		hdd_err("Adapter context is invalid %pK", pAdapter);
+		hdd_debug("Adapter context is invalid %pK", pAdapter);
 		return NOTIFY_DONE;
 	}
 
@@ -923,7 +924,7 @@ static int __wlan_hdd_ipv4_changed(struct notifier_block *nb,
 	ENTER_DEV(ndev);
 
 	if ((pAdapter == NULL) || (WLAN_HDD_ADAPTER_MAGIC != pAdapter->magic)) {
-		hdd_err("Adapter context is invalid %pK", pAdapter);
+		hdd_debug("Adapter context is invalid %pK", pAdapter);
 		return NOTIFY_DONE;
 	}
 
@@ -2034,6 +2035,11 @@ static int __wlan_hdd_cfg80211_suspend_wlan(struct wiphy *wiphy,
 	}
 	mutex_unlock(&pHddCtx->iface_change_lock);
 
+	if (cds_is_connection_in_progress(NULL, NULL)) {
+		hdd_err("Suspend rejected: conn in progress");
+		return -EINVAL;
+	}
+
 	/* If RADAR detection is in progress (HDD), prevent suspend. The flag
 	 * "dfs_cac_block_tx" is set to true when RADAR is found and stay true
 	 * until CAC is done for a SoftAP which is in started state.
@@ -2517,7 +2523,7 @@ static int __wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
 
 	/* Validate adapter sessionId */
 	if (wlan_hdd_validate_session_id(adapter->sessionId)) {
-		hdd_err("invalid session id: %d", adapter->sessionId);
+		hdd_debug("invalid session id: %d", adapter->sessionId);
 		return -EINVAL;
 	}
 

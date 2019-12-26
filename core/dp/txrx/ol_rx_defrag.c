@@ -684,6 +684,7 @@ ol_rx_defrag(ol_txrx_pdev_handle pdev,
 	struct ieee80211_frame *wh;
 	uint8_t key[DEFRAG_IEEE80211_KEY_LEN];
 	htt_pdev_handle htt_pdev = pdev->htt_pdev;
+	struct ol_mon_tx_status pkt_tx_status = {0};
 
 	vdev = peer->vdev;
 
@@ -832,7 +833,7 @@ ol_rx_defrag(ol_txrx_pdev_handle pdev,
 		if (head_mon_msdu)
 			ol_txrx_mon_data_process(
 				vdev->vdev_id, head_mon_msdu,
-				PROCESS_TYPE_DATA_RX, 0, 0,
+				PROCESS_TYPE_DATA_RX, 0, pkt_tx_status,
 				TXRX_PKT_FORMAT_8023);
 	}
 

@@ -6689,7 +6689,7 @@ static int __wlan_hdd_cfg80211_wifi_logger_get_ring_data(struct wiphy *wiphy,
 				WLAN_LOG_REASON_CODE_UNUSED,
 				true, false);
 		if (QDF_STATUS_SUCCESS != status) {
-			hdd_err("Failed to trigger bug report");
+			hdd_debug("Failed to trigger bug report");
 			return -EINVAL;
 		}
 	} else {
@@ -16957,6 +16957,13 @@ static int wlan_hdd_cfg80211_connect_start(hdd_adapter_t *pAdapter,
 	pRoamProfile = &pWextState->roamProfile;
 	qdf_mem_zero(&hdd_sta_ctx->conn_info.conn_flag,
 		     sizeof(hdd_sta_ctx->conn_info.conn_flag));
+
+	/*
+	 * Reset the ptk, gtk status flags to avoid using old/previous
+	 * connection status.
+	 */
+	hdd_sta_ctx->conn_info.gtk_installed = false;
+	hdd_sta_ctx->conn_info.ptk_installed = false;
 
 	if (pRoamProfile) {
 		hdd_station_ctx_t *pHddStaCtx;

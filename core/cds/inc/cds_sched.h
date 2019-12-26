@@ -43,6 +43,7 @@
 #include "cds_config.h"
 #include "cds_reg_service.h"
 #include "qdf_cpuhp.h"
+#include "ol_txrx.h"
 
 #define TX_POST_EVENT               0x001
 #define TX_SUSPEND_EVENT            0x002
@@ -90,7 +91,8 @@ typedef void (*cds_ol_rx_thread_cb)(void *context, void *rxpkt, uint16_t staid);
 typedef void (*cds_ol_mon_thread_cb)(
 			void *context, void *monpkt,
 			uint8_t vdev_id, uint8_t tid,
-			uint8_t status, bool pkt_format);
+			struct ol_mon_tx_status pkt_tx_status,
+			bool pkt_format);
 
 typedef int (*send_mode_change_event_cb)(void);
 
@@ -140,7 +142,7 @@ struct cds_ol_mon_pkt {
 	uint8_t tid;
 
 	/* Tx packet status */
-	uint8_t status;
+	struct ol_mon_tx_status pkt_tx_status;
 
 	/* 0 = 802.3 format , 1 = 802.11 format */
 	bool pkt_format;
