@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -4878,6 +4878,54 @@ static QDF_STATUS sme_qos_process_reassoc_failure_ev(tpAniSirGlobal pMac,
 	return QDF_STATUS_SUCCESS;
 }
 
+#ifdef WLAN_FEATURE_ROAM_OFFLOAD
+#ifdef FEATURE_WLAN_ESE
+static bool sme_qos_ft_handoff_required(tpAniSirGlobal pmac,
+					uint8_t session_id)
+{
+	tCsrRoamSession *csr_roam_session;
+
+	if (csr_roam_is11r_assoc(pmac, session_id))
+		return true;
+
+	csr_roam_session = CSR_GET_SESSION(pmac, session_id);
+
+	if (csr_roam_session->roam_synch_in_progress &&
+	    csr_roam_is_ese_assoc(pmac, session_id) &&
+	    csr_roam_session->connectedInfo.nTspecIeLength)
+		return true;
+
+	return false;
+}
+#else
+static inline bool sme_qos_ft_handoff_required(tpAniSirGlobal pmac,
+					       uint8_t session_id)
+{
+	return csr_roam_is11r_assoc(pmac, session_id) ? true : false;
+}
+#endif
+#else
+static inline bool sme_qos_ft_handoff_required(tpAniSirGlobal pmac,
+					       uint8_t session_id)
+{
+	return false;
+}
+#endif
+
+#ifdef FEATURE_WLAN_ESE
+static inline bool sme_qos_legacy_handoff_required(tpAniSirGlobal pmac,
+						   uint8_t session_id)
+{
+	return csr_roam_is_ese_assoc(pmac, session_id) ? false : true;
+}
+#else
+static inline bool sme_qos_legacy_handoff_required(tpAniSirGlobal pmac,
+						   uint8_t session_id)
+{
+	return true;
+}
+#endif
+
 /*
  * sme_qos_process_handoff_assoc_req_ev() - Function to process the
  *  SME_QOS_CSR_HANDOFF_ASSOC_REQ event indication from CSR
@@ -4926,16 +4974,13 @@ static QDF_STATUS sme_qos_process_handoff_assoc_req_ev(tpAniSirGlobal pMac,
 			break;
 		}
 	}
-#ifdef WLAN_FEATURE_ROAM_OFFLOAD
-	if (csr_roam_is11r_assoc(pMac, sessionId))
+
+	if (sme_qos_ft_handoff_required(pMac, sessionId))
 		pSession->ftHandoffInProgress = true;
-#endif
+
 	/* If FT handoff/ESE in progress, legacy handoff need not be enabled */
-	if (!pSession->ftHandoffInProgress
-#ifdef FEATURE_WLAN_ESE
-	    && !csr_roam_is_ese_assoc(pMac, sessionId)
-#endif
-	   )
+	if (!pSession->ftHandoffInProgress &&
+	    sme_qos_legacy_handoff_required(pMac, sessionId))
 		pSession->handoffRequested = true;
 
 	/* this session no longer needs UAPSD */
