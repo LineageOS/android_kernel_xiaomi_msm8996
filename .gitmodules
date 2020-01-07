@@ -1,0 +1,3 @@
+[submodule "zip-creator/base"]
+	path = zip-creator/base
+	url = https://github.com/JonasCardoso/AnyKernel3
