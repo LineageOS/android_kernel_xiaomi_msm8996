@@ -1818,7 +1818,8 @@ struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 		memcpy(msm8952_tomtom_dai_links + len2,
 			msm8952_tdm_fe_dai, sizeof(msm8952_tdm_fe_dai));
 		memcpy(msm8952_tomtom_dai_links + len3,
-			msm8952_common_misc_fe_dai, sizeof(msm8952_common_misc_fe_dai));
+			msm8952_common_misc_fe_dai,
+			sizeof(msm8952_common_misc_fe_dai));
 		memcpy(msm8952_tomtom_dai_links + len4,
 			msm8952_common_be_dai, sizeof(msm8952_common_be_dai));
 		memcpy(msm8952_tomtom_dai_links + len5,
@@ -1852,7 +1853,8 @@ struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 		memcpy(msm8952_tasha_dai_links + len2,
 			msm8952_tdm_fe_dai, sizeof(msm8952_tdm_fe_dai));
 		memcpy(msm8952_tasha_dai_links + len3,
-			msm8952_common_misc_fe_dai, sizeof(msm8952_common_misc_fe_dai));
+			msm8952_common_misc_fe_dai,
+			sizeof(msm8952_common_misc_fe_dai));
 		memcpy(msm8952_tasha_dai_links + len4,
 			msm8952_common_be_dai, sizeof(msm8952_common_be_dai));
 		memcpy(msm8952_tasha_dai_links + len5,
@@ -1860,11 +1862,13 @@ struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 		msm8952_dai_links = msm8952_tasha_dai_links;
 	}
 
-        if (msm8952_dai_links) {
-		if (of_property_read_bool(dev->of_node, "qcom,hdmi-dba-codec-rx")) {
+	if (msm8952_dai_links) {
+		if (of_property_read_bool(dev->of_node,
+				"qcom,hdmi-dba-codec-rx")) {
 			dev_dbg(dev, "%s(): hdmi dba audio support present\n",
 				__func__);
-			memcpy(msm8952_dai_links + len6, msm8952_hdmi_dba_dai_link,
+			memcpy(msm8952_dai_links + len6,
+				msm8952_hdmi_dba_dai_link,
 				sizeof(msm8952_hdmi_dba_dai_link));
 			len6 += ARRAY_SIZE(msm8952_hdmi_dba_dai_link);
 		} else {
@@ -1874,10 +1878,12 @@ struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 				sizeof(msm8952_quin_dai_link));
 			len6 += ARRAY_SIZE(msm8952_quin_dai_link);
 		}
-		if (of_property_read_bool(dev->of_node, "qcom,tdm-audio-intf")) {
+		if (of_property_read_bool(dev->of_node,
+				"qcom,tdm-audio-intf")) {
 			dev_dbg(dev, "%s(): TDM support present\n",
 					__func__);
-			memcpy(msm8952_dai_links + len6, msm8952_tdm_be_dai_link,
+			memcpy(msm8952_dai_links + len6,
+				msm8952_tdm_be_dai_link,
 				sizeof(msm8952_tdm_be_dai_link));
 			len6 += ARRAY_SIZE(msm8952_tdm_be_dai_link);
 		}
