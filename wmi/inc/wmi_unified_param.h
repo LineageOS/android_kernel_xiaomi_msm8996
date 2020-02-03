@@ -285,6 +285,28 @@ typedef enum {
 	WMI_HOST_MODE_MAX	= 16
 } WMI_HOST_WLAN_PHY_MODE;
 
+/**
+ * enum wmi_host_channel_width: Channel operating width. Maps to
+ *               wmi_channel_width used in firmware header file(s).
+ * @WMI_HOST_CHAN_WIDTH_20: 20 MHz channel operating width
+ * @WMI_HOST_CHAN_WIDTH_40: 40 MHz channel operating width
+ * @WMI_HOST_CHAN_WIDTH_80: 80 MHz channel operating width
+ * @WMI_HOST_CHAN_WIDTH_160: 160 MHz channel operating width
+ * @WMI_HOST_CHAN_WIDTH_80P80: 80+80 MHz channel operating width
+ * @WMI_HOST_CHAN_WIDTH_5: 5 MHz channel operating width
+ * @WMI_HOST_CHAN_WIDTH_10: 10 MHz channel operating width
+ * @WMI_HOST_CHAN_WIDTH_165: 165 MHz channel operating width
+ */
+typedef enum {
+	WMI_HOST_CHAN_WIDTH_20    = 0,
+	WMI_HOST_CHAN_WIDTH_40    = 1,
+	WMI_HOST_CHAN_WIDTH_80    = 2,
+	WMI_HOST_CHAN_WIDTH_160   = 3,
+	WMI_HOST_CHAN_WIDTH_80P80 = 4,
+	WMI_HOST_CHAN_WIDTH_5     = 5,
+	WMI_HOST_CHAN_WIDTH_10    = 6,
+	WMI_HOST_CHAN_WIDTH_165   = 7,
+} wmi_host_channel_width;
 
 /**
  * enum wmi_dwelltime_adaptive_mode: dwelltime_mode
@@ -1126,6 +1148,7 @@ struct scan_stop_params {
 /**
  * struct scan_chan_list_params  - scan channel list cmd parameter
  * @num_scan_chans: no of scan channels
+ * @max_bw_support_present: max BW support present
  * @chan_info: pointer to wmi channel info
  */
 #ifdef CONFIG_MCL
@@ -1149,6 +1172,7 @@ typedef struct {
 
 struct scan_chan_list_params {
 	uint8_t num_scan_chans;
+	bool max_bw_support_present;
 	wmi_channel_param *chan_info;
 };
 #else
@@ -7425,9 +7449,10 @@ struct action_wakeup_set_param {
  * @WMI_ACTION_OUI_ITO_EXTENSION: for extending inactivity time of station
  * @WMI_ACTION_OUI_CCKM_1X1: for TX with CCKM 1x1 only
  * @WMI_ACTION_OUI_ITO_ALTERNATE: for alternate inactivity time of station
- * WMI_ACTION_OUI_SWITCH_TO_11N_MODE: for switching to 11n mode connection
- * WMI_ACTION_OUI_CONNECT_1x1_WITH_1_CHAIN: for 1x1 connection with 1 Chain
- * @WMI_ACTION_OUI_MAXIMUM_ID: maximun number of action oui types
+ * @WMI_ACTION_OUI_SWITCH_TO_11N_MODE: for switching to 11n mode connection
+ * @WMI_ACTION_OUI_CONNECT_1x1_WITH_1_CHAIN: for 1x1 connection with 1 Chain
+ * @WMI_ACTION_OUI_DISABLE_AGGRESSIVE_EDCA: disable aggressive EDCA with the ap
+ * @WMI_ACTION_OUI_MAXIMUM_ID: maximum number of action oui types
  */
 enum wmi_action_oui_id {
 	WMI_ACTION_OUI_CONNECT_1X1 = 0,
@@ -7436,7 +7461,8 @@ enum wmi_action_oui_id {
 	WMI_ACTION_OUI_ITO_ALTERNATE = 3,
 	WMI_ACTION_OUI_SWITCH_TO_11N_MODE = 4,
 	WMI_ACTION_OUI_CONNECT_1x1_WITH_1_CHAIN = 5,
-	WMI_ACTION_OUI_MAXIMUM_ID = 6,
+	WMI_ACTION_OUI_DISABLE_AGGRESSIVE_EDCA = 6,
+	WMI_ACTION_OUI_MAXIMUM_ID = 7,
 };
 
 /**
