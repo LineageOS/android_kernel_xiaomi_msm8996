@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2016, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -37,6 +37,7 @@
 #include "wlan_hdd_trace.h"
 #include "wlan_hdd_main.h"
 
+#ifdef WLAN_DEBUG
 static tANI_U8 *hddTraceGetEventString(tANI_U32 code)
 {
 	switch (code) {
@@ -124,6 +125,7 @@ static tANI_U8 *hddTraceGetEventString(tANI_U32 code)
 		break;
 	}
 }
+#endif
 
 void hddTraceDump(void *pMac, tpvosTraceRecord pRecord, tANI_U16 recIndex)
 {

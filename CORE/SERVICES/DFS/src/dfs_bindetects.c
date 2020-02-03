@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2013, 2017 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2002-2013, 2017, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -338,7 +338,10 @@ dfs_bin_pri_check(struct ath_dfs *dfs, struct dfs_filter *rf,
         u_int32_t searchpri, searchdur, searchrssi, deltapri = 0,deltapri1 = 0, deltapri2 = 0, deltadur, averagerefpri=0,MatchCount = 0;
         u_int32_t  delta_ts_variance, delta_time_stamps, prev_good_timestamp=0;
         int delayindex, dindex;
-        u_int32_t i, j=0, primargin, durmargin, highscore=score, highscoreindex=0;
+        u_int32_t i, j=0, primargin, durmargin = 0;
+#ifdef WLAN_DEBUG
+	u_int32_t highscoreindex = 0, highscore = score;
+#endif
         int numpulses=1;  //first pulse in the burst is most likely being filtered out based on maxfilterlen
         int priscorechk=1,numpulsetochk=2,primatch=0;
         int32_t sidx_min = DFS_BIG_SIDX;

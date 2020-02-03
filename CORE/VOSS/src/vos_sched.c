@@ -1167,10 +1167,11 @@ VosWDThread
        if (gpVosSchedContext &&
            !test_bit(MC_SUSPEND_EVENT, &gpVosSchedContext->mcEventFlag))
             vos_wd_detect_thread_stuck();
-       else
+       else {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                "%s: controller thread %s id: %d is suspended do not attemp probing",
                __func__, current->comm, current->pid);
+       }
         /*
          * Process here and return without processing any SSR
          * related logic.

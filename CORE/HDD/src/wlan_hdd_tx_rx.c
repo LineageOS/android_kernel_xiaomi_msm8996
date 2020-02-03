@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1542,7 +1542,13 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
        * Just put packet into backlog queue, not scheduling RX sirq
        */
       if (skb->next) {
+#ifdef RX_LATENCY_OPTIMIZE
+	local_bh_disable();
+	rxstat = netif_receive_skb(skb);
+	local_bh_enable();
+#else
          rxstat = netif_rx(skb);
+#endif
       } else {
           if ((pHddCtx->cfg_ini->rx_wakelock_timeout) &&
               (PACKET_BROADCAST != skb->pkt_type) &&
@@ -1557,7 +1563,13 @@ VOS_STATUS hdd_rx_packet_cbk(v_VOID_t *vosContext,
            * This is the last packet on the chain
            * Scheduling rx sirq
            */
+#ifdef RX_LATENCY_OPTIMIZE
+	local_bh_disable();
+	rxstat = netif_receive_skb(skb);
+	local_bh_enable();
+#else
           rxstat = netif_rx_ni(skb);
+#endif
       }
 
       if (NET_RX_SUCCESS == rxstat)

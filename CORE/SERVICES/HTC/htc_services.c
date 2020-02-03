@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, 2016-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -101,6 +101,8 @@ A_STATUS HTCConnectService(HTC_HANDLE               HTCHandle,
 
             if (NULL == pConnectMsg) {
                 AR_DEBUG_ASSERT(0);
+                HTCFreeControlTxPacket(target, pSendPacket);
+                pSendPacket = NULL;
                 status = A_EFAULT;
                 break;
             }

@@ -909,6 +909,11 @@ static ssize_t __wlan_hdd_write_txqueue_stats_debugfs(struct file *file,
 							 NULL);
 	struct ol_txrx_pdev_t *pdev = vos_get_context(VOS_MODULE_ID_TXRX,
 							 vos_context);
+	if (!pdev) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("Failed to find pdev"));
+		return -ENODEV;
+	}
+
 	if (count > 2) {
 		hddLog(VOS_TRACE_LEVEL_ERROR, FL("error input data len %zu"),
 		       count);
@@ -970,6 +975,10 @@ static ssize_t __wlan_hdd_read_txqueue_stats_debugfs(struct file *file,
 							 NULL);
 	struct ol_txrx_pdev_t *pdev = vos_get_context(VOS_MODULE_ID_TXRX,
 							 vos_context);
+	if (!pdev) {
+		hddLog(VOS_TRACE_LEVEL_ERROR, FL("Failed to find pdev"));
+		return -ENODEV;
+	}
 
 	if (*pos != 0)
 		return 0;

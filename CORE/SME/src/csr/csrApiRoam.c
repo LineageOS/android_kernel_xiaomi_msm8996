@@ -719,6 +719,81 @@ eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac)
     return eHAL_STATUS_SUCCESS;
 }
 
+eHalStatus csrUpdateCaliChannelList(tpAniSirGlobal mac_ptr)
+{
+	tSirUpdateChanList *chanlist_ptr;
+	tCsrScanStruct *scan_ptr = &mac_ptr->scan;
+	u8 num_chan = scan_ptr->baseChannels.numChannels;
+	u8 num_channel = 0;
+	u32 buf_len;
+	vos_msg_t msg;
+	u8 i;
+	u8 channel_state;
+	u8  channel;
+
+	buf_len = sizeof(tSirUpdateChanList) +
+		(sizeof(tSirUpdateChanParam) * (num_chan));
+
+	chanlist_ptr = (tSirUpdateChanList *)vos_mem_malloc(buf_len);
+	if (!chanlist_ptr) {
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			  "Failed to allocate memory for tSirUpdateChanList");
+		return eHAL_STATUS_FAILED_ALLOC;
+	}
+	vos_mem_zero(chanlist_ptr, buf_len);
+
+	for (i = 0; i < num_chan; i++) {
+		channel = scan_ptr->baseChannels.channelList[i];
+		channel_state =
+			vos_nv_getChannelEnabledState(channel);
+		if (vos_is_dsrc_channel(vos_chan_to_freq(channel)) &&
+		    channel != 173)
+			continue;
+		smsLog(mac_ptr, LOG1, FL("base channel %d state %d"),
+		       channel, channel_state);
+
+		chanlist_ptr->chanParam[num_channel].chanId =
+			scan_ptr->baseChannels.channelList[i];
+		num_channel++;
+	}
+
+	if ((mac_ptr->roam.configParam.uCfgDot11Mode ==
+             eCSR_CFG_DOT11_MODE_AUTO) ||
+	    (mac_ptr->roam.configParam.uCfgDot11Mode ==
+	     eCSR_CFG_DOT11_MODE_11AC) ||
+	    (mac_ptr->roam.configParam.uCfgDot11Mode ==
+	     eCSR_CFG_DOT11_MODE_11AC_ONLY)) {
+		chanlist_ptr->vht_en = true;
+		if (mac_ptr->roam.configParam.enableVhtFor24GHz)
+			chanlist_ptr->vht_24_en = true;
+	}
+
+	if ((mac_ptr->roam.configParam.uCfgDot11Mode ==
+             eCSR_CFG_DOT11_MODE_AUTO) ||
+	    (mac_ptr->roam.configParam.uCfgDot11Mode ==
+	     eCSR_CFG_DOT11_MODE_11N) ||
+	    (mac_ptr->roam.configParam.uCfgDot11Mode ==
+	     eCSR_CFG_DOT11_MODE_11N_ONLY)) {
+		chanlist_ptr->ht_en = true;
+	}
+
+	msg.type = WDA_UPDATE_CHAN_LIST_REQ;
+	msg.reserved = 0;
+	msg.bodyptr = chanlist_ptr;
+	chanlist_ptr->numChan = num_channel;
+	MTRACE(vos_trace(VOS_MODULE_ID_SME, TRACE_CODE_SME_TX_WDA_MSG,
+			 NO_SESSION, msg.type));
+	if (VOS_STATUS_SUCCESS !=
+	    vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)) {
+		VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+			  "%s: Failed to post msg to WDA", __func__);
+		vos_mem_free(chanlist_ptr);
+		return eHAL_STATUS_FAILURE;
+	}
+
+	return eHAL_STATUS_SUCCESS;
+}
+
 eHalStatus csrStart(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -10949,7 +11024,7 @@ static bool csr_is_sae_akm_present(tpAniSirGlobal mac,
 {
 	uint16_t i;
 
-	if (rsn_ie->akm_suite_cnt > 6) {
+	if (rsn_ie->akm_suite_cnt > 4) {
 		smsLog(mac, LOGE, FL("Invalid akm_suite_cnt in Rx RSN IE"));
 		return false;
 	}
@@ -11177,7 +11252,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                         status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_INFRA_ASSOCIATION_IND);
                         if (!HAL_STATUS_SUCCESS(status)) {
                             pRoamInfo->statusCode = eSIR_SME_ASSOC_REFUSED;// Refused due to Mac filtering
-                        } else if (pAssocInd->rsnIE.length) {
+                        } else if (pAssocInd->rsnIE.length && SIR_MAC_RSN_EID ==
+                                   pAssocInd->rsnIE.rsnIEdata[0]) {
                             tDot11fIERSN rsn_ie = {0};
 
                             if (dot11fUnpackIeRSN(
@@ -15581,7 +15657,9 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         {
             if (pProfile->csrPersona == VOS_STA_MODE) {
                 smsLog(pMac, LOG1, FL(" Invoking packetdump register API"));
+#ifndef REMOVE_PKT_LOG
                 wlan_register_txrx_packetdump();
+#endif
                 packetdump_timer_status =
                          vos_timer_start(&pMac->roam.packetdump_timer,
                          (PKT_DUMP_TIMER_DURATION*VOS_TIMER_TO_SEC_UNIT)/
@@ -16916,7 +16994,8 @@ eHalStatus csrRoamOpenSession(tpAniSirGlobal pMac,
             break;
         }
     }
-    if( pMac->sme.max_intf_count == i )
+    if ((pMac->sme.max_intf_count == i) ||
+        (*pbSessionId == CSR_SESSION_ID_INVALID))
     {
         //No session is available
         smsLog(pMac, LOGE,
@@ -18056,7 +18135,7 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
                             tANI_U8 staId, void *pContext,
                             tANI_U8 sessionId)
 {
-   tCsrStatsClientReqInfo staEntry;
+   tCsrStatsClientReqInfo staEntry = {{0}};
    tCsrStatsClientReqInfo *pStaEntry = NULL;
    tCsrPeStatsReqInfo *pPeStaEntry = NULL;
    tListElem *pEntry = NULL;
@@ -18958,13 +19037,14 @@ eHalStatus csrRoamOffloadScan(tpAniSirGlobal pMac, tANI_U8 sessionId,
             pRequestBuf->ConnectedNetwork.ChannelCache[num_channels++] =
                 *ChannelList;
 
-            if (*ChannelList)
+            if (*ChannelList) {
                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
                        "DFSRoam=%d, ChnlState=%d, Chnl=%d, num_ch=%d",
                        pMac->roam.configParam.allowDFSChannelRoam,
                        vos_nv_getChannelEnabledState(*ChannelList),
                        *ChannelList,
                        num_channels);
+	    }
               ChannelList++;
         }
         pRequestBuf->ConnectedNetwork.ChannelCount = num_channels;

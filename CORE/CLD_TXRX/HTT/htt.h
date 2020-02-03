@@ -475,6 +475,7 @@ enum htt_h2t_msg_type {
     HTT_H2T_MSG_TYPE_AGGR_CFG_EX           = 0xa, /* per vdev amsdu subfrm limit */
     HTT_H2T_MSG_TYPE_SRING_SETUP           = 0xb,
     HTT_H2T_MSG_TYPE_RX_RING_SELECTION_CFG = 0xc,
+    HTT_H2T_MSG_TYPE_CHAN_CALDATA      = 0x14,
     /* keep this last */
     HTT_H2T_NUM_MSGS
 };
@@ -493,6 +494,11 @@ enum htt_h2t_msg_type {
     } while (0)
 #define HTT_H2T_MSG_TYPE_GET(word) \
     (((word) & HTT_H2T_MSG_TYPE_M) >> HTT_H2T_MSG_TYPE_S)
+
+#define HTT_H2T_MSG_TYPE_CLR(word)           \
+    do {       \
+        (word) &= ~(HTT_H2T_MSG_TYPE_M);\
+    } while (0)
 
 /**
  * @brief target -> host version number request message definition
@@ -4070,6 +4076,7 @@ enum htt_t2h_msg_type {
     HTT_T2H_MSG_TYPE_SRING_SETUP_DONE         = 0x1a,
     HTT_T2H_MSG_TYPE_PPDU_STATS_IND           = 0x1d,
     HTT_T2H_MSG_TYPE_MONITOR_MAC_HEADER_IND   = 0x20,
+    HTT_T2H_MSG_TYPE_CHAN_CALDATA      = 0x26,
 
     HTT_T2H_MSG_TYPE_TEST,
     /* keep this last */
@@ -8508,4 +8515,209 @@ typedef struct {
 #define HTT_T2H_EXT_STATS_CONF_TLV_LENGTH_GET(word) \
     (((word) & HTT_T2H_EXT_STATS_CONF_TLV_LENGTH_M) >> \
     HTT_T2H_EXT_STATS_CONF_TLV_LENGTH_S)
+
+/**
+ * @brief target -> host channel calibration data message
+ * @brief host -> target channel calibration data message
+ *
+ * @details
+ * The following field definitions describe the format of the channel
+ * calibration data message sent from the target to the host when
+ * MSG_TYPE is HTT_T2H_MSG_TYPE_CHAN_CALDATA, and sent from the host
+ * to the target when MSG_TYPE is HTT_H2T_MSG_TYPE_CHAN_CALDATA.
+ * The message is defined as htt_chan_caldata_msg followed by a variable
+ * number of 32-bit character values.
+ *
+ * |31              21|20|19   16|15  13|  12|11      8|7            0|
+ * |------------------------------------------------------------------|
+ * |       rsv        | A| frag  | rsv  |ck_v| sub_type|   msg type   |
+ * |------------------------------------------------------------------|
+ * |        payload size         |               mhz                  |
+ * |------------------------------------------------------------------|
+ * |      center frequency 2     |          center frequency 1        |
+ * |------------------------------------------------------------------|
+ * |                              check sum                           |
+ * |------------------------------------------------------------------|
+ * |                              payload                             |
+ * |------------------------------------------------------------------|
+ * message info field:
+ *   - MSG_TYPE
+ *     Bits 7:0
+ *     Purpose: identifies this as a channel calibration data message
+ *     Value: HTT_T2H_MSG_TYPE_CHAN_CALDATA (0x15) or
+ *            HTT_H2T_MSG_TYPE_CHAN_CALDATA (0xb)
+ *   - SUB_TYPE
+ *     Bits 11:8
+ *     Purpose: T2H: indicates whether target is providing chan cal data
+ *                   to the host to store, or requesting that the host
+ *                   download previously-stored data.
+ *              H2T: indicates whether the host is providing the requested
+ *                   channel cal data, or if it is rejecting the data
+ *                   request because it does not have the requested data.
+ *     Value: see HTT_T2H_MSG_CHAN_CALDATA_xxx defs
+ *   - CHKSUM_VALID
+ *     Bit 12
+ *     Purpose: indicates if the checksum field is valid
+ *     value:
+ *   - FRAG
+ *     Bit 19:16
+ *     Purpose: indicates the fragment index for message
+ *     value: 0 for first fragment, 1 for second fragment, ?...
+ *   - APPEND
+ *     Bit 20
+ *     Purpose: indicates if this is the last fragment
+ *     value: 0 = final fragment, 1 = more fragments will be appended
+ *
+ * channel and payload size field
+ *   - MHZ
+ *     Bits 15:0
+ *     Purpose: indicates the channel primary frequency
+ *     Value:
+ *   - PAYLOAD_SIZE
+ *     Bits 31:16
+ *     Purpose: indicates the bytes of calibration data in payload
+ *     Value:
+ *
+ * center frequency field
+ *   - CENTER FREQUENCY 1
+ *     Bits 15:0
+ *     Purpose: indicates the channel center frequency
+ *     Value: channel center frequency, in MHz units
+ *   - CENTER FREQUENCY 2
+ *     Bits 31:16
+ *     Purpose: indicates the secondary channel center frequency,
+ *              only for 11acvht 80plus80 mode
+ *     Value:  secondary channel center frequeny, in MHz units, if applicable
+ *
+ * checksum field
+ *   - CHECK_SUM
+ *     Bits 31:0
+ *     Purpose: check the payload data, it is just for this fragment.
+ *              This is intended for the target to check that the channel
+ *              calibration data returned by the host is the unmodified data
+ *              that was previously provided to the host by the target.
+ *     value: checksum of fragment payload
+ */
+PREPACK struct htt_chan_caldata_msg {
+    /* DWORD 0: message info */
+    A_UINT32
+        msg_type : 8,
+        sub_type : 4,
+        chksum_valid : 1, /** 1:valid, 0:invalid  */
+        reserved1 : 3,
+        frag_idx : 4,     /** fragment index for calibration data */
+        appending : 1,    /** 0: no fragment appending,
+                           *  1: extra fragment appending */
+        reserved2 : 11;
+
+    /* DWORD 1: channel and payload size */
+    A_UINT32
+        mhz : 16,          /** primary 20 MHz channel frequency in mhz */
+        payload_size : 16; /** unit: bytes */
+
+    /* DWORD 2: center frequency */
+    A_UINT32
+        band_center_freq1 : 16, /** Center frequency 1 in MHz */
+        band_center_freq2 : 16; /** Center frequency 2 in MHz,
+                                 *  valid only for 11acvht 80plus80 mode */
+
+    /* DWORD 3: check sum */
+    A_UINT32 chksum;
+
+    /* variable length for calibration data */
+    A_UINT32   payload[1/* or more */];
+} POSTPACK;
+
+/* T2H SUBTYPE */
+#define HTT_T2H_MSG_CHAN_CALDATA_REQ     0
+#define HTT_T2H_MSG_CHAN_CALDATA_UPLOAD  1
+
+/* H2T SUBTYPE */
+#define HTT_H2T_MSG_CHAN_CALDATA_REJ       0
+#define HTT_H2T_MSG_CHAN_CALDATA_DOWNLOAD  1
+
+#define HTT_CHAN_CALDATA_MSG_SUB_TYPE_S    8
+#define HTT_CHAN_CALDATA_MSG_SUB_TYPE_M    0x00000f00
+#define HTT_CHAN_CALDATA_MSG_SUB_TYPE_GET(_var) \
+    (((_var) & HTT_CHAN_CALDATA_MSG_SUB_TYPE_M) >> HTT_CHAN_CALDATA_MSG_SUB_TYPE_S)
+#define HTT_CHAN_CALDATA_MSG_SUB_TYPE_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_CHAN_CALDATA_MSG_SUB_TYPE, _val);  \
+        ((_var) |= ((_val) << HTT_CHAN_CALDATA_MSG_SUB_TYPE_S)); \
+    } while (0)
+#define HTT_CHAN_CALDATA_MSG_SUB_TYPE_CLR(word)           \
+    do {	\
+        (word) &= ~(HTT_CHAN_CALDATA_MSG_SUB_TYPE_M);\
+    } while (0)
+
+#define HTT_CHAN_CALDATA_MSG_CHKSUM_V_S    12
+#define HTT_CHAN_CALDATA_MSG_CHKSUM_V_M    0x00001000
+#define HTT_CHAN_CALDATA_MSG_CHKSUM_V_GET(_var) \
+    (((_var) & HTT_CHAN_CALDATA_MSG_CHKSUM_V_M) >> HTT_CHAN_CALDATA_MSG_CHKSUM_V_S)
+#define HTT_CHAN_CALDATA_MSG_CHKSUM_V_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_CHAN_CALDATA_MSG_CHKSUM_V, _val);  \
+        ((_var) |= ((_val) << HTT_CHAN_CALDATA_MSG_CHKSUM_V_S)); \
+    } while (0)
+
+#define HTT_CHAN_CALDATA_MSG_FRAG_IDX_S    16
+#define HTT_CHAN_CALDATA_MSG_FRAG_IDX_M    0x000f0000
+#define HTT_CHAN_CALDATA_MSG_FRAG_IDX_GET(_var) \
+    (((_var) & HTT_CHAN_CALDATA_MSG_FRAG_IDX_M) >> HTT_CHAN_CALDATA_MSG_FRAG_IDX_S)
+#define HTT_CHAN_CALDATA_MSG_FRAG_IDX_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_CHAN_CALDATA_MSG_FRAG_IDX, _val);  \
+        ((_var) |= ((_val) << HTT_CHAN_CALDATA_MSG_FRAG_IDX_S)); \
+    } while (0)
+
+#define HTT_CHAN_CALDATA_MSG_APPENDING_S    20
+#define HTT_CHAN_CALDATA_MSG_APPENDING_M    0x00100000
+#define HTT_CHAN_CALDATA_MSG_APPENDING_GET(_var) \
+    (((_var) & HTT_CHAN_CALDATA_MSG_APPENDING_M) >> HTT_CHAN_CALDATA_MSG_APPENDING_S)
+#define HTT_CHAN_CALDATA_MSG_APPENDING_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_CHAN_CALDATA_MSG_APPENDING, _val);  \
+        ((_var) |= ((_val) << HTT_CHAN_CALDATA_MSG_APPENDING_S)); \
+    } while (0)
+
+#define HTT_CHAN_CALDATA_MSG_MHZ_S    0
+#define HTT_CHAN_CALDATA_MSG_MHZ_M    0x0000ffff
+#define HTT_CHAN_CALDATA_MSG_MHZ_GET(_var) \
+    (((_var) & HTT_CHAN_CALDATA_MSG_MHZ_M) >> HTT_CHAN_CALDATA_MSG_MHZ_S)
+#define HTT_CHAN_CALDATA_MSG_MHZ_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_CHAN_CALDATA_MSG_MHZ, _val);  \
+        ((_var) |= ((_val) << HTT_CHAN_CALDATA_MSG_MHZ_S)); \
+    } while (0)
+
+#define HTT_CHAN_CALDATA_MSG_PLD_SIZE_S    16
+#define HTT_CHAN_CALDATA_MSG_PLD_SIZE_M    0xffff0000
+#define HTT_CHAN_CALDATA_MSG_PLD_SIZE_GET(_var) \
+    (((_var) & HTT_CHAN_CALDATA_MSG_PLD_SIZE_M) >> HTT_CHAN_CALDATA_MSG_PLD_SIZE_S)
+#define HTT_CHAN_CALDATA_MSG_PLD_SIZE_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_CHAN_CALDATA_MSG_PLD_SIZE, _val);  \
+        ((_var) |= ((_val) << HTT_CHAN_CALDATA_MSG_PLD_SIZE_S)); \
+    } while (0)
+
+#define HTT_CHAN_CALDATA_MSG_FREQ1_S    0
+#define HTT_CHAN_CALDATA_MSG_FREQ1_M    0x0000ffff
+#define HTT_CHAN_CALDATA_MSG_FREQ1_GET(_var) \
+    (((_var) & HTT_CHAN_CALDATA_MSG_FREQ1_M) >> HTT_CHAN_CALDATA_MSG_FREQ1_S)
+#define HTT_CHAN_CALDATA_MSG_FREQ1_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_CHAN_CALDATA_MSG_FREQ1, _val);  \
+        ((_var) |= ((_val) << HTT_CHAN_CALDATA_MSG_FREQ1_S)); \
+    } while (0)
+
+#define HTT_CHAN_CALDATA_MSG_FREQ2_S    16
+#define HTT_CHAN_CALDATA_MSG_FREQ2_M    0xffff0000
+#define HTT_CHAN_CALDATA_MSG_FREQ2_GET(_var) \
+    (((_var) & HTT_CHAN_CALDATA_MSG_FREQ2_M) >> HTT_CHAN_CALDATA_MSG_FREQ2_S)
+#define HTT_CHAN_CALDATA_MSG_FREQ2_SET(_var, _val) \
+    do {                                                     \
+        HTT_CHECK_SET_VAL(HTT_CHAN_CALDATA_MSG_FREQ2, _val);  \
+        ((_var) |= ((_val) << HTT_CHAN_CALDATA_MSG_FREQ2_S)); \
+    } while (0)
+
 #endif

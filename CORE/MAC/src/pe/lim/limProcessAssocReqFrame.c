@@ -220,9 +220,9 @@ void lim_process_assoc_cleanup(
 			pAssocReq->assocReqFrameLength = 0;
 		}
 		vos_mem_free(pAssocReq);
-		if (assoc_req_copied) /* to avoid double free */
-			if(psessionEntry->parsedAssocReq)
-				psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
+		if (assoc_req_copied && pStaDs && psessionEntry->parsedAssocReq)
+			/* to avoid double free */
+			psessionEntry->parsedAssocReq[pStaDs->assocId] = NULL;
 	}
 
 	/* If it is not duplicate Assoc request then only free the memory */
@@ -1641,8 +1641,8 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                 akm_type = lim_translate_rsn_oui_to_akm_type(
                                    Dot11fIERSN.akm_suite[0]);
                 if (akm_type == ANI_AKM_TYPE_SAE) {
-                    if (eSIR_MAC_SUCCESS_STATUS !=
-                        lim_check_sae_pmf_cap(psessionEntry, &Dot11fIERSN)) {
+                    if (eSIR_SUCCESS != (status =
+                        lim_check_sae_pmf_cap(psessionEntry, &Dot11fIERSN))) {
                         /* Reject pmf disable SAE STA */
                         limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from STA:"
                                MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->sa));

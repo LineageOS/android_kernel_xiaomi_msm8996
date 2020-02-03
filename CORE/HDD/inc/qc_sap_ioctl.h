@@ -164,7 +164,8 @@ typedef struct
 /* Private ioctls and their sub-ioctls */
 #define QCSAP_PRIV_GET_CHAR_SET_NONE            (SIOCIWFIRSTPRIV + 13)
 #define QCSAP_GET_STATS                         1
-#define QCSAP_GET_ALL_GROUP_INFO            2
+#define QCSAP_GET_ALL_GROUP_INFO                2
+#define QCSAP_GET_PS_TDCC                       3
 
 #define QCSAP_IOCTL_CLR_STATS                   (SIOCIWFIRSTPRIV+14)
 #define QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE (SIOCIWFIRSTPRIV+15)

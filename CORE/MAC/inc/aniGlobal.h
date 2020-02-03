@@ -1302,6 +1302,7 @@ typedef struct sAniSirGlobal
     bool max_power_cmd_pending;
     uint32_t sta_auth_retries_for_code17;
     uint32_t rx_packet_drop_counter;
+    struct completion full_chan_cal;
 } tAniSirGlobal;
 
 typedef enum

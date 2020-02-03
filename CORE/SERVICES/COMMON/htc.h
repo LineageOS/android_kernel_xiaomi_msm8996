@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014,2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014,2018-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -175,6 +175,10 @@ typedef PREPACK struct _HTC_FRAME_HDR{
 #define HTC_HDR_LENGTH  (sizeof(HTC_FRAME_HDR))
 #define HTC_HDR_ALIGNMENT_PADDING           \
     (((sizeof(HTC_FRAME_HDR) + 3) & (~0x3)) - sizeof(HTC_FRAME_HDR))
+
+#define HTT_MSG_BUF_SIZE(msg_bytes) \
+   ((msg_bytes) + HTC_HEADER_LEN + HTC_HDR_ALIGNMENT_PADDING)
+
 #define HTC_MAX_TRAILER_LENGTH   255
 #define HTC_MAX_PAYLOAD_LENGTH   (4096 - sizeof(HTC_FRAME_HDR))
 

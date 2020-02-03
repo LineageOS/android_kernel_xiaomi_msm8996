@@ -3746,7 +3746,8 @@ static int __iw_softap_set_two_ints_getnone(struct net_device *dev,
         break;
 #endif
     case QCSAP_IOCTL_SET_PS_TDCC:
-        ret = wlan_hdd_process_tdcc_ps(pAdapter, value[1], value[2]);
+        ret = wlan_hdd_process_tdcc_ps(pAdapter, PS_TDCC_SET,
+                                       &value[1], &value[2]);
         break;
     case QCSAP_IOCTL_DUMP_DP_TRACE_LEVEL:
         hddLog(LOG1, "WE_DUMP_DP_TRACE: %d %d",
@@ -6054,6 +6055,11 @@ static __iw_get_char_setnone(struct net_device *dev,
             return hdd_wlan_get_stats(pAdapter, &(wrqu->data.length),
                                extra, WE_MAX_STR_LEN);
         }
+        case QCSAP_GET_PS_TDCC:
+        {
+            return hdd_wlan_get_ps_tdcc_info(pAdapter, &(wrqu->data.length),
+                                             extra, WE_MAX_STR_LEN);
+        }
 #ifdef AUDIO_MULTICAST_AGGR_SUPPORT
         case QCSAP_GET_ALL_GROUP_INFO:
         {
@@ -8186,10 +8192,16 @@ static const struct iw_priv_args hostapd_private_args[] = {
         0,
         "crash_inject" },
 #endif
+
     {   QCSAP_IOCTL_SET_PS_TDCC,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 2,
 	0,
 	"set_ps_tdcc" },
+
+    {   QCSAP_GET_PS_TDCC,
+        0,
+        IW_PRIV_TYPE_CHAR | WE_MAX_STR_LEN,
+        "get_ps_tdcc" },
 
     /* handlers for main ioctl */
     {   QCSAP_IOCTL_WOWL_CONFIG_PTRN,
@@ -8335,9 +8347,11 @@ const struct iw_handler_def hostapd_handler_def = {
    .get_wireless_stats = NULL,
 };
 
+#ifdef WLAN_FEATURE_TSF_PTP
 static const struct ethtool_ops wlan_hostapd_ethtool_ops = {
 	.get_ts_info = wlan_get_ts_info,
 };
+#endif
 
 struct net_device_ops net_ops_struct  = {
     .ndo_open = hdd_hostapd_open,
@@ -8357,11 +8371,18 @@ static int hdd_set_hostapd(hdd_adapter_t *pAdapter)
     return VOS_STATUS_SUCCESS;
 }
 
+#ifdef WLAN_FEATURE_TSF_PTP
 void hdd_set_ap_ops( struct net_device *pWlanHostapdDev )
 {
 	pWlanHostapdDev->netdev_ops = &net_ops_struct;
 	pWlanHostapdDev->ethtool_ops = &wlan_hostapd_ethtool_ops;
 }
+#else
+void hdd_set_ap_ops( struct net_device *pWlanHostapdDev )
+{
+	pWlanHostapdDev->netdev_ops = &net_ops_struct;
+}
+#endif
 
 VOS_STATUS hdd_init_ap_mode(hdd_adapter_t *pAdapter, bool reinit)
 {

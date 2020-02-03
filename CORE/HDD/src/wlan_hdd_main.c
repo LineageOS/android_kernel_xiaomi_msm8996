@@ -141,6 +141,8 @@ extern int hdd_hostapd_stop (struct net_device *dev);
 #include <net/cnss_nl.h>
 #endif
 
+#include <wlan_hdd_spectral.h>
+
 #if defined(LINUX_QCMBR)
 #define SIOCIOCTLTX99 (SIOCDEVPRIVATE+13)
 #endif
@@ -8797,6 +8799,11 @@ static void hdd_update_tgt_services(hdd_context_t *hdd_ctx,
     } else {
         hdd_ctx->prevent_suspend = false;
     }
+
+    if (!cfg->fast_chswitch_cali_support)
+        cfg_ini->enable_fast_ch_switch_cali = false;
+    hddLog(VOS_TRACE_LEVEL_INFO, "%s: FastChSwitchCali support flag %d",
+           __func__, cfg_ini->enable_fast_ch_switch_cali);
 }
 
 /**
@@ -10883,9 +10890,11 @@ uint16_t hdd_select_queue(struct net_device *dev, struct sk_buff *skb)
 	return hdd_wmm_select_queue(dev, skb);
 }
 
+#ifdef WLAN_FEATURE_TSF_PTP
 static const struct ethtool_ops wlan_ethtool_ops = {
 	.get_ts_info = wlan_get_ts_info,
 };
+#endif
 
 static struct net_device_ops wlan_drv_ops = {
       .ndo_open = hdd_open,
@@ -10919,6 +10928,7 @@ static struct net_device_ops wlan_mon_dev_ops = {
 	.ndo_stop = hdd_vir_mon_stop,
 };
 
+#ifdef WLAN_FEATURE_TSF_PTP
 void hdd_set_station_ops( struct net_device *pWlanDev )
 {
 	if (VOS_MONITOR_MODE == hdd_get_conparam())
@@ -10927,6 +10937,15 @@ void hdd_set_station_ops( struct net_device *pWlanDev )
 		pWlanDev->netdev_ops = &wlan_drv_ops;
 	pWlanDev->ethtool_ops = &wlan_ethtool_ops;
 }
+#else
+void hdd_set_station_ops( struct net_device *pWlanDev )
+{
+	if (VOS_MONITOR_MODE == hdd_get_conparam())
+		pWlanDev->netdev_ops = &wlan_mon_drv_ops;
+	else
+		pWlanDev->netdev_ops = &wlan_drv_ops;
+}
+#endif
 
 void hdd_set_monitor_ops(struct net_device *pwlan_dev)
 {
@@ -14809,6 +14828,8 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       hdd_set_idle_ps_config(pHddCtx, FALSE);
    }
 
+   hdd_spectral_deinit(pHddCtx);
+
    TRACK_UNLOAD_STATUS(unload_debugfs_exit);
    hdd_debugfs_exit(pHddCtx);
 
@@ -16752,6 +16773,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
 #endif
    int set_value;
    struct sme_5g_band_pref_params band_pref_params;
+   tpAniSirGlobal mac_ptr;
 
    ENTER();
 
@@ -17338,16 +17360,19 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_wiphy_unregister;
 #endif
 
-   /*Start VOSS which starts up the SME/MAC/HAL modules and everything else */
-   status = vos_start( pHddCtx->pvosContext );
-   if ( !VOS_IS_STATUS_SUCCESS( status ) )
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
+   if (hdd_spectral_init(pHddCtx) == VOS_STATUS_E_FAILURE)
 #ifdef IPA_OFFLOAD
       goto err_ipa_cleanup;
 #else
       goto err_wiphy_unregister;
 #endif
+
+   /*Start VOSS which starts up the SME/MAC/HAL modules and everything else */
+   status = vos_start( pHddCtx->pvosContext );
+   if ( !VOS_IS_STATUS_SUCCESS( status ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
+      goto err_spectral_deinit;
    }
 
    /* Register Smart Antenna Module */
@@ -17878,6 +17903,26 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    hdd_set_btc_bt_wlan_interval(pHddCtx);
 
    hdd_runtime_suspend_init(pHddCtx);
+
+   if (vos_is_fast_chswitch_cali_enabled()) {
+       mac_ptr = PMAC_STRUCT(pHddCtx->hHal);
+       init_completion(&mac_ptr->full_chan_cal);
+       ret = process_wma_set_command(0, WMI_PDEV_CHECK_CAL_VERSION_CMDID,
+                                     0, PDEV_CMD);
+       if (0 != ret) {
+           hddLog(VOS_TRACE_LEVEL_ERROR,
+                  "%s: WMI_PDEV_CHECK_CAL_VERSION_CMDID failed %d",
+                  __func__, ret);
+       }
+       sme_set_cali_chanlist(mac_ptr);
+       rc = wait_for_completion_timeout(
+	 &mac_ptr->full_chan_cal,
+	 msecs_to_jiffies(6000));
+       if (!rc)
+           hddLog(VOS_TRACE_LEVEL_ERROR,
+                  "%s: cali timeout", __func__);
+   }
+
    pHddCtx->isLoadInProgress = FALSE;
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
    vos_set_load_in_progress(VOS_MODULE_ID_VOSS, FALSE);
@@ -17956,8 +18001,8 @@ err_close_cesium:
 err_ptt_sock_activate_svc:
 #ifdef PTT_SOCK_SVC_ENABLE
    ptt_sock_deactivate_svc();
-#endif
 err_oem_activate_service:
+#endif
 #ifdef FEATURE_OEM_DATA_SUPPORT
    oem_deactivate_service();
 #endif
@@ -17998,6 +18043,9 @@ err_close_adapter:
 
 err_vosstop:
    vos_stop(pVosContext);
+
+err_spectral_deinit:
+   hdd_spectral_deinit(pHddCtx);
 
 #ifdef IPA_OFFLOAD
 err_ipa_cleanup:
@@ -19430,7 +19478,8 @@ void hdd_ch_avoid_cb
                        ch_avoid_indi->avoid_freq_range[range_loop].end_freq) {
                end_channel_idx = channel_loop;
                if (rfChannels[channel_loop].targetFreq >
-                        ch_avoid_indi->avoid_freq_range[range_loop].end_freq)
+                   ch_avoid_indi->avoid_freq_range[range_loop].end_freq &&
+                   end_channel_idx > 0)
                    end_channel_idx--;
                break;
             }

@@ -1081,6 +1081,16 @@ eHalStatus csrScanCreateEntryInScanCache(tpAniSirGlobal pMac, tANI_U32 sessionId
                                          tCsrBssid bssid, tANI_U8 channel);
 
 eHalStatus csrUpdateChannelList(tpAniSirGlobal pMac);
+
+/**
+ * csrUpdateCaliChannelList()- update full channel list for cali
+ *
+ * @pMac: hal handle for getting global mac struct
+ *
+ * Return: eHalStatus
+ */
+eHalStatus csrUpdateCaliChannelList(tpAniSirGlobal pMac);
+
 eHalStatus csrRoamDelPMKIDfromCache(tpAniSirGlobal pMac,
                                     tANI_U32 sessionId,
                                     tPmkidCacheInfo *pmksa,

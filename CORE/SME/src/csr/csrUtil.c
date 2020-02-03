@@ -6755,6 +6755,8 @@ struct lim_channel_status *csr_get_channel_status(
 		smsLog(mac_ptr, LOGW,
 			 FL("Channel %d status info not exist"),
 			  channel_id);
+	} else {
+		smsLog(mac_ptr, LOGW, FL("FW does not support param config"));
 	}
 	return NULL;
 }

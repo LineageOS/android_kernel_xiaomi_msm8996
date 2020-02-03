@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2016, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -71,18 +71,28 @@ static inline void wlan_flush_host_logs_for_fatal(void)
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 void wlan_report_log_completion(uint32_t is_fatal,
 		uint32_t indicator,
-		uint32_t reason_code);
+		uint32_t reason_code,
+		uint8_t ring_id);
 #else
 static inline void wlan_report_log_completion(uint32_t is_fatal,
 		uint32_t indicator,
-		uint32_t reason_code)
+		uint32_t reason_code,
+		uint8_t ring_id)
 {
 	return;
 }
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
 
-void wlan_pkt_stats_to_logger_thread(void *pl_hdr, void *pkt_dump, void *data);
-
+#ifndef REMOVE_PKT_LOG
 void wlan_deregister_txrx_packetdump(void);
 void wlan_register_txrx_packetdump(void);
+void wlan_pkt_stats_to_logger_thread(void *pl_hdr, void *pkt_dump, void *data);
+#else
+static inline void wlan_deregister_txrx_packetdump(void)
+{}
+static inline void wlan_register_txrx_packetdump(void)
+{}
+static inline void wlan_pkt_stats_to_logger_thread(void *pl_hdr, void *pkt_dump, void *data)
+{}
+#endif /* REMOVE_PKT_LOG */
 #endif /* WLAN_LOGGING_SOCK_SVC_H */

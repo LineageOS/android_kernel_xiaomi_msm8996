@@ -1363,9 +1363,11 @@ VOS_STATUS wma_update_vdev_tbl(tp_wma_handle wma_handle, u_int8_t vdev_id,
 		ol_txrx_vdev_handle tx_rx_vdev_handle, u_int8_t *mac,
 		u_int32_t vdev_type, bool add_del);
 
-int32_t regdmn_get_regdmn_for_country(u_int8_t *alpha2);
+uint16 regdmn_get_regdmn_for_country(const u_int8_t *alpha2);
 void regdmn_get_ctl_info(struct regulatory *reg, u_int32_t modesAvail,
 			 u_int32_t modeSelect);
+void regdmn_map_country_to_vos_regdmn(const unsigned char *alpha2,
+				      v_REGDOMAIN_t *vos_regdmn);
 
 /*get the ctl from regdomain*/
 u_int8_t regdmn_get_ctl_for_regdmn(u_int32_t reg_dmn);
@@ -1987,6 +1989,17 @@ VOS_STATUS wma_create_peer(tp_wma_handle wma, ol_txrx_pdev_handle pdev,
 			   v_BOOL_t roam_synch_in_progress);
 WLAN_PHY_MODE wma_chan_to_mode(uint8_t chan, ePhyChanBondState chan_offset,
 		uint8_t vht_capable, uint8_t dot11_mode);
+
+/**
+ * wma_cal_finish_handler()
+ * @handle: WMI handle
+ * @event: event data
+ * @len: Length of @event
+ *
+ * This is the WMI event handler function to receive cali
+ * finish event.
+ */
+int wma_cal_finish_handler(void *handle, u_int8_t *event, u_int32_t len);
 
 #define RESET_BEACON_INTERVAL_TIMEOUT 200
 struct wma_beacon_interval_reset_req {

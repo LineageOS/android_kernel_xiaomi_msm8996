@@ -4647,6 +4647,10 @@ VOS_STATUS sme_configure_pta_coex(uint8_t coex_pta_config_enable, uint32_t coex_
 VOS_STATUS sme_set_btc_coex_dutycycle(uint32_t coex_btc_PauseDuration,uint32_t coex_btc_UnPauseDuration);
 #endif
 
+#ifdef FEATURE_COEX_TPUT_SHAPING_CONFIG
+VOS_STATUS sme_configure_tput_shaping_enable(uint32_t coex_tput_shaping_enable);
+#endif
+
 uint8_t    sme_is_any_session_in_connected_state(tHalHandle h_hal);
 
 typedef void ( *tSmeSetThermalLevelCallback)(void *pContext, u_int8_t level);
@@ -4669,6 +4673,16 @@ eHalStatus sme_handle_set_fcc_channel(tHalHandle hHal,
 		uint32_t scan_pending);
 eHalStatus sme_set_sta_chanlist_with_sub20(tHalHandle hal_ptr,
 					   uint8_t chan_width);
+
+/**
+ * sme_set_cali_chanlist()- update full channel list for cali
+ *
+ * @hal_ptr: Hal context pointor
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_set_cali_chanlist(tHalHandle hal_ptr);
+
 eHalStatus sme_set_rssi_monitoring(tHalHandle hal,
 					struct rssi_monitor_req *input);
 eHalStatus sme_set_rssi_threshold_breached_cb(tHalHandle hal,
@@ -5067,4 +5081,10 @@ eHalStatus sme_set_gpio_cfg(tHalHandle hal, uint32_t gpio_num,
 eHalStatus sme_set_gpio_output(tHalHandle hal,
 			       uint32_t gpio_num,
 			       uint32_t set);
+
+eHalStatus sme_spectral_scan_enable(tHalHandle hal,
+				    sir_spectral_enable_params_t *params);
+
+eHalStatus sme_spectral_scan_config(tHalHandle hal,
+				    sir_spectral_config_params_t *params);
 #endif //#if !defined( __SME_API_H )

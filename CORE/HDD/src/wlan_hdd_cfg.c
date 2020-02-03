@@ -2918,6 +2918,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_SNR_MONITORING_MIN,
                  CFG_ENABLE_SNR_MONITORING_MAX),
 
+    REG_VARIABLE(CFG_ENABLE_FAST_CH_SWITCH_CALI_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, enable_fast_ch_switch_cali,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK,
+                 CFG_ENABLE_FAST_CH_SWITCH_CALI_DEFAULT,
+                 CFG_ENABLE_FAST_CH_SWITCH_CALI_DISABLE,
+                 CFG_ENABLE_FAST_CH_SWITCH_CALI_ENABLE),
+
 #ifdef FEATURE_WLAN_SCAN_PNO
    REG_VARIABLE( CFG_PNO_SCAN_SUPPORT, WLAN_PARAM_Integer,
                  hdd_config_t, configPNOScanSupport,
@@ -5398,6 +5405,15 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_COEX_PTA_CONFIG_PARAM_DEFAULT,
                CFG_COEX_PTA_CONFIG_PARAM_MIN,
                CFG_COEX_PTA_CONFIG_PARAM_MAX),
+#endif
+
+#ifdef FEATURE_COEX_TPUT_SHAPING_CONFIG
+     REG_VARIABLE(CFG_COEX_TPUT_SHAPING_ENABLE, WLAN_PARAM_Integer,
+		  hdd_config_t, coex_tput_shaping_enable,
+		  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		  CFG_COEX_TPUT_SHAPING_ENABLE_DEFAULT,
+		  CFG_COEX_TPUT_SHAPING_ENABLE_MIN,
+		  CFG_COEX_TPUT_SHAPING_ENABLE_MAX),
 #endif
 
    REG_VARIABLE(CFG_ARP_AC_CATEGORY, WLAN_PARAM_Integer,
@@ -9315,6 +9331,12 @@ void hdd_set_btc_bt_wlan_interval(hdd_context_t *hdd_ctx)
                 hddLog(LOGE, "Fail to set coex PauseDuration");
 #endif
 
+#ifdef FEATURE_COEX_TPUT_SHAPING_CONFIG
+       status = sme_configure_tput_shaping_enable(config->coex_tput_shaping_enable);
+
+       if (VOS_STATUS_SUCCESS != status)
+                hddLog(LOGE, "Fail to set traffic shaping enable/disable.");
+#endif
 }
 
 /**

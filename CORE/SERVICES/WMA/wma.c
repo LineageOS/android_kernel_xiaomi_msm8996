@@ -95,8 +95,10 @@
 #include "testmode.h"
 #endif
 
-#if !defined(REMOVE_PKT_LOG)
+#ifndef REMOVE_PKT_LOG
 #include "pktlog_ac.h"
+#else
+#include "ol_if_athvar.h"
 #endif
 
 #include "dbglog_host.h"
@@ -113,6 +115,7 @@
 #include "wma_nan_datapath.h"
 #include "adf_trace.h"
 
+#include "wlan_hdd_spectral.h"
 /* ################### defines ################### */
 /*
  * TODO: Following constant should be shared by firwmare in
@@ -3261,7 +3264,7 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	} while (0);
 
 	if (excess_data ||
-	    (sizeof(*event) > WMA_SVC_MSG_MAX_SIZE - buf_len)) {
+	    (buf_len > WMA_SVC_MSG_MAX_SIZE - sizeof(*event))) {
 		WMA_LOGE("excess wmi buffer: stats pdev %d vdev %d peer %d",
 			event->num_pdev_stats, event->num_vdev_stats,
 			event->num_peer_stats);
@@ -3278,6 +3281,7 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 	buf_data_size = buf_size - sizeof(*event);
 
 	rssi_event = param_buf->chain_stats;
+	buf_size += sizeof(*rssi_event);
 	if (rssi_event) {
 		if (rssi_event->num_per_chain_rssi_stats >
 		    param_buf->num_rssi_stats) {
@@ -3290,9 +3294,8 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 			 ((rssi_event->tlv_header & 0x0000FFFF) ==
 				WMITLV_GET_STRUCT_TLVLEN(
 					wmi_per_chain_rssi_stats))) {
-			buf_size += sizeof(*rssi_event) +
-				(rssi_event->num_per_chain_rssi_stats *
-				sizeof(wmi_rssi_stats));
+			buf_size += rssi_event->num_per_chain_rssi_stats *
+				sizeof(wmi_rssi_stats);
 			rssi_stats_support = TRUE;
 		}
 	}
@@ -7398,6 +7401,72 @@ static int wma_csa_offload_handler(void *handle, u_int8_t *event, u_int32_t len)
 	return 0;
 }
 
+VOS_STATUS wma_start_cal(void)
+{
+	tp_wma_handle wma_handle;
+	wmi_pdev_check_cal_version_cmd_fixed_param *cmd;
+	s32 len;
+	wmi_buf_t buf;
+	u8 *buf_ptr;
+	int ret;
+
+	wma_handle =
+		vos_get_context(VOS_MODULE_ID_WDA,
+				vos_get_global_context(VOS_MODULE_ID_WDA,
+						       NULL));
+
+	if (!wma_handle) {
+		WMA_LOGE("%s: WMA context is invald!", __func__);
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE("%s: Failed allocate wmi buffer", __func__);
+		return VOS_STATUS_E_NOMEM;
+	}
+
+	buf_ptr = (u_int8_t *)wmi_buf_data(buf);
+	cmd = (wmi_pdev_check_cal_version_cmd_fixed_param *)buf_ptr;
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		WMITLV_TAG_STRUC_wmi_pdev_check_cal_version_cmd_fixed_param,
+		WMITLV_GET_STRUCT_TLVLEN(wmi_pdev_check_cal_version_cmd_fixed_param));
+
+	cmd->pdev_id = 0;
+	WMA_LOGD("%s: start cali", __func__);
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				   WMI_PDEV_CHECK_CAL_VERSION_CMDID);
+	if (ret) {
+		WMA_LOGE("%s: Failed to send aggregation size command",
+			 __func__);
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+	return VOS_STATUS_SUCCESS;
+}
+
+int wma_cal_finish_handler(void *handle, u_int8_t *event, u_int32_t len)
+{
+	tp_wma_handle wma = (tp_wma_handle)handle;
+	WMI_PDEV_CHECK_CAL_VERSION_EVENTID_param_tlvs *param_buf;
+	wmi_pdev_check_cal_version_event_fixed_param *cal_done_event;
+	tpAniSirGlobal mac_ptr =
+		(tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_PE,
+						wma->vos_context);
+
+	WMA_LOGD("%s: cali event recv", __func__);
+	param_buf = (WMI_PDEV_CHECK_CAL_VERSION_EVENTID_param_tlvs *)event;
+	if (!param_buf) {
+		WMA_LOGE("Invalid cal event buffer");
+		return -EINVAL;
+	}
+	cal_done_event = param_buf->fixed_param;
+	complete(&mac_ptr->full_chan_cal);
+
+	return 0;
+}
+
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
 static int wma_gtk_offload_status_event(void *handle, u_int8_t *event,
 					u_int32_t len)
@@ -8035,6 +8104,10 @@ static int wma_unified_phyerr_rx_event_handler(void * handle,
                             WMI_UNIFIED_RSSI_COMB_GET(&ev->hdr) & 0xff,
                             ev->hdr.tsf_timestamp,
                             tsf64, enable_log);
+            }
+        } else if (phy_err_code == 0x26) {
+            if (ev->hdr.buf_len > 0) {
+                spectral_process_phyerr(ev, tsf64);
             }
         }
 
@@ -10951,8 +11024,10 @@ static VOS_STATUS wma_set_mcc_channel_time_quota
 	struct sAniSirGlobal *pMac = NULL;
 	wmi_resmgr_set_chan_time_quota_cmd_fixed_param *cmdTQ = NULL;
 	wmi_resmgr_chan_time_quota chan_quota;
+#ifdef WLAN_DEBUG
 	u_int32_t channel1 = adapter_1_chan_number;
 	u_int32_t channel2 = adapter_2_chan_number;
+#endif
 	u_int32_t quota_chan1 = adapter_1_quota;
 	/* Knowing quota of 1st chan., derive quota for 2nd chan. */
 	u_int32_t quota_chan2 = 100 - quota_chan1;
@@ -16211,6 +16286,19 @@ static void wma_set_channel(tp_wma_handle wma, tpSwitchChannelParams params)
 				 status);
 		return;
 	} else {
+		if (wma->interfaces[req.vdev_id].is_channel_switch) {
+			u32 freq;
+			int j;
+
+			freq = vos_chan_to_freq(req.chan);
+			for (j = 0; j < CALI_FRAG_IDX_MAX; j++) {
+				if (A_OK !=
+				    htt_h2t_chan_cali_data_msg(pdev->htt_pdev,
+							       freq, j))
+					WMA_LOGE("%s: download cali data failed for chan %d\n",
+						 __func__, req.chan);
+			}
+		}
 
 		status = wma_vdev_start(wma, &req,
 				wma->interfaces[req.vdev_id].is_channel_switch);
@@ -18100,6 +18188,11 @@ static void wma_process_cli_set_cmd(tp_wma_handle wma,
 		   (privcmd->param_id == WMI_PDEV_PARAM_TX_CHAIN_MASK_5G))
 			wma_update_txrx_chainmask(wma->num_rf_chains,
 						&privcmd->param_value);
+		else if (privcmd->param_id ==
+			 WMI_PDEV_CHECK_CAL_VERSION_CMDID) {
+			wma_start_cal();
+			break;
+		}
 
 		ret = wmi_unified_pdev_set_param(wma->wmi_handle,
 						privcmd->param_id,
@@ -23884,6 +23977,7 @@ static inline void wma_free_wow_ptrn(tp_wma_handle wma, u_int8_t ptrn_id)
 	wma->wow.no_of_ptrn_cached--;
 }
 
+#ifdef WLAN_DEBUG
 /* Converts wow wakeup reason code to text format */
 static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason, tp_wma_handle wma)
 {
@@ -23985,6 +24079,7 @@ static const u8 *wma_wow_wake_reason_str(A_INT32 wake_reason, tp_wma_handle wma)
 
 	return "unknown";
 }
+#endif
 
 static void wma_beacon_miss_handler(tp_wma_handle wma, u_int32_t vdev_id,
 				    uint32_t rssi)
@@ -25697,6 +25792,7 @@ static inline int wma_get_wow_bus_suspend(tp_wma_handle wma) {
 	return adf_os_atomic_read(&wma->is_wow_bus_suspended);
 }
 
+#ifdef WLAN_DEBUG
 static const u8 *wma_wow_wakeup_event_str(WOW_WAKE_EVENT_TYPE event)
 {
 	switch (event) {
@@ -25770,6 +25866,7 @@ static const u8 *wma_wow_wakeup_event_str(WOW_WAKE_EVENT_TYPE event)
 		return "UNSPECIFIED_EVENT";
 	}
 }
+#endif
 
 /**
  * wma_add_wow_wakeup_event() - Update WOW wakeup event masks
@@ -35243,6 +35340,125 @@ VOS_STATUS wma_set_hpcs_pulse_params(tp_wma_handle wma_handle,
     return VOS_STATUS_SUCCESS;
 }
 
+static VOS_STATUS wma_spectral_scan_enable(tp_wma_handle wma_handle,
+					   sir_spectral_enable_params_t *params)
+{
+	wmi_vdev_spectral_enable_cmd_fixed_param *cmd;
+	uint32_t len;
+	wmi_buf_t buf;
+	int ret = 0;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		return -ENOMEM;
+	}
+	cmd = (wmi_vdev_spectral_enable_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_spectral_enable_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+		       wmi_vdev_spectral_enable_cmd_fixed_param));
+	cmd->vdev_id = params->vdev_id;
+	cmd->trigger_cmd = params->trigger_cmd;
+	cmd->enable_cmd = params->enable_cmd;
+
+	WMA_LOGD(FL("vdev_id=%d"), cmd->vdev_id);
+	WMA_LOGD(FL("trigger_cmd=%d"), cmd->trigger_cmd);
+	WMA_LOGD(FL("enable_cmd=%d"), cmd->enable_cmd);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				   WMI_VDEV_SPECTRAL_SCAN_ENABLE_CMDID);
+	if (ret) {
+		WMA_LOGE(FL("failed to send WMI_VDEV_SPECTRAL_SCAN_ENABLE_CMDID"));
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
+static VOS_STATUS wma_spectral_scan_config(tp_wma_handle wma_handle,
+					   sir_spectral_config_params_t *params)
+{
+	wmi_vdev_spectral_configure_cmd_fixed_param *cmd;
+	uint32_t len;
+	wmi_buf_t buf;
+	int ret = 0;
+
+	if (!wma_handle || !wma_handle->wmi_handle) {
+		WMA_LOGE(FL("WMA is closed, can not issue cmd"));
+		return VOS_STATUS_E_INVAL;
+	}
+
+	len = sizeof(*cmd);
+	buf = wmi_buf_alloc(wma_handle->wmi_handle, len);
+	if (!buf) {
+		WMA_LOGE(FL("wmi_buf_alloc failed"));
+		return -ENOMEM;
+	}
+	cmd = (wmi_vdev_spectral_configure_cmd_fixed_param *)wmi_buf_data(buf);
+	WMITLV_SET_HDR(&cmd->tlv_header,
+		       WMITLV_TAG_STRUC_wmi_vdev_spectral_configure_cmd_fixed_param,
+		       WMITLV_GET_STRUCT_TLVLEN(
+		       wmi_vdev_spectral_configure_cmd_fixed_param));
+
+	cmd->vdev_id=params->vdev_id;
+	cmd->spectral_scan_count=params->spectral_scan_count;
+	cmd->spectral_scan_period=params->spectral_scan_period;
+	cmd->spectral_scan_priority=params->spectral_scan_priority;
+	cmd->spectral_scan_fft_size=params->spectral_scan_fft_size;
+	cmd->spectral_scan_gc_ena=params->spectral_scan_gc_ena;
+	cmd->spectral_scan_restart_ena=params->spectral_scan_restart_ena;
+	cmd->spectral_scan_noise_floor_ref=params->spectral_scan_noise_floor_ref;
+	cmd->spectral_scan_init_delay=params->spectral_scan_init_delay;
+	cmd->spectral_scan_nb_tone_thr=params->spectral_scan_nb_tone_thr;
+	cmd->spectral_scan_str_bin_thr=params->spectral_scan_str_bin_thr;
+	cmd->spectral_scan_wb_rpt_mode=params->spectral_scan_wb_rpt_mode;
+	cmd->spectral_scan_rssi_rpt_mode=params->spectral_scan_rssi_rpt_mode;
+	cmd->spectral_scan_rssi_thr=params->spectral_scan_rssi_thr;
+	cmd->spectral_scan_pwr_format=params->spectral_scan_pwr_format;
+	cmd->spectral_scan_rpt_mode=params->spectral_scan_rpt_mode;
+	cmd->spectral_scan_bin_scale=params->spectral_scan_bin_scale;
+	cmd->spectral_scan_dBm_adj=params->spectral_scan_dbm_adj;
+	cmd->spectral_scan_chn_mask=params->spectral_scan_chn_mask;
+
+	WMA_LOGD(FL("vdev_id=%d"), cmd->vdev_id);
+	WMA_LOGD(FL("spectral_scan_count=%d"), cmd->spectral_scan_count);
+	WMA_LOGD(FL("spectral_scan_period=%d"), cmd->spectral_scan_period);
+	WMA_LOGD(FL("spectral_scan_priority=%d"), cmd->spectral_scan_priority);
+	WMA_LOGD(FL("spectral_scan_fft_size=%d"), cmd->spectral_scan_fft_size);
+	WMA_LOGD(FL("spectral_scan_gc_ena=%d"), cmd->spectral_scan_gc_ena);
+	WMA_LOGD(FL("spectral_scan_restart_ena=%d"), cmd->spectral_scan_restart_ena);
+	WMA_LOGD(FL("spectral_scan_noise_floor_ref=%d"), cmd->spectral_scan_noise_floor_ref);
+	WMA_LOGD(FL("spectral_scan_init_delay=%d"), cmd->spectral_scan_init_delay);
+	WMA_LOGD(FL("spectral_scan_nb_tone_thr=%d"), cmd->spectral_scan_nb_tone_thr);
+	WMA_LOGD(FL("spectral_scan_str_bin_thr=%d"), cmd->spectral_scan_str_bin_thr);
+	WMA_LOGD(FL("spectral_scan_wb_rpt_mode=%d"), cmd->spectral_scan_wb_rpt_mode);
+	WMA_LOGD(FL("spectral_scan_rssi_rpt_mode=%d"), cmd->spectral_scan_rssi_rpt_mode);
+	WMA_LOGD(FL("spectral_scan_rssi_thr=%d"), cmd->spectral_scan_rssi_thr);
+	WMA_LOGD(FL("spectral_scan_pwr_format=%d"), cmd->spectral_scan_pwr_format);
+	WMA_LOGD(FL("spectral_scan_rpt_mode=%d"), cmd->spectral_scan_rpt_mode);
+	WMA_LOGD(FL("spectral_scan_bin_scale=%d"), cmd->spectral_scan_bin_scale);
+	WMA_LOGD(FL("spectral_scan_dBm_adj=%d"), cmd->spectral_scan_dBm_adj);
+	WMA_LOGD(FL("spectral_scan_chn_mask=%d"), cmd->spectral_scan_chn_mask);
+
+	ret = wmi_unified_cmd_send(wma_handle->wmi_handle, buf, len,
+				   WMI_VDEV_SPECTRAL_SCAN_CONFIGURE_CMDID);
+	if (ret) {
+		WMA_LOGE(FL("failed to send WMI_VDEV_SPECTRAL_SCAN_CONFIGURE_CMDID"));
+		wmi_buf_free(buf);
+		return VOS_STATUS_E_FAILURE;
+	}
+
+	return VOS_STATUS_SUCCESS;
+}
+
 /*
  * function   : wma_mc_process_msg
  * Description :
@@ -36264,6 +36480,14 @@ VOS_STATUS wma_mc_process_msg(v_VOID_t *vos_context, vos_msg_t *msg)
 			vos_mem_free(msg->bodyptr);
 			break;
 #endif
+		case WDA_SPECTRAL_SCAN_ENABLE_CMDID:
+			wma_spectral_scan_enable(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
+		case WDA_SPECTRAL_SCAN_CONFIG_CMDID:
+			wma_spectral_scan_config(wma_handle, msg->bodyptr);
+			vos_mem_free(msg->bodyptr);
+			break;
 		default:
 			WMA_LOGD("unknow msg type %x", msg->type);
 			/* Do Nothing? MSG Body should be freed at here */
@@ -37225,9 +37449,8 @@ static VOS_STATUS wma_send_dc_to_fw(ol_txrx_pdev_handle pdev, tp_wma_handle wma,
 	therm_data->level_conf[0].priority = 0;
 
 	vos_status =  wma_send_thermal_mitigation_param_cmd_tlv(wma, therm_data);
-	if (VOS_STATUS_SUCCESS ==  vos_status) {
-		vos_mem_free(therm_data);
-	}
+	vos_mem_free(therm_data);
+
 	return vos_status;
 }
 
@@ -38759,6 +38982,9 @@ static inline void wma_update_target_services(tp_wma_handle wh,
 		cfg->get_peer_info_enabled = 1;
 	cfg->wow_support = WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
 						  WMI_SERVICE_WOW);
+	cfg->fast_chswitch_cali_support =
+		WMI_SERVICE_IS_ENABLED(wh->wmi_service_bitmap,
+				       WMI_SERVICE_CHECK_CAL_VERSION);
 }
 
 static inline void wma_update_target_ht_cap(tp_wma_handle wh,

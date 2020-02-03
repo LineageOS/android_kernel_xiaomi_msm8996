@@ -1044,12 +1044,14 @@ void ol_tx_sched_wrr_param_update(struct ol_txrx_pdev_t *pdev,
 				struct ol_tx_sched_wrr_adv_t *scheduler)
 {
 	int i;
+#ifdef WLAN_DEBUG
 	char *tx_sched_wrr_name[4] = {
 		"BE",
 		"BK",
 		"VI",
 		"VO"
 	};
+#endif
 
 	if (NULL == scheduler)
 		return;

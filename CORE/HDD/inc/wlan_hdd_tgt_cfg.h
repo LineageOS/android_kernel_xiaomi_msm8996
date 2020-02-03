@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -59,7 +59,8 @@ struct hdd_tgt_services {
         bool sap_auth_offload_service;
 #endif
         bool get_peer_info_enabled;
-	bool wow_support;
+        bool wow_support;
+        bool fast_chswitch_cali_support;
 };
 
 struct hdd_tgt_ht_cap {
