@@ -869,13 +869,6 @@ typedef struct sap_SoftapStats_s {
 #endif
 } tSap_SoftapStats, *tpSap_SoftapStats;
 
-#ifdef FEATURE_WLAN_CH_AVOID
-/* Store channel safety information */
-typedef struct {
-	uint16_t channelNumber;
-	bool isSafe;
-} sapSafeChannelType;
-#endif /* FEATURE_WLAN_CH_AVOID */
 void sap_cleanup_channel_list(void *sapContext);
 void sapCleanupAllChannelList(void);
 

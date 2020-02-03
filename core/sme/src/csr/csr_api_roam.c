@@ -16053,14 +16053,18 @@ QDF_STATUS csr_send_join_req_msg(tpAniSirGlobal pMac, uint32_t sessionId,
 				sme_debug("1x1 with 1 Chain AP");
 		}
 
-		if (pMac->roam.configParam.is_force_1x1 &&
-		    pMac->lteCoexAntShare &&
-		    is_vendor_ap_present) {
+		if (is_vendor_ap_present &&
+		    ((pMac->roam.configParam.is_force_1x1 ==
+		    FORCE_1X1_ENABLED_FOR_AS && pMac->lteCoexAntShare) ||
+		    pMac->roam.configParam.is_force_1x1 ==
+		    FORCE_1X1_ENABLED_FORCED)) {
 			pSession->supported_nss_1x1 = true;
 			pSession->vdev_nss = 1;
 			pSession->nss = 1;
 			pSession->nss_forced_1x1 = true;
-			sme_debug("For special ap, NSS: %d", pSession->nss);
+			sme_debug("For special ap, NSS: %d force 1x1 %d",
+				  pSession->nss,
+				  pMac->roam.configParam.is_force_1x1);
 		}
 
 		/*

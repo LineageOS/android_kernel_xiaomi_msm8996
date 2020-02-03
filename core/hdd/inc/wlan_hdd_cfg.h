@@ -1840,8 +1840,8 @@ enum hdd_dot11_mode {
  * <ini>
  * gForce1x1Exception - force 1x1 when connecting to certain peer
  * @Min: 0
- * @Max: 1
- * @Default: 0
+ * @Max: 2
+ * @Default: 1
  *
  * This INI when enabled will force 1x1 connection with certain peer.
  *
@@ -1856,7 +1856,7 @@ enum hdd_dot11_mode {
  */
 #define CFG_FORCE_1X1_NAME      "gForce1x1Exception"
 #define CFG_FORCE_1X1_MIN       (0)
-#define CFG_FORCE_1X1_MAX       (1)
+#define CFG_FORCE_1X1_MAX       (2)
 #define CFG_FORCE_1X1_DEFAULT   (1)
 
 /*
@@ -16395,7 +16395,7 @@ struct hdd_config {
 	uint32_t mawc_nlo_exp_backoff_ratio;
 	uint32_t mawc_nlo_init_scan_interval;
 	uint32_t mawc_nlo_max_scan_interval;
-	bool is_force_1x1;
+	uint8_t is_force_1x1;
 	uint16_t num_11b_tx_chains;
 	uint16_t num_11ag_tx_chains;
 	/* LCA(Last connected AP) disallow configs */
@@ -16526,6 +16526,8 @@ struct hdd_config {
 	uint16_t thermal_throt_dc;
 #endif
 	bool disable_4way_hs_offload;
+	bool ShortGI80MhzEnable;
+	bool ShortGI160MhzEnable;
 };
 
 #define VAR_OFFSET(_Struct, _Var) (offsetof(_Struct, _Var))
