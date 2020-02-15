@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -714,10 +714,16 @@ rrmFillBeaconIes( tpAniSirGlobal pMac,
 
    while ( BcnNumIes > 0 )
    {
-      len = *(pBcnIes + 1) + 2; //element id + length.
+      len = *(pBcnIes + 1);
+      len += 2;            //element id + length.
       limLog( pMac, LOG3, "EID = %d, len = %d total = %d",
              *pBcnIes, *(pBcnIes+1), len );
 
+      if (BcnNumIes < len) {
+          limLog(pMac, LOGE, "RRM: Invalid IE len: %d, exp_len: %d",
+                 len, BcnNumIes);
+          break;
+      }
       i = 0;
       do
       {
