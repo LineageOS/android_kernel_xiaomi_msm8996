@@ -13,6 +13,22 @@ ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/uapi/asm/kvm_para.h),)
 no-export-headers += kvm_para.h
 endif
 
+no-export-headers += bcache.h
+no-export-headers += cryptouser.h
+no-export-headers += coresight-stm.h
+no-export-headers += hash_info.h
+no-export-headers += kcov.h
+no-export-headers += keychord.h
+no-export-headers += kfd_ioctl.h
+no-export-headers += lightnvm.h
+no-export-headers += module.h
+no-export-headers += pr.h
+no-export-headers += stm.h
+no-export-headers += tee.h
+no-export-headers += userio.h
+no-export-headers += vsp1.h
+no-export-headers += wil6210_uapi.h
+
 ifeq ($(VSERVICES_SUPPORT), "")
 include include/linux/Kbuild.vservices
 endif
