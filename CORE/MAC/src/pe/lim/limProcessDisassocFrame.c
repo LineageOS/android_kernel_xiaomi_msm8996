@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2020 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -294,19 +294,22 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
     }
 
     if ((pStaDs->mlmStaContext.mlmState == eLIM_MLM_WT_DEL_STA_RSP_STATE) ||
-        (pStaDs->mlmStaContext.mlmState == eLIM_MLM_WT_DEL_BSS_RSP_STATE)) {
+        (pStaDs->mlmStaContext.mlmState == eLIM_MLM_WT_DEL_BSS_RSP_STATE) ||
+        pStaDs->sta_deletion_in_progress) {
         /**
          * Already in the process of deleting context for the peer
          * and received Disassociation frame. Log and Ignore.
          */
         PELOGE(limLog(pMac, LOGE,
-               FL("received Disassoc frame in state %d from "MAC_ADDRESS_STR
-               ",isDisassocDeauthInProgress : %d\n"),
+               FL("Deletion is in progress : %d for peer that is in state %d "
+               "addr "MAC_ADDRESS_STR", isDisassocDeauthInProgress : %d\n"),
+               pStaDs->sta_deletion_in_progress,
                pStaDs->mlmStaContext.mlmState, MAC_ADDR_ARRAY(pHdr->sa),
                pStaDs->isDisassocDeauthInProgress);)
 
         return;
     }
+    pStaDs->sta_deletion_in_progress = true;
 
 #ifdef FEATURE_WLAN_TDLS
     /* Delete all the TDLS peers only if Disassoc is received from the AP */
