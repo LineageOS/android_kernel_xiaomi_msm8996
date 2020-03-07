@@ -1577,6 +1577,7 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
 		hdd_err("could not get GI 80 & 160");
 		value = 0;
 	}
+	pconfig->ShortGI160MhzEnable = cfg->vht_short_gi_160;
 	/* set the Guard interval 160MHz */
 	if (value && !cfg->vht_short_gi_160) {
 		status = sme_cfg_set_int(hdd_ctx->hHal,
@@ -1607,6 +1608,7 @@ static void hdd_update_tgt_vht_cap(hdd_context_t *hdd_ctx,
 		}
 	}
 
+	pconfig->ShortGI80MhzEnable = cfg->vht_short_gi_80;
 	if (cfg->vht_short_gi_80 & WMI_VHT_CAP_SGI_80MHZ)
 		band_5g->vht_cap.cap |= IEEE80211_VHT_CAP_SHORT_GI_80;
 
@@ -5068,6 +5070,18 @@ QDF_STATUS hdd_stop_adapter(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 		 */
 		if (true == bCloseSession)
 			hdd_wait_for_sme_close_sesion(hdd_ctx, adapter, false);
+		break;
+
+	case QDF_MONITOR_MODE:
+		wlan_hdd_scan_abort(adapter);
+		hdd_deregister_tx_flow_control(adapter);
+
+		/*
+		 * It is possible that the caller of this function does not
+		 * wish to close the session
+		 */
+		if (bCloseSession)
+			hdd_wait_for_sme_close_sesion(hdd_ctx, adapter, true);
 		break;
 
 	case QDF_SAP_MODE:

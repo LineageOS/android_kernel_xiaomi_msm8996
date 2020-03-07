@@ -161,6 +161,18 @@ enum sir_conn_update_reason {
 	SIR_UPDATE_REASON_PRE_CAC,
 };
 
+/**
+ * enum force_1x1_type - enum to specify the type of forced 1x1 ini provided.
+ * @FORCE_1X1_DISABLED: even if the AP is present in OUI, 1x1 will not be forced
+ * @FORCE_1X1_ENABLED_FOR_AS: If antenna sharing supported, then only do 1x1.
+ * @FORCE_1X1_ENABLED_FORCED: If AP present in OUI, force 1x1 connection.
+ */
+enum force_1x1_type {
+	FORCE_1X1_DISABLED,
+	FORCE_1X1_ENABLED_FOR_AS,
+	FORCE_1X1_ENABLED_FORCED,
+};
+
 typedef enum {
 	eSIR_EXTSCAN_INVALID,
 	eSIR_EXTSCAN_START_RSP,

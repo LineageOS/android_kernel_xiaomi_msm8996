@@ -1409,7 +1409,7 @@ typedef struct tagCsrConfigParam {
 	uint8_t fils_max_chan_guard_time;
 	uint16_t pkt_err_disconn_th;
 	bool is_bssid_hint_priority;
-	bool is_force_1x1;
+	uint8_t is_force_1x1;
 	uint16_t num_11b_tx_chains;
 	uint16_t num_11ag_tx_chains;
 	uint32_t disallow_duration;
