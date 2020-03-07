@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1219,6 +1219,11 @@ static void qdf_mem_debug_exit(void) {}
 void *qdf_mem_malloc(size_t size)
 {
 	void *ptr;
+
+	if (!size || size > QDF_MEM_MAX_MALLOC) {
+		qdf_err("Cannot malloc %zu bytes", size);
+		return NULL;
+	}
 
 	ptr = qdf_mem_prealloc_get(size);
 	if (ptr)
