@@ -24,7 +24,11 @@
 #include "mdss_panel.h"
 #include "mdp3_dma.h"
 
+#if defined(CONFIG_MACH_XIAOMI_MSM8996)
+#define MDSS_MAX_BL_BRIGHTNESS 4095
+#else
 #define MDSS_MAX_BL_BRIGHTNESS 255
+#endif
 
 #define MDSS_SPI_RST_SEQ_LEN	10
 
