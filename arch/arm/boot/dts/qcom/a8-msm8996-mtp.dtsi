@@ -173,8 +173,8 @@
 
 		tfa98xx@34 {
 			reg = <0x34>;
-			compatible = "nxp,tfa9890";
-			nxp,reset-gpio = <&pmi8994_gpios 2 0>;
+			compatible = "tfa,tfa9890";
+			reset-gpio = <&pmi8994_gpios 2 0>;
 		};
 
 		lm48560: lm48560@6f {
