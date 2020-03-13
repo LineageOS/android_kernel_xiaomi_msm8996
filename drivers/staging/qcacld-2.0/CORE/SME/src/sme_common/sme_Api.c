@@ -20186,8 +20186,8 @@ VOS_STATUS sme_set_btc_coex_dutycycle(uint32_t coex_btc_PauseDuration,uint32_t c
 	sme_interval->config_type = WMI_COEX_CONFIG_BTC_DUTYCYCLE;
 	sme_interval->config_arg1 = coex_btc_PauseDuration;
 	sme_interval->config_arg2 = coex_btc_UnPauseDuration;
-	printk(KERN_ERR "ENTER sme_set_btc_coex_dutycycle = %d",coex_btc_PauseDuration);
-	printk(KERN_ERR "ENTER sme_set_btc_coex_dutycycle =%d",coex_btc_UnPauseDuration);
+	printk(KERN_ERR "ENTER sme_set_btc_coex_dutycycle = %d\n",coex_btc_PauseDuration);
+	printk(KERN_ERR "ENTER sme_set_btc_coex_dutycycle = %d\n",coex_btc_UnPauseDuration);
 
 	msg.type = WDA_BTC_BT_WLAN_INTERVAL_CMD;
 	msg.reserved = 0;
