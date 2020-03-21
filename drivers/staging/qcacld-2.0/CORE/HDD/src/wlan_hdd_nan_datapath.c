@@ -1340,7 +1340,9 @@ static void hdd_ndp_confirm_ind_handler(hdd_adapter_t *adapter,
 					void *ind_params)
 {
 	int idx;
+#ifdef WLAN_DEBUG
 	uint32_t ndp_qos_config = 0;
+#endif
 	struct ndp_confirm_event *ndp_confirm = ind_params;
 	struct sk_buff *vendor_event;
 	hdd_context_t *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
