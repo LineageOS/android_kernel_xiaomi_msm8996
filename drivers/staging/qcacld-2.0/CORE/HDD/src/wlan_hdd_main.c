@@ -14826,7 +14826,9 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       hdd_set_idle_ps_config(pHddCtx, FALSE);
    }
 
+#ifdef ATH_SUPPORT_SPECTRAL
    hdd_spectral_deinit(pHddCtx);
+#endif
 
    TRACK_UNLOAD_STATUS(unload_debugfs_exit);
    hdd_debugfs_exit(pHddCtx);
@@ -17358,11 +17360,13 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
       goto err_wiphy_unregister;
 #endif
 
+#ifdef ATH_SUPPORT_SPECTRAL
    if (hdd_spectral_init(pHddCtx) == VOS_STATUS_E_FAILURE)
 #ifdef IPA_OFFLOAD
       goto err_ipa_cleanup;
 #else
       goto err_wiphy_unregister;
+#endif
 #endif
 
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else */
@@ -17370,7 +17374,15 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
+#ifdef ATH_SUPPORT_SPECTRAL
       goto err_spectral_deinit;
+#else
+#ifdef IPA_OFFLOAD
+      goto err_ipa_cleanup;
+#else
+      goto err_wiphy_unregister;
+#endif
+#endif
    }
 
    /* Register Smart Antenna Module */
@@ -18042,8 +18054,10 @@ err_close_adapter:
 err_vosstop:
    vos_stop(pVosContext);
 
+#ifdef ATH_SUPPORT_SPECTRAL
 err_spectral_deinit:
    hdd_spectral_deinit(pHddCtx);
+#endif
 
 #ifdef IPA_OFFLOAD
 err_ipa_cleanup:
