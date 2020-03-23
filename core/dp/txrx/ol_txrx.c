@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2020 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -5467,6 +5467,36 @@ static inline int ol_txrx_drop_nbuf_list(qdf_nbuf_t buf_list)
 }
 
 /**
+ * ol_txrx_mon() - Wrapper function to invoke mon cb
+ * @mon_osif_dev: callback context
+ * @data_rx: mon callback function
+ * @msdu: mon packet
+ *
+ * Return: None
+ */
+static void ol_txrx_mon(void *mon_osif_dev,
+			   ol_txrx_mon_callback_fp data_rx,
+			   qdf_nbuf_t msdu)
+{
+	struct radiotap_header *rthdr;
+	struct ieee80211_hdr_3addr *hdr;
+
+	rthdr = (struct radiotap_header *)qdf_nbuf_data(msdu);
+	hdr = (struct ieee80211_hdr_3addr *)(qdf_nbuf_data(msdu) +
+			rthdr->it_len);
+
+	if (ieee80211_is_qos_nullfunc(hdr->frame_control)) {
+		qdf_nbuf_free(msdu);
+		return;
+	}
+
+	if (data_rx(mon_osif_dev, msdu) != QDF_STATUS_SUCCESS) {
+		ol_txrx_err("Frame Rx to HDD failed");
+		qdf_nbuf_free(msdu);
+	}
+}
+
+/**
  * ol_txrx_mon_mgmt_cb(): callback to process management packets
  * for pkt capture mode
  * @ppdev: device handler
@@ -5503,10 +5533,7 @@ ol_txrx_mon_mgmt_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 	while (msdu) {
 		next_buf = qdf_nbuf_queue_next(msdu);
 		qdf_nbuf_set_next(msdu, NULL);   /* Add NULL terminator */
-		if (QDF_STATUS_SUCCESS != data_rx(mon_osif_dev, msdu)) {
-			ol_txrx_err("Frame Rx to HDD failed");
-			qdf_nbuf_free(msdu);
-		}
+		ol_txrx_mon(mon_osif_dev, data_rx, msdu);
 		msdu = next_buf;
 	}
 
@@ -6057,12 +6084,7 @@ ol_txrx_mon_tx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		headroom = qdf_nbuf_headroom(msdu);
 		qdf_nbuf_push_head(msdu, headroom);
 		qdf_nbuf_update_radiotap(&tx_status, msdu, headroom);
-
-		if (QDF_STATUS_SUCCESS != data_rx(mon_osif_dev, msdu)) {
-			ol_txrx_err("Frame Tx to HDD failed");
-			qdf_nbuf_free(msdu);
-		}
-
+		ol_txrx_mon(mon_osif_dev, data_rx, msdu);
 		msdu = next_buf;
 	}
 
@@ -6204,11 +6226,7 @@ ol_txrx_mon_rx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		headroom = qdf_nbuf_headroom(msdu);
 		qdf_nbuf_push_head(msdu, headroom);
 		qdf_nbuf_update_radiotap(&rx_status, msdu, headroom);
-
-		if (QDF_STATUS_SUCCESS != data_rx(mon_osif_dev, msdu)) {
-			ol_txrx_err("Frame Rx to HDD failed");
-			qdf_nbuf_free(msdu);
-		}
+		ol_txrx_mon(mon_osif_dev, data_rx, msdu);
 		msdu = next_buf;
 	}
 
