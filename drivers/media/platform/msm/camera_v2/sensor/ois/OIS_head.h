@@ -143,7 +143,6 @@ OIS_UWORD	I2C_OIS_per__read(OIS_UBYTE u08_adr);
 OIS_UWORD	I2C_OIS_mem__read(OIS_UBYTE u08_adr);
 void		I2C_OIS_spcl_cmnd(OIS_UBYTE u08_on,   OIS_UBYTE u08_dat);
 void		I2C_OIS_F0123_wr_(OIS_UBYTE u08_dat0, OIS_UBYTE u08_dat1, OIS_UWORD u16_dat2);
-OIS_UWORD	I2C_OIS_F0123__rd(void);
 
 
 

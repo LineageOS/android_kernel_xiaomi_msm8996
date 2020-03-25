@@ -692,19 +692,3 @@ pr_debug("SPCL WR_I2C 0x%x 0x%x dat2:%d", out[0], out[1], u16_dat2*2);
 
 
 }
-
-OIS_UWORD	I2C_OIS_F0123__rd(void)
-{
-
-	OIS_UBYTE	u08_dat;
-
-	u08_dat = 0xF0;
-
-	return RD_I2C(_SLV_OIS_, 1, &u08_dat);
-}
-
-
-
-
-
-
