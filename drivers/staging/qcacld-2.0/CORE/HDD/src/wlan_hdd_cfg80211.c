@@ -31326,7 +31326,7 @@ static int __wlan_hdd_cfg80211_channel_switch(struct wiphy *wiphy,
 	v_U16_t freq;
 	int ret;
 	tsap_Config_t *sap_config;
-	uint32_t current_sub20_chan_width;
+	uint32_t current_sub20_chan_width = 0;
 	uint32_t target_sub20_chan_width;
 
 	hddLog(LOG1, FL("Set Freq %d sub20 chanwidth %d"),
