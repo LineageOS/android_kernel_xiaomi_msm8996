@@ -565,7 +565,7 @@ EXPORT_SYMBOL(a4_get_back_sensor_name);
 int a4_get_front_sensor_name(char *sensor_name)
 {
 	if (a4_set_front_sensor_name) {
-		strlcpy(sensor_name, a4_front_sensor_name, sizeof(a4_front_sensor_name));
+		strlcpy(sensor_name, a4_front_sensor_name, sizeof(sensor_name));
 		return 0;
 	} else {
 		return -EINVAL;
