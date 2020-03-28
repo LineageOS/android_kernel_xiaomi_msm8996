@@ -236,6 +236,7 @@ enum pktcapture_tx_status {
 struct ol_mon_tx_status {
 	uint8_t status;
 	uint8_t tx_retry_cnt;
+	uint16_t chan_num;
 };
 
 /**

@@ -5468,18 +5468,19 @@ static inline int ol_txrx_drop_nbuf_list(qdf_nbuf_t buf_list)
 
 /**
  * ol_txrx_mon() - Wrapper function to invoke mon cb
- * @mon_osif_dev: callback context
  * @data_rx: mon callback function
  * @msdu: mon packet
+ * @pdev: handle to the physical device
+ * @chan: monitor channel
  *
  * Return: None
  */
-static void ol_txrx_mon(void *mon_osif_dev,
-			   ol_txrx_mon_callback_fp data_rx,
-			   qdf_nbuf_t msdu)
+static void ol_txrx_mon(ol_txrx_mon_callback_fp data_rx, qdf_nbuf_t msdu,
+			struct ol_txrx_pdev_t *pdev, uint16_t chan)
 {
 	struct radiotap_header *rthdr;
 	struct ieee80211_hdr_3addr *hdr;
+	void *mon_osif_dev = pdev->mon_osif_dev;
 
 	rthdr = (struct radiotap_header *)qdf_nbuf_data(msdu);
 	hdr = (struct ieee80211_hdr_3addr *)(qdf_nbuf_data(msdu) +
@@ -5488,6 +5489,11 @@ static void ol_txrx_mon(void *mon_osif_dev,
 	if (ieee80211_is_qos_nullfunc(hdr->frame_control)) {
 		qdf_nbuf_free(msdu);
 		return;
+	}
+
+	if (ieee80211_is_assoc_resp(hdr->frame_control) ||
+	    ieee80211_is_reassoc_resp(hdr->frame_control)) {
+		ol_htt_mon_note_chan(pdev, chan);
 	}
 
 	if (data_rx(mon_osif_dev, msdu) != QDF_STATUS_SUCCESS) {
@@ -5533,7 +5539,7 @@ ol_txrx_mon_mgmt_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 	while (msdu) {
 		next_buf = qdf_nbuf_queue_next(msdu);
 		qdf_nbuf_set_next(msdu, NULL);   /* Add NULL terminator */
-		ol_txrx_mon(mon_osif_dev, data_rx, msdu);
+		ol_txrx_mon(data_rx, msdu, pdev, pkt_tx_status.chan_num);
 		msdu = next_buf;
 	}
 
@@ -5575,6 +5581,7 @@ bool ol_txrx_mon_mgmt_process(struct mon_rx_status *txrx_status,
 	headroom = qdf_nbuf_headroom(nbuf);
 	qdf_nbuf_push_head(nbuf, headroom);
 	qdf_nbuf_update_radiotap(txrx_status, nbuf, headroom);
+	pkt_tx_status.chan_num = txrx_status->chan_num;
 
 	pkt = cds_alloc_ol_mon_pkt(sched_ctx);
 	if (!pkt)
@@ -6070,7 +6077,8 @@ ol_txrx_mon_tx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		/*
 		 * Get the channel info and update the rx status
 		 */
-		if (vdev_id != HTT_INVALID_VDEV) {
+		if (vdev_id != HTT_INVALID_VDEV &&
+		    (!pdev->htt_pdev->mon_ch_info.ch_num)) {
 			cds_get_chan_by_session_id(vdev_id, &chan);
 			ol_htt_mon_note_chan(pdev, chan);
 		}
@@ -6084,7 +6092,7 @@ ol_txrx_mon_tx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		headroom = qdf_nbuf_headroom(msdu);
 		qdf_nbuf_push_head(msdu, headroom);
 		qdf_nbuf_update_radiotap(&tx_status, msdu, headroom);
-		ol_txrx_mon(mon_osif_dev, data_rx, msdu);
+		ol_txrx_mon(data_rx, msdu, pdev, 0);
 		msdu = next_buf;
 	}
 
@@ -6194,7 +6202,8 @@ ol_txrx_mon_rx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		/*
 		 * Get the channel info and update the rx status
 		 */
-		if (vdev_id != HTT_INVALID_VDEV) {
+		if (vdev_id != HTT_INVALID_VDEV &&
+		    (!pdev->htt_pdev->mon_ch_info.ch_num)) {
 			cds_get_chan_by_session_id(vdev_id, &chan);
 			ol_htt_mon_note_chan(pdev, chan);
 		}
@@ -6226,7 +6235,7 @@ ol_txrx_mon_rx_data_cb(void *ppdev, void *nbuf_list, uint8_t vdev_id,
 		headroom = qdf_nbuf_headroom(msdu);
 		qdf_nbuf_push_head(msdu, headroom);
 		qdf_nbuf_update_radiotap(&rx_status, msdu, headroom);
-		ol_txrx_mon(mon_osif_dev, data_rx, msdu);
+		ol_txrx_mon(data_rx, msdu, pdev, 0);
 		msdu = next_buf;
 	}
 
