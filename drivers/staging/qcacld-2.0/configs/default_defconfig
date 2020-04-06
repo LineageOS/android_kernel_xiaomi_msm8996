@@ -23,7 +23,6 @@ ifeq ($(KERNEL_BUILD),1)
 	WLAN_OPEN_SOURCE := 1
 endif
 
-ifeq ($(KERNEL_BUILD), 0)
 	# These are configurable via Kconfig for kernel-based builds
 	# Need to explicitly configure for Android-based builds
 
@@ -76,7 +75,7 @@ ifeq ($(KERNEL_BUILD), 0)
 	# way no critical debug feature will be enabled for perf and shipment
 	# builds. Other OEMs are also protected using the TARGET_BUILD_VARIANT
 	# config.
-	ifneq ($(TARGET_BUILD_VARIANT), user)
+	ifeq ($(TARGET_BUILD_VARIANT), eng)
 		ifeq ($(CONFIG_SLUB_DEBUG_ON), y)
 			CONFIG_DPTRACE_ENABLE := y
 		else
@@ -168,8 +167,6 @@ ifeq ($(KERNEL_BUILD), 0)
 	ifeq ($(CONFIG_QCA_WIFI_SDIO), 1)
 	CONFIG_WLAN_FEATURE_DSRC := y
 	endif
-
-endif
 
 CONFIG_AUDIO_MULTICAST_AGGR_SUPPORT := y
 
