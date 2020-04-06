@@ -63,8 +63,6 @@
 #include "cds_concurrency.h"
 #include "nan_datapath.h"
 
-#define NO_SESSION 0xff
-
 static void __lim_init_scan_vars(tpAniSirGlobal pMac)
 {
 	pMac->lim.gLimUseScanModeForLearnMode = 1;
