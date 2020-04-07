@@ -831,6 +831,7 @@ int sap_start_dfs_cac_timer(ptSapContext sapContext);
  *
  * Return: string for the @event.
  */
+#ifdef WLAN_DEBUG
 static uint8_t *sap_hdd_event_to_string(eSapHddEvent event)
 {
 	switch (event) {
@@ -870,6 +871,7 @@ static uint8_t *sap_hdd_event_to_string(eSapHddEvent event)
 		return "eSAP_HDD_EVENT_UNKNOWN";
 	}
 }
+#endif
 
 /*----------------------------------------------------------------------------
  * Externalized Function Definitions
@@ -4371,7 +4373,9 @@ QDF_STATUS sap_fsm(ptSapContext sap_ctx, ptWLAN_SAPEvent sap_event)
 	 * state var that keeps track of state machine
 	 */
 	eSapFsmStates_t state_var = sap_ctx->sapsMachine;
+#ifdef WLAN_DEBUG
 	uint32_t msg = sap_event->event; /* State machine input event message */
+#endif
 	QDF_STATUS qdf_status = QDF_STATUS_E_FAILURE;
 	tHalHandle hal = CDS_GET_HAL_CB(sap_ctx->p_cds_gctx);
 	tpAniSirGlobal mac_ctx;

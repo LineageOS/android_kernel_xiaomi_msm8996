@@ -129,7 +129,9 @@ void htc_print_credit_history(HTC_HANDLE htc, uint32_t count,
 
 void htc_dump_counter_info(HTC_HANDLE HTCHandle)
 {
+#ifdef WLAN_DEBUG
 	HTC_TARGET *target = GET_HTC_TARGET_FROM_HANDLE(HTCHandle);
+#endif
 
 	AR_DEBUG_PRINTF(ATH_DEBUG_ERR,
 			("\n%s: ce_send_cnt = %d, TX_comp_cnt = %d\n",

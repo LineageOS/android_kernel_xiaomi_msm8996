@@ -359,8 +359,10 @@ dfs_bin_pri_check(struct ath_dfs *dfs, struct dfs_filter *rf,
 		0, deltapri2 = 0, deltadur, averagerefpri = 0, MatchCount = 0;
 	uint32_t delta_ts_variance, delta_time_stamps, prev_good_timestamp = 0;
 	int delayindex, dindex;
-	uint32_t i, j = 0, primargin, durmargin, highscore =
-		score, highscoreindex = 0;
+	uint32_t i, j = 0, primargin, durmargin;
+#ifdef WLAN_DEBUG
+	uint32_t highscore = score, highscoreindex = 0;
+#endif
 	int numpulses = 1;      /* first pulse in the burst is most likely being filtered out based on maxfilterlen */
 	int priscorechk = 1, numpulsetochk = 2, primatch = 0;
 	int32_t sidx_min = DFS_BIG_SIDX;

@@ -2002,6 +2002,7 @@ static inline void lim_copy_and_free_hlp_data_from_session(
 {}
 #endif
 
+#ifdef WLAN_DEBUG
 static const char *pe_roam_op_code_to_string(uint8_t roam_op_code)
 {
 	switch (roam_op_code) {
@@ -2016,6 +2017,7 @@ static const char *pe_roam_op_code_to_string(uint8_t roam_op_code)
 		return "none";
 	}
 }
+#endif
 
 /**
  * pe_roam_synch_callback() - PE level callback for roam synch propagation

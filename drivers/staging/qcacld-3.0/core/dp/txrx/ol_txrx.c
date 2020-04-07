@@ -2273,7 +2273,9 @@ static void ol_txrx_debugfs_exit(ol_txrx_pdev_handle pdev)
 void ol_txrx_pdev_detach(ol_txrx_pdev_handle pdev)
 {
 	struct ol_txrx_stats_req_internal *req, *temp_req;
+#ifdef WLAN_DEBUG
 	int i = 0;
+#endif
 
 	/*checking to ensure txrx pdev structure is not NULL */
 	if (!pdev) {
@@ -3872,7 +3874,9 @@ QDF_STATUS ol_txrx_clear_peer(uint8_t sta_id)
  */
 void peer_unmap_timer_handler(unsigned long data)
 {
+#ifdef WLAN_DEBUG
 	ol_txrx_peer_handle peer = (ol_txrx_peer_handle)data;
+#endif
 
 	WMA_LOGE("%s: all unmap events not received for peer %pK, ref_cnt %d",
 		 __func__, peer, qdf_atomic_read(&peer->ref_cnt));
@@ -4839,11 +4843,13 @@ static void ol_txrx_disp_peer_stats(ol_txrx_pdev_handle pdev)
 void ol_txrx_stats_display(ol_txrx_pdev_handle pdev,
 				enum qdf_stats_verb_lvl level)
 {
+#ifdef WLAN_DEBUG
 	uint64_t tx_dropped =
 		pdev->stats.pub.tx.dropped.download_fail.pkts
 		  + pdev->stats.pub.tx.dropped.target_discard.pkts
 		  + pdev->stats.pub.tx.dropped.no_ack.pkts
 		  + pdev->stats.pub.tx.dropped.others.pkts;
+#endif
 
 	if (level == QDF_STATS_VERB_LVL_LOW) {
 		QDF_TRACE(QDF_MODULE_ID_TXRX, QDF_TRACE_LEVEL_INFO_LOW,

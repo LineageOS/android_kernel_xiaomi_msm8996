@@ -1370,6 +1370,7 @@ static void lim_process_messages(tpAniSirGlobal mac_ctx, tpSirMsgQ msg)
 	 * SME enums (eWNI_SME_START_REQ) starts with 0x16xx.
 	 * Compare received SME events with SIR_SME_MODULE_ID
 	 */
+#ifdef LIM_TRACE_RECORD
 	if ((SIR_SME_MODULE_ID ==
 	    (uint8_t)MAC_TRACE_GET_MODULE_ID(msg->type)) &&
 	    (msg->type != eWNI_SME_REGISTER_MGMT_FRAME_REQ)) {
@@ -1388,6 +1389,7 @@ static void lim_process_messages(tpAniSirGlobal mac_ctx, tpSirMsgQ msg)
 				LIM_TRACE_MAKE_RXMSG(msg->type,
 				LIM_MSG_PROCESSED));)
 	}
+#endif
 
 	switch (msg->type) {
 

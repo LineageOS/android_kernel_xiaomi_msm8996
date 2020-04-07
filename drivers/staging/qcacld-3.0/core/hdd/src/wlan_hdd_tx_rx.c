@@ -345,6 +345,7 @@ static inline struct sk_buff *hdd_skb_orphan(hdd_adapter_t *pAdapter,
  *
  * Return: None
  */
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
 void hdd_event_eapol_log(struct sk_buff *skb, enum qdf_proto_dir dir)
 {
 	int16_t eapol_key_info;
@@ -378,6 +379,7 @@ void hdd_event_eapol_log(struct sk_buff *skb, enum qdf_proto_dir dir)
 
 	WLAN_HOST_DIAG_EVENT_REPORT(&wlan_diag_event, EVENT_WLAN_EAPOL);
 }
+#endif
 
 
 /**

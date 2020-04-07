@@ -3047,7 +3047,9 @@ static QDF_STATUS hdd_wlan_get_ibss_peer_info(hdd_adapter_t *pAdapter,
 		hdd_debug("pPeerInfo->numIBSSPeers = %d ", pPeerInfo->numPeers);
 		{
 			uint8_t mac_addr[QDF_MAC_ADDR_SIZE];
+#ifdef WLAN_DEBUG
 			uint32_t tx_rate = pPeerInfo->peerInfoParams[0].txRate;
+#endif
 
 			qdf_mem_copy(mac_addr, pPeerInfo->peerInfoParams[0].
 					mac_addr, sizeof(mac_addr));

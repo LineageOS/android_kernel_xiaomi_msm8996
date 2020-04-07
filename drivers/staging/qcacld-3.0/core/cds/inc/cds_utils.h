@@ -182,6 +182,7 @@ uint8_t cds_get_gmac_mmie_size(void);
 
 #endif /* WLAN_FEATURE_11W */
 QDF_STATUS sme_send_flush_logs_cmd_to_fw(tpAniSirGlobal pMac);
+#ifdef FEATURE_WLAN_DIAG_SUPPORT
 static inline void cds_host_diag_log_work(qdf_wake_lock_t *lock, uint32_t msec,
 			    uint32_t reason) {
 	if (((cds_get_ring_log_level(RING_ID_WAKELOCK) >= WLAN_LOG_LEVEL_ACTIVE)
@@ -191,6 +192,9 @@ static inline void cds_host_diag_log_work(qdf_wake_lock_t *lock, uint32_t msec,
 				    msec, WIFI_POWER_EVENT_WAKELOCK_TAKEN);
 	}
 }
+#else
+#define cds_host_diag_log_work(lock, msec, reason) (0)
+#endif
 
 /**
  * cds_copy_hlp_info() - Copy HLP info

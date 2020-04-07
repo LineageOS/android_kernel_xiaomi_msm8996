@@ -6830,6 +6830,7 @@ static void hdd_cfg_print_mws_coex(hdd_context_t *hdd_ctx)
  *
  * Return: None
  */
+#ifdef WLAN_DEBUG
 static void hdd_cfg_print_action_oui(hdd_context_t *hdd_ctx)
 {
 	struct hdd_config *config = hdd_ctx->config;
@@ -6867,6 +6868,9 @@ static void hdd_cfg_print_action_oui(hdd_context_t *hdd_ctx)
 		  config->action_oui_disable_aggressive_edca);
 
 }
+#else
+#define hdd_cfg_print_action_oui(hdd_ctx) (0)
+#endif
 
 /**
  * hdd_cfg_print_btc_params() - print btc param values
@@ -9300,6 +9304,7 @@ static bool hdd_string_to_hex(uint8_t *token, uint8_t *hex_str,
  *
  * Return: converted string
  */
+#ifdef WLAN_DEBUG
 static
 uint8_t *hdd_action_oui_token_string(enum hdd_action_oui_token_type token_id)
 {
@@ -9317,6 +9322,7 @@ uint8_t *hdd_action_oui_token_string(enum hdd_action_oui_token_type token_id)
 
 	return (uint8_t *) "UNKNOWN";
 }
+#endif
 
 /**
  * hdd_validate_and_convert_oui() - validate and convert OUI str to hex array

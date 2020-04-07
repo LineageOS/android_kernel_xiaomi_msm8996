@@ -37,7 +37,9 @@
 #define ROUND_UP_TO_4(val) (((val) + 3) & ~0x3)
 
 
+#ifdef WLAN_DEBUG
 static char *bw_str_arr[] = {"20MHz", "40MHz", "80MHz", "160MHz"};
+#endif
 
 /*
  * Defined the macro tx_rate_stats_print_cmn()
@@ -276,6 +278,7 @@ static void htt_t2h_stats_rx_rate_stats_print_v2(wlan_dbg_rx_rate_info_v2_t *
 	rx_rate_stats_print_cmn(rx_phy_info, concise);
 }
 
+#ifdef WLAN_DEBUG
 static void
 htt_t2h_stats_pdev_stats_print(struct wlan_dbg_stats *wlan_pdev_stats,
 			       int concise)
@@ -357,6 +360,9 @@ htt_t2h_stats_pdev_stats_print(struct wlan_dbg_stats *wlan_pdev_stats,
 	qdf_debug("mpdu_errs         :\t%d", rx->mpdu_errs);
 
 }
+#else
+#define htt_t2h_stats_pdev_stats_print(wlan_pdev_stats, concise) (0)
+#endif
 
 static void
 htt_t2h_stats_rx_reorder_stats_print(struct rx_reorder_stats *stats_ptr,

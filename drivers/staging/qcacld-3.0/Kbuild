@@ -260,7 +260,7 @@ endif
 # way no critical debug feature will be enabled for perf and shipment
 # builds. Other OEMs are also protected using the TARGET_BUILD_VARIANT
 # config.
-ifneq ($(TARGET_BUILD_VARIANT),user)
+ifeq ($(TARGET_BUILD_VARIANT),eng)
 	CONFIG_FEATURE_PKTLOG := y
 endif
 
@@ -303,10 +303,10 @@ CONFIG_WLAN_FW_THERMAL_MITIGATION := n
 # Feature flags which are not (currently) configurable via Kconfig
 
 #Whether to build debug version
-BUILD_DEBUG_VERSION := 1
+BUILD_DEBUG_VERSION := 0
 
 #Enable this flag to build driver in diag version
-BUILD_DIAG_VERSION := 1
+BUILD_DIAG_VERSION := 0
 
 #Do we panic on bug?  default is to warn
 ifeq ($(CONFIG_SLUB_DEBUG), y)
@@ -1237,9 +1237,7 @@ ifeq ($(CONFIG_REMOVE_PKT_LOG), 0)
 INCS +=		$(PKTLOG_INC)
 endif
 
-ifeq ($(BUILD_DIAG_VERSION), 1)
 INCS +=		$(HOST_DIAG_LOG_INC)
-endif
 
 OBJS :=		$(HDD_OBJS) \
 		$(EPPING_OBJS) \
@@ -1518,7 +1516,7 @@ ifeq ($(CONFIG_WLAN_FEATURE_LPSS),y)
 CDEFINES += -DWLAN_FEATURE_LPSS
 endif
 
-ifneq ($(TARGET_BUILD_VARIANT),user)
+ifeq ($(TARGET_BUILD_VARIANT),eng)
 CDEFINES += -DDESC_DUP_DETECT_DEBUG
 CDEFINES += -DDEBUG_RX_RING_BUFFER
 endif
@@ -1846,7 +1844,9 @@ ifeq (y,$(filter y,$(CONFIG_CNSS_EOS) $(CONFIG_ICNSS)))
 CONFIG_HELIUMPLUS := y
 CONFIG_64BIT_PADDR := y
 CONFIG_FEATURE_TSO := y
+ifeq ($(BUILD_DEBUG_VERSION),1)
 CONFIG_FEATURE_TSO_DEBUG := y
+endif
 ifneq ($(CONFIG_FORCE_ALLOC_FROM_DMA_ZONE), y)
 CONFIG_ENABLE_DEBUG_ADDRESS_MARKING := y
 endif

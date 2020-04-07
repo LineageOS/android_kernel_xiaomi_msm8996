@@ -1480,10 +1480,7 @@ void csr_roaming_report_diag_event(tpAniSirGlobal mac_ctx,
 		roam_offload_synch_ind *roam_synch_ind_ptr,
 		eCsrDiagWlanStatusEventReason reason);
 #else
-static inline void csr_roaming_report_diag_event(tpAniSirGlobal mac_ctx,
-		roam_offload_synch_ind *roam_synch_ind_ptr,
-		eCsrDiagWlanStatusEventReason reason)
-{}
+#define csr_roaming_report_diag_event(mac_ctx, roam_synch_ind_ptr, reason) (0)
 #endif
 
 bool csr_store_joinreq_param(tpAniSirGlobal mac_ctx,

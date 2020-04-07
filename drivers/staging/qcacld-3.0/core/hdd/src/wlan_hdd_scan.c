@@ -780,11 +780,13 @@ static bool wlan_hdd_is_scan_pending(hdd_adapter_t *adapter)
  */
 static void hdd_scan_inactivity_timer_handler(unsigned long scan_req)
 {
+#ifdef WLAN_DEBUG
 	struct hdd_scan_req *hdd_scan_req = (struct hdd_scan_req *)scan_req;
 
 	hdd_debug("scan_id %d, enqueue timestamp %u, flags 0x%X",
 		hdd_scan_req->scan_id, hdd_scan_req->timestamp,
 		hdd_scan_req->scan_req_flags);
+#endif
 
 	if (cds_is_load_or_unload_in_progress())
 		hdd_err("%s: Module (un)loading; Ignore hdd scan req timeout",

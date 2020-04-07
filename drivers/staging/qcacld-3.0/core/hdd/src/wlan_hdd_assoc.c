@@ -2050,7 +2050,9 @@ QDF_STATUS hdd_roam_register_sta(hdd_adapter_t *pAdapter,
 {
 	QDF_STATUS qdf_status = QDF_STATUS_E_FAILURE;
 	struct ol_txrx_desc_type staDesc = { 0 };
+#ifdef WLAN_DEBUG
 	hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
+#endif
 	struct ol_txrx_ops txrx_ops;
 
 	if (NULL == pBssDesc)

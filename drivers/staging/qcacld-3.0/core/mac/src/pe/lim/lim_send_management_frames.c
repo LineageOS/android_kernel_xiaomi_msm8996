@@ -4654,7 +4654,9 @@ static void lim_tx_mgmt_frame(tpAniSirGlobal mac_ctx,
 	struct sir_mgmt_msg *mb_msg, uint32_t msg_len,
 	void *packet, uint8_t *frame)
 {
+#ifdef WLAN_DEBUG
 	tpSirMacFrameCtl fc = (tpSirMacFrameCtl) mb_msg->data;
+#endif
 	QDF_STATUS qdf_status;
 	uint8_t sme_session_id = 0;
 	tpPESession session;
@@ -4698,7 +4700,9 @@ void lim_send_mgmt_frame_tx(tpAniSirGlobal mac_ctx,
 {
 	struct sir_mgmt_msg *mb_msg = (struct sir_mgmt_msg *)msg_buf;
 	uint32_t msg_len;
+#ifdef WLAN_DEBUG
 	tpSirMacFrameCtl fc = (tpSirMacFrameCtl) mb_msg->data;
+#endif
 	uint8_t sme_session_id;
 	QDF_STATUS qdf_status;
 	uint8_t *frame;

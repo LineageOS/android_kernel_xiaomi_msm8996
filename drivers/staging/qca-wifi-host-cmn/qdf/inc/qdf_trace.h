@@ -82,14 +82,14 @@ typedef int (qdf_abstract_print)(void *priv, const char *fmt, ...);
 #define CLEAR_DP_TRACE_BUFFER		2
 #define DISABLE_DP_TRACE_LIVE_MODE	3
 
+#define NO_SESSION 0xFF
 
 #ifdef TRACE_RECORD
 
 #define MTRACE(p) p
-#define NO_SESSION 0xFF
 
 #else
-#define MTRACE(p) {  }
+#define MTRACE(p)
 
 #endif
 
