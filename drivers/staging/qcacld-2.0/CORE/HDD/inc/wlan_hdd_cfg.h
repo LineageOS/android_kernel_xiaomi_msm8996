@@ -5512,9 +5512,9 @@ FG_BTC_BT_INTERVAL_PAGE_P2P_STA_DEFAULT
 #define CFG_PROBE_REQ_OUI_DEFAULT ""
 
 #define CFG_RX_WAKELOCK_TIMEOUT_NAME         "rx_wakelock_timeout"
-#define CFG_RX_WAKELOCK_TIMEOUT_DEFAULT      (50)
+#define CFG_RX_WAKELOCK_TIMEOUT_DEFAULT      (0)
 #define CFG_RX_WAKELOCK_TIMEOUT_MIN          (0)
-#define CFG_RX_WAKELOCK_TIMEOUT_MAX          (100)
+#define CFG_RX_WAKELOCK_TIMEOUT_MAX          (0)
 
 /*
  * <ini>
