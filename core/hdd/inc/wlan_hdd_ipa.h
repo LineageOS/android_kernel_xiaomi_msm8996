@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018, 2020 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -247,8 +247,8 @@ static inline void hdd_ipa_uc_stat_query(hdd_context_t *hdd_ctx,
 	*ipa_rx_diff = 0;
 }
 
-static inline void hdd_ipa_uc_stat_request(hdd_adapter_t *adapter,
-	uint8_t reason)
+static inline void hdd_ipa_uc_stat_request(hdd_context_t *hdd_ctx,
+					   uint8_t reason)
 {
 }
 
