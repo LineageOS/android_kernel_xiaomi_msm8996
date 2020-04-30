@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2020 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -406,7 +406,12 @@ process_tx_info(struct ol_txrx_pdev_t *txrx_pdev,
 					 pl_msdu_info.num_msdu +
 					 sizeof(uint32_t);
 		log_size = sizeof(pl_msdu_info.priv);
-
+		if (pl_msdu_info.num_msdu > MAX_PKT_INFO_MSDU_ID) {
+			adf_os_print("%s:  invalid num_msdu count\n",
+						__func__);
+			adf_os_assert(0);
+			return A_ERROR;
+		}
 		for (i = 0; i < pl_msdu_info.num_msdu; i++) {
 			/*
 			 * Handle big endianess
