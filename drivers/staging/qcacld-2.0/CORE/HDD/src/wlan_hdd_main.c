@@ -15727,6 +15727,8 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                                                           = next_rx_level;
 
     if (pHddCtx->cur_rx_level != next_rx_level) {
+	struct wlan_rx_tp_data rx_tp_data = {0};
+
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_DEBUG,
                "%s: TCP DELACK trigger level %d, average_rx: %llu",
                __func__, next_rx_level, temp_rx);
@@ -15735,10 +15737,14 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
         if (pHddCtx->cfg_ini->del_ack_enable)
             next_rx_level = WLAN_SVC_TP_LOW;
 #endif
+
+        rx_tp_data.rx_tp_flags |= TCP_DEL_ACK_IND;
+        rx_tp_data.level = next_rx_level;
+
         wlan_hdd_send_svc_nlink_msg(pHddCtx->radio_index,
                                     WLAN_SVC_WLAN_TP_IND,
-                                    &next_rx_level,
-                                    sizeof(next_rx_level));
+                                    &rx_tp_data,
+                                    sizeof(rx_tp_data));
     }
 
     /* fine-tuning parameters for TX Flows */
@@ -19855,16 +19861,19 @@ void wlan_hdd_send_status_pkg(hdd_adapter_t *pAdapter,
                               v_U8_t is_connected)
 {
     int ret = 0;
-    struct wlan_status_data data;
+    struct wlan_status_data *data = NULL;
     hdd_context_t *hdd_ctx;
     v_PVOID_t vos_ctx;
 
     if (VOS_FTM_MODE == hdd_get_conparam())
         return;
 
-    memset(&data, 0, sizeof(struct wlan_status_data));
+    data = kzalloc(sizeof(*data), GFP_KERNEL);
+	if (!data)
+		return;
+
     if (is_on)
-        ret = wlan_hdd_gen_wlan_status_pack(&data, pAdapter, pHddStaCtx,
+        ret = wlan_hdd_gen_wlan_status_pack(data, pAdapter, pHddStaCtx,
                                             is_on, is_connected);
     if (!ret) {
         if (pAdapter) {
@@ -19879,7 +19888,7 @@ void wlan_hdd_send_status_pkg(hdd_adapter_t *pAdapter,
 
         wlan_hdd_send_svc_nlink_msg(hdd_ctx->radio_index,
                 WLAN_SVC_WLAN_STATUS_IND,
-                &data, sizeof(struct wlan_status_data));
+                data, sizeof(*data));
     }
 }
 
