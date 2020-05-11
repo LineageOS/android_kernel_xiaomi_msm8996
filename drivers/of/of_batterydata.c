@@ -367,6 +367,19 @@ struct device_node *of_batterydata_get_best_profile(
 					best_delta = 0;
 					delta = 0;
 					break;
+				} else {
+					pr_info("using relaxed battery checks\n");
+					if ((batt_ids.kohm[i] == 9) ||
+						(batt_ids.kohm[i] == 50) ||
+						(batt_ids.kohm[i] == 100)) {
+						best_node = node;
+						best_id_kohm = batt_ids.kohm[i];
+						in_range = false;
+						limit = 0;
+						best_delta = 0;
+						delta = 0;
+						break;
+					}
 				}
 #else
 				delta = abs(batt_ids.kohm[i] - batt_id_kohm);
@@ -463,6 +476,16 @@ int of_batterydata_read_data(struct device_node *batterydata_container_node,
 				best_id_kohm = batt_ids.kohm[i];
 				delta = 0;
 				break;
+			} else {
+				pr_info("using relaxed battery checks\n");
+				if ((batt_ids.kohm[i] == 9) ||
+					(batt_ids.kohm[i] == 50) ||
+					(batt_ids.kohm[i] == 100)) {
+					best_node = node;
+					best_id_kohm = batt_ids.kohm[i];
+					delta = 0;
+					break;
+				}
 			}
 #else
 			delta = abs(batt_ids.kohm[i] - batt_id_kohm);
