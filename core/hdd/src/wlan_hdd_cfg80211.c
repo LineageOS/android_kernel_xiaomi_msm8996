@@ -14192,12 +14192,12 @@ static void wlan_hdd_update_band_cap(hdd_context_t *hdd_ctx)
 	if (band_5g) {
 		for (i = 0; i < hdd_ctx->num_rf_chains; i++)
 			band_5g->ht_cap.mcs.rx_mask[i] = 0xff;
-			/*
-			 * According to mcs_nss HT MCS parameters highest data
-			 * rate for Nss = 1 is 150 Mbps
-			 */
-			band_5g->ht_cap.mcs.rx_highest =
-				cpu_to_le16(150 * hdd_ctx->num_rf_chains);
+		/*
+		 * According to mcs_nss HT MCS parameters highest data
+		 * rate for Nss = 1 is 150 Mbps
+		 */
+		band_5g->ht_cap.mcs.rx_highest =
+			cpu_to_le16(150 * hdd_ctx->num_rf_chains);
 	}
 }
 

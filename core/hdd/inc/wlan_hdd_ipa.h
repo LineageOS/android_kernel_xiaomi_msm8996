@@ -100,6 +100,7 @@ bool hdd_ipa_is_fw_wdi_actived(hdd_context_t *hdd_ctx);
 #ifndef QCA_LL_TX_FLOW_CONTROL_V2
 int hdd_ipa_send_mcc_scc_msg(hdd_context_t *hdd_ctx, bool mcc_mode);
 void hdd_ipa_set_mcc_mode(bool mcc_mode);
+void hdd_ipa_mcc_work_handler(struct work_struct *work);
 #else
 static inline int hdd_ipa_send_mcc_scc_msg(hdd_context_t *hdd_ctx,
 					   bool mcc_mode)
