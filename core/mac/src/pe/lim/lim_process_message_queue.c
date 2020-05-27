@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2020 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -907,12 +907,13 @@ lim_check_mgmt_registered_frames(tpAniSirGlobal mac_ctx, uint8_t *buff_desc,
 		QDF_TRACE(QDF_MODULE_ID_PE, QDF_TRACE_LEVEL_DEBUG,
 			FL("rcvd frame match with registered frame params"));
 		/* Indicate this to SME */
-		lim_send_sme_mgmt_frame_ind(mac_ctx, hdr->fc.subType,
-			(uint8_t *) hdr,
+		lim_send_sme_mgmt_frame_ind(
+			mac_ctx, hdr->fc.subType, (uint8_t *)hdr,
 			WMA_GET_RX_PAYLOAD_LEN(buff_desc) +
-			sizeof(tSirMacMgmtHdr), mgmt_frame->sessionId,
-			WMA_GET_RX_CH(buff_desc), session_entry,
-			WMA_GET_RX_RSSI_NORMALIZED(buff_desc));
+			sizeof(tSirMacMgmtHdr),
+			mgmt_frame->sessionId, WMA_GET_RX_CH(buff_desc),
+			session_entry, WMA_GET_RX_RSSI_NORMALIZED(buff_desc),
+			RXMGMT_FLAG_NONE);
 
 		if ((type == SIR_MAC_MGMT_FRAME)
 		    && (fc.type == SIR_MAC_MGMT_FRAME)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -904,11 +904,23 @@ void
 lim_change_channel_with_callback(tpAniSirGlobal pMac, uint8_t newChannel,
 				 CHANGE_CHANNEL_CALLBACK callback,
 				 uint32_t *cbdata, tpPESession psessionEntry);
-
-void lim_send_sme_mgmt_frame_ind(tpAniSirGlobal pMac, uint8_t frameType,
-				 uint8_t *frame, uint32_t frameLen,
-				 uint16_t sessionId, uint32_t rxChan,
-				 tpPESession psessionEntry, int8_t rxRssi);
+/*
+ * lim_send_sme_mgmt_frame_ind() - Function to send mgmt frame ind to HDD
+ * @mac_ctx: Pointer to Global MAC structure
+ * @frame_type: Type of mgmt frame
+ * @frame: Frame pointer
+ * @frame_len: Length og mgmt frame
+ * @session_id: session id
+ * @rx_chan: Channel of where packet is received
+ * @psession_entry: PE Session Entry
+ * @rx_rssi: rssi value
+ * @rx_flags: RXMGMT flags to be set for the frame. Defined in enum rxmgmt_flags
+ */
+void lim_send_sme_mgmt_frame_ind(tpAniSirGlobal mac_ctx, uint8_t frame_type,
+				 uint8_t *frame, uint32_t frame_len,
+				 uint16_t session_id, uint32_t rx_chan,
+				 tpPESession psession_entry,
+				 int8_t rx_rssi, enum rxmgmt_flags rx_flags);
 void lim_process_remain_on_chn_timeout(tpAniSirGlobal pMac);
 void lim_process_insert_single_shot_noa_timeout(tpAniSirGlobal pMac);
 void lim_convert_active_channel_to_passive_channel(tpAniSirGlobal pMac);
