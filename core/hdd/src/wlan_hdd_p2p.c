@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -2003,7 +2003,8 @@ static int __wlan_hdd_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 	 * When frame to be transmitted is auth mgmt, then trigger
 	 * sme_send_mgmt_tx to send auth frame
 	 */
-	if ((pAdapter->device_mode == QDF_STA_MODE) &&
+	if ((pAdapter->device_mode == QDF_STA_MODE ||
+	     pAdapter->device_mode == QDF_SAP_MODE) &&
 	    (type == SIR_MAC_MGMT_FRAME &&
 	    subType == SIR_MAC_MGMT_AUTH)) {
 		qdf_status = sme_send_mgmt_tx(WLAN_HDD_GET_HAL_CTX(pAdapter),
