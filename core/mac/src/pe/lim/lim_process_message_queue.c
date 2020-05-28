@@ -64,6 +64,82 @@ static void lim_process_normal_hdd_msg(tpAniSirGlobal mac_ctx,
 
 #ifdef WLAN_FEATURE_SAE
 /**
+ * lim_process_sae_msg_sta() - Process SAE message for STA
+ * @mac: Global MAC pointer
+ * @session: Pointer to the PE session entry
+ * @sae_msg: SAE message buffer pointer
+ *
+ * Return: None
+ */
+static void lim_process_sae_msg_sta(tpAniSirGlobal mac,
+				    tpPESession session,
+				    struct sir_sae_msg *sae_msg)
+{
+	switch (session->limMlmState) {
+	case eLIM_MLM_WT_SAE_AUTH_STATE:
+		/* SAE authentication is completed.
+		 * Restore from auth state
+		 */
+		if (tx_timer_running(&mac->lim.limTimers.sae_auth_timer))
+			lim_deactivate_and_change_timer(mac,
+							eLIM_AUTH_SAE_TIMER);
+		/* success */
+		if (sae_msg->sae_status == IEEE80211_STATUS_SUCCESS)
+			lim_restore_from_auth_state(mac,
+						    eSIR_SME_SUCCESS,
+						    eSIR_MAC_SUCCESS_STATUS,
+						    session);
+		else
+			lim_restore_from_auth_state(
+				mac, eSIR_SME_AUTH_REFUSED,
+				eSIR_MAC_UNSPEC_FAILURE_STATUS, session);
+		break;
+	default:
+		/* SAE msg is received in unexpected state */
+		pe_err("received SAE msg instate %X", session->limMlmState);
+		lim_print_mlm_state(mac, LOGE, session->limMlmState);
+		break;
+	}
+}
+
+/**
+ * lim_process_sae_msg_ap() - Process SAE message
+ * @mac: Global MAC pointer
+ * @session: Pointer to the PE session entry
+ * @sae_msg: SAE message buffer pointer
+ *
+ * Return: None
+ */
+static void lim_process_sae_msg_ap(tpAniSirGlobal mac,
+				   tpPESession session,
+				   struct sir_sae_msg *sae_msg)
+{
+	struct tLimPreAuthNode *sta_pre_auth_ctx;
+	/* Extract pre-auth context for the STA and move limMlmState
+	 * of preauth node to eLIM_MLM_AUTHENTICATED_STATE
+	 */
+	sta_pre_auth_ctx = lim_search_pre_auth_list(mac,
+						    sae_msg->peer_mac_addr);
+
+	if (!sta_pre_auth_ctx) {
+		pe_debug("No preauth node created for "
+			 MAC_ADDRESS_STR,
+			 MAC_ADDR_ARRAY(sae_msg->peer_mac_addr));
+		return;
+	}
+
+	if (sae_msg->sae_status == IEEE80211_STATUS_SUCCESS) {
+		sta_pre_auth_ctx->mlmState = eLIM_MLM_AUTHENTICATED_STATE;
+	} else {
+		pe_debug("SAE authentication failed for "
+			 MAC_ADDRESS_STR " status: %u",
+			 MAC_ADDR_ARRAY(sae_msg->peer_mac_addr),
+			 sae_msg->sae_status);
+		lim_delete_pre_auth_node(mac, sae_msg->peer_mac_addr);
+	}
+}
+
+/**
  * lim_process_sae_msg() - Process SAE message
  * @mac: Global MAC pointer
  * @body: Buffer pointer
@@ -87,40 +163,23 @@ static void lim_process_sae_msg(tpAniSirGlobal mac, struct sir_sae_msg *body)
 		return;
 	}
 
-	if (session->pePersona != QDF_STA_MODE) {
+	if (session->pePersona != QDF_STA_MODE &&
+	    session->pePersona != QDF_SAP_MODE) {
 		pe_err("SAE:Not supported in this mode %d",
 				session->pePersona);
 		return;
 	}
 
-	pe_debug("SAE:status %d limMlmState %d pePersona %d",
-		sae_msg->sae_status, session->limMlmState,
-		session->pePersona);
-	switch (session->limMlmState) {
-	case eLIM_MLM_WT_SAE_AUTH_STATE:
-		/* SAE authentication is completed. Restore from auth state */
-		if (tx_timer_running(&mac->lim.limTimers.sae_auth_timer))
-			lim_deactivate_and_change_timer(mac,
-				eLIM_AUTH_SAE_TIMER);
-		/* success */
-		if (sae_msg->sae_status == IEEE80211_STATUS_SUCCESS)
-			lim_restore_from_auth_state(mac,
-				eSIR_SME_SUCCESS,
-				eSIR_MAC_SUCCESS_STATUS,
-				session);
-		else
-			lim_restore_from_auth_state(mac,
-				eSIR_SME_AUTH_REFUSED,
-				eSIR_MAC_UNSPEC_FAILURE_STATUS,
-				session);
-		break;
-	default:
-		/* SAE msg is received in unexpected state */
-		pe_err("received SAE msg in state %X",
-			session->limMlmState);
-		lim_print_mlm_state(mac, LOGE, session->limMlmState);
-		break;
-	}
+	pe_debug("SAE:status %d limMlmState %d pePersona %d peer: "
+		 MAC_ADDRESS_STR, sae_msg->sae_status,
+		 session->limMlmState, session->pePersona,
+		 MAC_ADDR_ARRAY(sae_msg->peer_mac_addr));
+	if (LIM_IS_STA_ROLE(session))
+		lim_process_sae_msg_sta(mac, session, sae_msg);
+	else if (LIM_IS_AP_ROLE(session))
+		lim_process_sae_msg_ap(mac, session, sae_msg);
+	else
+		pe_debug("Unsupported interface");
 }
 #else
 static inline void lim_process_sae_msg(tpAniSirGlobal mac, void *body)

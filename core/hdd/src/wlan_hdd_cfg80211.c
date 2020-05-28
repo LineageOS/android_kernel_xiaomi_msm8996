@@ -21688,6 +21688,7 @@ __wlan_hdd_cfg80211_external_auth(struct wiphy *wiphy,
 	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(dev);
 	hdd_context_t *hdd_ctx = wiphy_priv(wiphy);
 	int ret;
+	struct qdf_mac_addr peer_mac_addr;
 
 	if (hdd_get_conparam() == QDF_GLOBAL_FTM_MODE) {
 		hdd_err("Command not allowed in FTM mode");
@@ -21703,8 +21704,11 @@ __wlan_hdd_cfg80211_external_auth(struct wiphy *wiphy,
 	if (ret)
 		return ret;
 
-	hdd_debug("external_auth status: %d", params->status);
-	sme_handle_sae_msg(hdd_ctx->hHal, adapter->sessionId, params->status);
+	hdd_debug("external_auth status: %d peer mac: " MAC_ADDRESS_STR,
+		  params->status, MAC_ADDR_ARRAY(params->bssid));
+	qdf_mem_copy(peer_mac_addr.bytes, params->bssid, MAC_ADDR_LEN);
+	sme_handle_sae_msg(hdd_ctx->hHal, adapter->sessionId, params->status,
+			   peer_mac_addr);
 
 	return ret;
 }
