@@ -732,13 +732,14 @@ static ssize_t tfa98xx_dbgfs_dsp_state_set(struct file *file,
 	if (!strncmp(buf, start_cmd, sizeof(start_cmd) - 1)) {
 		pr_info("Manual triggering of dsp start...\n");
 		mutex_lock(&tfa98xx->dsp_lock);
-		ret = tfa98xx_tfa_start(tfa98xx, tfa98xx_profile, tfa98xx_vsteps);
+		ret = (enum Tfa98xx_Error) tfa98xx_tfa_start(
+			tfa98xx, tfa98xx_profile, tfa98xx_vsteps);
 		mutex_unlock(&tfa98xx->dsp_lock);
 		pr_debug("tfa_start complete: %d\n", ret);
 	} else if (!strncmp(buf, stop_cmd, sizeof(stop_cmd) - 1)) {
 		pr_info("Manual triggering of dsp stop...\n");
 		mutex_lock(&tfa98xx->dsp_lock);
-		ret = tfa_stop();
+		ret = (enum Tfa98xx_Error) tfa_stop();
 		mutex_unlock(&tfa98xx->dsp_lock);
 		pr_debug("tfa_stop complete: %d\n", ret);
 	} else if (!strncmp(buf, mon_start_cmd, sizeof(mon_start_cmd) - 1)) {
@@ -2328,7 +2329,7 @@ static void tfa98xx_interrupt(struct work_struct *work)
 				tfa98xx_vsteps[0] = tfa98xx_prof_vsteps[tfa98xx_profile];
 				tfa98xx_vsteps[1] = tfa98xx_prof_vsteps[tfa98xx_profile];
 				pr_debug("tfa98xx_profile=%d\n", tfa98xx_profile);
-				ret =  tfa_start(tfa98xx_profile, tfa98xx_vsteps);
+				ret = (enum Tfa98xx_Error) tfa_start(tfa98xx_profile, tfa98xx_vsteps);
 				if (ret == Tfa98xx_Error_Ok)
 					tfa98xx->dsp_init = TFA98XX_DSP_INIT_DONE;
 				mutex_unlock(&tfa98xx->dsp_lock);

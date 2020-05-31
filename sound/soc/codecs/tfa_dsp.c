@@ -2962,7 +2962,7 @@ enum tfa_error tfa_checkI2SF(Tfa98xx_handle_t handle)
 	}
 
 error_exit:
-	return err;
+	return (enum tfa_error) err;
 
 }
 
@@ -3065,7 +3065,7 @@ error_exit:
 		tfaContClose(dev); /* close all of them */
 	}
 
-	return err;
+	return (enum tfa_error) err;
 }
 
 enum tfa_error tfa_stop(void)
@@ -3100,7 +3100,7 @@ enum tfa_error tfa_stop(void)
 error_exit:
 	for (dev = 0; dev < devcount; dev++)
 		tfaContClose(dev); /* close all of them */
-	return err;
+	return (enum tfa_error) err;
 }
 
 /*
@@ -3152,7 +3152,7 @@ enum tfa_error tfa_reset(void)
 		tfaContClose(dev);
 	}
 
-	return err;
+	return (enum tfa_error) err;
 }
 
 /*
