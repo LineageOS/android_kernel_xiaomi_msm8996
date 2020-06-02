@@ -1972,13 +1972,13 @@ lim_send_assoc_req_mgmt_frame(tpAniSirGlobal mac_ctx,
 		vendor_ies = qdf_mem_malloc(MAX_VENDOR_IES_LEN + 2);
 		if (vendor_ies) {
 			current_len = add_ie_len;
-			qdf_status = lim_strip_ie(mac_ctx, add_ie, &add_ie_len,
+			sir_status = lim_strip_ie(mac_ctx, add_ie, &add_ie_len,
 						  SIR_MAC_EID_VENDOR, ONE_BYTE,
 						  NULL,
 						  0,
 						  vendor_ies,
 						  MAX_VENDOR_IES_LEN);
-			if (QDF_IS_STATUS_ERROR(qdf_status)) {
+			if (sir_status != eSIR_SUCCESS) {
 				pe_err("Failed to strip Vendor IEs");
 				goto end;
 			}
