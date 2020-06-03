@@ -8688,6 +8688,34 @@ static bool hdd_update_vht_cap_in_cfg(hdd_context_t *hdd_ctx)
 
 }
 
+#ifdef WLAN_FEATURE_SAE
+/**
+ * hdd_update_sae_cfg() - API to update SAE setting to MAC/WNI layer
+ * @hdd_ctx: pointer to hdd_ctx
+ *
+ * This API reads the SAE setting from HDD config structure and updates the
+ * same to MAC/WNI layer.
+ *
+ * Return: true if operation is successful, false otherwise.
+ */
+static inline bool hdd_update_sae_cfg(hdd_context_t *hdd_ctx)
+{
+	bool status = true;
+	if (sme_cfg_set_int(hdd_ctx->hHal, WNI_CFG_SAP_SAE_ENABLED,
+			    hdd_ctx->config->enable_sae_for_sap) ==
+			    QDF_STATUS_E_FAILURE) {
+		status = false;
+		hdd_err("Couldn't pass on WNI_CFG_SAP_SAE_ENABLED to CCM");
+	}
+	return status;
+}
+#else
+static inline bool hdd_update_sae_cfg(hdd_context_t *hdd_ctx)
+{
+	return true;
+}
+#endif
+
 /**
  * hdd_update_config_cfg() - API to update INI setting based on hw/fw caps
  * @hdd_ctx: pointer to hdd_ctx
@@ -9159,6 +9187,7 @@ bool hdd_update_config_cfg(hdd_context_t *hdd_ctx)
 		hdd_err("Couldn't pass on WNI_CFG_RATE_FOR_TX_MGMT_5G to CCM");
 	}
 
+	status = hdd_update_sae_cfg(hdd_ctx);
 	return status;
 }
 #ifdef FEATURE_WLAN_SCAN_PNO

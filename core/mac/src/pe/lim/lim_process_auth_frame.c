@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018, 2020 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -43,6 +43,31 @@
 #include "cds_utils.h"
 #include "lim_process_fils.h"
 #include "lim_send_messages.h"
+
+#ifdef WLAN_FEATURE_SAE
+/**
+ * sap_sae_enabled() - API to check if SAP SAE availability.
+ * @mac_ctx: pointer to MAC context
+ *
+ * This API reads the SAE setting from MAC/WNI layer.
+ *
+ * Return: true if SAE is enabled, false otherwise.
+ */
+static inline bool sap_sae_enabled(tpAniSirGlobal mac_ctx)
+{
+	uint32_t sap_sae_enabled;
+	if (wlan_cfg_get_int(mac_ctx, WNI_CFG_SAP_SAE_ENABLED,
+			     &sap_sae_enabled) != eSIR_SUCCESS) {
+		sap_sae_enabled = 0;
+	}
+	return (sap_sae_enabled != 0);
+}
+#else
+static inline bool sap_sae_enabled(tpAniSirGlobal mac_ctx)
+{
+	return false;
+}
+#endif
 
 /**
  * is_auth_valid
@@ -1417,10 +1442,11 @@ lim_process_auth_frame(tpAniSirGlobal mac_ctx, uint8_t *rx_pkt_info,
 			pe_err("failed to convert Auth Frame to structure or Auth is not valid");
 			goto free;
 		}
-	} else if ((auth_alg ==
-		    eSIR_AUTH_TYPE_SAE) && (LIM_IS_STA_ROLE(pe_session))) {
-		lim_process_sae_auth_frame(mac_ctx,
-					rx_pkt_info, pe_session);
+	} else if (auth_alg == eSIR_AUTH_TYPE_SAE) {
+		if (sap_sae_enabled(mac_ctx) &&
+		    (LIM_IS_STA_ROLE(pe_session) || LIM_IS_AP_ROLE(pe_session)))
+			lim_process_sae_auth_frame(mac_ctx, rx_pkt_info,
+						   pe_session);
 		goto free;
 	} else if ((sir_convert_auth_frame2_struct(mac_ctx, body_ptr,
 				frame_len, rx_auth_frame) != eSIR_SUCCESS)
