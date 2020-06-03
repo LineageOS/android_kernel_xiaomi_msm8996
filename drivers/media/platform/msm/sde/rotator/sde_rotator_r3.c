@@ -49,36 +49,29 @@
 /* Macro for constructing the REGDMA command */
 #define SDE_REGDMA_WRITE(p, off, data) \
 	do { \
-		writel_relaxed(REGDMA_OP_REGWRITE | \
-			((off) & REGDMA_ADDR_OFFSET_MASK), (p)); \
-		(p)++; \
-		writel_relaxed((data), (p)); \
-		(p)++; \
+		*p++ = REGDMA_OP_REGWRITE | \
+			((off) & REGDMA_ADDR_OFFSET_MASK); \
+		*p++ = (data); \
 	} while (0)
 
 #define SDE_REGDMA_MODIFY(p, off, mask, data) \
 	do { \
-		writel_relaxed(REGDMA_OP_REGMODIFY | \
-			((off) & REGDMA_ADDR_OFFSET_MASK), (p)); \
-		(p)++; \
-		writel_relaxed((mask), (p)); \
-		(p)++; \
-		writel_relaxed((data), (p)); \
-		(p)++; \
+		*p++ = REGDMA_OP_REGMODIFY | \
+			((off) & REGDMA_ADDR_OFFSET_MASK); \
+		*p++ = (mask); \
+		*p++ = (data); \
 	} while (0)
 
 #define SDE_REGDMA_BLKWRITE_INC(p, off, len) \
 	do { \
-		writel_relaxed(REGDMA_OP_BLKWRITE_INC | \
-			((off) & REGDMA_ADDR_OFFSET_MASK), (p)); \
-		(p)++; \
-		writel_relaxed((len), (p)); \
-		(p)++; \
+		*p++ = REGDMA_OP_BLKWRITE_INC | \
+			((off) & REGDMA_ADDR_OFFSET_MASK); \
+		*p++ = (len); \
 	} while (0)
 
 #define SDE_REGDMA_BLKWRITE_DATA(p, data) \
 	do { \
-		writel_relaxed((data), (p)); \
+		*(p) = (data); \
 		(p)++; \
 	} while (0)
 
