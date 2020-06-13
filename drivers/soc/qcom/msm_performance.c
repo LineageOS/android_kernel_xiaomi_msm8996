@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2018, 2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2728,9 +2728,9 @@ error:
 	for (i = 0; i < num_clusters; i++) {
 		if (!managed_clusters[i])
 			break;
-		if (managed_clusters[i]->offlined_cpus)
+		if (managed_clusters[i]->offlined_cpus != NULL)
 			free_cpumask_var(managed_clusters[i]->offlined_cpus);
-		if (managed_clusters[i]->cpus)
+		if (managed_clusters[i]->cpus != NULL)
 			free_cpumask_var(managed_clusters[i]->cpus);
 		kfree(managed_clusters[i]);
 	}
