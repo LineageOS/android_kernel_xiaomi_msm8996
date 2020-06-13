@@ -3876,8 +3876,10 @@ static int nl80211_start_ap(struct sk_buff *skb, struct genl_info *info)
 		if (err)
 			return err;
 
-		err = validate_beacon_tx_rate(rdev, params.chandef.chan->band,
-					      &params.beacon_rate);
+		err = validate_beacon_tx_rate(
+			     rdev,
+			     (enum nl80211_band)(params.chandef.chan->band),
+			     &params.beacon_rate);
 		if (err)
 			return err;
 	}
@@ -6259,7 +6261,10 @@ static int parse_bss_select(struct nlattr *nla, struct wiphy *wiphy,
 		bss_select->behaviour = NL80211_BSS_SELECT_ATTR_RSSI_ADJUST;
 		bss_select->param.adjust.band = adj_param->band;
 		bss_select->param.adjust.delta = adj_param->delta;
-		if (!is_band_valid(wiphy, bss_select->param.adjust.band))
+		if (!is_band_valid(
+			wiphy,
+			((enum ieee80211_band)(bss_select->param.adjust.band))
+			))
 			return -EINVAL;
 	}
 
@@ -6968,7 +6973,10 @@ nl80211_parse_sched_scan(struct wiphy *wiphy, struct wireless_dev *wdev,
 			attrs[NL80211_ATTR_SCHED_SCAN_RSSI_ADJUST]);
 		request->rssi_adjust.band = rssi_adjust->band;
 		request->rssi_adjust.delta = rssi_adjust->delta;
-		if (!is_band_valid(wiphy, request->rssi_adjust.band)) {
+		if (!is_band_valid(
+			wiphy,
+			(enum ieee80211_band)(request->rssi_adjust.band)
+			)) {
 			err = -EINVAL;
 			goto out_free;
 		}
@@ -9493,8 +9501,10 @@ static int nl80211_join_mesh(struct sk_buff *skb, struct genl_info *info)
 		if (err)
 			return err;
 
-		err = validate_beacon_tx_rate(rdev, setup.chandef.chan->band,
-					      &setup.beacon_rate);
+		err = validate_beacon_tx_rate(
+				rdev,
+				(enum nl80211_band)(setup.chandef.chan->band),
+				&setup.beacon_rate);
 		if (err)
 			return err;
 	}
