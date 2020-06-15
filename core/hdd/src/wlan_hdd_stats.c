@@ -1079,7 +1079,7 @@ static void hdd_process_ll_stats(tSirLLStatsResults *results,
 			goto exit;
 		}
 		qdf_mem_copy(stats->result, results->results,
-			     sizeof(tpSirWifiIfaceStat));
+			     sizeof(tSirWifiIfaceStat));
 		if (!results->num_peers)
 			priv->request_bitmap &= ~(WMI_LINK_STATS_ALL_PEER);
 		priv->request_bitmap &= ~stats->result_param_id;
