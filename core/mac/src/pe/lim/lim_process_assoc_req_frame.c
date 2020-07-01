@@ -717,6 +717,47 @@ static void lim_print_ht_cap(tpAniSirGlobal mac_ctx, tpPESession session,
 	}
 }
 
+typedef enum wlan_crypto_rsn_cap {
+	WLAN_CRYPTO_RSN_CAP_PREAUTH       = 0x01,
+	WLAN_CRYPTO_RSN_CAP_MFP_ENABLED   = 0x80,
+	WLAN_CRYPTO_RSN_CAP_MFP_REQUIRED  = 0x40,
+} wlan_crypto_rsn_cap;
+
+/**
+  * lim_check_sae_pmf_cap() - check pmf capability for SAE STA
+  * @session: pointer to pe session entry
+  * @rsn: pointer to RSN
+  * @akm_type: AKM type
+  *
+  * This function checks if SAE STA is pmf capable when SAE SAP is pmf
+  * capable. Reject with eSIR_MAC_ROBUST_MGMT_FRAMES_POLICY_VIOLATION
+  * if SAE STA is pmf disable.
+  *
+  * Return: tSirMacStatusCodes
+  */
+#ifdef WLAN_FEATURE_SAE
+static tSirMacStatusCodes lim_check_sae_pmf_cap(tpPESession session,
+						tDot11fIERSN *rsn,
+						enum ani_akm_type akm_type)
+{
+	tSirMacStatusCodes status = eSIR_MAC_SUCCESS_STATUS;
+
+	if (session->pLimStartBssReq->pmfCapable &&
+	    (rsn->RSN_Cap[0] & WLAN_CRYPTO_RSN_CAP_MFP_ENABLED) == 0 &&
+	    akm_type == ANI_AKM_TYPE_SAE)
+		status = eSIR_MAC_ROBUST_MGMT_FRAMES_POLICY_VIOLATION_STATUS;
+
+	return status;
+}
+#else
+static tSirMacStatusCodes lim_check_sae_pmf_cap(tpPESession session,
+						tDot11fIERSN *rsn,
+						enum ani_akm_type akm_type)
+{
+	return eSIR_MAC_SUCCESS_STATUS;
+}
+#endif
+
 /**
   * lim_check_wpa_rsn_ie() - wpa and rsn ie related checks
   * @session: pointer to pe session entry
@@ -739,6 +780,8 @@ static bool lim_check_wpa_rsn_ie(tpPESession session, tpAniSirGlobal mac_ctx,
 	tDot11fIEWPA dot11f_ie_wpa = {0};
 	tDot11fIERSN dot11f_ie_rsn = {0};
 	tSirRetStatus status = eSIR_SUCCESS;
+	enum ani_akm_type akm_type;
+	tSirMacStatusCodes mac_status;
 
 	/*
 	 * Clear the buffers so that frame parser knows that there isn't a
@@ -824,6 +867,20 @@ static bool lim_check_wpa_rsn_ie(tpPESession session, tpAniSirGlobal mac_ctx,
 				eSIR_MAC_UNSUPPORTED_RSN_IE_VERSION_STATUS,
 				1, hdr->sa, sub_type, 0,
 				session);
+			return false;
+		}
+		akm_type = lim_translate_rsn_oui_to_akm_type(
+				dot11f_ie_rsn.akm_suite[0]);
+
+		mac_status = lim_check_sae_pmf_cap(session, &dot11f_ie_rsn,
+						   akm_type);
+		if (eSIR_MAC_SUCCESS_STATUS != mac_status) {
+			/* Reject pmf disable SAE STA */
+			pe_warn("Re/Assoc rejected from: " MAC_ADDRESS_STR,
+				MAC_ADDR_ARRAY(hdr->sa));
+			lim_send_assoc_rsp_mgmt_frame(mac_ctx, mac_status,
+						      1, hdr->sa, sub_type,
+						      0, session);
 			return false;
 		}
 	} else if (assoc_req->wpaPresent) {
