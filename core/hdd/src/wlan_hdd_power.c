@@ -2505,6 +2505,7 @@ static int __wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
 	hdd_adapter_t *adapter = WLAN_HDD_GET_PRIV_PTR(ndev);
 	int status;
 	hdd_station_ctx_t *sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+	static bool is_rate_limited;
 
 	ENTER();
 
@@ -2530,10 +2531,14 @@ static int __wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy,
 		return -EINVAL;
 	}
 
+	HDD_IS_RATE_LIMIT_REQ(is_rate_limited,
+			      pHddCtx->config->nb_commands_interval);
+
 	mutex_lock(&pHddCtx->iface_change_lock);
-	if (pHddCtx->driver_status != DRIVER_MODULES_ENABLED) {
+	if (pHddCtx->driver_status != DRIVER_MODULES_ENABLED ||
+	    is_rate_limited) {
 		mutex_unlock(&pHddCtx->iface_change_lock);
-		hdd_debug("Driver Module not enabled return success");
+		hdd_debug("Modules not enabled/rate limited, use cached stats");
 		/* Send cached data to upperlayer*/
 		*dbm = adapter->hdd_stats.ClassA_stat.max_pwr;
 		return 0;
