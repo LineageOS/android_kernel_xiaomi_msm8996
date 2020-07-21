@@ -5142,6 +5142,7 @@ QDF_STATUS hdd_stop_adapter(hdd_context_t *hdd_ctx, hdd_adapter_t *adapter,
 			wlan_hdd_del_station(adapter);
 
 		hdd_ipa_flush(hdd_ctx);
+		qdf_flush_work(&hdd_ctx->sap_pre_cac_work);
 
 	case QDF_P2P_GO_MODE:
 		if (hdd_ctx->config->conc_custom_rule1 &&
@@ -5312,7 +5313,7 @@ QDF_STATUS hdd_stop_all_adapters(hdd_context_t *hdd_ctx, bool close_session)
 
 	ENTER();
 
-	cds_flush_work(&hdd_ctx->sap_pre_cac_work);
+	qdf_flush_work(&hdd_ctx->sap_pre_cac_work);
 	cds_flush_sta_ap_intf_work(hdd_ctx);
 
 	status = hdd_get_front_adapter(hdd_ctx, &adapterNode);
@@ -5364,7 +5365,7 @@ QDF_STATUS hdd_reset_all_adapters(hdd_context_t *hdd_ctx)
 
 	ENTER();
 
-	cds_flush_work(&hdd_ctx->sap_pre_cac_work);
+	qdf_flush_work(&hdd_ctx->sap_pre_cac_work);
 	cds_flush_sta_ap_intf_work(hdd_ctx);
 
 	status = hdd_get_front_adapter(hdd_ctx, &adapterNode);
