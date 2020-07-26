@@ -24641,6 +24641,12 @@ static int wlan_hdd_cfg80211_set_fils_config(hdd_adapter_t *adapter,
     roam_profile->fils_con_info->key_nai_length =
             req->fils_erp_username_len + sizeof(char) +
     req->fils_erp_realm_len;
+    if (roam_profile->fils_con_info->key_nai_length >
+            FILS_MAX_KEYNAME_NAI_LENGTH) {
+            hdd_err("Key NAI Length %d",
+                    roam_profile->fils_con_info->key_nai_length);
+            return -EINVAL;
+    }
     if (req->fils_erp_username_len) {
         buf = roam_profile->fils_con_info->keyname_nai;
         vos_mem_copy(buf,
