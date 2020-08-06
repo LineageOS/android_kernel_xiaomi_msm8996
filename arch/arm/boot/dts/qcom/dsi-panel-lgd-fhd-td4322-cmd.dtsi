@@ -102,5 +102,7 @@
 		qcom,mdss-dsi-te-dcs-command = <1>;
 		qcom,mdss-dsi-te-check-enable;
 		qcom,mdss-dsi-te-using-te-pin;
+		qcom,partial-update-enabled = "single_roi";
+		qcom,panel-roi-alignment = <2 2 4 2 1080 2>;
 	};
 };
