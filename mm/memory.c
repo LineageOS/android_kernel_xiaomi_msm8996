@@ -2400,45 +2400,24 @@ static int do_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	 * not dirty accountable.
 	 */
 	if (PageAnon(old_page)) {
-		if (PageKsm(old_page) && (PageSwapCache(old_page) ||
-					  page_count(old_page) != 1))
+		/* PageKsm() doesn't necessarily raise the page refcount */
+		if (PageKsm(old_page) || page_count(old_page) != 1)
 			goto copy;
-		if (!trylock_page(old_page)) {
-			page_cache_get(old_page);
-			pte_unmap_unlock(page_table, ptl);
-			lock_page(old_page);
-			page_table = pte_offset_map_lock(mm, pmd, address,
-							 &ptl);
-			if (!pte_same(*page_table, orig_pte)) {
-				unlock_page(old_page);
-				pte_unmap_unlock(page_table, ptl);
-				page_cache_release(old_page);
-				return 0;
-			}
-			page_cache_release(old_page);
-		}
-		if (PageKsm(old_page)) {
-			bool reused = reuse_ksm_page(old_page, vma,
-						     address);
+		if (!trylock_page(old_page))
+			goto copy;
+		if (PageKsm(old_page) || page_mapcount(old_page) != 1 || page_count(old_page) != 1) {
 			unlock_page(old_page);
-			if (!reused)
-				goto copy;
-			wp_page_reuse(mm, vma, address, page_table, ptl,
-				      orig_pte, old_page, 0, 0);
-			return VM_FAULT_WRITE;
+			goto copy;
 		}
-		if (reuse_swap_page(old_page)) {
-			/*
-			 * The page is all ours.  Move it to our anon_vma so
-			 * the rmap code will not search our parent or siblings.
-			 * Protected against the rmap code by the page lock.
-			 */
-			page_move_anon_rmap(old_page, vma, address);
-			unlock_page(old_page);
-			return wp_page_reuse(mm, vma, address, page_table, ptl,
-					     orig_pte, old_page, 0, 0);
-		}
+		/*
+		 * Ok, we've got the only map reference, and the only
+		 * page count reference, and the page is locked,
+		 * it's dark out, and we're wearing sunglasses. Hit it.
+		 */
+		wp_page_reuse(mm, vma, address, page_table, ptl,
+			      orig_pte, old_page, 0, 0);
 		unlock_page(old_page);
+		return VM_FAULT_WRITE;
 	} else if (unlikely((vma->vm_flags & (VM_WRITE|VM_SHARED)) ==
 					(VM_WRITE|VM_SHARED))) {
 		return wp_page_shared(mm, vma, address, page_table, pmd,
