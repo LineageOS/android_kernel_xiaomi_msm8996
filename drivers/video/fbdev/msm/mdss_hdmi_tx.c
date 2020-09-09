@@ -3432,6 +3432,9 @@ static int hdmi_tx_power_off(struct hdmi_tx_ctrl *hdmi_ctrl)
 	hdmi_ctrl->panel_power_on = false;
 	hdmi_ctrl->vic = 0;
 
+	hdmi_ctrl->use_bt2020 = false;
+	hdmi_ctrl->curr_hdr_state = HDR_DISABLE;
+
 	if (hdmi_ctrl->hpd_off_pending || hdmi_ctrl->panel_suspend)
 		hdmi_tx_hpd_off(hdmi_ctrl);
 
