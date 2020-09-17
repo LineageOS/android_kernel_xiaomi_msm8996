@@ -4125,6 +4125,7 @@ sysfs_err:
 static int hdmi_tx_evt_handle_check_param(struct hdmi_tx_ctrl *hdmi_ctrl)
 {
 	struct mdss_panel_info *pinfo = &hdmi_ctrl->panel_data.panel_info;
+	void *data = NULL;
 	int new_vic = -1;
 	int rc = 0;
 
@@ -4135,6 +4136,10 @@ static int hdmi_tx_evt_handle_check_param(struct hdmi_tx_ctrl *hdmi_ctrl)
 		DEV_ERR("%s: invalid or not supported vic\n", __func__);
 		goto end;
 	}
+
+	data = hdmi_tx_get_fd(HDMI_TX_FEAT_EDID);
+	pinfo->physical_width = hdmi_edid_get_phys_width(data);
+	pinfo->physical_height = hdmi_edid_get_phys_height(data);
 
 	/*
 	 * return value of 1 lets mdss know that panel
