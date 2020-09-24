@@ -2414,9 +2414,9 @@ static int do_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
 		 * page count reference, and the page is locked,
 		 * it's dark out, and we're wearing sunglasses. Hit it.
 		 */
+		unlock_page(old_page);
 		wp_page_reuse(mm, vma, address, page_table, ptl,
 			      orig_pte, old_page, 0, 0);
-		unlock_page(old_page);
 		return VM_FAULT_WRITE;
 	} else if (unlikely((vma->vm_flags & (VM_WRITE|VM_SHARED)) ==
 					(VM_WRITE|VM_SHARED))) {
