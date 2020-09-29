@@ -1163,7 +1163,7 @@ static void mdss_dsi_phy_regulator_ctrl(struct mdss_dsi_ctrl_pdata *ctrl,
 				(other_ctrl && (!other_ctrl->is_phyreg_enabled
 						|| other_ctrl->mmss_clamp)))
 				mdss_dsi_28nm_phy_regulator_enable(ctrl);
-				break;
+			break;
 			}
 		}
 		ctrl->is_phyreg_enabled = 1;
