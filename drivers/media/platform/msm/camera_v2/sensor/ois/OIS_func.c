@@ -373,7 +373,7 @@ ADJ_STS	func_SET_SCENE_PARAM(OIS_UBYTE u16_scene, OIS_UBYTE u16_mode, OIS_UBYTE 
 
 
 
-	if ((u16_mode == 1)) {
+	if (u16_mode == 1) {
 		u16_dat = I2C_OIS_mem__read(_M_EQCTL);
 		u16_dat = (u16_dat |  0x0101);
 		I2C_OIS_mem_write(_M_EQCTL, u16_dat);
@@ -503,7 +503,7 @@ ADJ_STS	func_SET_SCENE_PARAM_for_NewGYRO_Fil(OIS_UBYTE u16_scene, OIS_UBYTE u16_
 
 
 
-	if ((u16_mode == 1)) {
+	if (u16_mode == 1) {
 		u16_dat = I2C_OIS_mem__read(_M_EQCTL);
 		u16_dat = (u16_dat &  0xEFFF);
 		u16_dat = (u16_dat |  0x0101);
