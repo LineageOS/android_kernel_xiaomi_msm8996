@@ -395,12 +395,13 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 				ns_to_ktime((u64)value * NSEC_PER_MSEC), HRTIMER_MODE_REL);
 	} else if (value < 0 && value >= -3) {
 
-	if (value == -1)
-		pDrv2604data->sequence[0] = 1;
-	else if (value == -2)
-		pDrv2604data->sequence[0] = 3;
-	else
-		pDrv2604data->sequence[0] = 2;
+		if (value == -1)
+			pDrv2604data->sequence[0] = 1;
+		else if (value == -2)
+			pDrv2604data->sequence[0] = 3;
+		else
+			pDrv2604data->sequence[0] = 2;
+
 		wake_lock(&pDrv2604data->wklock);
 		pDrv2604data->should_stop = NO;
 		drv2604_change_mode(pDrv2604data, WORK_SEQ_PLAYBACK, DEV_IDLE);
