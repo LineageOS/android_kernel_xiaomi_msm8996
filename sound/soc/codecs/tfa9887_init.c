@@ -28,23 +28,23 @@ static enum Tfa98xx_Error tfa9887_specific(Tfa98xx_handle_t handle)
 	if (!tfa98xx_handle_is_open(handle))
 		return Tfa98xx_Error_NotOpen;
 
-		/* all i2C registers are already set to default */
+	/* all i2C registers are already set to default */
 
-		result = TFA_SET_BF(handle, AMPE, 1);
-		if (result < 0)
-			return -result;
+	result = TFA_SET_BF(handle, AMPE, 1);
+	if (result < 0)
+		return -result;
 
-		/* some other registers must be set for optimal amplifier behaviour */
-		tfa98xx_write_register16(handle, 0x05, 0x13AB);
-		tfa98xx_write_register16(handle, 0x06, 0x001F);
-		tfa98xx_write_register16(handle, 0x08, 0x3C4E);
-		/*TFA98XX_SYSCTRL_DCA=0*/
-		tfa98xx_write_register16(handle, 0x09, 0x024D);
-		tfa98xx_write_register16(handle, 0x0A, 0x3EC3);
-		tfa98xx_write_register16(handle, 0x41, 0x0308);
-		error = tfa98xx_write_register16(handle, 0x49, 0x0E82);
+	/* some other registers must be set for optimal amplifier behaviour */
+	tfa98xx_write_register16(handle, 0x05, 0x13AB);
+	tfa98xx_write_register16(handle, 0x06, 0x001F);
+	tfa98xx_write_register16(handle, 0x08, 0x3C4E);
+	/*TFA98XX_SYSCTRL_DCA=0*/
+	tfa98xx_write_register16(handle, 0x09, 0x024D);
+	tfa98xx_write_register16(handle, 0x0A, 0x3EC3);
+	tfa98xx_write_register16(handle, 0x41, 0x0308);
+	error = tfa98xx_write_register16(handle, 0x49, 0x0E82);
 
-		return error;
+	return error;
 }
 
 /*
