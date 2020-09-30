@@ -220,11 +220,11 @@ struct ft5x46_mode_switch {
 static struct ft5x46_keypad_data *vir_keypad;
 struct ft5x46_data *ft_data;
 
-static int ft5x46_recv_byte(struct ft5x46_data *ft5x46, u8 len, ...)
+static int ft5x46_recv_byte(struct ft5x46_data *ft5x46, int len, ...)
 {
 	int error;
 	va_list varg;
-	u8 i, buf[len];
+	int i, buf[len];
 
 	error = ft5x46->bops->recv(ft5x46->dev, buf, len);
 	if (error)
@@ -250,10 +250,10 @@ static int ft5x46_recv_block(struct ft5x46_data *ft5x46,
 	return ft5x46->bops->recv(ft5x46->dev, buf, len);
 }
 
-static int ft5x46_send_byte(struct ft5x46_data *ft5x46, u8 len, ...)
+static int ft5x46_send_byte(struct ft5x46_data *ft5x46, int len, ...)
 {
 	va_list varg;
-	u8 i, buf[len];
+	int i, buf[len];
 
 	va_start(varg, len);
 	for (i = 0; i < len; i++)
