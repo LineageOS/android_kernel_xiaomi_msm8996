@@ -2646,7 +2646,7 @@ static ssize_t fts_i2c_wr_show(struct device *dev, struct device_attribute *attr
 	snprintf(buff, sizeof(buff), "{");
 	strncat(Out_buff, buff, 512);
 	for (i = 0; i < (byte_count_read + 2); i++) {
-		if ((i == 0)) {
+		if (i == 0) {
 			char temp_byte_count_read = (byte_count_read >> 8) & 0xFF;
 			snprintf(buff, sizeof(buff), "%02X", temp_byte_count_read);
 		} else if (i == 1) {
@@ -2716,7 +2716,7 @@ static ssize_t fts_i2c_read_show(struct device *dev, struct device_attribute *at
 	snprintf(buff, sizeof(buff), "{");
 	strncat(Out_buff, buff, 512);
 	for (i = 0; i < (byte_count_read + 2); i++) {
-		if ((i == 0)) {
+		if (i == 0) {
 			char temp_byte_count_read = (byte_count_read >> 8) & 0xFF;
 			snprintf(buff, sizeof(buff), "%02X", temp_byte_count_read);
 		} else if (i == 1) {
