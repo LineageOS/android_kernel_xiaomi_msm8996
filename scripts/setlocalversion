@@ -83,7 +83,7 @@ scm_version()
 			# hex chars.
 			if atag="$(git describe --abbrev=12 2>/dev/null)"; then
 				tag="`git describe --abbrev=0 2>/dev/null`"
-				commit="echo "$atag" | awk -F- '{printf("-%05d-%s", $(NF-1),substr($(NF),0,13))}'"
+				commit="`echo "$atag" | awk -F- '{printf("-%05d-%s", $(NF-1),substr($(NF),0,13))}'`"
 				printf '%s%s%s' -g "`git show-ref -s --abbrev --tags $tag 2>/dev/null`" $commit
 
 			# If we don't have a tag at all we print -g{commitish},
