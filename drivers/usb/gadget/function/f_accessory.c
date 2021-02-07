@@ -27,6 +27,7 @@
 #include <linux/interrupt.h>
 #include <linux/kthread.h>
 #include <linux/freezer.h>
+#include <linux/kref.h>
 
 #include <linux/types.h>
 #include <linux/file.h>
@@ -77,6 +78,7 @@ struct acc_dev {
 	struct usb_function function;
 	struct usb_composite_dev *cdev;
 	spinlock_t lock;
+	struct acc_dev_ref *ref;
 
 	struct usb_ep *ep_in;
 	struct usb_ep *ep_out;
@@ -84,13 +86,13 @@ struct acc_dev {
 	/* online indicates state of function_set_alt & function_unbind
 	 * set to 1 when we connect
 	 */
-	int online:1;
+	int online;
 
 	/* disconnected indicates state of open & release
 	 * Set to 1 when we disconnect.
 	 * Not cleared until our file is closed.
 	 */
-	int disconnected:1;
+	int disconnected;
 
 	/* strings sent by the host */
 	char manufacturer[ACC_STRING_SIZE];
@@ -247,7 +249,14 @@ static struct usb_gadget_strings *acc_strings[] = {
 	NULL,
 };
 
-static struct acc_dev *_acc_dev;
+struct acc_dev_ref {
+	struct kref	kref;
+	struct acc_dev	*acc_dev;
+};
+
+static struct acc_dev_ref _acc_dev_ref = {
+	.kref = KREF_INIT(0),
+};
 
 struct acc_instance {
 	struct usb_function_instance func_inst;
@@ -256,11 +265,30 @@ struct acc_instance {
 
 static struct acc_dev *get_acc_dev(void)
 {
-	return _acc_dev;
+	struct acc_dev_ref *ref = &_acc_dev_ref;
+
+	return kref_get_unless_zero(&ref->kref) ? ref->acc_dev : NULL;
+}
+
+static void __put_acc_dev(struct kref *kref)
+{
+	struct acc_dev_ref *ref = container_of(kref, struct acc_dev_ref, kref);
+	struct acc_dev *dev = ref->acc_dev;
+
+	/* Cancel any async work */
+	cancel_delayed_work_sync(&dev->start_work);
+	cancel_work_sync(&dev->hid_work);
+
+	ref->acc_dev = NULL;
+	kfree(dev);
 }
 
 static void put_acc_dev(struct acc_dev *dev)
 {
+	struct acc_dev_ref *ref = dev->ref;
+
+	WARN_ON(ref->acc_dev != dev);
+	kref_put(&ref->kref, __put_acc_dev);
 }
 
 static inline struct acc_dev *func_to_dev(struct usb_function *f)
@@ -865,13 +893,13 @@ static int acc_release(struct inode *ip, struct file *fp)
 	if (!dev)
 		return -ENOENT;
 
-	WARN_ON(!atomic_xchg(&dev->open_excl, 0));
 	/* indicate that we are disconnected
 	 * still could be online so don't touch online flag
 	 */
 	dev->disconnected = 1;
 
 	fp->private_data = NULL;
+	WARN_ON(!atomic_xchg(&dev->open_excl, 0));
 	put_acc_dev(dev);
 	return 0;
 }
@@ -1310,8 +1338,12 @@ static void acc_function_disable(struct usb_function *f)
 
 static int acc_setup(void)
 {
+	struct acc_dev_ref *ref = &_acc_dev_ref;
 	struct acc_dev *dev;
 	int ret;
+
+	if (kref_read(&ref->kref))
+		return -EBUSY;
 
 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
 	if (!dev)
@@ -1328,15 +1360,22 @@ static int acc_setup(void)
 	INIT_DELAYED_WORK(&dev->start_work, acc_start_work);
 	INIT_WORK(&dev->hid_work, acc_hid_work);
 
+	dev->ref = ref;
+	if (cmpxchg_relaxed(&ref->acc_dev, NULL, dev)) {
+		ret = -EBUSY;
+		goto err_free_dev;
+	}
+
 	ret = misc_register(&acc_device);
 	if (ret)
-		goto err;
+		goto err_zap_ptr;
 
-	_acc_dev = dev;
-
+	kref_init(&ref->kref);
 	return 0;
 
-err:
+err_zap_ptr:
+	ref->acc_dev = NULL;
+err_free_dev:
 	kfree(dev);
 	pr_err("USB accessory gadget driver failed to initialize\n");
 	return ret;
@@ -1346,22 +1385,22 @@ void acc_disconnect(void)
 {
 	struct acc_dev *dev = get_acc_dev();
 
-	/* unregister all HID devices if USB is disconnected */
-	if (dev)
-		kill_all_hid_devices(dev);
+	if (!dev)
+		return;
 
+	/* unregister all HID devices if USB is disconnected */
+	kill_all_hid_devices(dev);
 	put_acc_dev(dev);
 }
 EXPORT_SYMBOL_GPL(acc_disconnect);
 
 static void acc_cleanup(void)
 {
-	struct acc_dev *dev = _acc_dev;
+	struct acc_dev *dev = get_acc_dev();
 
 	misc_deregister(&acc_device);
 	put_acc_dev(dev);
-	kfree(dev);
-	_acc_dev = NULL;
+	put_acc_dev(dev); /* Pairs with kref_init() in acc_setup() */
 }
 static struct acc_instance *to_acc_instance(struct config_item *item)
 {
