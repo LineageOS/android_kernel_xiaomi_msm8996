@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2018, 2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -170,4 +170,16 @@ void
 ol_txrx_remove_peers_for_vdev_no_lock(ol_txrx_vdev_handle vdev,
 			      ol_txrx_vdev_peer_remove_cb callback,
 			      void *callback_context);
+
+/**
+ * ol_txrx_peer_flush_frags() - Flush fragments for a particular peer
+ * @pdev - datapath pdev handle
+ * @vdev_id - virtual device id
+ * @peer_mac - peer mac address
+ *
+ * Return: None
+ */
+void
+ol_txrx_peer_flush_frags(ol_txrx_pdev_handle pdev, uint8_t vdev_id,
+			 uint8_t *peer_mac);
 #endif /* _CDP_TXRX_PEER_H_ */
