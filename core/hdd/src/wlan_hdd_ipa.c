@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2018, 2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -5784,6 +5784,12 @@ static void __hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 	struct hdd_ipa_iface_context *iface_context;
 	uint8_t fw_desc;
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
+	bool is_eapol_wapi = false;
+	struct qdf_mac_addr peer_mac_addr = QDF_MAC_ADDR_ZERO_INITIALIZER;
+	uint8_t sta_idx;
+	ol_txrx_peer_handle peer;
+	ol_txrx_pdev_handle pdev;
+	hdd_station_ctx_t *sta_ctx;
 
 	hdd_ipa = (struct hdd_ipa_priv *)priv;
 
@@ -5803,6 +5809,13 @@ static void __hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 			HDD_IPA_LOG(QDF_TRACE_LEVEL_ERROR,
 					"Invalid context: drop packet");
 			hdd_ipa->ipa_rx_internal_drop_count++;
+			kfree_skb(skb);
+			return;
+		}
+
+		pdev = cds_get_context(QDF_MODULE_ID_TXRX);
+		if (NULL == pdev) {
+			WMA_LOGE("%s: DP pdev is NULL", __func__);
 			kfree_skb(skb);
 			return;
 		}
@@ -5847,6 +5860,38 @@ static void __hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 			skb_pull(skb, HDD_IPA_UC_WLAN_CLD_HDR_LEN);
 		} else {
 			skb_pull(skb, HDD_IPA_WLAN_CLD_HDR_LEN);
+		}
+
+		if (iface_context->adapter->device_mode == QDF_STA_MODE) {
+			sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(
+							iface_context->adapter);
+			qdf_copy_macaddr(&peer_mac_addr,
+					 &sta_ctx->conn_info.bssId);
+		} else if (iface_context->adapter->device_mode
+			   == QDF_SAP_MODE) {
+			qdf_mem_copy(peer_mac_addr.bytes, qdf_nbuf_data(skb) +
+				     QDF_NBUF_SRC_MAC_OFFSET,
+				     QDF_MAC_ADDR_SIZE);
+		}
+
+		if (qdf_nbuf_is_ipv4_eapol_pkt(skb) ||
+		    qdf_nbuf_is_ipv4_wapi_pkt(skb))
+			is_eapol_wapi = true;
+
+		peer = ol_txrx_find_peer_by_addr(pdev, peer_mac_addr.bytes,
+						 &sta_idx);
+
+		/*
+		 * Check for peer auth state before allowing non-EAPOL/WAPI
+		 * frames to be intrabss forwarded or submitted to stack.
+		 */
+		if (peer && ol_txrx_get_peer_state(peer) !=
+		    OL_TXRX_PEER_STATE_AUTH && !is_eapol_wapi) {
+			HDD_IPA_LOG(QDF_TRACE_LEVEL_ERROR,
+				    "non-EAPOL/WAPI frame received when peer is unauthorized");
+			hdd_ipa->ipa_rx_internal_drop_count++;
+			kfree_skb(skb);
+			return;
 		}
 
 		iface_context->stats.num_rx_ipa_excep++;
