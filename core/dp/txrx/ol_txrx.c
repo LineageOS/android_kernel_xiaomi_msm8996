@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019, 2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -3958,6 +3958,26 @@ ol_txrx_peer_find_by_addr(struct ol_txrx_pdev_t *pdev, uint8_t *peer_mac_addr)
 		OL_TXRX_PEER_UNREF_DELETE(peer);
 	}
 	return peer;
+}
+
+void
+ol_txrx_peer_flush_frags(ol_txrx_pdev_handle pdev, uint8_t vdev_id,
+			 uint8_t *peer_mac)
+{
+	struct ol_txrx_peer_t *peer;
+	uint8_t peer_id;
+
+	if (!pdev)
+		return;
+
+	peer = ol_txrx_find_peer_by_addr_inc_ref(pdev, peer_mac, &peer_id);
+
+	if (!peer)
+		return;
+
+	ol_rx_reorder_peer_cleanup(peer->vdev, peer);
+
+	OL_TXRX_PEER_UNREF_DELETE(peer);
 }
 
 /**
