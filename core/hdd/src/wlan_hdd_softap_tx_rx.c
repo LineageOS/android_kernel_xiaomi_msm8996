@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018, 2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -909,6 +909,13 @@ QDF_STATUS hdd_softap_rx_packet_cbk(void *context, qdf_nbuf_t rxBuf)
 	}
 
 	hdd_dhcp_indication(pAdapter, staid, skb, QDF_RX);
+
+	if (qdf_unlikely(qdf_nbuf_is_ipv4_eapol_pkt(skb) &&
+			 qdf_mem_cmp(qdf_nbuf_data(skb) +
+				     QDF_NBUF_DEST_MAC_OFFSET,
+				     pAdapter->macAddressCurrent.bytes,
+				     QDF_MAC_ADDR_SIZE)))
+		return QDF_STATUS_E_FAILURE;
 
 	hdd_event_eapol_log(skb, QDF_RX);
 	qdf_dp_trace_log_pkt(pAdapter->sessionId, skb, QDF_RX);
