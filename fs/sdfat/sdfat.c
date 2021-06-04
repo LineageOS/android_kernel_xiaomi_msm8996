@@ -256,7 +256,7 @@ static inline void __sdfat_submit_bio_write(struct bio *bio,
 {
 	int write_flags = wbc_to_write_flags(wbc);
 
-	submit_bio(write_flags, bio);
+	submit_bio(WRITE | write_flags, bio);
 }
 
 static inline unsigned int __sdfat_full_name_hash(const struct dentry *unused, const char *name, unsigned int len)
