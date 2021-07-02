@@ -158,7 +158,7 @@ static const struct snd_kcontrol_new lm48560_controls[] = {
 static int lm48560_pa_event(struct snd_soc_dapm_widget *w,
 		struct snd_kcontrol *kcontrol, int event)
 {
-	struct snd_soc_codec *codec = w->codec;
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
 	struct lm48560 *lm48560 = snd_soc_codec_get_drvdata(codec);
 
 	dev_dbg(codec->dev, "%s: %s %d\n", __func__, w->name, event);
@@ -205,8 +205,8 @@ static int lm48560_probe(struct snd_soc_codec *codec)
 	struct lm48560 *lm48560 = snd_soc_codec_get_drvdata(codec);
 
 	dev_dbg(codec->dev, "%s: enter\n", __func__);
-	snd_soc_dapm_ignore_suspend(&codec->dapm, "PIEZO IN");
-	snd_soc_dapm_ignore_suspend(&codec->dapm, "PIEZO OUT");
+	snd_soc_dapm_ignore_suspend(snd_soc_codec_get_dapm(codec), "PIEZO IN");
+	snd_soc_dapm_ignore_suspend(snd_soc_codec_get_dapm(codec), "PIEZO OUT");
 
 	lm48560_enable(lm48560, 0);
 	lm48560->enable = 0;

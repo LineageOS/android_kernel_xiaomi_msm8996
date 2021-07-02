@@ -197,21 +197,8 @@ static int tas2555_set_bias_level(struct snd_soc_codec *pCodec,
 {
 	struct tas2555_priv *pTAS2555 = snd_soc_codec_get_drvdata(pCodec);
 
-	dev_dbg(pCodec->dev, "tas2555_set_bias_level: %d\n", eLevel);
-	mutex_lock(&pTAS2555->codec_lock);
-	switch (eLevel) {
-	case SND_SOC_BIAS_ON:
-		break;
-	case SND_SOC_BIAS_PREPARE:
-		break;
-	case SND_SOC_BIAS_STANDBY:
-	case SND_SOC_BIAS_OFF:
-		break;
-	}
+	dev_dbg(pTAS2555->dev, "%s: %d\n", __func__, eLevel);
 
-	pCodec->dapm.bias_level = eLevel;
-
-	mutex_unlock(&pTAS2555->codec_lock);
 	return 0;
 }
 
