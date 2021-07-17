@@ -779,6 +779,21 @@ void __init early_init_dt_check_for_powerup_reason(unsigned long node)
 	pr_debug("Powerup reason %d\n", (int)pu_reason);
 }
 
+void __init early_init_dt_check_for_hw_version(unsigned long node)
+{
+	int hw_version, len;
+	const __be32 *prop;
+
+	pr_debug("Looking for hw version properties... \n");
+
+	prop = of_get_flat_dt_prop(node, "hwversion", &len);
+	if (!prop)
+		return;
+	hw_version = of_read_ulong(prop, len/4);
+	early_init_dt_setup_hwversion_arch(hw_version);
+	pr_debug("hw version %d\n", hw_version);
+}
+
 #ifdef CONFIG_BLK_DEV_INITRD
 #ifndef __early_init_dt_declare_initrd
 static void __early_init_dt_declare_initrd(unsigned long start,
@@ -1030,7 +1045,7 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 	pr_debug("Command line is: %s\n", (char*)data);
 
 	early_init_dt_check_for_powerup_reason(node);
-
+	early_init_dt_check_for_hw_version(node);
 	/* break now */
 	return 1;
 }
