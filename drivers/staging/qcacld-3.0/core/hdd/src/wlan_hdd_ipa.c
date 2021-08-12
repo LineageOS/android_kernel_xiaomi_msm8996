@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2020, 2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -5779,6 +5779,40 @@ static enum hdd_ipa_forward_type hdd_ipa_intrabss_forward(
 }
 
 /**
+ * wlan_ipa_eapol_intrabss_fwd_check() - Check if eapol pkt intrabss fwd is
+ *  allowed or not
+ * @nbuf: network buffer
+ * @vdev_id: vdev id
+ *
+ * Return: true if intrabss fwd is allowed for eapol else false
+ */
+static bool
+wlan_ipa_eapol_intrabss_fwd_check(qdf_nbuf_t nbuf, uint8_t vdev_id)
+{
+	ol_txrx_vdev_handle vdev;
+	uint8_t *vdev_mac_addr;
+
+	vdev = ol_txrx_get_vdev_from_vdev_id(vdev_id);
+
+	if (!vdev) {
+		HDD_IPA_LOG(QDF_TRACE_LEVEL_ERROR, "txrx vdev is NULL for vdev_id = %d",
+			    vdev_id);
+		return false;
+	}
+
+	vdev_mac_addr = ol_txrx_get_vdev_mac_addr( vdev);
+
+	if (!vdev_mac_addr)
+		return false;
+
+	if (qdf_mem_cmp(qdf_nbuf_data(nbuf) + QDF_NBUF_DEST_MAC_OFFSET,
+			vdev_mac_addr, QDF_MAC_ADDR_SIZE))
+		return false;
+
+	return true;
+}
+
+/**
  * __hdd_ipa_w2i_cb() - WLAN to IPA callback handler
  * @priv: pointer to private data registered with IPA (we register a
  *	pointer to the global IPA context)
@@ -5798,6 +5832,12 @@ static void __hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 	struct hdd_ipa_iface_context *iface_context;
 	uint8_t fw_desc;
 	QDF_STATUS status = QDF_STATUS_SUCCESS;
+	bool is_eapol_wapi = false;
+	struct qdf_mac_addr peer_mac_addr = QDF_MAC_ADDR_ZERO_INITIALIZER;
+	uint8_t sta_idx;
+	ol_txrx_peer_handle peer;
+	ol_txrx_pdev_handle pdev;
+	hdd_station_ctx_t *sta_ctx;
 
 	hdd_ipa = (struct hdd_ipa_priv *)priv;
 
@@ -5817,6 +5857,13 @@ static void __hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 			HDD_IPA_LOG(QDF_TRACE_LEVEL_ERROR,
 					"Invalid context: drop packet");
 			hdd_ipa->ipa_rx_internal_drop_count++;
+			kfree_skb(skb);
+			return;
+		}
+
+		pdev = cds_get_context(QDF_MODULE_ID_TXRX);
+		if (NULL == pdev) {
+			WMA_LOGE("%s: DP pdev is NULL", __func__);
 			kfree_skb(skb);
 			return;
 		}
@@ -5861,6 +5908,52 @@ static void __hdd_ipa_w2i_cb(void *priv, enum ipa_dp_evt_type evt,
 			skb_pull(skb, HDD_IPA_UC_WLAN_CLD_HDR_LEN);
 		} else {
 			skb_pull(skb, HDD_IPA_WLAN_CLD_HDR_LEN);
+		}
+
+		if (iface_context->adapter->device_mode == QDF_STA_MODE) {
+			sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(
+							iface_context->adapter);
+			qdf_copy_macaddr(&peer_mac_addr,
+					 &sta_ctx->conn_info.bssId);
+		} else if (iface_context->adapter->device_mode
+			   == QDF_SAP_MODE) {
+			qdf_mem_copy(peer_mac_addr.bytes, qdf_nbuf_data(skb) +
+				     QDF_NBUF_SRC_MAC_OFFSET,
+				     QDF_MAC_ADDR_SIZE);
+		}
+
+		if (qdf_nbuf_is_ipv4_eapol_pkt(skb)) {
+			is_eapol_wapi = true;
+			if (iface_context->adapter->device_mode ==
+			    QDF_SAP_MODE &&
+			    !wlan_ipa_eapol_intrabss_fwd_check(skb,
+					   iface_context->adapter->sessionId)) {
+				HDD_IPA_LOG(QDF_TRACE_LEVEL_ERROR,
+					    "EAPOL intrabss fwd drop DA: %pM",
+					    qdf_nbuf_data(skb) +
+					    QDF_NBUF_DEST_MAC_OFFSET);
+				hdd_ipa->ipa_rx_internal_drop_count++;
+				kfree_skb(skb);
+				return;
+			}
+		} else if (qdf_nbuf_is_ipv4_wapi_pkt(skb)) {
+			is_eapol_wapi = true;
+		}
+
+		peer = ol_txrx_find_peer_by_addr(pdev, peer_mac_addr.bytes,
+						 &sta_idx);
+
+		/*
+		 * Check for peer auth state before allowing non-EAPOL/WAPI
+		 * frames to be intrabss forwarded or submitted to stack.
+		 */
+		if (peer && ol_txrx_get_peer_state(peer) !=
+		    OL_TXRX_PEER_STATE_AUTH && !is_eapol_wapi) {
+			HDD_IPA_LOG(QDF_TRACE_LEVEL_ERROR,
+				    "non-EAPOL/WAPI frame received when peer is unauthorized");
+			hdd_ipa->ipa_rx_internal_drop_count++;
+			kfree_skb(skb);
+			return;
 		}
 
 		iface_context->stats.num_rx_ipa_excep++;

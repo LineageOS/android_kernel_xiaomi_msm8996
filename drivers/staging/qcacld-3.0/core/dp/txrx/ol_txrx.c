@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2020, 2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1951,13 +1951,31 @@ ol_txrx_pdev_post_attach(ol_txrx_pdev_handle pdev)
 	 */
 	qdf_mem_set(&pdev->rx_pn[0], sizeof(pdev->rx_pn), 0);
 
+	/* WEP: 24-bit PN */
+	pdev->rx_pn[htt_sec_type_wep40].len =
+		pdev->rx_pn[htt_sec_type_wep104].len =
+			pdev->rx_pn[htt_sec_type_wep128].len = 24;
+
+	pdev->rx_pn[htt_sec_type_wep40].cmp =
+		pdev->rx_pn[htt_sec_type_wep104].cmp =
+			pdev->rx_pn[htt_sec_type_wep128].cmp = ol_rx_pn_cmp24;
+
 	/* TKIP: 48-bit TSC, CCMP: 48-bit PN */
 	pdev->rx_pn[htt_sec_type_tkip].len =
 		pdev->rx_pn[htt_sec_type_tkip_nomic].len =
 			pdev->rx_pn[htt_sec_type_aes_ccmp].len = 48;
+
+	pdev->rx_pn[htt_sec_type_aes_ccmp_256].len =
+		pdev->rx_pn[htt_sec_type_aes_gcmp].len =
+			pdev->rx_pn[htt_sec_type_aes_gcmp_256].len = 48;
+
 	pdev->rx_pn[htt_sec_type_tkip].cmp =
 		pdev->rx_pn[htt_sec_type_tkip_nomic].cmp =
 			pdev->rx_pn[htt_sec_type_aes_ccmp].cmp = ol_rx_pn_cmp48;
+
+	pdev->rx_pn[htt_sec_type_aes_ccmp_256].cmp =
+		pdev->rx_pn[htt_sec_type_aes_gcmp].cmp =
+		    pdev->rx_pn[htt_sec_type_aes_gcmp_256].cmp = ol_rx_pn_cmp48;
 
 	/* WAPI: 128-bit PN */
 	pdev->rx_pn[htt_sec_type_wapi].len = 128;
@@ -4006,6 +4024,26 @@ ol_txrx_peer_find_by_addr(struct ol_txrx_pdev_t *pdev, uint8_t *peer_mac_addr)
 		OL_TXRX_PEER_UNREF_DELETE(peer);
 	}
 	return peer;
+}
+
+void
+ol_txrx_peer_flush_frags(ol_txrx_pdev_handle pdev, uint8_t vdev_id,
+			 uint8_t *peer_mac)
+{
+	struct ol_txrx_peer_t *peer;
+	uint8_t peer_id;
+
+	if (!pdev)
+		return;
+
+	peer = ol_txrx_find_peer_by_addr_inc_ref(pdev, peer_mac, &peer_id);
+
+	if (!peer)
+		return;
+
+	ol_rx_reorder_peer_cleanup(peer->vdev, peer);
+
+	OL_TXRX_PEER_UNREF_DELETE(peer);
 }
 
 /**
