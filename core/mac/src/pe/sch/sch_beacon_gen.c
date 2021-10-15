@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2019, 2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -156,7 +156,7 @@ sch_append_addn_ie(tpAniSirGlobal mac_ctx, tpPESession session,
 
 /**
  * sch_get_csa_ecsa_count_offset() - get the offset of Switch count field
- * @ie: pointer to the beggining of IEs in the beacon frame buffer
+ * @ie: pointer to the beginning of IEs in the beacon frame buffer
  * @ie_len: length of the IEs in the buffer
  * @csa_count_offset: pointer to the csa_count_offset variable in the caller
  * @ecsa_count_offset: pointer to the ecsa_count_offset variable in the caller
@@ -194,6 +194,9 @@ static void sch_get_csa_ecsa_count_offset(uint8_t *ie, uint32_t ie_len,
 		    elem_len == 4)
 			*ecsa_count_offset = offset +
 					SCH_ECSA_SWITCH_COUNT_OFFSET;
+
+		if (ie_len < elem_len)
+			return;
 
 		ie_len -= elem_len;
 		offset += elem_len;
