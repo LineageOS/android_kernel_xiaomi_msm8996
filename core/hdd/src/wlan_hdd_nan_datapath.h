@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -35,7 +36,6 @@ struct wireless_dev;
 #define NAN_SOCIAL_CHANNEL_5GHZ_LOWER_BAND 44
 #define NAN_SOCIAL_CHANNEL_5GHZ_UPPER_BAND 149
 
-#define NDP_APP_INFO_LEN 255
 #define NDP_PMK_LEN 32
 #define NDP_SCID_BUF_LEN 256
 #define NDP_NUM_INSTANCE_ID 255
