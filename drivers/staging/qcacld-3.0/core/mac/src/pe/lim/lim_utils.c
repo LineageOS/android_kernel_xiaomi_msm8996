@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019, 2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -6552,7 +6552,7 @@ tSirRetStatus lim_strip_ie(tpAniSirGlobal mac_ctx,
 	int left = *addn_ielen;
 	uint8_t *ptr = addn_ie;
 	uint8_t elem_id;
-	uint16_t elem_len;
+	uint16_t elem_len, ie_len, extracted_ie_len = 0;
 
 	if (NULL == addn_ie) {
 		pe_err("NULL addn_ie pointer");
@@ -6564,6 +6564,10 @@ tSirRetStatus lim_strip_ie(tpAniSirGlobal mac_ctx,
 		pe_err("Unable to allocate memory");
 		return eSIR_MEM_ALLOC_FAILED;
 	}
+
+	if (extracted_ie)
+		qdf_mem_set(extracted_ie, eid_max_len + size_of_len_field + 1,
+			    0);
 
 	while (left >= 2) {
 		elem_id  = ptr[0];
@@ -6595,12 +6599,13 @@ tSirRetStatus lim_strip_ie(tpAniSirGlobal mac_ctx,
 			 * take oui IE and store in provided buffer.
 			 */
 			if (NULL != extracted_ie) {
-				qdf_mem_set(extracted_ie,
-					    eid_max_len + size_of_len_field + 1,
-					    0);
-				if (elem_len <= eid_max_len)
-					qdf_mem_copy(extracted_ie, &ptr[0],
-					elem_len + size_of_len_field + 1);
+				ie_len = elem_len + size_of_len_field + 1;
+				if (ie_len <= eid_max_len - extracted_ie_len) {
+					qdf_mem_copy(
+					extracted_ie + extracted_ie_len,
+					&ptr[0], ie_len);
+					extracted_ie_len += ie_len;
+				}
 			}
 		}
 		left -= elem_len;

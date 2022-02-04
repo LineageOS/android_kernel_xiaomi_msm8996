@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -720,6 +721,11 @@ static int wma_ndp_confirm_event_handler(void *handle, uint8_t *event_info,
 			WMA_LOGE(FL("malloc failed"));
 			return QDF_STATUS_E_NOMEM;
 		}
+
+		if (ndp_confirm.ndp_info.ndp_app_info_len > NDP_APP_INFO_LEN)
+			ndp_confirm.ndp_info.ndp_app_info_len =
+							NDP_APP_INFO_LEN;
+
 		qdf_mem_copy(&ndp_confirm.ndp_info.ndp_app_info,
 			     event->ndp_app_info,
 			     ndp_confirm.ndp_info.ndp_app_info_len);

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -55,6 +56,7 @@
 #define WMA_RESUME_TIMEOUT                 6000
 #define MAX_MEM_CHUNKS                     32
 #define NAN_CLUSTER_ID_BYTES               4
+#define NDP_APP_INFO_LEN                   255
 
 #define WMA_CRASH_INJECT_TIMEOUT           5000
 
