@@ -3369,6 +3369,9 @@ static int dwc3_msm_probe(struct platform_device *pdev)
 		mdwc->pm_qos_latency = 0;
 	}
 
+	/* set the initial value */
+	mdwc->usb_data_enabled = true;
+
 	mdwc->usb_psy = power_supply_get_by_name("usb");
 	if (!mdwc->usb_psy) {
 		dev_warn(mdwc->dev, "Could not get usb power_supply\n");
@@ -3394,8 +3397,6 @@ static int dwc3_msm_probe(struct platform_device *pdev)
 			dev_info(mdwc->dev, "charger detection in progress\n");
 	}
 
-	/* set the initial value */
-	mdwc->usb_data_enabled = true;
 	device_create_file(&pdev->dev, &dev_attr_mode);
 	device_create_file(&pdev->dev, &dev_attr_speed);
 	device_create_file(&pdev->dev, &dev_attr_xhci_link_compliance);
