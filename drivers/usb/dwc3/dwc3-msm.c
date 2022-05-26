@@ -2773,8 +2773,13 @@ static int dwc3_msm_vbus_notifier(struct notifier_block *nb,
 		goto done;
 	}
 
-	if (!mdwc->usb_data_enabled)
+	if (!mdwc->usb_data_enabled) {
+		if (event)
+			dwc3_msm_gadget_vbus_draw(mdwc, 500);
+		else
+			dwc3_msm_gadget_vbus_draw(mdwc, 0);
 		return NOTIFY_DONE;
+	}
 
 	dev_dbg(mdwc->dev, "vbus:%ld event received\n", event);
 
@@ -4047,7 +4052,8 @@ static void dwc3_otg_sm_work(struct work_struct *w)
 			work = 1;
 			break;
 		} else {
-			dwc3_msm_gadget_vbus_draw(mdwc, 0);
+			if (mdwc->usb_data_enabled)
+				dwc3_msm_gadget_vbus_draw(mdwc, 0);
 			pm_relax(mdwc->dev);
 			dev_dbg(mdwc->dev, "Cable disconnected\n");
 		}
