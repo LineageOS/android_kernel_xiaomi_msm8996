@@ -85,16 +85,6 @@
 		} \
 	} while (0)
 
-/*
- * API in_compat_syscall() is introduced in 4.6 kernel to check whether we're
- * in a compat syscall or not. It is a new way to query the syscall type, which
- * works properly on all architectures.
- *
- */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0))
-static inline bool in_compat_syscall(void) { return is_compat_task(); }
-#endif
-
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)) || \
 	defined(CFG80211_REMOVE_IEEE80211_BACKPORT)
 #define HDD_NL80211_BAND_2GHZ   NL80211_BAND_2GHZ
