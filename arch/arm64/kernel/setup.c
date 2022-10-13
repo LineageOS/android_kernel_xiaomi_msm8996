@@ -322,6 +322,22 @@ u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
 
 void __init __weak init_random_pool(void) { }
 
+static int __init androidboot_hwversion(char *p)
+{
+	unsigned int devid, major, minor;
+
+	if (sscanf(p, "%x.%x.%x", &devid, &major, &minor) != 3)
+		return -1;
+
+	set_hw_version(
+		devid << HW_DEVID_VERSION_SHIFT |
+		major << HW_MAJOR_VERSION_SHIFT |
+		minor << HW_MINOR_VERSION_SHIFT);
+
+	return 0;
+}
+early_param("androidboot.hwversion", androidboot_hwversion);
+
 void __init setup_arch(char **cmdline_p)
 {
 	pr_info("Boot CPU: AArch64 Processor [%08x]\n", read_cpuid_id());
