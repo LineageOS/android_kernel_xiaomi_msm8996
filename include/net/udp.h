@@ -59,7 +59,7 @@ struct udp_skb_cb {
  *	@lock:	spinlock protecting changes to head/count
  */
 struct udp_hslot {
-	struct hlist_nulls_head	head;
+	struct hlist_head	head;
 	int			count;
 	spinlock_t		lock;
 } __attribute__((aligned(2 * sizeof(long))));
@@ -177,9 +177,10 @@ static inline struct udphdr *udp_gro_udphdr(struct sk_buff *skb)
 }
 
 /* hash routines shared between UDPv4/6 and UDP-Litev4/6 */
-static inline void udp_lib_hash(struct sock *sk)
+static inline int udp_lib_hash(struct sock *sk)
 {
 	BUG();
+	return 0;
 }
 
 void udp_lib_unhash(struct sock *sk);
