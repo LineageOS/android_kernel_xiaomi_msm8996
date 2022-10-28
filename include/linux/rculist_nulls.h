@@ -98,6 +98,7 @@ static inline void hlist_nulls_add_head_rcu(struct hlist_nulls_node *n,
 	if (!is_a_nulls(first))
 		WRITE_ONCE(first->pprev, &n->next);
 }
+
 /**
  * hlist_nulls_for_each_entry_rcu - iterate over rcu list of given type
  * @tpos:	the type * to use as a loop cursor.
