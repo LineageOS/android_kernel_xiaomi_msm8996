@@ -239,6 +239,12 @@ All object files for the main part of vmlinux.
 KBUILD_VMLINUX_INIT and KBUILD_VMLINUX_MAIN together specify
 all the object files used to link vmlinux.
 
+KBUILD_VMLINUX_LIBS
+--------------------------------------------------
+All .a "lib" files for vmlinux.
+KBUILD_VMLINUX_INIT, KBUILD_VMLINUX_MAIN, and KBUILD_VMLINUX_LIBS together
+specify all the object files used to link vmlinux.
+
 LLVM
 ----
 If this variable is set to 1, Kbuild will use Clang and LLVM utilities instead
