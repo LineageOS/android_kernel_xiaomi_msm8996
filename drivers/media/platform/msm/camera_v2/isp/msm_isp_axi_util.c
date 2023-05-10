@@ -2271,8 +2271,8 @@ static int msm_isp_process_done_buf(struct vfe_device *vfe_dev,
 			MSM_ISP_BUFFER_STATE_PUT_BUF;
 		buf->buf_debug.put_state_last ^= 1;
 		rc = vfe_dev->buf_mgr->ops->buf_done(vfe_dev->buf_mgr,
-		 buf->bufq_handle, buf->buf_idx, time_stamp,
-		 frame_id, stream_info->runtime_output_format);
+			buf->bufq_handle, buf->buf_idx, time_stamp,
+			frame_id, stream_info->runtime_output_format);
 		if (rc == -EFAULT) {
 			msm_isp_halt_send_error(vfe_dev,
 					ISP_EVENT_BUF_FATAL_ERROR);
