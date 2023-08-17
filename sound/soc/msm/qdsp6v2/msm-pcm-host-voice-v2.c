@@ -645,6 +645,12 @@ static int hpcm_start_vocpcm(char *pcm_id, struct hpcm_drv *prtd,
 		}
 	}
 
+	if (*no_of_tp != no_of_tp_req && *no_of_tp > 2) {
+		pr_err("%s:: Invalid hpcm start request\n", __func__);
+		memset(&prtd->start_cmd, 0, sizeof(struct start_cmd));
+		return -EINVAL;
+	}
+
 	if ((prtd->mixer_conf.tx.enable || prtd->mixer_conf.rx.enable) &&
 	    *no_of_tp == no_of_tp_req) {
 		voc_send_cvp_start_vocpcm(voc_get_session_id(sess_name),
