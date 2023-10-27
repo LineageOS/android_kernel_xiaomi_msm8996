@@ -307,7 +307,7 @@ int ptt_sock_activate_svc(void *hdd_ctx)
 	return 0;
 }
 
-void ptt_sock_deactivate_svc()
+void ptt_sock_deactivate_svc(void)
 {
 }
 
@@ -321,7 +321,7 @@ int ptt_sock_activate_svc(void *hdd_ctx)
    return 0;
 }
 
-void ptt_sock_deactivate_svc()
+void ptt_sock_deactivate_svc(void)
 {
 	nl_srv_unregister(ANI_NL_MSG_PUMAC, ptt_sock_rx_nlink_msg);
 	nl_srv_unregister(ANI_NL_MSG_PTT, ptt_sock_rx_nlink_msg);

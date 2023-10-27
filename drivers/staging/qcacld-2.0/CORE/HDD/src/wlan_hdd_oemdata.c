@@ -1293,7 +1293,7 @@ int oem_activate_service(void *hdd_ctx)
 
   \return - none
   --------------------------------------------------------------------------*/
-void oem_deactivate_service()
+void oem_deactivate_service(void)
 {
    /* unregister the msg handler for msgs addressed to WLAN_NL_MSG_OEM */
    nl_srv_unregister(WLAN_NL_MSG_OEM, __oem_msg_callback);

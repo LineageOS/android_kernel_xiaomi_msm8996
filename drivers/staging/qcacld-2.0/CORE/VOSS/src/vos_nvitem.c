@@ -557,7 +557,7 @@ bool vos_is_etsi_europe_country(uint8_t *country)
  *
  * Return: void
  */
-void vos_reset_global_reg_params()
+void vos_reset_global_reg_params(void)
 {
 	init_by_driver = false;
 	init_by_reg_core = false;

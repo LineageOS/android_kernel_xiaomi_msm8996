@@ -20769,7 +20769,7 @@ void hdd_get_fw_version(hdd_context_t *hdd_ctx,
 }
 
 #ifdef QCA_CONFIG_SMP
-int wlan_hdd_get_cpu()
+int wlan_hdd_get_cpu(void)
 {
 	int cpu_index = get_cpu();
 	put_cpu();

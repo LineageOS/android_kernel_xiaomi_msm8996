@@ -294,7 +294,7 @@ VOS_STATUS vos_rand_get_bytes( v_U32_t cryptHandle, v_U8_t *pbBuf, v_U32_t numBy
 
 
 #ifdef WLAN_FEATURE_11W
-v_U8_t vos_get_mmie_size()
+v_U8_t vos_get_mmie_size(void)
 {
     return sizeof(struct ieee80211_mmie);
 }

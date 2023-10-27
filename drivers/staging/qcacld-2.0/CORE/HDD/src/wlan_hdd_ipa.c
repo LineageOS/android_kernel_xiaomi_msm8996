@@ -2363,7 +2363,7 @@ static int hdd_ipa_uc_disconnect(hdd_context_t *hdd_ctx)
  *
  * Return: 0 - Success
  */
-int hdd_ipa_uc_ssr_deinit()
+int hdd_ipa_uc_ssr_deinit(void)
 {
 	struct hdd_ipa_priv *hdd_ipa = ghdd_ipa;
 	int idx;
