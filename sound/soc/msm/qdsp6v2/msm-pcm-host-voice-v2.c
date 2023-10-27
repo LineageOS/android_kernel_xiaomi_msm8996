@@ -1,4 +1,5 @@
 /* Copyright (c) 2013-2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -740,6 +741,13 @@ void hpcm_notify_evt_processing(uint8_t *data, char *session,
 	if ((notify_evt->notify_mask & VSS_IVPCM_NOTIFY_MASK_TIMETICK) == 0) {
 		pr_err("%s: Error notification. mask=%d\n", __func__,
 			notify_evt->notify_mask);
+		return;
+	}
+
+	if (prtd->mixer_conf.sess_indx < VOICE_INDEX ||
+		prtd->mixer_conf.sess_indx >= MAX_SESSION) {
+		pr_err("%s:: Invalid session idx %d\n",
+			__func__, prtd->mixer_conf.sess_indx);
 		return;
 	}
 

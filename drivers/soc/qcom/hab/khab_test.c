@@ -241,13 +241,13 @@ int hab_perf_test(long testId)
 	return ret;
 }
 
-static int kick_hab_perf_test(const char *val, struct kernel_param *kp);
-static int get_hab_perf_result(char *buffer, struct kernel_param *kp);
+static int kick_hab_perf_test(const char *val, const struct kernel_param *kp);
+static int get_hab_perf_result(char *buffer, const struct kernel_param *kp);
 
 module_param_call(perf_test, kick_hab_perf_test, get_hab_perf_result,
 		  NULL, S_IRUSR | S_IWUSR);
 
-static int kick_hab_perf_test(const char *val, struct kernel_param *kp)
+static int kick_hab_perf_test(const char *val, const struct kernel_param *kp)
 {
 	long testId;
 	int err = kstrtol(val, 10, &testId);
@@ -258,7 +258,7 @@ static int kick_hab_perf_test(const char *val, struct kernel_param *kp)
 	return hab_perf_test(testId);
 }
 
-static int get_hab_perf_result(char *buffer, struct kernel_param *kp)
+static int get_hab_perf_result(char *buffer, const struct kernel_param *kp)
 {
 	return strlcpy(buffer, g_perf_test_result,
 		strlen(g_perf_test_result)+1);

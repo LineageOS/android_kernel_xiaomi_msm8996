@@ -55,12 +55,7 @@ __read_mostly unsigned int walt_ravg_window =
 
 static unsigned int sync_cpu;
 static ktime_t ktime_last;
-static bool walt_ktime_suspended;
-
-static unsigned int task_load(struct task_struct *p)
-{
-	return p->ravg.demand;
-}
+static __read_mostly bool walt_ktime_suspended;
 
 static inline void fixup_cum_window_demand(struct rq *rq, s64 delta)
 {

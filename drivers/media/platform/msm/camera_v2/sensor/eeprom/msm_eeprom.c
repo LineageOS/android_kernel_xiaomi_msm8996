@@ -1939,7 +1939,7 @@ static int msm_eeprom_get_dt_data(struct msm_eeprom_ctrl_t *e_ctrl)
 		of_node = e_ctrl->pdev->dev.of_node;
 
 	if (!of_node) {
-		pr_err("%s: %d of_node is NULL\n", __func__ , __LINE__);
+		pr_err("%s: %d of_node is NULL\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
 	rc = msm_camera_get_dt_vreg_data(of_node, &power_info->cam_vreg,

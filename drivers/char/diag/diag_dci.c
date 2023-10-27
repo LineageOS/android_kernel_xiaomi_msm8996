@@ -1,4 +1,5 @@
 /* Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1615,7 +1616,6 @@ static int diag_send_dci_pkt(struct diag_cmd_reg_t *entry,
 		return -EIO;
 	}
 
-	mutex_lock(&driver->dci_mutex);
 	/* prepare DCI packet */
 	header.start = CONTROL_CHAR;
 	header.version = 1;
@@ -1634,7 +1634,6 @@ static int diag_send_dci_pkt(struct diag_cmd_reg_t *entry,
 		diag_update_pkt_buffer(driver->apps_dci_buf, write_len,
 				       DCI_PKT_TYPE);
 		diag_update_sleeping_process(entry->pid, DCI_PKT_TYPE);
-		mutex_unlock(&driver->dci_mutex);
 		return DIAG_DCI_NO_ERROR;
 	}
 
@@ -1654,7 +1653,6 @@ static int diag_send_dci_pkt(struct diag_cmd_reg_t *entry,
 		       entry->proc);
 		status = DIAG_DCI_SEND_DATA_FAIL;
 	}
-	mutex_unlock(&driver->dci_mutex);
 	return status;
 }
 
@@ -1734,7 +1732,16 @@ static int diag_send_dci_pkt_remote(unsigned char *data, int len, int tag,
 	write_len += dci_header_size;
 	*(int *)(buf + write_len) = tag;
 	write_len += sizeof(int);
-	memcpy(buf + write_len, data, len);
+	if ((write_len + len) < DIAG_MDM_BUF_SIZE) {
+		memcpy(buf + write_len, data, len);
+	} else {
+		pr_err("diag: skip writing invalid length packet, token: %d, pkt_len: %d\n",
+			token, (write_len + len));
+		spin_lock_irqsave(&driver->dci_mempool_lock, flags);
+		diagmem_free(driver, buf, dci_ops_tbl[token].mempool);
+		spin_unlock_irqrestore(&driver->dci_mempool_lock, flags);
+		return -EAGAIN;
+	}
 	write_len += len;
 	*(buf + write_len) = CONTROL_CHAR; /* End Terminator */
 	write_len += sizeof(uint8_t);
@@ -2115,8 +2122,11 @@ static int diag_process_dci_pkt_rsp(unsigned char *buf, int len)
 	if (temp_entry) {
 		reg_item = container_of(temp_entry, struct diag_cmd_reg_t,
 								entry);
-		ret = diag_send_dci_pkt(reg_item, req_buf, req_len,
+		mutex_lock(&driver->dci_mutex);
+		if (req_entry)
+			ret = diag_send_dci_pkt(reg_item, req_buf, req_len,
 					req_entry->tag);
+		mutex_unlock(&driver->dci_mutex);
 	} else {
 		DIAG_LOG(DIAG_DEBUG_DCI, "Command not found: %02x %02x %02x\n",
 				reg_entry.cmd_code, reg_entry.subsys_id,
