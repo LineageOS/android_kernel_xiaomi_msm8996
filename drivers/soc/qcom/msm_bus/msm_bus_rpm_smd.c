@@ -19,7 +19,7 @@
 #include <soc/qcom/rpm-smd.h>
 
 /* Stubs for backward compatibility */
-void msm_bus_rpm_set_mt_mask()
+void msm_bus_rpm_set_mt_mask(void)
 {
 }
 
