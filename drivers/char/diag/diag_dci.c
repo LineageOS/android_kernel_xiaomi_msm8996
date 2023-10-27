@@ -370,7 +370,7 @@ static int diag_dci_get_buffer(struct diag_dci_client_tbl *client,
 	return -EIO;
 }
 
-void diag_dci_wakeup_clients()
+void diag_dci_wakeup_clients(void)
 {
 	struct list_head *start, *temp;
 	struct diag_dci_client_tbl *entry = NULL;
