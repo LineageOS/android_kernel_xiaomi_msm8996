@@ -7138,7 +7138,7 @@ QDF_STATUS hdd_post_cds_enable_config(hdd_context_t *hdd_ctx)
 	return QDF_STATUS_SUCCESS;
 }
 
-hdd_adapter_t *hdd_get_first_valid_adapter()
+hdd_adapter_t *hdd_get_first_valid_adapter(void)
 {
 	hdd_adapter_list_node_t *adapterNode = NULL, *pNext = NULL;
 	hdd_adapter_t *adapter;
