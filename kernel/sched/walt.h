@@ -54,6 +54,8 @@ static inline void walt_set_window_start(struct rq *rq) { }
 static inline void walt_migrate_sync_cpu(int cpu) { }
 static inline void walt_init_cpu_efficiency(void) { }
 static inline u64 walt_ktime_clock(void) { return 0; }
+static inline void walt_account_irqtime(int cpu, struct task_struct *curr,
+		u64 delta, u64 wallclock) { }
 
 #define walt_cpu_high_irqload(cpu) false
 
