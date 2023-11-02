@@ -449,9 +449,9 @@ int copy_ul_filter_rule_to_ipa(struct ipa_install_fltr_rule_req_msg_v01
 			UL_FILTER_RULE_HANDLE_START + i;
 		rule_hdl[i] = ipa_qmi_ctx->q6_ul_filter_rule[i].filter_hdl;
 		ipa_qmi_ctx->q6_ul_filter_rule[i].ip =
-			rule_req->filter_spec_list[i].ip_type;
+			(enum ipa_ip_type)rule_req->filter_spec_list[i].ip_type;
 		ipa_qmi_ctx->q6_ul_filter_rule[i].action =
-			rule_req->filter_spec_list[i].filter_action;
+			(enum ipa_flt_action)rule_req->filter_spec_list[i].filter_action;
 		if (rule_req->filter_spec_list[i].is_routing_table_index_valid
 			== true)
 			ipa_qmi_ctx->q6_ul_filter_rule[i].rt_tbl_idx =
