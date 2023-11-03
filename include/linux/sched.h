@@ -170,6 +170,7 @@ extern int nr_threads;
 DECLARE_PER_CPU(unsigned long, process_counts);
 extern int nr_processes(void);
 extern unsigned long nr_running(void);
+extern bool cpu_has_rt_task(int cpu);
 extern bool single_task_running(void);
 extern unsigned long nr_iowait(void);
 extern unsigned long nr_iowait_cpu(int cpu);
@@ -1668,6 +1669,15 @@ struct task_struct {
 	const struct sched_class *sched_class;
 	struct sched_entity se;
 	struct sched_rt_entity rt;
+#ifdef CONFIG_SCHED_WALT
+	struct ravg ravg;
+	/*
+	 * 'init_load_pct' represents the initial task load assigned to children
+	 * of this task
+	 */
+	u32 init_load_pct;
+	u64 last_sleep_ts;
+#endif
 #ifdef CONFIG_SCHED_HMP
 	struct ravg ravg;
 	/*
@@ -1700,6 +1710,7 @@ struct task_struct {
 	unsigned int policy;
 	int nr_cpus_allowed;
 	cpumask_t cpus_allowed;
+	cpumask_t cpus_requested;
 
 #ifdef CONFIG_PREEMPT_RCU
 	int rcu_read_lock_nesting;
@@ -3723,6 +3734,7 @@ static inline unsigned long rlimit_max(unsigned int limit)
 #define SCHED_CPUFREQ_DL        (1U << 1)
 #define SCHED_CPUFREQ_IOWAIT    (1U << 2)
 #define SCHED_CPUFREQ_INTERCLUSTER_MIG (1U << 3)
+#define SCHED_CPUFREQ_WALT (1U << 4)
 
 #ifdef CONFIG_CPU_FREQ
 struct update_util_data {

@@ -49,7 +49,7 @@ static struct diag_logger_ops md_log_ops = {
 	.close_peripheral = diag_md_close_peripheral,
 };
 
-int diag_mux_init()
+int diag_mux_init(void)
 {
 	diag_mux = kzalloc(sizeof(struct diag_mux_state_t),
 			 GFP_KERNEL);
@@ -76,7 +76,7 @@ int diag_mux_init()
 	return 0;
 }
 
-void diag_mux_exit()
+void diag_mux_exit(void)
 {
 	kfree(diag_mux);
 }

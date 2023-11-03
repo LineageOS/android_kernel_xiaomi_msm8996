@@ -346,7 +346,7 @@ static const struct file_operations msm_thermal_fops = {
 	.release = msm_thermal_ioctl_release,
 };
 
-int msm_thermal_ioctl_init()
+int msm_thermal_ioctl_init(void)
 {
 	int ret = 0;
 	dev_t thermal_dev;
@@ -409,7 +409,7 @@ ioctl_init_exit:
 	return ret;
 }
 
-void msm_thermal_ioctl_cleanup()
+void msm_thermal_ioctl_cleanup(void)
 {
 	uint32_t idx = 0;
 	dev_t thermal_dev = MKDEV(msm_thermal_major, 0);
