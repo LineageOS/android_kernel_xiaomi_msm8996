@@ -105,6 +105,24 @@
       "message": "this change won\u0027t mess with anything on 20.",
       "revId": "17c35628bdacc116cd072681fe931ce8e8f37f2b",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c5283109_89c5289a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2023-11-03T16:15:37Z",
+      "side": 1,
+      "message": "https://github.com/LineageOS/android_kernel_xiaomi_msm8996/commit/271f5217424f0c0507d1958db9d2793e957e4e17\n\nLet\u0027s just leave lineage-20 alone.",
+      "parentUuid": "5772cb44_a01de817",
+      "revId": "17c35628bdacc116cd072681fe931ce8e8f37f2b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
