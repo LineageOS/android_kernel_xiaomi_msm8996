@@ -70,6 +70,24 @@
       "parentUuid": "8c89af7e_4ff34ff7",
       "revId": "17c35628bdacc116cd072681fe931ce8e8f37f2b",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d6412218_81a45b34",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2023-11-03T14:58:50Z",
+      "side": 1,
+      "message": "Because I only enabled updatable APEXes in 21, don\u0027t want to mess with it in 20.",
+      "parentUuid": "a055236f_5744d463",
+      "revId": "17c35628bdacc116cd072681fe931ce8e8f37f2b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
