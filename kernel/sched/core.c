@@ -1170,13 +1170,10 @@ struct migration_arg {
  */
 static struct rq *__migrate_task(struct rq *rq, struct task_struct *p, int dest_cpu)
 {
-	int src_cpu;
-
 	/* Affinity changed (again). */
 	if (!is_cpu_allowed(p, dest_cpu))
 		return rq;
 
-	src_cpu = cpu_of(rq);
 	rq = move_queued_task(rq, p, dest_cpu);
 
 	return rq;
