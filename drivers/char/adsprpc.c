@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2022, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2943,6 +2943,7 @@ static ssize_t fastrpc_debugfs_read(struct file *filp, char __user *buffer,
 			map->secure, map->attr);
 		}
 		mutex_unlock(&fl->map_mutex);
+		spin_lock(&fl->hlock);
 		len += scnprintf(fileinfo + len, DEBUGFS_SIZE - len,
 			"\n%s %s %s\n", title,
 			" LIST OF PENDING SMQCONTEXTS ", title);
