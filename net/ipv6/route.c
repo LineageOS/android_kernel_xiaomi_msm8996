@@ -2310,12 +2310,12 @@ static struct rt6_info *rt6_get_route_info(struct net_device *dev,
 					   const struct in6_addr *prefix, int prefixlen,
 					   const struct in6_addr *gwaddr)
 {
+	u32 tb_id = l3mdev_fib_table(dev) ? : addrconf_rt_table(dev, RT6_TABLE_INFO);
 	struct fib6_node *fn;
 	struct rt6_info *rt = NULL;
 	struct fib6_table *table;
 
-	table = fib6_get_table(dev_net(dev),
-			       addrconf_rt_table(dev, RT6_TABLE_INFO));
+	table = fib6_get_table(dev_net(dev), tb_id);
 	if (!table)
 		return NULL;
 
@@ -2354,7 +2354,7 @@ static struct rt6_info *rt6_add_route_info(struct net_device *dev,
 		.fc_nlinfo.nl_net = dev_net(dev),
 	};
 
-	cfg.fc_table = l3mdev_fib_table_by_index(dev_net(dev), dev->ifindex) ? : addrconf_rt_table(dev, RT6_TABLE_INFO);
+	cfg.fc_table = l3mdev_fib_table(dev) ? : addrconf_rt_table(dev, RT6_TABLE_INFO);
 	cfg.fc_dst = *prefix;
 	cfg.fc_gateway = *gwaddr;
 
@@ -2370,11 +2370,11 @@ static struct rt6_info *rt6_add_route_info(struct net_device *dev,
 
 struct rt6_info *rt6_get_dflt_router(const struct in6_addr *addr, struct net_device *dev)
 {
+	u32 tb_id = l3mdev_fib_table(dev) ? : addrconf_rt_table(dev, RT6_TABLE_DFLT);
 	struct rt6_info *rt;
 	struct fib6_table *table;
 
-	table = fib6_get_table(dev_net(dev),
-			       addrconf_rt_table(dev, RT6_TABLE_MAIN));
+	table = fib6_get_table(dev_net(dev), tb_id);
 	if (!table)
 		return NULL;
 
