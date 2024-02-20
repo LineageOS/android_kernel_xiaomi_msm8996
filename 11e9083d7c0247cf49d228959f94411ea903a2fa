@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "76635593_d2c74a38",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2024-02-20T13:55:42Z",
+      "side": 1,
+      "message": "Merging this anyway, even if we don\u0027t go with the retrofit.",
+      "revId": "11e9083d7c0247cf49d228959f94411ea903a2fa",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
