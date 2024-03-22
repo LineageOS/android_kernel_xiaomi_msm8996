@@ -4998,12 +4998,9 @@ static inline u64 sched_cfs_bandwidth_slice(void)
  */
 void __refill_cfs_bandwidth_runtime(struct cfs_bandwidth *cfs_b)
 {
-	u64 now;
-
 	if (cfs_b->quota == RUNTIME_INF)
 		return;
 
-	now = sched_clock_cpu(smp_processor_id());
 	cfs_b->runtime = cfs_b->quota;
 }
 
@@ -7585,11 +7582,6 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 
 			if (new_util > capacity_orig)
 				continue;
-
-#ifdef CONFIG_SCHED_WALT
-			if (walt_cpu_high_irqload(i))
-				continue;
-#endif
 
 			/*
 			 * Case A) Latency sensitive tasks
