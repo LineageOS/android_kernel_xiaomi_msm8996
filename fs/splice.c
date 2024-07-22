@@ -183,83 +183,42 @@ ssize_t splice_to_pipe(struct pipe_inode_info *pipe,
 		       struct splice_pipe_desc *spd)
 {
 	unsigned int spd_pages = spd->nr_pages;
-	int ret, do_wakeup, page_nr;
+	int ret = 0, page_nr = 0;
 
 	if (!spd_pages)
 		return 0;
 
-	ret = 0;
-	do_wakeup = 0;
-	page_nr = 0;
-
-	pipe_lock(pipe);
-
-	for (;;) {
-		if (!pipe->readers) {
-			send_sig(SIGPIPE, current, 0);
-			if (!ret)
-				ret = -EPIPE;
-			break;
-		}
-
-		if (pipe->nrbufs < pipe->buffers) {
-			int newbuf = (pipe->curbuf + pipe->nrbufs) & (pipe->buffers - 1);
-			struct pipe_buffer *buf = pipe->bufs + newbuf;
-
-			buf->page = spd->pages[page_nr];
-			buf->offset = spd->partial[page_nr].offset;
-			buf->len = spd->partial[page_nr].len;
-			buf->private = spd->partial[page_nr].private;
-			buf->ops = spd->ops;
-			buf->flags = 0;
-			if (spd->flags & SPLICE_F_GIFT)
-				buf->flags |= PIPE_BUF_FLAG_GIFT;
-
-			pipe->nrbufs++;
-			page_nr++;
-			ret += buf->len;
-
-			if (pipe->files)
-				do_wakeup = 1;
-
-			if (!--spd->nr_pages)
-				break;
-			if (pipe->nrbufs < pipe->buffers)
-				continue;
-
-			break;
-		}
-
-		if (spd->flags & SPLICE_F_NONBLOCK) {
-			if (!ret)
-				ret = -EAGAIN;
-			break;
-		}
-
-		if (signal_pending(current)) {
-			if (!ret)
-				ret = -ERESTARTSYS;
-			break;
-		}
-
-		if (do_wakeup) {
-			smp_mb();
-			if (waitqueue_active(&pipe->wait))
-				wake_up_interruptible_sync(&pipe->wait);
-			kill_fasync(&pipe->fasync_readers, SIGIO, POLL_IN);
-			do_wakeup = 0;
-		}
-
-		pipe->waiting_writers++;
-		pipe_wait(pipe);
-		pipe->waiting_writers--;
+	if (unlikely(!pipe->readers)) {
+		send_sig(SIGPIPE, current, 0);
+		ret = -EPIPE;
+		goto out;
 	}
 
-	pipe_unlock(pipe);
+	while (pipe->nrbufs < pipe->buffers) {
+		int newbuf = (pipe->curbuf + pipe->nrbufs) & (pipe->buffers - 1);
+		struct pipe_buffer *buf = pipe->bufs + newbuf;
 
-	if (do_wakeup)
-		wakeup_pipe_readers(pipe);
+		buf->page = spd->pages[page_nr];
+		buf->offset = spd->partial[page_nr].offset;
+		buf->len = spd->partial[page_nr].len;
+		buf->private = spd->partial[page_nr].private;
+		buf->ops = spd->ops;
+		buf->flags = 0;
+		if (spd->flags & SPLICE_F_GIFT)
+			buf->flags |= PIPE_BUF_FLAG_GIFT;
 
+		pipe->nrbufs++;
+		page_nr++;
+		ret += buf->len;
+
+		if (!--spd->nr_pages)
+			break;
+	}
+
+	if (!ret)
+		ret = -EAGAIN;
+
+out:
 	while (page_nr < spd_pages)
 		spd->spd_release(spd, page_nr++);
 
@@ -1342,6 +1301,25 @@ long do_splice_direct(struct file *in, loff_t *ppos, struct file *out,
 }
 EXPORT_SYMBOL(do_splice_direct);
 
+static int wait_for_space(struct pipe_inode_info *pipe, unsigned flags)
+{
+	for (;;) {
+		if (unlikely(!pipe->readers)) {
+			send_sig(SIGPIPE, current, 0);
+			return -EPIPE;
+		}
+		if (pipe->nrbufs != pipe->buffers)
+			return 0;
+		if (flags & SPLICE_F_NONBLOCK)
+			return -EAGAIN;
+		if (signal_pending(current))
+			return -ERESTARTSYS;
+		pipe->waiting_writers++;
+		pipe_wait(pipe);
+		pipe->waiting_writers--;
+	}
+}
+
 static int splice_pipe_to_pipe(struct pipe_inode_info *ipipe,
 			       struct pipe_inode_info *opipe,
 			       size_t len, unsigned int flags);
@@ -1424,8 +1402,13 @@ static long do_splice(struct file *in, loff_t __user *off_in,
 			offset = in->f_pos;
 		}
 
-		ret = do_splice_to(in, &offset, opipe, len, flags);
-
+		pipe_lock(opipe);
+		ret = wait_for_space(opipe, flags);
+		if (!ret)
+			ret = do_splice_to(in, &offset, opipe, len, flags);
+		pipe_unlock(opipe);
+		if (ret > 0)
+			wakeup_pipe_readers(opipe);
 		if (!off_in)
 			in->f_pos = offset;
 		else if (copy_to_user(off_in, &offset, sizeof(loff_t)))
@@ -1437,106 +1420,32 @@ static long do_splice(struct file *in, loff_t __user *off_in,
 	return -EINVAL;
 }
 
-/*
- * Map an iov into an array of pages and offset/length tupples. With the
- * partial_page structure, we can map several non-contiguous ranges into
- * our ones pages[] map instead of splitting that operation into pieces.
- * Could easily be exported as a generic helper for other users, in which
- * case one would probably want to add a 'max_nr_pages' parameter as well.
- */
-static int get_iovec_page_array(const struct iovec __user *iov,
-				unsigned int nr_vecs, struct page **pages,
-				struct partial_page *partial, bool aligned,
+static int get_iovec_page_array(struct iov_iter *from,
+				struct page **pages,
+				struct partial_page *partial,
 				unsigned int pipe_buffers)
 {
-	int buffers = 0, error = 0;
+	int buffers = 0;
+	while (iov_iter_count(from)) {
+		ssize_t copied;
+		size_t start;
 
-	while (nr_vecs) {
-		unsigned long off, npages;
-		struct iovec entry;
-		void __user *base;
-		size_t len;
-		int i;
+		copied = iov_iter_get_pages(from, pages + buffers, ~0UL,
+					pipe_buffers - buffers, &start);
+		if (copied <= 0)
+			return buffers ? buffers : copied;
 
-		error = -EFAULT;
-		if (copy_from_user(&entry, iov, sizeof(entry)))
-			break;
-
-		base = entry.iov_base;
-		len = entry.iov_len;
-
-		/*
-		 * Sanity check this iovec. 0 read succeeds.
-		 */
-		error = 0;
-		if (unlikely(!len))
-			break;
-		error = -EFAULT;
-		if (!access_ok(VERIFY_READ, base, len))
-			break;
-
-		/*
-		 * Get this base offset and number of pages, then map
-		 * in the user pages.
-		 */
-		off = (unsigned long) base & ~PAGE_MASK;
-
-		/*
-		 * If asked for alignment, the offset must be zero and the
-		 * length a multiple of the PAGE_SIZE.
-		 */
-		error = -EINVAL;
-		if (aligned && (off || len & ~PAGE_MASK))
-			break;
-
-		npages = (off + len + PAGE_SIZE - 1) >> PAGE_SHIFT;
-		if (npages > pipe_buffers - buffers)
-			npages = pipe_buffers - buffers;
-
-		error = get_user_pages_fast((unsigned long)base, npages,
-					0, &pages[buffers]);
-
-		if (unlikely(error <= 0))
-			break;
-
-		/*
-		 * Fill this contiguous range into the partial page map.
-		 */
-		for (i = 0; i < error; i++) {
-			const int plen = min_t(size_t, len, PAGE_SIZE - off);
-
-			partial[buffers].offset = off;
-			partial[buffers].len = plen;
-
-			off = 0;
-			len -= plen;
+		iov_iter_advance(from, copied);
+		while (copied) {
+			int size = min_t(int, copied, PAGE_SIZE - start);
+			partial[buffers].offset = start;
+			partial[buffers].len = size;
+			copied -= size;
+			start = 0;
 			buffers++;
 		}
-
-		/*
-		 * We didn't complete this iov, stop here since it probably
-		 * means we have to move some of this into a pipe to
-		 * be able to continue.
-		 */
-		if (len)
-			break;
-
-		/*
-		 * Don't continue if we mapped fewer pages than we asked for,
-		 * or if we mapped the max number of pages that we have
-		 * room for.
-		 */
-		if (error < npages || buffers == pipe_buffers)
-			break;
-
-		nr_vecs--;
-		iov++;
 	}
-
-	if (buffers)
-		return buffers;
-
-	return error;
+	return buffers;
 }
 
 static int pipe_to_user(struct pipe_inode_info *pipe, struct pipe_buffer *buf,
@@ -1590,10 +1499,13 @@ static long vmsplice_to_user(struct file *file, const struct iovec __user *uiov,
  * as splice-from-memory, where the regular splice is splice-from-file (or
  * to file). In both cases the output is a pipe, naturally.
  */
-static long vmsplice_to_pipe(struct file *file, const struct iovec __user *iov,
+static long vmsplice_to_pipe(struct file *file, const struct iovec __user *uiov,
 			     unsigned long nr_segs, unsigned int flags)
 {
 	struct pipe_inode_info *pipe;
+	struct iovec iovstack[UIO_FASTIOV];
+	struct iovec *iov = iovstack;
+	struct iov_iter from;
 	struct page *pages[PIPE_DEF_BUFFERS];
 	struct partial_page partial[PIPE_DEF_BUFFERS];
 	struct splice_pipe_desc spd = {
@@ -1610,18 +1522,32 @@ static long vmsplice_to_pipe(struct file *file, const struct iovec __user *iov,
 	if (!pipe)
 		return -EBADF;
 
-	if (splice_grow_spd(pipe, &spd))
+	ret = import_iovec(WRITE, uiov, nr_segs,
+			   ARRAY_SIZE(iovstack), &iov, &from);
+	if (ret < 0)
+		return ret;
+
+	if (splice_grow_spd(pipe, &spd)) {
+		kfree(iov);
 		return -ENOMEM;
+	}
 
-	spd.nr_pages = get_iovec_page_array(iov, nr_segs, spd.pages,
-					    spd.partial, false,
-					    spd.nr_pages_max);
-	if (spd.nr_pages <= 0)
-		ret = spd.nr_pages;
-	else
-		ret = splice_to_pipe(pipe, &spd);
-
+	pipe_lock(pipe);
+	ret = wait_for_space(pipe, flags);
+	if (!ret) {
+		spd.nr_pages = get_iovec_page_array(&from, spd.pages,
+						    spd.partial,
+						    spd.nr_pages_max);
+		if (spd.nr_pages <= 0)
+			ret = spd.nr_pages;
+		else
+			ret = splice_to_pipe(pipe, &spd);
+	}
+	pipe_unlock(pipe);
+	if (ret > 0)
+		wakeup_pipe_readers(pipe);
 	splice_shrink_spd(&spd);
+	kfree(iov);
 	return ret;
 }
 
