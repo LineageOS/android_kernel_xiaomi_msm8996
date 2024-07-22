@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
+ * Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #include <linux/fs.h>
 #include <linux/mutex.h>
@@ -2391,6 +2392,14 @@ static int32_t q6asm_callback(struct apr_client_data *data, void *priv)
 				__func__, data->payload_size);
 		break;
 	case ASM_SESSION_CMDRSP_GET_MTMX_STRTR_PARAMS_V2:
+		payload_size = sizeof(struct asm_mtmx_strtr_get_params_cmdrsp);
+		if (data->payload_size < payload_size) {
+			pr_err("%s: insufficient payload size = %d\n",
+				__func__, data->payload_size);
+			spin_unlock_irqrestore(
+				&(session[session_id].session_lock), flags);
+			return -EINVAL;
+		}
 		q6asm_process_mtmx_get_param_rsp(ac, (void *) payload);
 		break;
 	case ASM_STREAM_PP_EVENT:
