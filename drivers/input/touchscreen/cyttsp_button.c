@@ -1190,8 +1190,20 @@ static int cyttsp_proc_init(struct kernfs_node *sysfs_node_parent)
 	struct proc_dir_entry *proc_symlink_tmp  = NULL;
 
 	buf = kzalloc(PATH_MAX, GFP_KERNEL);
-	if (buf)
-		path = kernfs_path(sysfs_node_parent, buf, PATH_MAX);
+	if (buf) {
+		ret = kernfs_path(sysfs_node_parent, buf, PATH_MAX);
+
+		if (ret >= 0)
+			path = buf;
+		else {
+			pr_err("%s: kernfs_path() failed\n", __func__);
+			kfree(buf);
+			return ret;
+		}
+	} else {
+		pr_err("%s: Failed to allocate buffer for path\n", __func__);
+		return -ENOMEM;
+	}
 
 	proc_entry_buttons = proc_mkdir("buttons", NULL);
 	if (proc_entry_buttons == NULL) {
@@ -1200,8 +1212,9 @@ static int cyttsp_proc_init(struct kernfs_node *sysfs_node_parent)
 	}
 
 	reversed_keys_sysfs_node = kzalloc(PATH_MAX, GFP_KERNEL);
-	if (reversed_keys_sysfs_node)
-		sprintf(reversed_keys_sysfs_node, "/sys%s/%s", path, "reversed_keys");
+	if (reversed_keys_sysfs_node) {
+		snprintf(reversed_keys_sysfs_node, PATH_MAX, "/sys%s/%s", path, "reversed_keys");
+	}
 	proc_symlink_tmp = proc_symlink("reversed_keys_enable",
 			proc_entry_buttons, reversed_keys_sysfs_node);
 	if (proc_symlink_tmp == NULL) {
