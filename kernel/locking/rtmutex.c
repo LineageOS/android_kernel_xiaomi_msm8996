@@ -1076,12 +1076,13 @@ static void remove_waiter(struct rt_mutex *lock,
 {
 	bool is_top_waiter = (waiter == rt_mutex_top_waiter(lock));
 	struct task_struct *owner = rt_mutex_owner(lock);
+	struct task_struct *task = waiter->task;
 	struct rt_mutex *next_lock;
 
-	raw_spin_lock(&current->pi_lock);
+	raw_spin_lock(&task->pi_lock);
 	rt_mutex_dequeue(lock, waiter);
-	current->pi_blocked_on = NULL;
-	raw_spin_unlock(&current->pi_lock);
+	task->pi_blocked_on = NULL;
+	raw_spin_unlock(&task->pi_lock);
 
 	/*
 	 * Only update priority if the waiter was the highest priority
@@ -1117,7 +1118,7 @@ static void remove_waiter(struct rt_mutex *lock,
 	raw_spin_unlock_irq(&lock->wait_lock);
 
 	rt_mutex_adjust_prio_chain(owner, RT_MUTEX_MIN_CHAINWALK, lock,
-				   next_lock, NULL, current);
+				   next_lock, NULL, task);
 
 	raw_spin_lock_irq(&lock->wait_lock);
 }
