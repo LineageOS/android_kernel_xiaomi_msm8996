@@ -46,6 +46,12 @@ extern void __chk_io_ptr(const volatile void __iomem *);
 # define __pmem
 #endif
 
+/*
+ *   gcc: https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html#index-cleanup-variable-attribute
+ * clang: https://clang.llvm.org/docs/AttributeReference.html#cleanup
+ */
+#define __cleanup(func)			__attribute__((__cleanup__(func)))
+
 /* Indirect macros required for expanded argument pasting, eg. __LINE__. */
 #define ___PASTE(a,b) a##b
 #define __PASTE(a,b) ___PASTE(a,b)

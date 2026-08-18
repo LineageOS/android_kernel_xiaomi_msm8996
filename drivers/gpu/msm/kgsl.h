@@ -1,4 +1,5 @@
 /* Copyright (c) 2008-2016,2018-2019,2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -463,6 +464,7 @@ extern const struct dev_pm_ops kgsl_pm_ops;
 
 int kgsl_suspend_driver(struct platform_device *pdev, pm_message_t state);
 int kgsl_resume_driver(struct platform_device *pdev);
+unsigned long kgsl_get_align(struct kgsl_memdesc *memdesc);
 
 static inline int kgsl_gpuaddr_in_memdesc(const struct kgsl_memdesc *memdesc,
 				uint64_t gpuaddr, uint64_t size)
